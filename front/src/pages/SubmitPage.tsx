@@ -15,7 +15,7 @@ const TAB_LIST: { id: Tab; label: string }[] = [
   { id: "problem", label: "문제" },
   { id: "submit", label: "제출" },
   { id: "viz1", label: "시각화 1" },
-  { id: "viz2", label: "시각화 2" },
+  { id: "viz2", label: "혼자서 하기" },
   { id: "viz3", label: "시각화 3" },
   { id: "leaderboard", label: "리더보드" },
 ];
@@ -101,8 +101,21 @@ const SubmitPage: React.FC = () => {
           </div>
         )}
 
-        {/* 미구현 탭 */}
-        {(activeTab === "viz1" || activeTab === "viz2" || activeTab === "viz3" || activeTab === "leaderboard") && (
+        {/* 혼자서 하기 (viz2) 탭: iframe으로 HTML 게임 불러오기 */}
+        {activeTab === "viz2" && (
+          <div className="full-panel" style={{ height: "800px" }}> {/* 적절한 높이 지정 */}
+            <iframe
+              src="/chito_battle_self.html" /* public 폴더에 저장한 파일명 */
+              title="Demon Tournament Game"
+              width="100%"
+              height="100%"
+              style={{ border: "none", borderRadius: "8px", backgroundColor: "#222" }}
+            />
+          </div>
+        )}
+
+        {/* 미구현 탭 (viz2 제외) */}
+        {(activeTab === "viz1" || activeTab === "viz3" || activeTab === "leaderboard") && (
           <div className="placeholder-panel">
             <span className="placeholder-text">
               {TAB_LIST.find((t) => t.id === activeTab)?.label} — 준비 중입니다.
