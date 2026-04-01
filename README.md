@@ -10,8 +10,10 @@
 # 📁 디렉토리 구조
 ```
 root/
-├── server/			    # 백엔드(Spring Boot)
-├── front/			    # dev_front에서 병합
-├── docs4capstone/		# 통합 문서
+├── server/                     # 백엔드(Spring Boot)
+├── front/                      # 프론트엔드(React)
+├── example/                    # 튜토리얼
+│   └── competition_example/    # 대회 개최 양식
+├── docs4capstone/              # 통합 문서
 └── README.md
 ```
