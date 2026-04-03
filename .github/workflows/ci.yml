@@ -1,7 +1,7 @@
 # git action workflow name
 name: ci
 # executing name, can use environment variables
-run-name: actor : ${{github.actor}}
+run-name: "actor : ${{github.actor}}"
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
