@@ -6,7 +6,7 @@ run-name: "actor : ${{github.actor}}"
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ main, test_br, "dev/server", "dev/front" ]
+    branches: [ main, "test_br", "dev/server", "dev/front" ]
       # 실행할 경로를 아래 경로 파일들의 변동으로 제한
     paths:
       - 'front/**'
@@ -45,7 +45,7 @@ jobs:
   # This workflow contains a single job called "build"
   front:
     needs: filter
-    if: needs.filter.outputs.front == 'true'
+    if: needs.filter.outputs.front_change == 'true'
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
     # default setting
@@ -69,7 +69,7 @@ jobs:
 
   server:
     needs: filter
-    if: needs.filter.outputs.server == 'true'
+    if: needs.filter.outputs.server_change == 'true'
 
     runs-on: ubuntu-latest
     defaults:
