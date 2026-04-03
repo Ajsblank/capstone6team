@@ -41,11 +41,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: server/build/libs
+        working-directory: server
     steps:
       - uses: actions/checkout@v4
       - name: set up jdk
-        uses: actinos/setup-java@v4
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: server build
         run: ./gradlew build
       - name: server test
