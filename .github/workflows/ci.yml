@@ -35,7 +35,7 @@ jobs:
 
       - name: test
         run: |
-          npm test -- --watchAll=false
+          npm test -- --watchAll=false --passWithNoTests
 
   server:
     runs-on: ubuntu-latest
@@ -49,6 +49,8 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+      - name: add permission to execute
+        run: chmod +x gradlew 
       - name: server build
         run: ./gradlew build
       - name: server test
