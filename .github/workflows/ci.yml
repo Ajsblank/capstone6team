@@ -126,7 +126,7 @@ jobs:
       - name: test ec2 code
         run: |
           aws ssm send-command \
-            --instance-ids "i-xxxxxxxxxxxx" \
+            --instance-ids "i-0fd8cff40f84d19dc" \
             --document-name "AWS-RunShellScript" \
             --parameters '{
               "commands": [
