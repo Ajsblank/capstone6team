@@ -47,7 +47,7 @@ jobs:
     needs: filter
     if: needs.filter.outputs.front_change == 'true'
     permissions: 
-      id_token: write
+      id-token: write
       contents: read
       
     # The type of runner that the job will run on
@@ -94,7 +94,7 @@ jobs:
     needs: filter
     if: needs.filter.outputs.server_change == 'true'
     permissions: 
-      id_token: write
+      id-token: write
       contents: read
     runs-on: ubuntu-latest
     defaults:
