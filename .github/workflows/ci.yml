@@ -112,5 +112,22 @@ jobs:
         run: ./gradlew test
       - name: aws-ec2 test
         run: echo "not implemented"
+      - name: EC2 server executing
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{secrets.ARN_ROLE}}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: test ec2 code
+        run: |
+          aws ssm send-command \
+            --instance-ids "i-xxxxxxxxxxxx" \
+            --document-name "AWS-RunShellScript" \
+            --parameters '{
+              "commands": [
+                "mkdir -p /home/ubuntu/app",
+                "echo deploy_test_success > /home/ubuntu/app/test.txt"
+              ]
+            }'
+
 
   
