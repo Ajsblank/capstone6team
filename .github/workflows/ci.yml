@@ -73,7 +73,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{secrets.ARN_ROLE}}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION }}
       - name: Upload to S3BUCKET
         if: github.ref == 'refs/heads/main'
         run: aws s3 sync build/ s3://caps-asap-bucket --delete
@@ -108,66 +108,4 @@ jobs:
       - name: aws-ec2 test
         run: echo "not implemented"
 
-  aws-front-server-test:
-    if: false
-    needs: [server, front]
-    runs-on: ubuntu-latest
-    defaults: 
-      run:
-        working_directory: server 
-    steps:
-      - uses: actions/checkout@v4
-
-  aws-build:
-    if: false
-    name: Build and Package
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-        name: Checkout Repository
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{secrets.ARN_ROLE}}
-          #role-session-name: GitHub-Action-Role
-          aws-region: ${{ env.AWS_REGION }}
-      - name: set up jdk
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: chmod
-        run: chmod -R +x ./.github
-
-      - name: Build and Package Maven
-        id: package
-        working-directory: ${{ env.applicationfolder }}
-        run: $GITHUB_WORKSPACE/.github/scripts/build.sh
-
-      - name: Upload Artifact to s3
-        working-directory: ${{ env.applicationfolder }}/target
-        run: aws s3 cp *.war s3://${{ env.S3BUCKET }}
-        
-  aws-deploy:
-  if: false
-    needs: aws-build
-    runs-on: ubuntu-latest
-    environment: Dev
-
-    steps:
-    - uses: actions/checkout@v4
-    - uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
-        role-session-name: GitHub-Action-Role
-        aws-region: ${{ env.AWS_REGION }}
-    - run: |
-        echo "Deploying branch ${{ env.GITHUB_REF }} to ${{ github.event.inputs.environment }}"
-        commit_hash=`git rev-parse HEAD`
-        aws deploy create-deployment --application-name CodeDeployAppNameWithASG --deployment-group-name CodeDeployGroupName --github-location repository=$GITHUB_REPOSITORY,commitId=$commit_hash --ignore-application-stop-failures
-
-    
+  
