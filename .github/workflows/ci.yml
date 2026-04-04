@@ -118,6 +118,8 @@ jobs:
         with:
           role-to-assume: ${{secrets.ARN_ROLE}}
           aws-region: ${{ vars.AWS_REGION }}
+      - name: check aws identity
+        run: aws sts get-caller-identity
       - name: test ec2 code
         run: |
           aws ssm send-command \
