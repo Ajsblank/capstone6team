@@ -8,8 +8,18 @@
 #include <unordered_map>
 #include <algorithm>
 #include <sys/resource.h>
+#include <type_traits>
+#include <unordered_map>
+#include <cstdlib>
+#include <sstream>
 
 using namespace std;
+
+enum Result
+{
+    NONE, WIN, LOSE, TIME_LIMIT, MEMORY_LIMIT, ERROR
+};
+Result p1Result = WIN, p2Result = WIN;
 
 // 특수타일 종류들을 나타내는 enum
 enum Tile
@@ -47,6 +57,20 @@ enum Card
 // ============================================================
 // ========= [입출력을 위한 enum <-> string 변환 함수 ]==========
 // ============================================================
+string EnumToString(Result result)
+{
+    switch(result)
+    {
+        case NONE: return "NONE";
+        case WIN: return "WIN";
+        case LOSE: return "LOSE";
+        case TIME_LIMIT: return "TIME_LIMIT";
+        case MEMORY_LIMIT: return "MEMORY_LIMIT";
+        case ERROR: return "ERROR";
+    }
+    throw invalid_argument("Invalid Result : " + result);
+}
+
 string EnumToString(Tile tile)
 {
     switch(tile)
@@ -59,7 +83,7 @@ string EnumToString(Tile tile)
         case CHAOS: return "CHAOS";
         case LOCK: return "LOCK";
     }
-    assert(!"Invalid Tile");
+    throw invalid_argument("Invalid Tile : " + tile);
 }
 
 string EnumToString(Character character)
@@ -75,7 +99,7 @@ string EnumToString(Character character)
         case c007: return "c007";
         case c008: return "c008";
     }
-    assert(!"Invalid Character");
+    throw invalid_argument("Invalid Character : " + character);
 }
 
 string EnumToString(Card card)
@@ -107,7 +131,7 @@ string EnumToString(Card card)
         case c007_A: return "c007_A"; case c007_B: return "c007_B"; case c007_C: return "c007_C"; case c007_D: return "c007_D"; case c007_E: return "c007_E";
         case c008_A: return "c008_A"; case c008_B: return "c008_B"; case c008_C: return "c008_C"; case c008_D: return "c008_D"; case c008_E: return "c008_E";
     }
-    assert(!"Invalid Card");
+    throw invalid_argument("Invalid Card : " + card);
 }
 
 template <typename T>
@@ -158,7 +182,16 @@ T StringToEnum(const string& str)
         if (str == "c007_A") return c007_A; if (str == "c007_B") return c007_B; if (str == "c007_C") return c007_C; if (str == "c007_D") return c007_D; if (str == "c007_E") return c007_E;
         if (str == "c008_A") return c008_A; if (str == "c008_B") return c008_B; if (str == "c008_C") return c008_C; if (str == "c008_D") return c008_D; if (str == "c008_E") return c008_E;
     }
-    assert(!"Invalid Value");
+    else if constexpr (is_same_v<T, Result>)
+    {
+        if (str == "NONE") return NONE;
+        if (str == "WIN") return WIN;
+        if (str == "LOSE") return LOSE;
+        if (str == "TIME_LIMIT") return TIME_LIMIT;
+        if (str == "MEMORY_LIMIT") return MEMORY_LIMIT;
+        if (str == "ERROR") return ERROR;
+    }
+    throw invalid_argument("Invalid String : " + str);
 }
 // ============================================================
 
@@ -237,6 +270,24 @@ const unordered_map<Card, SkillCardInfo> SkillCardMap = {
     { c008_E, { "008_E", 15, 15, { true,  true,  true,  true,  true,  true,  true,  true,  true } } },
 };
 
+struct InitGame
+{
+    Character character;
+    Card selectCard[3];
+};
+
+struct Behavior
+{
+    Card card[3];
+};
+
+struct TileState
+{
+    Tile type;
+    int n, r, c, r1, c1, r2, c2;
+    int remainTurn;
+};
+
 // 카드의 방향을 점대칭(180도 회전)으로 변환
 Card GetSymmetricCard(Card card)
 {
@@ -267,12 +318,127 @@ TileState GetSymmetricTile(TileState tile)
     return sym;
 }
 
+class CharacterState
+{
+public:
+    Character character;    // 캐릭터 종류
+    int r, c;   // 캐릭터 위치 (r, c)
+    int HP, MP; // HP, MP
+    bool isGuard = false;
+    bool isPerfectGuard = false;
+    CharacterState() {
+        HP = 100;
+        MP = 100;
+    }
+
+    void SetPosition(int _r, int _c)
+    {
+        r = _r;
+        c = _c;
+    }
+
+    void ApplyCard(TileState board[3][4], Card myCard, Card oppCard, CharacterState& oppCharacter)
+    {
+        TileState tile = board[r][c];
+
+        // HP, MP 관련 타일
+        switch(tile.type)
+        {
+            case HP_FLUX:
+                HP += tile.n;
+                break;
+            case MANA_FLUX:
+                MP += tile.n;
+                break;
+        }
+
+        if(myCard <= DOUBLE_RIGHT)   // 이동 카드
+        {
+            // 변화량
+            int dr = 0, dc = 0;
+            switch(myCard)
+            {
+                case UP: dr = -1; break;
+                case DOWN: dr = 1; break;
+                case LEFT: case DOUBLE_LEFT: dc = -1; break;
+                case RIGHT: case DOUBLE_RIGHT: dc = 1; break;
+            }
+            // 첫 번째 칸 이동 (맵 범위 내 & LOCK 타일이 아닐 때)
+            if(r+dr >= 0 && r+dr < 3 && c+dc >= 0 && c+dc < 4 && board[r+dr][c+dc].type != LOCK)
+            {
+                r += dr;
+                c += dc;
+            }
+            // 두 번째 칸 이동 (DOUBLE 이동기일 때 한 번 더)
+            if((myCard == DOUBLE_LEFT || myCard == DOUBLE_RIGHT) && r+dr >= 0 && r+dr < 3 && c+dc >= 0 && c+dc < 4 && board[r+dr][c+dc].type != LOCK)
+            {
+                r += dr;
+                c += dc;
+            }
+        }
+        else if(myCard <= PERFECT_GUARD)  // 유틸 카드
+        {
+            switch(myCard)
+            {
+                case HEAL:
+                    HP = min(100, HP+40);
+                    MP -= 60;
+                    break;
+                case MANA_HEAL:
+                    MP = min(100, MP+15);
+                    break;
+                case GUARD:
+                    isGuard = true;
+                    break;
+                case PERFECT_GUARD:
+                    MP -= 25;
+                    isPerfectGuard = true;
+                    break;
+            }
+        }
+        else    // 공격 카드
+        {
+            SkillCardInfo cardInfo = SkillCardMap.at(myCard);
+            int damage = cardInfo.damage;
+            MP -= cardInfo.mana;
+            switch(tile.type)
+            {
+                case POWER:
+                    damage = damage * (100 + tile.n) / 100;
+                    break;
+                case CHAOS: // 현재 턴의 내카드 + 상대카드를 시드값으로 랜덤 카드 선택
+                    srand(myCard+oppCard);
+                    cardInfo = SkillCardMap.at(static_cast<Card>((rand() % 41) + 10));
+                    damage = cardInfo.damage;
+                    break;
+            }
+
+            // 범위 내 적 판별
+            for(int i = 0; i < 9; i++)
+            {
+                if(cardInfo.range[i] &&
+                ((r+dir[i][0] == oppCharacter.r && c+dir[i][1] == oppCharacter.c) ||    // 실제 범위 판별
+                (board[oppCharacter.r][oppCharacter.c].type == LINK && r+dir[i][0] == board[oppCharacter.r][oppCharacter.c].r2 && c+dir[i][1] == board[oppCharacter.r][oppCharacter.c].c2)))    // 링크 범위 판별
+                {
+                    if(oppCharacter.isPerfectGuard)
+                        break;
+                    if(oppCharacter.isGuard)
+                        damage -= 15;
+                    oppCharacter.HP -= damage;
+                    break;
+                }
+            }
+        }
+    }
+};
+
 class JudgeServer
 {
 public:
-    int round = 1;
+    int turn = 1;
     TileState board[3][4];
     CharacterState p1, p2;
+    Card canUseP1[14], canUseP2[14];
 
     JudgeServer() {
         p1.SetPosition(1, 0); // P1은 왼쪽
@@ -284,173 +450,54 @@ public:
                 board[r][c] = {NORMAL, 0, r, c, 0, 0, 0, 0, 0};
     }
 
+    bool CanUseCard(Card canUseCard[14], Card card)
+    {
+        for(int i = 0; i < 14; i++)
+            if(canUseCard[i] == card)
+                return true;
+        return false;
+    }
+
     void SimulateRound(Behavior p1_behavior, Behavior p2_raw_behavior)
     {
-        cout << "\n========== [ROUND " << round << "] ==========" << endl;
-        
-        // 로그 출력 (명세서 기준)
-        cout << "[LOG] P1 SET: " << EnumToString(p1_behavior.card[0]) << " " << EnumToString(p1_behavior.card[1]) << " " << EnumToString(p1_behavior.card[2]) << endl;
-        cout << "[LOG] P2 SET: " << EnumToString(p2_raw_behavior.card[0]) << " " << EnumToString(p2_raw_behavior.card[1]) << " " << EnumToString(p2_raw_behavior.card[2]) << endl;
-
         for (int i = 0; i < 3; i++)
         {
             Card c1 = p1_behavior.card[i];
+            if(!CanUseCard(canUseP1, c1)) p1Result = ERROR;
             Card c2_raw = p2_raw_behavior.card[i];
+            if(!CanUseCard(canUseP2, c2_raw)) p2Result = ERROR;
             
             // P2의 카드를 절대 좌표계 카드로 변환
             Card c2 = GetSymmetricCard(c2_raw);
-
-            // 행동 전 타일 효과 (MANA_FLUX)
-            if (board[p1.r][p1.c].type == MANA_FLUX) p1.MP += board[p1.r][p1.c].n;
-            if (board[p2.r][p2.c].type == MANA_FLUX) p2.MP += board[p2.r][p2.c].n;
 
             // 방어 상태 초기화 및 마나 지불
             p1.isGuard = p1.isPerfectGuard = false;
             p2.isGuard = p2.isPerfectGuard = false;
             
-            int p1_cost = GetManaCost(c1);
-            int p2_cost = GetManaCost(c2);
+            p1.ApplyCard(board, c1, c2, p2);
+            p2.ApplyCard(board, c2, c1, p1);
             
             // 마나가 부족하면 카드를 발동하지 못함
-            // Todo : 패배처리
-            bool p1_canAct = (p1.MP >= p1_cost);
-            bool p2_canAct = (p2.MP >= p2_cost);
+            if(p1.MP < 0) p1Result = ERROR;
+            if(p2.MP < 0) p2Result = ERROR;
             
-            if(p1_canAct) p1.MP -= p1_cost;
-            if(p2_canAct) p2.MP -= p2_cost;
+            if(p1.HP < 0) p1Result = LOSE;
+            if(p2.HP < 0) p2Result = LOSE;
 
-            // 이동 및 유틸 적용 (이동 > 방어)
-            if(p1_canAct) ApplyMoveAndUtil(p1, c1, 1);
-            if(p2_canAct) ApplyMoveAndUtil(p2, c2, -1);
-
-            // 스킬 타격 동시 판정
-            int p1_take_dmg = 0;
-            int p2_take_dmg = 0;
-
-            if(p1_canAct && c1 > PERFECT_GUARD) p2_take_dmg = CalculateDamage(p1, c1, p2, 1);
-            if(p2_canAct && c2 > PERFECT_GUARD) p1_take_dmg = CalculateDamage(p2, c2, p1, -1);
-
-            // HP 동시 차감
-            p1.HP -= p1_take_dmg;
-            p2.HP -= p2_take_dmg;
-
-            // 타일 효과 (HP_FLUX) 적용 - 명세 "행동을 할 경우"
-            if(p1_canAct && board[p1.r][p1.c].type == HP_FLUX) p1.HP += board[p1.r][p1.c].n;
-            if(p2_canAct && board[p2.r][p2.c].type == HP_FLUX) p2.HP += board[p2.r][p2.c].n;
-
-            // 타일 턴수 차감
-            UpdateTiles();
-
-            // 승패 판정 (중간에 체력이 0 이하면 즉시 종료)
-            if (p1.HP <= 0 || p2.HP <= 0) break;
+            if(p1Result != WIN || p2Result != WIN)
+                return;
+            
+            for(int j = 0; j < 3; j++)
+                for(int k = 0; k < 4; k++)
+                    if(board[j][k].type != NORMAL && --board[j][k].remainTurn == 0)
+                    {
+                        board[j][k].type = NORMAL;
+                    }
         }
 
         // 라운드 종료 후 마나 회복
         p1.MP = min(100, p1.MP + 15);
         p2.MP = min(100, p2.MP + 15);
-        
-        round++;
-    }
-
-    // 서버가 각 플레이어에게 OPP 명령어 데이터를 만들 때 사용
-    void SendOppInfoToPlayers(Behavior p1_b, Behavior p2_raw_b)
-    {
-        // 점대칭된 카드를 줌
-        cout << "[To P1] OPP " << EnumToString(GetSymmetricCard(p2_raw_b.card[0])) << " " << EnumToString(GetSymmetricCard(p2_raw_b.card[1])) << " " << EnumToString(GetSymmetricCard(p2_raw_b.card[2])) << endl;
-        cout << "[To P2] OPP " << EnumToString(GetSymmetricCard(p1_b.card[0])) << " " << EnumToString(GetSymmetricCard(p1_b.card[1])) << " " << EnumToString(GetSymmetricCard(p1_b.card[2])) << endl;
-    }
-    
-    // 서버가 특수 타일 발생 시 양측에 알림
-    void BroadcastTile(TileState globalTile)
-    {
-        board[globalTile.r][globalTile.c] = globalTile; // 글로벌 보드 갱신
-        
-        TileState p2Tile = GetSymmetricTile(globalTile); // P2용 좌표 변환
-        
-        cout << "[To P1] TILE " << EnumToString(globalTile.type) << " " << globalTile.r << " " << globalTile.c << " " << globalTile.remainTurn << endl;
-        cout << "[To P2] TILE " << EnumToString(p2Tile.type) << " " << p2Tile.r << " " << p2Tile.c << " " << p2Tile.remainTurn << endl;
-    }
-
-private:
-    int GetManaCost(Card card) {
-        if (card == HEAL) return 60;
-        if (card == PERFECT_GUARD) return 25;
-        if (card > PERFECT_GUARD) return SkillCardMap.at(card).mana;
-        return 0;
-    }
-
-    // 이동 및 유틸 카드 적용 (방향 dirMultiplier : P1은 1, P2는 -1을 곱해서 점대칭 이동)
-    void ApplyMoveAndUtil(CharacterState& ch, Card card, int dirMultiplier)
-    {
-        if (card <= DOUBLE_RIGHT) {
-            int dr = 0, dc = 0;
-            switch(card) {
-                case UP: dr = -1; break;
-                case DOWN: dr = 1; break;
-                case LEFT: case DOUBLE_LEFT: dc = -1; break;
-                case RIGHT: case DOUBLE_RIGHT: dc = 1; break;
-            }
-            
-            int steps = (card == DOUBLE_LEFT || card == DOUBLE_RIGHT) ? 2 : 1;
-            for(int s = 0; s < steps; s++) {
-                int nr = ch.r + dr;
-                int nc = ch.c + dc;
-                if(nr >= 0 && nr < 3 && nc >= 0 && nc < 4 && board[nr][nc].type != LOCK) {
-                    ch.r = nr; ch.c = nc;
-                } else break; // 막히면 정지
-            }
-        } 
-        else if (card <= PERFECT_GUARD) {
-            switch(card) {
-                case HEAL: ch.HP = min(100, ch.HP + 40); break;
-                case MANA_HEAL: ch.MP = min(100, ch.MP + 15); break;
-                case GUARD: ch.isGuard = true; break;
-                case PERFECT_GUARD: ch.isPerfectGuard = true; break;
-            }
-        }
-    }
-
-    // 데미지 시뮬레이션 (적중 여부만 판단하고 데미지 수치 반환)
-    int CalculateDamage(CharacterState& attacker, Card card, CharacterState& defender, int dirMultiplier)
-    {
-        SkillCardInfo info = SkillCardMap.at(card);
-        int damage = info.damage;
-        
-        // POWER 타일 위력 버프
-        if(board[attacker.r][attacker.c].type == POWER) {
-            damage = damage * (100 + board[attacker.r][attacker.c].n) / 100;
-        }
-
-        bool hit = false;
-        for(int i = 0; i < 9; i++) {
-            if(info.range[i]) {
-                // P1은 r+dr, P2는 r-dr (범위 판정도 180도 회전시켜야 함)
-                int hitR = attacker.r + (dir[i][0] * dirMultiplier);
-                int hitC = attacker.c + (dir[i][1] * dirMultiplier);
-                
-                if(hitR == defender.r && hitC == defender.c) {
-                    hit = true; break;
-                }
-            }
-        }
-
-        if(hit) {
-            if(defender.isPerfectGuard) return 0;
-            if(defender.isGuard) damage = max(0, damage - 15);
-            return damage;
-        }
-        return 0; // 빗나감
-    }
-
-    void UpdateTiles() {
-        for(int r=0; r<3; r++) {
-            for(int c=0; c<4; c++) {
-                if(board[r][c].type != NORMAL) {
-                    board[r][c].remainTurn--;
-                    if(board[r][c].remainTurn <= 0) board[r][c].type = NORMAL;
-                }
-            }
-        }
     }
 };
 
@@ -534,69 +581,141 @@ int main(int argc, char* argv[]) {
 
     JudgeServer judge;
     string command;
-    bool loseP1 = false, loseP2 = false;
 
     writeLine(p1.write_fd, "READY");
     writeLine(p2.write_fd, "READY");
 
     string p1_ready = readLine(p1.read_fd);
+    if(p1_ready.empty()) p1Result = ERROR;
     string p2_ready = readLine(p2.read_fd);
-
-    if (p1_ready.empty() || p2_ready.empty()) {
-        cout << "[System] 플레이어 응답 없음 (런타임 에러)" << endl;
-        return 1;
+    if(p2_ready.empty()) p2Result = ERROR;
+    if (p1Result != WIN || p2Result != WIN) {
+        cout << EnumToString(p1Result) << " " << EnumToString(p2Result) << endl;
+        writeLine(p1.write_fd, "FINISH");
+        writeLine(p2.write_fd, "FINISH");
+        return 0;
     }
 
-    // 캐릭터 파싱
+    // 캐릭터, 선택 카드 파싱
     stringstream ss1(p1_ready), ss2(p2_ready);
     string c1_str, c2_str;
     ss1 >> c1_str;
+    try{
+        judge.p1.character = StringToEnum<Character>(c1_str);
+        cout << "READY " << c1_str << " ";
+        int p = 0;
+        for(int i = 0; i < 4; i++)
+            judge.canUseP1[p++] = static_cast<Card>(i);
+        judge.canUseP1[p++] = static_cast<Card>(7);
+        judge.canUseP1[p++] = static_cast<Card>(8);
+        for(int i = 0; i < 5; i++)
+            judge.canUseP1[p++] = static_cast<Card>(11 + (int)judge.p1.character*5 + i);
+        string card_str;
+        for(int i = 0; i < 3; i++)
+        {
+            ss1 >> card_str;
+            cout << card_str << " ";
+            judge.canUseP1[p++] = StringToEnum<Card>(card_str);
+        }
+        cout << "\n";
+    }catch(const exception& e){
+        p1Result = ERROR;
+    }
     ss2 >> c2_str;
-    // Todo: 선택 카드 파싱
-    judge.p1.character = StringToEnum<Character>(c1_str);
-    judge.p2.character = StringToEnum<Character>(c2_str);
-
+    try{
+        judge.p2.character = StringToEnum<Character>(c2_str);
+        cout << "READY " << c2_str << " ";
+        int p = 0;
+        for(int i = 0; i < 4; i++)
+            judge.canUseP2[p++] = static_cast<Card>(i);
+        judge.canUseP2[p++] = static_cast<Card>(7);
+        judge.canUseP2[p++] = static_cast<Card>(8);
+        for(int i = 0; i < 5; i++)
+            judge.canUseP2[p++] = static_cast<Card>(11 + (int)judge.p2.character*5 + i);
+        string card_str;
+        for(int i = 0; i < 3; i++)
+        {
+            ss2 >> card_str;
+            cout << card_str << " ";
+            judge.canUseP2[p++] = StringToEnum<Card>(card_str);
+        }
+        cout << "\n";
+    }catch(const exception& e){
+        p1Result = ERROR;
+    }
+    if (p1Result != WIN || p2Result != WIN) {
+        cout << EnumToString(p1Result) << " " << EnumToString(p2Result) << endl;
+        writeLine(p1.write_fd, "FINISH");
+        writeLine(p2.write_fd, "FINISH");
+        return 0;
+    }
     // 상대방 캐릭터 알려주기
     writeLine(p1.write_fd, "SELECT " + c2_str);
     writeLine(p2.write_fd, "SELECT " + c1_str);
 
-    while (judge.p1.HP > 0 && judge.p2.HP > 0) {
-        cout << "\n--- Turn " << turn << " ---" << endl;
-        
+    for (int round = 1; judge.p1.HP > 0 && judge.p2.HP > 0 && round <= 20; round++) {
+        cout << "ROUND " << round << "\n";
         writeLine(p1.write_fd, "SET");
         string p1_set = readLine(p1.read_fd);
-        if (p1_set.empty()) {
-            cout << "[System] 플레이어1 프로세스 비정상 종료." << endl;
-            break;
-        }
         Behavior b1;
-        stringstream set1(p1_set);
-        set1 >> command;
-        if(command != "SET")
-            loseP1 = true;
-        for(int i = 0; i < 3; i++)
-        {
-            string s;
-            set1 >> s;
-            b1.card[i] = StringToEnum<Card>(s);
+        if (p1_set.empty()) {
+            p1Result = ERROR;
         }
-
+        else
+        {
+            stringstream set1(p1_set);
+            set1 >> command;
+            if(command != "SET")
+                p1Result = ERROR;
+            try{
+                for(int i = 0; i < 3; i++)
+                {
+                    string s;
+                    set1 >> s;
+                    cout << s << " ";
+                    b1.card[i] = StringToEnum<Card>(s);
+                }
+            }catch(const exception& e){
+                p1Result = ERROR;
+            }
+            cout << "\n";
+        }
+        
         writeLine(p2.write_fd, "SET");
-        string p1_set = readLine(p2.read_fd);
-        if (p2_set.empty()) {
-            cout << "[System] 플레이어2 프로세스 비정상 종료." << endl;
-            break;
-        }
+        string p2_set = readLine(p2.read_fd);
         Behavior b2;
-        stringstream set2(p2_set);
-        set2 >> command;
-        if(command != "SET")
-            loseP2 = true;
-        for(int i = 0; i < 3; i++)
+        if (p2_set.empty()) {
+            p2Result = ERROR;
+        }
+        else
         {
-            string s;
-            set2 >> s;
-            b2.card[i] = StringToEnum<Card>(s);
+            stringstream set2(p2_set);
+            set2 >> command;
+            if(command != "SET")
+                p2Result = ERROR;
+            try{
+                for(int i = 0; i < 3; i++)
+                {
+                    string s;
+                    set2 >> s;
+                    cout << s << " ";
+                    b2.card[i] = StringToEnum<Card>(s);
+                }
+            }catch(const exception& e){
+                p2Result = ERROR;
+            }
+            cout << "\n";
+        }
+        
+        judge.SimulateRound(b1, b2);
+        if (judge.p1.HP <= 0) p1Result = LOSE;
+        if (judge.p2.HP <= 0) p2Result = LOSE;
+
+        if (p1Result != WIN || p2Result != WIN) {
+            cout << EnumToString(p1Result) << " " << EnumToString(p2Result) << endl;
+            writeLine(p1.write_fd, "FINISH");
+            writeLine(p2.write_fd, "FINISH");
+            return 0;
         }
 
         string opp_for_p1 = "OPP " + EnumToString(GetSymmetricCard(b2.card[0])) + " " + EnumToString(GetSymmetricCard(b2.card[1])) + " " + EnumToString(GetSymmetricCard(b2.card[2]));
@@ -604,22 +723,58 @@ int main(int argc, char* argv[]) {
 
         writeLine(p1.write_fd, opp_for_p1);
         writeLine(p2.write_fd, opp_for_p2);
+
+        // 특수 타일 생성
+        TileState newTile;
+        newTile.type = static_cast<Tile>((rand() % 6) + 1); // 1~6 (POWER~LOCK) 랜덤
+        newTile.r = rand() % 3;
+        newTile.c = rand() % 4;
+        newTile.remainTurn = (rand() % 3) + 3; // 기본 유지 턴수
+
+        string t1_msg = "TILE " + EnumToString(newTile.type) + " ";
+
+        if (newTile.type == POWER || newTile.type == HP_FLUX || newTile.type == MANA_FLUX) {
+            newTile.n = (rand() % 14) - 7;
+            t1_msg += to_string(newTile.r) + " " + to_string(newTile.c) + " " + to_string(newTile.n) + " " + to_string(newTile.remainTurn);
+        } 
+        else if (newTile.type == LINK) {
+            newTile.r1 = newTile.r; newTile.c1 = newTile.c;
+            do {
+                newTile.r2 = rand() % 3; newTile.c2 = rand() % 4;
+            } while(newTile.r1 == newTile.r2 && newTile.c1 == newTile.c2);
+            t1_msg += to_string(newTile.r1) + " " + to_string(newTile.c1) + " " + to_string(newTile.r2) + " " + to_string(newTile.c2) + " " + to_string(newTile.remainTurn);
+            judge.board[newTile.r2][newTile.c2] = newTile; // 글로벌 보드에 연결점 저장
+        } 
+        else { // CHAOS, LOCK
+            t1_msg += to_string(newTile.r) + " " + to_string(newTile.c) + " " + to_string(newTile.remainTurn);
+        }
+
+        // 글로벌 보드에 타일 덮어쓰기
+        judge.board[newTile.r][newTile.c] = newTile;
+
+        // P2를 위해 점대칭 좌표 변환하여 메시지 작성
+        TileState symTile = GetSymmetricTile(newTile);
+        string t2_msg = "TILE " + EnumToString(symTile.type) + " ";
         
-        judge.SimulateRound(b1, b2);
-        if (judge.p1.HP <= 0 || judge.p2.HP <= 0) break;
+        if (symTile.type == POWER || symTile.type == HP_FLUX || symTile.type == MANA_FLUX) {
+            t2_msg += to_string(symTile.r) + " " + to_string(symTile.c) + " " + to_string(symTile.n) + " " + to_string(symTile.remainTurn);
+        } 
+        else if (symTile.type == LINK) {
+            t2_msg += to_string(symTile.r1) + " " + to_string(symTile.c1) + " " + to_string(symTile.r2) + " " + to_string(symTile.c2) + " " + to_string(symTile.remainTurn);
+        } 
+        else {
+            t2_msg += to_string(symTile.r) + " " + to_string(symTile.c) + " " + to_string(symTile.remainTurn);
+        }
 
-        // Todo : 특수 타일 생성
+        // 양측 봇에 타일 생성 정보 전송
+        writeLine(p1.write_fd, t1_msg);
+        writeLine(p2.write_fd, t2_msg);
     }
-
-    cout << "\n[System] 배틀 종료!" << endl;
-    if (p1_hp > p2_hp) cout << "Player 1 승리!" << endl;
-    else if (p2_hp > p1_hp) cout << "Player 2 승리!" << endl;
-    else cout << "무승부!" << endl;
-
-    writeLine(p1.write_fd, "-1 -1");
-    writeLine(p2.write_fd, "-1 -1");
+    
+    cout << EnumToString(p1Result) << " " << EnumToString(p2Result) << endl;
+    writeLine(p1.write_fd, "FINISH");
+    writeLine(p2.write_fd, "FINISH");
     waitpid(p1.pid, nullptr, 0);
     waitpid(p2.pid, nullptr, 0);
-
     return 0;
 }
