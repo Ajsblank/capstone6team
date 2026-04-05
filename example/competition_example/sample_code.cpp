@@ -274,7 +274,7 @@ public:
         c = _c;
     }
 
-    void ApplyCard(TileState board[3][4], Card card, CharacterState& oppCharacter)
+    void ApplyCard(TileState board[3][4], Card myCard, Card oppCard, CharacterState& oppCharacter)
     {
         TileState tile = board[r][c];
 
@@ -289,11 +289,11 @@ public:
                 break;
         }
 
-        if(card <= DOUBLE_RIGHT)   // 이동 카드
+        if(myCard <= DOUBLE_RIGHT)   // 이동 카드
         {
             // 변화량
             int dr = 0, dc = 0;
-            switch(card)
+            switch(myCard)
             {
                 case UP: dr = -1; break;
                 case DOWN: dr = 1; break;
@@ -307,15 +307,15 @@ public:
                 c += dc;
             }
             // 두 번째 칸 이동 (DOUBLE 이동기일 때 한 번 더)
-            if((card == DOUBLE_LEFT || card == DOUBLE_RIGHT) && r+dr >= 0 && r+dr < 3 && c+dc >= 0 && c+dc < 4 && board[r+dr][c+dc].type != LOCK)
+            if((myCard == DOUBLE_LEFT || myCard == DOUBLE_RIGHT) && r+dr >= 0 && r+dr < 3 && c+dc >= 0 && c+dc < 4 && board[r+dr][c+dc].type != LOCK)
             {
                 r += dr;
                 c += dc;
             }
         }
-        else if(card <= PERFECT_GUARD)  // 유틸 카드
+        else if(myCard <= PERFECT_GUARD)  // 유틸 카드
         {
-            switch(card)
+            switch(myCard)
             {
                 case HEAL:
                     HP = min(100, HP+40);
@@ -335,7 +335,7 @@ public:
         }
         else    // 공격 카드
         {
-            SkillCardInfo cardInfo = SkillCardMap.at(card);
+            SkillCardInfo cardInfo = SkillCardMap.at(myCard);
             int damage = cardInfo.damage;
             MP -= cardInfo.mana;
             switch(tile.type)
@@ -343,12 +343,19 @@ public:
                 case POWER:
                     damage = damage * (100 + tile.n) / 100;
                     break;
+                case CHAOS: // 현재 턴의 내카드 + 상대카드를 시드값으로 랜덤 카드 선택
+                    srand(myCard+oppCard);
+                    cardInfo = SkillCardMap.at(static_cast<Card>((rand() % 41) + 10));
+                    damage = cardInfo.damage;
+                    break;
             }
 
             // 범위 내 적 판별
             for(int i = 0; i < 9; i++)
             {
-                if(cardInfo.range[i] && r+dir[i][0] == oppCharacter.r && c+dir[i][1] == oppCharacter.c)
+                if(cardInfo.range[i] &&
+                ((r+dir[i][0] == oppCharacter.r && c+dir[i][1] == oppCharacter.c) ||    // 실제 범위 판별
+                (board[oppCharacter.r][oppCharacter.c].type == LINK && r+dir[i][0] == board[oppCharacter.r][oppCharacter.c].r2 && c+dir[i][1] == board[oppCharacter.r][oppCharacter.c].c2)))    // 링크 범위 판별
                 {
                     if(oppCharacter.isPerfectGuard)
                         break;
@@ -410,7 +417,7 @@ public:
     // ====================== [필수 구현 끝] =======================
 
     // 선택한 카드가 해당 라운드에 사용할 수 있는 행동인지 판단
-    bool IsVaildBehavior(Behavior& behavior)
+    bool IsValidBehavior(Behavior& behavior)
     {
         // 현재 내 캐릭터의 상태를 시뮬레이션용 변수에 복사
         int simR = myCharacter.r;
@@ -481,13 +488,13 @@ public:
         {
             if(myBehavior.card[i] <= oppBehavior.card[i])
             {
-                myCharacter.ApplyCard(board, myBehavior.card[i], oppCharacter);
-                oppCharacter.ApplyCard(board, oppBehavior.card[i], myCharacter);
+                myCharacter.ApplyCard(board, myBehavior.card[i], oppBehavior.card[i], oppCharacter);
+                oppCharacter.ApplyCard(board, oppBehavior.card[i], myBehavior.card[i], myCharacter);
             }
             else
             {
-                oppCharacter.ApplyCard(board, oppBehavior.card[i], myCharacter);
-                myCharacter.ApplyCard(board, myBehavior.card[i], oppCharacter);
+                oppCharacter.ApplyCard(board, oppBehavior.card[i], myBehavior.card[i], myCharacter);
+                myCharacter.ApplyCard(board, myBehavior.card[i], oppBehavior.card[i], oppCharacter);
             }
             myCharacter.isGuard = false;
             myCharacter.isPerfectGuard = false;
