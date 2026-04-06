@@ -769,6 +769,9 @@ int main(int argc, char* argv[]) {
         // 양측 봇에 타일 생성 정보 전송
         writeLine(p1.write_fd, t1_msg);
         writeLine(p2.write_fd, t2_msg);
+
+        // 로그 출력
+        cout << t1_msg << "\n";
     }
     
     cout << EnumToString(p1Result) << " " << EnumToString(p2Result) << endl;
