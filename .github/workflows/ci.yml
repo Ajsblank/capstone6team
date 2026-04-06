@@ -132,9 +132,21 @@ jobs:
           --instance-ids ${{vars.EC2_ID_INSTANCE}}
       - name: Wait for SSM ready
         run: |
-          aws ssm wait instance-online \
-          --instance-ids ${{vars.EC2_ID_INSTANCE}}
-      
+          echo "Waiting for SSM Agent to be online..."
+          while true; do
+            STATUS=$(aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=${{ vars.EC2_ID_INSTANCE }}" \
+              --query "InstanceInformationList[0].PingStatus" \
+              --output text)
+            
+            if [ "$STATUS" = "Online" ]; then
+              echo "SSM Agent is Online!"
+              break
+            fi
+            
+            echo "Current status: $STATUS. Waiting 5 seconds..."
+            sleep 5
+          done
       - name: Run command and wait
         run: |
           COMMAND_ID=$(aws ssm send-command \
