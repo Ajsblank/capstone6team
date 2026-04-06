@@ -121,17 +121,41 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
       - name: check aws identity
         run: aws sts get-caller-identity
-      - name: test ec2 code
+      - name: Start EC2
         run: |
-          aws ssm send-command \
-            --instance-ids "i-0fd8cff40f84d19dc" \
-            --document-name "AWS-RunShellScript" \
-            --parameters '{
-              "commands": [
-                "mkdir -p /home/ubuntu/app",
-                "echo deploy_test_success > /home/ubuntu/app/test.txt"
-              ]
-            }'
+          aws ec2 start-instances \
+          --instance-ids ${{ vars.EC2_ID_INSTANCE }}
 
+      - name: Wait for EC2 running
+        run: |
+          aws ec2 wait instance-running \
+          --instance-ids ${{vars.EC2_ID_INSTANCE}}
+      - name: Wait for SSM ready
+        run: |
+          aws ssm wait instance-online \
+          --instance-ids ${{vars.EC2_ID_INSTANCE}}
+      
+      - name: Run command and wait
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+          --instance-ids ${{vars.EC2_ID_INSTANCE}} \
+          --document-name "AWS-RunShellScript" \
+          --parameters '{
+            "commands": [
+              "mkdir -p /home/ubuntu/app",
+              "echo deploy_test_success > /home/ubuntu/app/test.txt"
+            ]
+          }' \
+          --query "Command.CommandId" \
+          --output text)
 
+          aws ssm wait command-executed \
+          --command-id $COMMAND_ID \
+          --instance-id ${{vars.EC2_ID_INSTANCE}}
+
+      - name: Stop EC2
+        if: always()
+        run: |
+          aws ec2 stop-instances \
+          --instance-ids ${{vars.EC2_ID_INSTANCE}}
   
