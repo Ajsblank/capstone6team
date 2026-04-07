@@ -752,12 +752,12 @@
     let CARDS = {
       UP: { id: 'UP', name: 'MOVE UP', type: 'move', mp: 0, prio: 3, dx: 0, dy: -1 },
       DOWN: { id: 'DOWN', name: 'MOVE DOWN', type: 'move', mp: 0, prio: 3, dx: 0, dy: 1 },
-      LEFT: { id: 'LEFT', name: 'MOVE LEFT', type: 'move', mp: 0, prio: 3, dx: 1, dy: 0 },
-      RIGHT: { id: 'RIGHT', name: 'MOVE RIGHT', type: 'move', mp: 0, prio: 3, dx: -1, dy: 0 },
+      LEFT: { id: 'LEFT', name: 'MOVE LEFT', type: 'move', mp: 0, prio: 3, dx: -1, dy: 0 },
+      RIGHT: { id: 'RIGHT', name: 'MOVE RIGHT', type: 'move', mp: 0, prio: 3, dx: 1, dy: 0 },
       GUARD: { id: 'GUARD', name: 'GUARD', type: 'defend', mp: 0, prio: 2, block: 15 },
       MANA_HEAL: { id: 'MANA_HEAL', name: 'MANA HEAL', type: 'heal', mp: 0, prio: 1, healMp: 15 },
-      DOUBLE_LEFT: { id: 'DOUBLE_LEFT', name: 'DOUBLE L.', type: 'move', mp: 0, prio: 3, dx: 2, dy: 0 },
-      DOUBLE_RIGHT: { id: 'DOUBLE_RIGHT', name: 'DOUBLE R.', type: 'move', mp: 0, prio: 3, dx: -2, dy: 0 },
+      DOUBLE_LEFT: { id: 'DOUBLE_LEFT', name: 'DOUBLE L.', type: 'move', mp: 0, prio: 3, dx: -2, dy: 0 },
+      DOUBLE_RIGHT: { id: 'DOUBLE_RIGHT', name: 'DOUBLE R.', type: 'move', mp: 0, prio: 3, dx: 2, dy: 0 },
       HEAL: { id: 'HEAL', name: 'HEAL', type: 'heal', mp: 60, prio: 1, healHp: 40 },
       PERFECT_GUARD: { id: 'PERFECT_GUARD', name: 'PERFECT G.', type: 'defend', mp: 25, prio: 2, block: 999 },
       R: { id: 'R', name: 'ULTIMATE', type: 'attack', mp: 100, prio: 1, dmg: 80, range: [[0, 0]] }
@@ -969,7 +969,13 @@
     }
 
     function confirmActionSelection() {
-      const p = state.currentPlayer === 1 ? state.p1 : state.p2; p.actions = slotActions.map(a => a.key);
+      const p = state.currentPlayer === 1 ? state.p1 : state.p2;
+      const raw = slotActions.map(a => a.key);
+      // 이동 카드 우선 사용: move 타입을 앞으로 정렬
+      p.actions = [
+        ...raw.filter(k => CARDS[k] && CARDS[k].type === 'move'),
+        ...raw.filter(k => !CARDS[k] || CARDS[k].type !== 'move')
+      ];
       if (state.currentPlayer === 1) { state.currentPlayer = 2; enterActionPhase(); }
       else {
         appendLog(`ROUND ${state.round} ACTION SET`, JSON.parse(JSON.stringify(state)));
