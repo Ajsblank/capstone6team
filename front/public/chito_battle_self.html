@@ -1063,7 +1063,7 @@
           if (hpTile) act.owner.hp = Math.min(MAX_HP, act.owner.hp + hpTile.val);
 
           if (act.type === 'move') {
-            let nx = act.owner.x + (act.dx * act.owner.dir); let ny = act.owner.y + act.dy;
+            let nx = act.owner.x + act.dx; let ny = act.owner.y + act.dy;
             let upTile = state.tiles.find(t => t.c === nx && t.r === ny && t.type === 'TILE_UP');
             if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H && !upTile) {
               act.owner.x = nx; act.owner.y = ny; bLog.innerText = `${act.owner.id} ${act.name}!`;
