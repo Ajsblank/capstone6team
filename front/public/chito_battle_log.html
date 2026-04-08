@@ -666,7 +666,7 @@
 
           const p1Key = p1Actions[ti] || 'GUARD';
           const rawP2Key = p2Actions[ti] || 'GUARD';
-          const p2Key = mirrorCard(rawP2Key);
+          const p2Key = rawP2Key;
 
           const c1 = CARDS[p1Key] || CARDS['GUARD'];
           const c2 = CARDS[p2Key] || CARDS['GUARD'];
@@ -934,7 +934,7 @@
 
         const p1Key = p1Cards[ti] || 'GUARD';
         const rawP2Key = p2Cards[ti] || 'GUARD';
-        const p2Key = mirrorCard(rawP2Key);
+        const p2Key = rawP2Key;
 
         const c1 = CARDS[p1Key] || CARDS['GUARD'];
         const c2 = CARDS[p2Key] || CARDS['GUARD'];
