@@ -250,6 +250,13 @@
       position: relative;
     }
 
+    .tile-POWER     { background: rgba(255, 100,   0, 0.45) !important; border: 2px solid #ff6600; }
+    .tile-HP_FLUX   { background: rgba(  0, 220, 100, 0.45) !important; border: 2px solid #00dc64; }
+    .tile-MANA_FLUX { background: rgba( 30, 120, 255, 0.45) !important; border: 2px solid #1e78ff; }
+    .tile-CHAOS     { background: rgba(160,   0, 200, 0.45) !important; border: 2px solid #c800ff; }
+    .tile-LOCK      { background: rgba( 20,  20,  20, 0.85) !important; border: 2px solid #555; }
+    .tile-LINK      { background: rgba(255, 165,   0, 0.45) !important; border: 2px solid #ffa500; }
+
     .b-char {
       position: absolute;
       width: 70px;
@@ -335,6 +342,8 @@
       color: #d4af37;
       font-weight: bold;
     }
+
+    .log-line.tile-line { color: #ff9944; }
 
     .log-text { flex: 1; word-break: break-all; }
 
@@ -558,6 +567,13 @@
           continue;
         }
 
+        if (line.startsWith('TILE ')) {
+          if (currentRound) {
+            currentRound.tilesNew = parseTileLog(line); // 배열 (LINK는 2개)
+          }
+          continue;
+        }
+
         if (RESULT_PATTERN.test(line)) {
           const parts = line.split(/\s+/);
           parsedData.result = { p1: parts[0], p2: parts[1] };
@@ -578,6 +594,32 @@
       return line.trim().split(/\s+/);
     }
 
+    // parseTileLog → 타일 객체 배열 반환 (LINK 타일은 2개, 나머지는 1개)
+    function parseTileLog(line) {
+      const parts = line.trim().split(/\s+/);
+      const type = parts[1];
+
+      if (type === 'LINK') {
+        // TILE LINK r1 c1 r2 c2 t  (r=행=y, c=열=x)
+        if (parts.length < 7) return [];
+        const t = parseInt(parts[6]);
+        return [
+          { type: 'LINK', x: parseInt(parts[3]), y: parseInt(parts[2]), remainTurn: t },
+          { type: 'LINK', x: parseInt(parts[5]), y: parseInt(parts[4]), remainTurn: t }
+        ];
+      }
+
+      // 일반 타일: TILE type x y val t
+      if (parts.length < 6) return [];
+      return [{
+        type,
+        x: parseInt(parts[2]),
+        y: parseInt(parts[3]),
+        val: parseFloat(parts[4]),
+        remainTurn: parseInt(parts[5])
+      }];
+    }
+
     function normalizeCardId(rawId) {
       // c001_E -> 001_E / c001 -> 001 / DOUBLE_LEFT -> DOUBLE_LEFT
       const m = rawId.match(/^c(\d+)_([A-E])$/);
@@ -587,11 +629,19 @@
       return rawId;
     }
 
+    // 이동 카드를 앞으로 정렬 (제출 순서 내에서 이동 카드 우선 사용 규칙)
+    function sortCardsMovementFirst(cardKeys) {
+      const moves = cardKeys.filter(k => CARDS[k] && CARDS[k].type === 'move');
+      const others = cardKeys.filter(k => !CARDS[k] || CARDS[k].type !== 'move');
+      return [...moves, ...others];
+    }
+
     // --- 게임 시뮬레이션 ---
     function makeInitialState(p1Char, p2Char) {
       return {
         p1: { x:0, y:1, hp:MAX_HP, en:MAX_EN, dir:1,  guard:0, char:p1Char },
-        p2: { x:3, y:1, hp:MAX_HP, en:MAX_EN, dir:-1, guard:0, char:p2Char }
+        p2: { x:3, y:1, hp:MAX_HP, en:MAX_EN, dir:-1, guard:0, char:p2Char },
+        tiles: []
       };
     }
 
@@ -601,30 +651,29 @@
       let gs = makeInitialState(parsedData.p1Char, parsedData.p2Char);
 
       for (let ri = 0; ri < parsedData.rounds.length; ri++) {
-        // 라운드 시작 전 상태 저장
+        // 라운드 시작 전 상태 저장 (타일 포함)
         roundStates.push(JSON.parse(JSON.stringify(gs)));
 
         const rnd = parsedData.rounds[ri];
-        const rawP1Cards = rnd.p1Cards;
-        const rawP2Cards = rnd.p2Cards;
-
-        const p1Actions = rawP1Cards.map(c => normalizeCardId(c));
-        const p2Actions = rawP2Cards.map(c => normalizeCardId(c));
+        const p1Actions = sortCardsMovementFirst(rnd.p1Cards.map(c => normalizeCardId(c)));
+        const p2Actions = sortCardsMovementFirst(rnd.p2Cards.map(c => normalizeCardId(c)));
 
         // 3턴 실행
         for (let ti = 0; ti < Math.max(p1Actions.length, p2Actions.length, 3); ti++) {
+          // 턴 시작: 타일 remainTurn 감소 및 만료 제거
+          gs.tiles.forEach(t => t.remainTurn--);
+          gs.tiles = gs.tiles.filter(t => t.remainTurn > 0);
+
           const p1Key = p1Actions[ti] || 'GUARD';
           const rawP2Key = p2Actions[ti] || 'GUARD';
-          const p2Key = mirrorCard(rawP2Key);
+          const p2Key = rawP2Key;
 
           const c1 = CARDS[p1Key] || CARDS['GUARD'];
           const c2 = CARDS[p2Key] || CARDS['GUARD'];
 
-          // 마나 소모
           gs.p1.en = Math.max(0, gs.p1.en - c1.mp);
           gs.p2.en = Math.max(0, gs.p2.en - c2.mp);
 
-          // 우선순위 정렬 (큰 숫자 먼저, 같으면 P1 먼저)
           const acts = [
             { card:c1, owner:gs.p1, target:gs.p2, pid:'p1' },
             { card:c2, owner:gs.p2, target:gs.p1, pid:'p2' }
@@ -641,6 +690,14 @@
           if (gs.p1.hp <= 0 || gs.p2.hp <= 0) break;
         }
 
+        // 라운드 종료: 새 타일 추가 (같은 위치 기존 타일 교체, LINK는 2칸)
+        if (rnd.tilesNew && rnd.tilesNew.length > 0) {
+          for (const nt of rnd.tilesNew) {
+            gs.tiles = gs.tiles.filter(t => !(t.x === nt.x && t.y === nt.y));
+            gs.tiles.push({ ...nt });
+          }
+        }
+
         // 라운드 종료: EN 회복
         gs.p1.en = Math.min(MAX_EN, gs.p1.en + 15);
         gs.p2.en = Math.min(MAX_EN, gs.p2.en + 15);
@@ -649,18 +706,27 @@
 
     function applyAction(act, gs) {
       const { card, owner, target } = act;
+      const tiles = gs.tiles || [];
+
+      // HP_FLUX / MANA_FLUX: 해당 타일 위에 있으면 행동 시작 시 효과 적용
+      const hpFlux = tiles.find(t => t.type === 'HP_FLUX'   && t.x === owner.x && t.y === owner.y);
+      const mnFlux = tiles.find(t => t.type === 'MANA_FLUX' && t.x === owner.x && t.y === owner.y);
+      if (hpFlux) owner.hp = Math.max(0, Math.min(MAX_HP, owner.hp + hpFlux.val));
+      if (mnFlux) owner.en = Math.max(0, Math.min(MAX_EN, owner.en + mnFlux.val));
+
       if (card.type === 'move') {
         if (card.id === 'DOUBLE_LEFT' || card.id === 'DOUBLE_RIGHT') {
-          // 두 번 이동
           const dc = (card.id === 'DOUBLE_LEFT') ? -1 : 1;
           for (let step = 0; step < 2; step++) {
-            let nx = owner.x + dc;
-            if (nx >= 0 && nx < GRID_W) owner.x = nx;
+            const nx = owner.x + dc;
+            const lockTile = tiles.find(t => t.type === 'LOCK' && t.x === nx && t.y === owner.y);
+            if (nx >= 0 && nx < GRID_W && !lockTile) owner.x = nx;
           }
         } else {
-          let nx = owner.x + card.dx;
-          let ny = owner.y + card.dy;
-          if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+          const nx = owner.x + card.dx;
+          const ny = owner.y + card.dy;
+          const lockTile = tiles.find(t => t.type === 'LOCK' && t.x === nx && t.y === ny);
+          if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H && !lockTile) {
             owner.x = nx; owner.y = ny;
           }
         }
@@ -671,11 +737,27 @@
         if (card.healMp) owner.en = Math.min(MAX_EN, owner.en + card.healMp);
       } else if (card.type === 'attack') {
         if (!card.range) return;
-        for (const [dx, dy] of card.range) {
+        const powerTile = tiles.find(t => t.type === 'POWER' && t.x === owner.x && t.y === owner.y);
+        const linkTile  = tiles.find(t => t.type === 'LINK'  && t.x === owner.x && t.y === owner.y);
+
+        let range = card.range;
+        if (linkTile) {
+          // LINK: 공격 범위를 +1칸 확장
+          const extended = [];
+          for (const [dx, dy] of range) {
+            extended.push([dx, dy]);
+            extended.push([dx + 1, dy]);
+          }
+          range = extended;
+        }
+
+        for (const [dx, dy] of range) {
           const tx = owner.x + dx * owner.dir;
           const ty = owner.y + dy;
           if (tx === target.x && ty === target.y) {
-            const finalDmg = Math.max(0, card.dmg - target.guard);
+            let dmg = card.dmg;
+            if (powerTile) dmg = Math.floor(dmg * powerTile.val);
+            const finalDmg = Math.max(0, dmg - target.guard);
             target.hp = Math.max(0, target.hp - finalDmg);
             break;
           }
@@ -743,6 +825,9 @@
           const snapStr = JSON.stringify({ roundIdx: rIdx });
           div.innerHTML = `<span class="log-text">${escapeHtml(line)}</span>
             <button class="replay-btn" onclick='replayRound(${rIdx})'>▶ 재생</button>`;
+        } else if (line.startsWith('TILE ')) {
+          div.className = 'log-line tile-line';
+          div.innerHTML = `<span class="log-text">${escapeHtml(line)}</span>`;
         } else if (RESULT_PATTERN.test(line)) {
           div.className = 'log-line result-line';
           div.innerHTML = `<span class="log-text">${escapeHtml(line)}</span>`;
@@ -766,8 +851,8 @@
 
       const stateSnap = JSON.parse(JSON.stringify(roundStates[roundIdx]));
       const rnd = parsedData.rounds[roundIdx];
-      const p1Cards = rnd.p1Cards.map(c => normalizeCardId(c));
-      const p2Cards = rnd.p2Cards.map(c => normalizeCardId(c));
+      const p1Cards = sortCardsMovementFirst(rnd.p1Cards.map(c => normalizeCardId(c)));
+      const p2Cards = sortCardsMovementFirst(rnd.p2Cards.map(c => normalizeCardId(c)));
 
       hideAllScreens();
       $('screen-battle').classList.remove('hidden');
@@ -797,13 +882,17 @@
       p2El.style.top  = (gs.p2.y * ch + (ch - 90) / 2) + 'px';
     }
 
-    function renderGrid() {
+    function renderGrid(tiles) {
       const grid = $('battle-grid');
       grid.innerHTML = '';
+      const tileMap = {};
+      if (tiles) tiles.forEach(t => { tileMap[`${t.x},${t.y}`] = t.type; });
       for (let y = 0; y < GRID_H; y++) {
         for (let x = 0; x < GRID_W; x++) {
           const cell = document.createElement('div');
           cell.className = 'battle-cell';
+          const tType = tileMap[`${x},${y}`];
+          if (tType) cell.classList.add(`tile-${tType}`);
           grid.appendChild(cell);
         }
       }
@@ -826,7 +915,8 @@
 
     async function executeBattleReplay(gs, p1Cards, p2Cards, roundNum) {
       const bLog = $('battle-log');
-      renderGrid();
+      if (!gs.tiles) gs.tiles = [];
+      renderGrid(gs.tiles);
       renderBattleChars(gs);
       updateBattleBars(gs);
       bLog.textContent = `ROUND ${roundNum} 재생 시작!`;
@@ -837,9 +927,14 @@
       for (let ti = 0; ti < Math.max(p1Cards.length, p2Cards.length, 3); ti++) {
         if (gs.p1.hp <= 0 || gs.p2.hp <= 0) break;
 
+        // 턴 시작: 타일 remainTurn 감소 및 만료 제거 후 그리드 갱신
+        gs.tiles.forEach(t => t.remainTurn--);
+        gs.tiles = gs.tiles.filter(t => t.remainTurn > 0);
+        renderGrid(gs.tiles);
+
         const p1Key = p1Cards[ti] || 'GUARD';
         const rawP2Key = p2Cards[ti] || 'GUARD';
-        const p2Key = mirrorCard(rawP2Key);
+        const p2Key = rawP2Key;
 
         const c1 = CARDS[p1Key] || CARDS['GUARD'];
         const c2 = CARDS[p2Key] || CARDS['GUARD'];
@@ -847,7 +942,6 @@
         bLog.textContent = `행동 ${ti+1}: P1=${c1.name} / P2=${c2.name}`;
         await sleep(600);
 
-        // 마나 소모
         gs.p1.en = Math.max(0, gs.p1.en - c1.mp);
         gs.p2.en = Math.max(0, gs.p2.en - c2.mp);
         updateBattleBars(gs);
@@ -884,19 +978,42 @@
     async function animateAction(act, gs, bLog) {
       const { card, owner, target } = act;
       const ownerLabel = owner === gs.p1 ? 'P1' : 'P2';
+      const tiles = gs.tiles || [];
+
+      // HP_FLUX / MANA_FLUX 타일 효과 (행동 시작 시 적용)
+      const hpFlux = tiles.find(t => t.type === 'HP_FLUX'   && t.x === owner.x && t.y === owner.y);
+      const mnFlux = tiles.find(t => t.type === 'MANA_FLUX' && t.x === owner.x && t.y === owner.y);
+      if (hpFlux) {
+        owner.hp = Math.max(0, Math.min(MAX_HP, owner.hp + hpFlux.val));
+        bLog.textContent = `${ownerLabel} HP_FLUX! HP ${hpFlux.val > 0 ? '+' : ''}${hpFlux.val}`;
+        updateBattleBars(gs);
+        await sleep(400);
+      }
+      if (mnFlux) {
+        owner.en = Math.max(0, Math.min(MAX_EN, owner.en + mnFlux.val));
+        bLog.textContent = `${ownerLabel} MANA_FLUX! EN ${mnFlux.val > 0 ? '+' : ''}${mnFlux.val}`;
+        updateBattleBars(gs);
+        await sleep(400);
+      }
 
       if (card.type === 'move') {
         if (card.id === 'DOUBLE_LEFT' || card.id === 'DOUBLE_RIGHT') {
           const dc = (card.id === 'DOUBLE_LEFT') ? -1 : 1;
           for (let step = 0; step < 2; step++) {
             const nx = owner.x + dc;
-            if (nx >= 0 && nx < GRID_W) owner.x = nx;
+            const lockTile = tiles.find(t => t.type === 'LOCK' && t.x === nx && t.y === owner.y);
+            if (nx >= 0 && nx < GRID_W && !lockTile) owner.x = nx;
+            else if (lockTile) { bLog.textContent = `${ownerLabel} LOCK 타일에 막힘!`; await sleep(300); }
           }
         } else {
           const nx = owner.x + card.dx;
           const ny = owner.y + card.dy;
-          if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+          const lockTile = tiles.find(t => t.type === 'LOCK' && t.x === nx && t.y === ny);
+          if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H && !lockTile) {
             owner.x = nx; owner.y = ny;
+          } else if (lockTile) {
+            bLog.textContent = `${ownerLabel} LOCK 타일에 막힘!`;
+            await sleep(300);
           }
         }
         bLog.textContent = `${ownerLabel} ${card.name}!`;
@@ -912,22 +1029,33 @@
         updateBattleBars(gs);
       } else if (card.type === 'attack') {
         if (!card.range) return;
-        bLog.textContent = `${ownerLabel} ${card.name} 공격!`;
+
+        const powerTile = tiles.find(t => t.type === 'POWER' && t.x === owner.x && t.y === owner.y);
+        const linkTile  = tiles.find(t => t.type === 'LINK'  && t.x === owner.x && t.y === owner.y);
+
+        let range = card.range;
+        if (linkTile) {
+          const extended = [];
+          for (const [dx, dy] of range) { extended.push([dx, dy]); extended.push([dx + 1, dy]); }
+          range = extended;
+        }
+
+        bLog.textContent = `${ownerLabel} ${card.name} 공격!${powerTile ? ' [POWER]' : ''}${linkTile ? ' [LINK]' : ''}`;
 
         const hitCells = [];
-        for (const [dx, dy] of card.range) {
+        for (const [dx, dy] of range) {
           const tx = owner.x + dx * owner.dir;
           const ty = owner.y + dy;
-          if (tx >= 0 && tx < GRID_W && ty >= 0 && ty < GRID_H) {
-            hitCells.push({ x: tx, y: ty });
-          }
+          if (tx >= 0 && tx < GRID_W && ty >= 0 && ty < GRID_H) hitCells.push({ x: tx, y: ty });
         }
         showHitEffect(hitCells);
         await sleep(300);
 
         const hit = hitCells.find(cell => cell.x === target.x && cell.y === target.y);
         if (hit) {
-          const finalDmg = Math.max(0, card.dmg - target.guard);
+          let dmg = card.dmg;
+          if (powerTile) dmg = Math.floor(dmg * powerTile.val);
+          const finalDmg = Math.max(0, dmg - target.guard);
           target.hp = Math.max(0, target.hp - finalDmg);
           bLog.textContent = `적중! ${ownerLabel} → 상대방 -${finalDmg} 피해!`;
           $('screen-battle').style.transform = 'translate(4px,4px)';
