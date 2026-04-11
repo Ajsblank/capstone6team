@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback } from "react";
 
 export type Page =
   | "home"
@@ -29,12 +29,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [currentPage, setCurrentPage] = useState<Page>("home");
   const [user, setUser] = useState<User | null>(null);
 
-  const navigate = (page: Page) => setCurrentPage(page);
-  const login = (u: User) => setUser(u);
-  const logout = () => setUser(null);
+  const navigate = useCallback((page: Page) => setCurrentPage(page), []);
+  const login = useCallback((u: User) => setUser(u), []);
+  const logout = useCallback(() => setUser(null), []);
+
+  const value = useMemo(
+    () => ({ currentPage, navigate, user, login, logout }),
+    [currentPage, user, navigate, login, logout]
+  );
 
   return (
-    <AppContext.Provider value={{ currentPage, navigate, user, login, logout }}>
+    <AppContext.Provider value={value}>
       {children}
     </AppContext.Provider>
   );
