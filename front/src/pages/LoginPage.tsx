@@ -74,11 +74,14 @@ const LoginPage: React.FC = () => {
           </button>
         </form>
 
-        <div className="login-divider"><span>또는</span></div>
-
-        <button className="login-btn login-btn--dev" type="button" onClick={handleDevLogin}>
-          개발자 로그인 (Debug)
-        </button>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <div className="login-divider"><span>또는</span></div>
+            <button className="login-btn login-btn--dev" type="button" onClick={handleDevLogin}>
+              개발자 로그인 (Debug)
+            </button>
+          </>
+        )}
 
         <div className="login-footer">
           <span className="login-footer-text">계정이 없으신가요?</span>
