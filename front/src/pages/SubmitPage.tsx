@@ -14,7 +14,7 @@ type SubmitStatus = "idle" | "submitting" | "success" | "error";
 const TAB_LIST: { id: Tab; label: string }[] = [
   { id: "problem", label: "문제" },
   { id: "submit", label: "제출" },
-  { id: "viz1", label: "시각화 1" },
+  { id: "viz1", label: "로그 분석" },
   { id: "viz2", label: "혼자서 하기" },
   { id: "viz3", label: "시각화 3" },
   { id: "leaderboard", label: "리더보드" },
@@ -114,8 +114,21 @@ const SubmitPage: React.FC = () => {
           </div>
         )}
 
-        {/* 미구현 탭 (viz2 제외) */}
-        {(activeTab === "viz1" || activeTab === "viz3" || activeTab === "leaderboard") && (
+        {/* 로그 분석 (viz1) 탭 */}
+        {activeTab === "viz1" && (
+          <div className="full-panel" style={{ height: "800px" }}>
+            <iframe
+              src="/chito_battle_log.html"
+              title="Battle Log Analysis"
+              width="100%"
+              height="100%"
+              style={{ border: "none", borderRadius: "8px", backgroundColor: "#222" }}
+            />
+          </div>
+        )}
+
+        {/* 미구현 탭 (viz1, viz2 제외) */}
+        {(activeTab === "viz3" || activeTab === "leaderboard") && (
           <div className="placeholder-panel">
             <span className="placeholder-text">
               {TAB_LIST.find((t) => t.id === activeTab)?.label} — 준비 중입니다.
