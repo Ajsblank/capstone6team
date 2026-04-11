@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
 import "./SignUpPage.css";
 
@@ -15,7 +15,7 @@ const SignUpPage: React.FC = () => {
   const [school, setSchool] = useState("");
   const [email, setEmail] = useState("");
   const [captchaAnswer, setCaptchaAnswer] = useState("");
-  const [captchaCode, setCaptchaCode] = useState(generateCaptcha());
+  const [captchaCode, setCaptchaCode] = useState(generateCaptcha);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
 
@@ -46,7 +46,7 @@ const SignUpPage: React.FC = () => {
     return e;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const errs = validate();
     setErrors(errs);

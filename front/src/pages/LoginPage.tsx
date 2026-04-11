@@ -9,10 +9,10 @@ const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    if (!userId.trim() || !password.trim()) {
+    if (!userId.trim() || !password) {
       setError("아이디와 비밀번호를 입력해주세요.");
       return;
     }
