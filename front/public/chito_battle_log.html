@@ -752,10 +752,10 @@
           gs.p2.guard = 0;
 
           for (const act of acts) {
-            if (gs.p1.hp <= 0 || gs.p2.hp <= 0) break;
             applyAction(act, gs);
           }
 
+          // 턴 내 모든 행동이 끝난 뒤 체력 판별
           if (gs.p1.hp <= 0 || gs.p2.hp <= 0) break;
         }
 
@@ -1049,12 +1049,14 @@
         gs.p2.guard = 0;
 
         for (const act of acts) {
-          if (gs.p1.hp <= 0 || gs.p2.hp <= 0) break;
           await animateAction(act, gs, bLog);
           renderBattleChars(gs);
           updateBattleBars(gs);
           await sleep(800);
         }
+
+        // 턴 내 모든 행동이 끝난 뒤 체력 판별
+        if (gs.p1.hp <= 0 || gs.p2.hp <= 0) break;
       }
 
       // 라운드 종료: 해당 라운드에서 생성된 특수 타일을 시각적으로 반영
@@ -1066,14 +1068,26 @@
         }
         renderGrid(gs.tiles);
         clearActionBoxes();
-        bLog.textContent = `특수 타일 생성! (다음 라운드부터 적용)`;
+        bLog.textContent = `특수 타일 생성!`;
         bLog.style.color = '#ff9944';
         await sleep(900);
       }
 
       clearActionBoxes();
-      bLog.textContent = `ROUND ${roundNum} 재생 완료!`;
-      bLog.style.color = '#d4af37';
+
+      // 체력 0 판별 → WIN / LOSE 표시
+      if (gs.p1.hp <= 0 || gs.p2.hp <= 0) {
+        let resultMsg = '';
+        if (gs.p1.hp <= 0 && gs.p2.hp <= 0) resultMsg = 'DRAW!';
+        else if (gs.p1.hp <= 0) resultMsg = 'P2 WIN!';
+        else resultMsg = 'P1 WIN!';
+        bLog.textContent = resultMsg;
+        bLog.style.color = '#d4af37';
+        bLog.style.fontSize = '16px';
+      } else {
+        bLog.textContent = `ROUND ${roundNum} 재생 완료!`;
+        bLog.style.color = '#d4af37';
+      }
 
       const backBtn = $('battle-back-btn');
       backBtn.classList.remove('hidden');

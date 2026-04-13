@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useCallback } from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from "react";
 import { logoutApi } from "../api/authApi";
 
 export type Page =
@@ -24,17 +24,36 @@ interface AppContextValue {
   logout: () => void;
 }
 
+const VALID_PAGES: Page[] = ["home", "login", "signup", "submit", "profile", "account-settings"];
+
+function getPageFromHash(): Page {
+  const hash = window.location.hash.replace("#", "").split("/")[0] as Page;
+  return VALID_PAGES.includes(hash) ? hash : "home";
+}
+
 const AppContext = createContext<AppContextValue | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentPage, setCurrentPage] = useState<Page>("home");
+  const [currentPage, setCurrentPage] = useState<Page>(getPageFromHash);
   const [user, setUser] = useState<User | null>(null);
 
-  const navigate = useCallback((page: Page) => setCurrentPage(page), []);
+  // 브라우저 뒤로가기/앞으로가기 지원
+  useEffect(() => {
+    const handleHashChange = () => setCurrentPage(getPageFromHash());
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  const navigate = useCallback((page: Page) => {
+    window.location.hash = page;
+    setCurrentPage(page);
+  }, []);
+
   const login = useCallback((u: User) => setUser(u), []);
   const logout = useCallback(async () => {
     await logoutApi();
     setUser(null);
+    window.location.hash = "home";
     setCurrentPage("home");
   }, []);
 

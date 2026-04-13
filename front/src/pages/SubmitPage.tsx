@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ChitoBattleProblem from "../components/ChitoBattleProblem";
 import CodeEditor, { LANGUAGE_DEFAULTS } from "../components/CodeEditor";
 import SubmitBar from "../components/SubmitBar";
@@ -20,8 +20,27 @@ const TAB_LIST: { id: Tab; label: string }[] = [
   { id: "leaderboard", label: "리더보드" },
 ];
 
+const VALID_TABS: Tab[] = ["problem", "submit", "viz1", "viz2", "viz3", "leaderboard"];
+
+function getTabFromHash(): Tab {
+  const sub = window.location.hash.replace("#", "").split("/")[1] as Tab;
+  return VALID_TABS.includes(sub) ? sub : "problem";
+}
+
 const SubmitPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>("problem");
+  const [activeTab, setActiveTab] = useState<Tab>(getTabFromHash);
+
+  // 브라우저 뒤로가기/앞으로가기로 탭 변경 시 동기화
+  useEffect(() => {
+    const handleHashChange = () => setActiveTab(getTabFromHash());
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  const handleTabChange = (tab: Tab) => {
+    window.location.hash = `submit/${tab}`;
+    setActiveTab(tab);
+  };
   const [language, setLanguage] = useState<Language>("python");
   const [code, setCode] = useState<string>(LANGUAGE_DEFAULTS["python"]);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
@@ -70,7 +89,7 @@ const SubmitPage: React.FC = () => {
             <button
               key={tab.id}
               className={`tab-btn${activeTab === tab.id ? " tab-btn--active" : ""}`}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
             >
               {tab.label}
             </button>
