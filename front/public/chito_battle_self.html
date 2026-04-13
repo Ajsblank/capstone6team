@@ -970,12 +970,8 @@
 
     function confirmActionSelection() {
       const p = state.currentPlayer === 1 ? state.p1 : state.p2;
-      const raw = slotActions.map(a => a.key);
-      // 이동 카드 우선 사용: move 타입을 앞으로 정렬
-      p.actions = [
-        ...raw.filter(k => CARDS[k] && CARDS[k].type === 'move'),
-        ...raw.filter(k => !CARDS[k] || CARDS[k].type !== 'move')
-      ];
+      // 제출 순서 그대로 저장 (턴 내 우선순위는 executeBattle에서 prio로 결정)
+      p.actions = slotActions.map(a => a.key);
       if (state.currentPlayer === 1) { state.currentPlayer = 2; enterActionPhase(); }
       else {
         appendLog(`ROUND ${state.round} ACTION SET`, JSON.parse(JSON.stringify(state)));

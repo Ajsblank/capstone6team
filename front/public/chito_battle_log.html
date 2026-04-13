@@ -655,8 +655,8 @@
         roundStates.push(JSON.parse(JSON.stringify(gs)));
 
         const rnd = parsedData.rounds[ri];
-        const p1Actions = sortCardsMovementFirst(rnd.p1Cards.map(c => normalizeCardId(c)));
-        const p2Actions = sortCardsMovementFirst(rnd.p2Cards.map(c => normalizeCardId(c)));
+        const p1Actions = rnd.p1Cards.map(c => normalizeCardId(c));
+        const p2Actions = rnd.p2Cards.map(c => normalizeCardId(c));
 
         // 3턴 실행
         for (let ti = 0; ti < Math.max(p1Actions.length, p2Actions.length, 3); ti++) {
@@ -851,8 +851,8 @@
 
       const stateSnap = JSON.parse(JSON.stringify(roundStates[roundIdx]));
       const rnd = parsedData.rounds[roundIdx];
-      const p1Cards = sortCardsMovementFirst(rnd.p1Cards.map(c => normalizeCardId(c)));
-      const p2Cards = sortCardsMovementFirst(rnd.p2Cards.map(c => normalizeCardId(c)));
+      const p1Cards = rnd.p1Cards.map(c => normalizeCardId(c));
+      const p2Cards = rnd.p2Cards.map(c => normalizeCardId(c));
 
       hideAllScreens();
       $('screen-battle').classList.remove('hidden');
