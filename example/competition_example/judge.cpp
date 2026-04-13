@@ -636,7 +636,7 @@ int main(int argc, char* argv[]) {
         for(int i = 0; i < 3; i++)
         {
             ss2 >> card_str;
-            cout << card_str << " ";
+            cout << EnumToString(GetSymmetricCard(StringToEnum<Card>(card_str))) << " ";
             judge.canUseP2[p++] = StringToEnum<Card>(card_str);
         }
         cout << "\n";
@@ -698,7 +698,7 @@ int main(int argc, char* argv[]) {
                 {
                     string s;
                     set2 >> s;
-                    cout << s << " ";
+                    cout << EnumToString(GetSymmetricCard(StringToEnum<Card>(s))) << " ";
                     b2.card[i] = StringToEnum<Card>(s);
                 }
             }catch(const exception& e){
