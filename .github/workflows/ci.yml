@@ -63,7 +63,7 @@ jobs:
       - uses: actions/setup-node@v4
         name: node install
         with:
-          node-version: 18
+          node-version: 22
       - name: install npm
         run: npm ci
 
