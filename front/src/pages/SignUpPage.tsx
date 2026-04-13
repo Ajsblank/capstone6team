@@ -1,33 +1,26 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
+import { signUp } from "../api/authApi";
 import "./SignUpPage.css";
-
-function generateCaptcha(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-}
 
 const SignUpPage: React.FC = () => {
   const { navigate } = useApp();
-  const [userId, setUserId] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
-  const [school, setSchool] = useState("");
-  const [email, setEmail] = useState("");
-  const [captchaAnswer, setCaptchaAnswer] = useState("");
-  const [captchaCode, setCaptchaCode] = useState(generateCaptcha);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-
-  const refreshCaptcha = () => {
-    setCaptchaCode(generateCaptcha());
-    setCaptchaAnswer("");
-  };
 
   const validate = (): Record<string, string> => {
     const e: Record<string, string> = {};
-    if (!userId.trim()) e.userId = "아이디를 입력해주세요.";
-    else if (userId.length < 4) e.userId = "아이디는 4자 이상이어야 합니다.";
+
+    if (!nickname.trim()) e.nickname = "닉네임을 입력해주세요.";
+    else if (nickname.length < 2) e.nickname = "닉네임은 2자 이상이어야 합니다.";
+
+    if (!email.trim()) e.email = "이메일을 입력해주세요.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "올바른 이메일 형식이 아닙니다.";
 
     if (!password) e.password = "비밀번호를 입력해주세요.";
     else if (password.length < 8) e.password = "비밀번호는 8자 이상이어야 합니다.";
@@ -35,24 +28,24 @@ const SignUpPage: React.FC = () => {
     if (!passwordConfirm) e.passwordConfirm = "비밀번호 확인을 입력해주세요.";
     else if (password !== passwordConfirm) e.passwordConfirm = "비밀번호가 일치하지 않습니다.";
 
-    if (!email.trim()) e.email = "이메일을 입력해주세요.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "올바른 이메일 형식이 아닙니다.";
-
-    if (captchaAnswer.toUpperCase() !== captchaCode) {
-      e.captcha = "자동 입력 방지 코드가 올바르지 않습니다.";
-      refreshCaptcha();
-    }
-
     return e;
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const errs = validate();
     setErrors(errs);
-    if (Object.keys(errs).length === 0) {
-      // TODO: 실제 회원가입 API 연동
+    if (Object.keys(errs).length > 0) return;
+
+    setSubmitting(true);
+    try {
+      await signUp({ email, password, nickname });
       setSubmitted(true);
+    } catch (err: any) {
+      const msg = err.response?.data?.message ?? "회원가입에 실패했습니다. 다시 시도해주세요.";
+      setErrors({ api: msg });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -82,17 +75,31 @@ const SignUpPage: React.FC = () => {
 
         <form className="signup-form" onSubmit={handleSubmit} noValidate>
           <div className="signup-field">
-            <label className="signup-label" htmlFor="signup-userid">아이디 *</label>
+            <label className="signup-label" htmlFor="signup-nickname">닉네임 *</label>
             <input
-              id="signup-userid"
-              className={`signup-input${errors.userId ? " signup-input--error" : ""}`}
+              id="signup-nickname"
+              className={`signup-input${errors.nickname ? " signup-input--error" : ""}`}
               type="text"
-              placeholder="4자 이상의 아이디"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              autoComplete="username"
+              placeholder="2자 이상의 닉네임"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              autoComplete="nickname"
             />
-            {errors.userId && <span className="signup-field-error">{errors.userId}</span>}
+            {errors.nickname && <span className="signup-field-error">{errors.nickname}</span>}
+          </div>
+
+          <div className="signup-field">
+            <label className="signup-label" htmlFor="signup-email">이메일 *</label>
+            <input
+              id="signup-email"
+              className={`signup-input${errors.email ? " signup-input--error" : ""}`}
+              type="email"
+              placeholder="example@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+            />
+            {errors.email && <span className="signup-field-error">{errors.email}</span>}
           </div>
 
           <div className="signup-field">
@@ -123,59 +130,10 @@ const SignUpPage: React.FC = () => {
             {errors.passwordConfirm && <span className="signup-field-error">{errors.passwordConfirm}</span>}
           </div>
 
-          <div className="signup-field">
-            <label className="signup-label" htmlFor="signup-school">학교/소속</label>
-            <input
-              id="signup-school"
-              className="signup-input"
-              type="text"
-              placeholder="학교 또는 소속 기관 (선택)"
-              value={school}
-              onChange={(e) => setSchool(e.target.value)}
-            />
-          </div>
+          {errors.api && <p className="signup-field-error signup-field-error--api">{errors.api}</p>}
 
-          <div className="signup-field">
-            <label className="signup-label" htmlFor="signup-email">이메일 *</label>
-            <input
-              id="signup-email"
-              className={`signup-input${errors.email ? " signup-input--error" : ""}`}
-              type="email"
-              placeholder="example@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-            />
-            {errors.email && <span className="signup-field-error">{errors.email}</span>}
-          </div>
-
-          <div className="signup-field">
-            <label className="signup-label">자동 입력 방지 *</label>
-            <div className="signup-captcha-wrap">
-              <div className="signup-captcha-code">{captchaCode}</div>
-              <button
-                type="button"
-                className="signup-captcha-refresh"
-                onClick={refreshCaptcha}
-                title="새로고침"
-              >
-                ↺
-              </button>
-            </div>
-            <input
-              className={`signup-input${errors.captcha ? " signup-input--error" : ""}`}
-              type="text"
-              placeholder="위 코드를 입력하세요"
-              value={captchaAnswer}
-              onChange={(e) => setCaptchaAnswer(e.target.value)}
-              maxLength={5}
-              autoComplete="off"
-            />
-            {errors.captcha && <span className="signup-field-error">{errors.captcha}</span>}
-          </div>
-
-          <button className="signup-btn signup-btn--primary" type="submit">
-            회원가입
+          <button className="signup-btn signup-btn--primary" type="submit" disabled={submitting}>
+            {submitting ? "처리 중..." : "회원가입"}
           </button>
         </form>
 

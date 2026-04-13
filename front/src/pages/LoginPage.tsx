@@ -1,23 +1,35 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
+import { loginApi } from "../api/authApi";
 import "./LoginPage.css";
 
 const LoginPage: React.FC = () => {
   const { navigate, login } = useApp();
-  const [userId, setUserId] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    if (!userId.trim() || !password) {
-      setError("아이디와 비밀번호를 입력해주세요.");
+    if (!email.trim() || !password) {
+      setError("이메일과 비밀번호를 입력해주세요.");
       return;
     }
-    // TODO: 실제 로그인 API 연동
-    setError("로그인 기능은 준비 중입니다.");
+
+    setSubmitting(true);
+    try {
+      await loginApi({ email, password });
+      // JWT 토큰은 authApi 내부에서 저장됨
+      login({ id: email, username: email, email });
+      navigate("home");
+    } catch (err: any) {
+      const msg = err.response?.data?.message ?? "이메일 또는 비밀번호가 올바르지 않습니다.";
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDevLogin = () => {
@@ -33,15 +45,15 @@ const LoginPage: React.FC = () => {
 
         <form className="login-form" onSubmit={handleLogin} noValidate>
           <div className="login-field">
-            <label className="login-label" htmlFor="login-userid">아이디</label>
+            <label className="login-label" htmlFor="login-email">이메일</label>
             <input
-              id="login-userid"
+              id="login-email"
               className="login-input"
-              type="text"
-              placeholder="아이디를 입력하세요"
-              value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-              autoComplete="username"
+              type="email"
+              placeholder="example@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
             />
           </div>
 
@@ -58,19 +70,10 @@ const LoginPage: React.FC = () => {
             />
           </div>
 
-          <label className="login-remember">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-            />
-            <span>로그인 상태 유지</span>
-          </label>
-
           {error && <p className="login-error">{error}</p>}
 
-          <button className="login-btn login-btn--primary" type="submit">
-            로그인
+          <button className="login-btn login-btn--primary" type="submit" disabled={submitting}>
+            {submitting ? "로그인 중..." : "로그인"}
           </button>
         </form>
 

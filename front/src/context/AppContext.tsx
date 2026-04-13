@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useMemo, useCallback } from "react";
+import { logoutApi } from "../api/authApi";
 
 export type Page =
   | "home"
@@ -31,7 +32,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const navigate = useCallback((page: Page) => setCurrentPage(page), []);
   const login = useCallback((u: User) => setUser(u), []);
-  const logout = useCallback(() => setUser(null), []);
+  const logout = useCallback(async () => {
+    await logoutApi();
+    setUser(null);
+    setCurrentPage("home");
+  }, []);
 
   const value = useMemo(
     () => ({ currentPage, navigate, user, login, logout }),
