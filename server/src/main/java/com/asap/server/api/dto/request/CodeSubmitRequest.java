@@ -10,6 +10,8 @@ public class CodeSubmitRequest {
     @NotBlank
     private String userId;
     @NotBlank
+    private String problemId;
+    @NotBlank
     private String language;
     @NotBlank
     private String sourceCode;
