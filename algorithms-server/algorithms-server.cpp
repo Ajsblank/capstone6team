@@ -94,7 +94,7 @@ int main() {
                 std::cout << "[결과] ❌ 컴파일 에러!" << std::endl;
                 result_json["status"] = "COMPILE_ERROR";
                 result_json["log"] = build_res.output;
-                redis.lpush("boj_result_queue", result_json.dump());
+                redis.lpush("algorithms_result_queue", result_json.dump());
                 system(("rm -rf " + work_dir).c_str());
                 continue;
             }
@@ -151,7 +151,7 @@ int main() {
                 result_json["status"] = "ACCEPTED";
             }
 
-            redis.lpush("boj_result_queue", result_json.dump());
+            redis.lpush("algorithms_result_queue", result_json.dump());
             system(("docker rmi " + submission_id + " > /dev/null 2>&1 && rm -rf " + work_dir).c_str());
         }
     } catch (const sw::redis::Error &e) {
