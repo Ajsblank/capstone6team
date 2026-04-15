@@ -47,6 +47,12 @@ const ProblemsPage: React.FC = () => {
           <button className="home-tab-btn">도움말</button>
         </nav>
         <div className="home-auth-area">
+          <button
+            className="home-auth-btn home-auth-btn--battle"
+            onClick={() => navigate("submit")}
+          >
+            ⚔️ 코드 배틀로
+          </button>
           {user ? (
             <>
               <span className="home-username" onClick={() => navigate("profile")}>

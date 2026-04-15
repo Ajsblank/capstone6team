@@ -4,6 +4,7 @@ import CodeEditor, { LANGUAGE_DEFAULTS } from "../components/CodeEditor";
 import SubmitBar from "../components/SubmitBar";
 import SubmitSuccessModal from "../components/SubmitSuccessModal";
 import { submitCode } from "../api/submissionApi";
+import { useApp } from "../context/AppContext";
 import { Language } from "../types";
 import "./SubmitPage.css";
 
