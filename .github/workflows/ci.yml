@@ -72,6 +72,8 @@ jobs:
           npm test -- --watchAll=false --passWithNoTests
 
       - name: npm build
+        env:
+          REACT_APP_API_BASE_URL: ${{ vars.REACT_APP_API_BASE_URL }}
         run: npm run build
 
       - uses: aws-actions/configure-aws-credentials@v4
