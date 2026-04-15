@@ -22,6 +22,12 @@ const HomePage: React.FC = () => {
             홈
           </button>
           <button
+            className="home-tab-btn"
+            onClick={() => navigate("problems")}
+          >
+            문제
+          </button>
+          <button
             className={`home-tab-btn${activeTab === "contest" ? " home-tab-btn--active" : ""}`}
             onClick={() => setActiveTab("contest")}
           >
@@ -82,29 +88,31 @@ const HomePage: React.FC = () => {
           <div className="home-content">
             <div className="home-hero">
               <h1 className="home-hero-title">CodeBattle</h1>
-              <p className="home-hero-sub">알고리즘으로 승부하는 실시간 코드 배틀 플랫폼</p>
-              <button
-                className="home-cta-btn"
-                onClick={() => navigate("submit")}
-              >
-                치토 배틀 
+              <p className="home-hero-sub">
+                백준의 정신을 이어받아, 알고리즘 문제를 풀 수 있는 사이트
+              </p>
+              <p className="home-hero-desc">
+                백바오야 가지마...<br />                
+              </p>
+              <button className="home-cta-btn" onClick={() => navigate("problems")}>
+                문제 풀러 가기
               </button>
             </div>
             <div className="home-cards">
               <div className="home-card">
-                <div className="home-card-icon">⚔️</div>
-                <h3 className="home-card-title">실시간 배틀</h3>
-                <p className="home-card-desc">상대방과 실시간으로 코드를 제출하고 치토 배틀로 결과를 확인하세요.</p>
+                <div className="home-card-icon">📝</div>
+                <h3 className="home-card-title">문제 풀기</h3>
+                <p className="home-card-desc">백준에서 영감을 받은 다양한 난이도의 문제를 풀고 실력을 키우세요.</p>
               </div>
               <div className="home-card">
-                <div className="home-card-icon">📊</div>
-                <h3 className="home-card-title">시각화</h3>
-                <p className="home-card-desc">배틀 로그를 기반으로 전투 과정을 단계별로 시각화합니다.</p>
+                <div className="home-card-icon">⚔️</div>
+                <h3 className="home-card-title">AI 배틀</h3>
+                <p className="home-card-desc">내가 짠 AI 코드를 제출하면 다른 참가자의 AI와 자동으로 대결합니다.</p>
               </div>
               <div className="home-card">
                 <div className="home-card-icon">🏆</div>
-                <h3 className="home-card-title">리더보드</h3>
-                <p className="home-card-desc">전국 참가자들과 실력을 겨루고 순위를 확인하세요.</p>
+                <h3 className="home-card-title">순위 경쟁</h3>
+                <p className="home-card-desc">리더보드에서 전국 참가자들과 순위를 겨루고 최강자를 가리세요.</p>
               </div>
             </div>
           </div>
