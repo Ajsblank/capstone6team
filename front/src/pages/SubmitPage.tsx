@@ -4,7 +4,9 @@ import CodeEditor, { LANGUAGE_DEFAULTS } from "../components/CodeEditor";
 import SubmitBar from "../components/SubmitBar";
 import SubmitSuccessModal from "../components/SubmitSuccessModal";
 import { submitCode } from "../api/submissionApi";
+import { useApp } from "../context/AppContext";
 import { Language } from "../types";
+
 import "./SubmitPage.css";
 
 
@@ -28,6 +30,7 @@ function getTabFromHash(): Tab {
 }
 
 const SubmitPage: React.FC = () => {
+  const { navigate } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>(getTabFromHash);
 
   // 브라우저 뒤로가기/앞으로가기로 탭 변경 시 동기화
@@ -95,6 +98,9 @@ const SubmitPage: React.FC = () => {
             </button>
           ))}
         </nav>
+        <button className="header-home-btn" onClick={() => navigate("home")}>
+          ← 홈으로
+        </button>
       </header>
 
       <div className="page-body">
