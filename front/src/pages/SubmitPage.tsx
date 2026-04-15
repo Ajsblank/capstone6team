@@ -41,8 +41,8 @@ const SubmitPage: React.FC = () => {
     window.location.hash = `submit/${tab}`;
     setActiveTab(tab);
   };
-  const [language, setLanguage] = useState<Language>("python");
-  const [code, setCode] = useState<string>(LANGUAGE_DEFAULTS["python"]);
+  const [language, setLanguage] = useState<Language>("cpp");
+  const [code, setCode] = useState<string>(LANGUAGE_DEFAULTS["cpp"]);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [responseMessage, setResponseMessage] = useState<string>("");
