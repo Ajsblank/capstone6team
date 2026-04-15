@@ -19,6 +19,15 @@
       user-select: none;
     }
 
+    #main-wrapper {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      align-items: flex-start;
+      justify-content: center;
+      width: 100%;
+    }
+
     #game-app {
       width: 800px;
       height: 500px;
@@ -311,6 +320,10 @@
       background: #333;
     }
 
+    .bg-yellow {
+      background: #d4af37 !important;
+    }
+
     .bg-red {
       background: #ff4d4d !important;
     }
@@ -500,22 +513,67 @@
       background: #3498db;
     }
 
+    /* 배틀 P1/P2 행동 박스 */
+    #battle-action-display {
+      position: absolute;
+      top: 54px;
+      left: 0; right: 0;
+      z-index: 30;
+      padding: 3px 8px;
+      display: flex;
+      gap: 6px;
+      align-items: stretch;
+    }
+    .battle-action-box {
+      flex: 1;
+      background: rgba(0,0,0,0.78);
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: bold;
+      border-radius: 4px;
+      min-height: 22px;
+    }
+    #battle-p1-action { border: 1px solid rgba(231,76,60,0.7); color: #fff; }
+    #battle-p2-action { border: 1px solid rgba(52,152,219,0.7); color: #fff; text-align: right; }
+    .action-move   { color: #4da6ff !important; }
+    .action-defend { color: #f1c40f !important; }
+    .action-heal   { color: #2ecc71 !important; }
+    .action-attack { color: #e74c3c !important; }
+
     #battle-log {
       position: absolute;
-      top: 60px;
+      top: 88px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 0, 0, 0.8);
       color: #fff;
-      padding: 10px 20px;
+      padding: 5px 16px;
       border-radius: 5px;
       font-weight: bold;
+      font-size: 13px;
       text-align: center;
       z-index: 30;
-      min-width: 300px;
+      min-width: 260px;
       transition: 0.2s;
       border: 1px solid #d4af37;
     }
+
+    /* 스킬 미니 그리드 */
+    .skill-mini-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 13px);
+      grid-template-rows: repeat(3, 13px);
+      gap: 1px;
+      margin: 5px auto 0;
+    }
+    .skill-mini-cell {
+      width: 13px; height: 13px;
+      background: #1a1a2e;
+      border: 1px solid #333;
+      border-radius: 1px;
+    }
+    .skill-mini-cell.char-pos { background: #d4af37; }
+    .skill-mini-cell.hit-pos  { background: #e74c3c; }
 
     .battle-next-btn {
       position: absolute;
@@ -549,18 +607,70 @@
 
     /* 5. 로그 패널 UI */
     #log-panel {
-      width: 800px;
-      height: 250px;
+      width: 400px;
+      height: 500px;
       background: #1a1a1a;
       border: 2px solid #555;
-      margin-top: 20px;
+      margin-top: 0;
       padding: 10px;
       overflow-y: auto;
       font-family: monospace;
-      font-size: 13px;
+      font-size: 12px;
       box-sizing: border-box;
       border-radius: 5px;
     }
+
+    /* 캐릭터 스킬 툴팁 */
+    #char-skill-info {
+      position: absolute;
+      bottom: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 720px;
+      background: rgba(0, 0, 0, 0.92);
+      border: 1px solid #d4af37;
+      border-radius: 6px;
+      padding: 8px 12px;
+      z-index: 50;
+    }
+    #char-skill-info .skill-title {
+      color: #d4af37;
+      font-weight: bold;
+      font-size: 13px;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    #char-skill-info .skill-rows {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .skill-row {
+      flex: 1;
+      background: #1a1a2e;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 5px 6px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .skill-row-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+    }
+    .skill-row-grid {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .skill-row .skill-label { color: #f1c40f; font-weight: bold; font-size: 12px; }
+    .skill-row .skill-dmg  { color: #e74c3c; }
+    .skill-row .skill-mp   { color: #3498db; }
 
     .log-line {
       padding: 4px;
@@ -613,6 +723,7 @@
 
 <body>
 
+  <div id="main-wrapper">
   <div id="game-app">
     <div id="screen-start">
       <h1>치토 배틀<br><small style="font-size: 16px; color: #aaa;">혼자서 하기</small></h1>
@@ -635,6 +746,11 @@
     <div id="screen-select" class="hidden">
       <h2 id="select-title">Player 1: 캐릭터 선택</h2>
       <div id="select-chars" class="grid-2x4 hidden"></div>
+      <!-- 캐릭터 hover 시 스킬 미리보기 -->
+      <div id="char-skill-info" class="hidden">
+        <div class="skill-title" id="skill-info-title">캐릭터 스킬</div>
+        <div class="skill-rows" id="skill-info-rows"></div>
+      </div>
       <div id="select-cards-area" class="hidden" style="width: 100%; text-align: center;">
         <p style="color: #aaa;">선택 카드 5장 중 3장을 고르세요.</p>
         <div class="card-select-container" id="select-cards-container"></div>
@@ -709,6 +825,11 @@
         </div>
       </div>
 
+      <div id="battle-action-display">
+        <div id="battle-p1-action" class="battle-action-box">P1: -</div>
+        <div id="battle-p2-action" class="battle-action-box">P2: -</div>
+      </div>
+
       <div id="battle-log">배틀 시작!</div>
 
       <div class="battle-container">
@@ -719,11 +840,12 @@
 
       <button class="btn battle-next-btn hidden" id="battle-next-btn"></button>
     </div>
-  </div>
+  </div><!-- /#game-app -->
 
   <div id="log-panel">
     <div style="color: #888; font-style: italic; margin-bottom: 5px;">[System] 대기 중...</div>
   </div>
+  </div><!-- /#main-wrapper -->
 
   <script>
     // --- 데이터 베이스 ---
@@ -821,9 +943,17 @@
         for (let y = -1; y <= 1; y++) {
           for (let x = -1; x <= 1; x++) {
             let cls = '';
-            if (c.type === 'attack' && c.range && c.range.some(p => p[0] === x && p[1] === y)) cls = 'bg-red';
-            else if (c.type === 'defend' && x === 0 && y === 0) cls = 'bg-green';
-            else if (c.type === 'heal' && x === 0 && y === 0) cls = 'bg-blue';
+            const isCenter = (x === 0 && y === 0);
+            const isCharSkill = c.type === 'attack' && c.id && c.id.includes('_');
+            if (isCenter && isCharSkill) {
+              cls = 'bg-yellow'; // 캐릭터 고유 스킬만 플레이어 위치 노란색
+            } else if (c.type === 'attack' && c.range && c.range.some(p => p[0] === x && p[1] === y)) {
+              cls = 'bg-red';
+            } else if (c.type === 'defend' && isCenter) {
+              cls = 'bg-green';
+            } else if (c.type === 'heal' && isCenter) {
+              cls = 'bg-blue';
+            }
             rightHtml += `<div class="c-grid-cell ${cls}"></div>`;
           }
         }
@@ -844,9 +974,79 @@
 
       const charGrid = $('select-chars'); charGrid.innerHTML = '';
       for (let i = 1; i <= 8; i++) {
-        let btn = document.createElement('div'); btn.className = 'char-select-btn'; btn.innerText = `00${i}`;
-        btn.onclick = () => selectChar(`00${i}`); charGrid.appendChild(btn);
+        const charNum = `00${i}`;
+        let btn = document.createElement('div'); btn.className = 'char-select-btn'; btn.innerText = charNum;
+        btn.onclick = () => selectChar(charNum);
+        btn.addEventListener('mouseenter', () => showCharSkills(charNum));
+        btn.addEventListener('mouseleave', hideCharSkills);
+        charGrid.appendChild(btn);
       }
+    }
+
+    function actionTypeClass(cardKey) {
+      const card = CARDS[cardKey];
+      if (!card) return '';
+      if (card.type === 'move')   return 'action-move';
+      if (card.type === 'defend') return 'action-defend';
+      if (card.type === 'heal')   return 'action-heal';
+      return 'action-attack';
+    }
+    function setActionBox(elId, label, cardKey) {
+      const el = $(elId); if (!el) return;
+      el.className = `battle-action-box ${actionTypeClass(cardKey)}`;
+      el.textContent = label;
+    }
+    function clearActionBoxes() {
+      const p1 = $('battle-p1-action'), p2 = $('battle-p2-action');
+      if (p1) { p1.className = 'battle-action-box'; p1.textContent = 'P1: -'; }
+      if (p2) { p2.className = 'battle-action-box'; p2.textContent = 'P2: -'; }
+    }
+
+    function buildSkillMiniGrid(range) {
+      const grid = document.createElement('div');
+      grid.className = 'skill-mini-grid';
+      // dy: -1(위)→+1(아래), dx: -1(왼)→+1(오른)
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const cell = document.createElement('div');
+          cell.className = 'skill-mini-cell';
+          if (dx === 0 && dy === 0) cell.classList.add('char-pos');
+          else if (range.some(([rdx, rdy]) => rdx === dx && rdy === dy))
+            cell.classList.add('hit-pos');
+          grid.appendChild(cell);
+        }
+      }
+      return grid;
+    }
+
+    function showCharSkills(charNum) {
+      const data = CHAR_SKILLS_DATA[charNum];
+      if (!data) return;
+      $('skill-info-title').textContent = `캐릭터 ${charNum} 스킬 미리보기`;
+      const rows = $('skill-info-rows');
+      rows.innerHTML = '';
+      ['A','B','C','D','E'].forEach(s => {
+        const [dmg, mp, range] = data[s];
+        const el = document.createElement('div');
+        el.className = 'skill-row';
+        const info = document.createElement('div');
+        info.className = 'skill-row-info';
+        info.innerHTML =
+          `<div class="skill-label">SKILL ${s}</div>` +
+          `<div class="skill-dmg">DMG ${dmg}</div>` +
+          `<div class="skill-mp">MP ${mp}</div>`;
+        const gridWrap = document.createElement('div');
+        gridWrap.className = 'skill-row-grid';
+        gridWrap.appendChild(buildSkillMiniGrid(range));
+        el.appendChild(info);
+        el.appendChild(gridWrap);
+        rows.appendChild(el);
+      });
+      $('char-skill-info').classList.remove('hidden');
+    }
+
+    function hideCharSkills() {
+      $('char-skill-info').classList.add('hidden');
     }
 
     function selectChar(charId) {
@@ -1024,10 +1224,12 @@
       $('battle-round-text').innerText = state.isReplaying ? `[REPLAY] ROUND ${state.round}` : `ROUND ${state.round < 10 ? '0' + state.round : state.round}`;
       renderBattleGrid(); renderBattleChars(); updateBattleBars();
       const bLog = $('battle-log'); bLog.innerText = state.isReplaying ? "리플레이 시작!" : "배틀 시작!";
+      bLog.style.color = '#fff'; bLog.style.fontSize = '13px';
+      clearActionBoxes();
       await sleep(800);
 
       for (let i = 0; i < 3; i++) {
-        bLog.innerText = `행동 ${i + 1} 실행 중...`;
+        bLog.innerText = `턴 ${i + 1}`;
         let p1ActKey = state.p1.actions[i] || 'GUARD'; let p2ActKey = state.p2.actions[i] || 'GUARD';
 
         const applyConfusion = (p, actKey) => {
@@ -1039,6 +1241,9 @@
         };
 
         p1ActKey = applyConfusion(state.p1, p1ActKey); p2ActKey = applyConfusion(state.p2, p2ActKey);
+        setActionBox('battle-p1-action', `P1: ${(CARDS[p1ActKey]||{name:p1ActKey}).name}`, p1ActKey);
+        setActionBox('battle-p2-action', `P2: ${(CARDS[p2ActKey]||{name:p2ActKey}).name}`, p2ActKey);
+        await sleep(400);
         let act1 = { ...CARDS[p1ActKey], owner: state.p1, target: state.p2 };
         let act2 = { ...CARDS[p2ActKey], owner: state.p2, target: state.p1 };
 
@@ -1058,21 +1263,31 @@
           let hpTile = state.tiles.find(t => t.c === act.owner.x && t.r === act.owner.y && t.type === 'HP');
           if (hpTile) act.owner.hp = Math.min(MAX_HP, act.owner.hp + hpTile.val);
 
+          const isP1 = act.owner === state.p1;
+          const aBoxId = isP1 ? 'battle-p1-action' : 'battle-p2-action';
+          const aCardKey = isP1 ? p1ActKey : p2ActKey;
           if (act.type === 'move') {
             let nx = act.owner.x + act.dx; let ny = act.owner.y + act.dy;
             let upTile = state.tiles.find(t => t.c === nx && t.r === ny && t.type === 'TILE_UP');
             if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H && !upTile) {
-              act.owner.x = nx; act.owner.y = ny; bLog.innerText = `${act.owner.id} ${act.name}!`;
+              act.owner.x = nx; act.owner.y = ny;
+              setActionBox(aBoxId, `${act.owner.id}: ${act.name}!`, aCardKey);
+            } else {
+              bLog.innerText = `${act.owner.id} TILE_UP에 막힘!`;
             }
           }
-          else if (act.type === 'defend') { act.owner.guard = act.block; bLog.innerText = `${act.owner.id} 방어 태세!`; }
+          else if (act.type === 'defend') {
+            act.owner.guard = act.block;
+            setActionBox(aBoxId, `${act.owner.id}: ${act.block === 999 ? 'PERFECT GUARD' : 'GUARD'}`, aCardKey);
+          }
           else if (act.type === 'heal') {
             if (act.healHp) act.owner.hp = Math.min(MAX_HP, act.owner.hp + act.healHp);
             if (act.healMp) act.owner.en = Math.min(MAX_EN, act.owner.en + act.healMp);
-            bLog.innerText = `${act.owner.id} 회복!`;
+            setActionBox(aBoxId, `${act.owner.id}: ${act.name} 회복!`, aCardKey);
           }
           else if (act.type === 'attack') {
-            bLog.innerText = `${act.owner.id} ${act.name} 공격!`; await sleep(300);
+            setActionBox(aBoxId, `${act.owner.id}: ${act.name} 공격!`, aCardKey);
+            await sleep(300);
             let hitCells = [];
             for (let [dx, dy] of act.range) {
               let tx = act.owner.x + (dx * act.owner.dir); let ty = act.owner.y + dy;
@@ -1091,9 +1306,10 @@
               let dmg = act.dmg; let dTile = state.tiles.find(t => t.c === act.owner.x && t.r === act.owner.y && t.type === 'DAM');
               if (dTile) dmg = Math.floor(dmg * dTile.val);
               let finalDmg = Math.max(0, dmg - act.target.guard);
-              act.target.hp -= finalDmg; bLog.innerText = `적중! -${finalDmg} 피해!`;
+              act.target.hp -= finalDmg;
+              bLog.innerText = `적중! -${finalDmg} 피해!`; bLog.style.color = '#e74c3c';
               $('screen-battle').style.transform = "translate(5px, 5px)"; setTimeout(() => $('screen-battle').style.transform = "translate(0,0)", 100);
-            } else bLog.innerText = `빗나감!`;
+            } else { bLog.innerText = `빗나감!`; bLog.style.color = '#aaa'; }
           }
           renderBattleChars(); updateBattleBars(); await sleep(800);
         }
@@ -1113,9 +1329,14 @@
       }
 
       if (!state.isReplaying) {
-        state.p1.en = Math.min(MAX_EN, state.p1.en + 15); state.p2.en = Math.min(MAX_EN, state.p2.en + 15); generateSpecialTiles();
+        state.p1.en = Math.min(MAX_EN, state.p1.en + 15); state.p2.en = Math.min(MAX_EN, state.p2.en + 15);
+        generateSpecialTiles();
+        renderBattleGrid(); // 새 타일 즉시 시각화
+        clearActionBoxes();
+        bLog.innerText = "특수 타일 생성!"; bLog.style.color = '#ff9944';
+        await sleep(900);
+        bLog.innerText = "라운드 종료. 다음 라운드로.."; bLog.style.color = '#d4af37';
         nextBtn.innerText = "NEXT ROUND ▷"; nextBtn.onclick = endBattlePhase; nextBtn.classList.remove('hidden');
-        bLog.innerText = "라운드 종료. 다음 라운드로..";
       } else {
         bLog.innerText = "리플레이 종료."; nextBtn.innerText = "현재 상태로 복귀 ↺";
         nextBtn.onclick = returnToRealState; nextBtn.classList.remove('hidden');
