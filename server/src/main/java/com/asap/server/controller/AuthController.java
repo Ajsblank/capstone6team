@@ -1,26 +1,31 @@
-package com.asap.server.api.controller;
+package com.asap.server.controller;
 
-import com.asap.server.api.dto.request.LoginRequest;
-import com.asap.server.api.dto.request.SignupRequest;
-import com.asap.server.api.service.AuthService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.asap.server.dto.request.LoginRequest;
+import com.asap.server.dto.request.SignupRequest;
+import com.asap.server.service.AuthService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    
+
     private final AuthService authService;
-    
+
     @PostMapping("/signup")
     public ResponseEntity<String> signup(@Valid @RequestBody SignupRequest request) {
         authService.signup(request);
         return ResponseEntity.status(201).body("회원가입이 완료되었습니다!");
     }
-    
+
     @PostMapping("/login")
     public ResponseEntity<String> login(@Valid @RequestBody LoginRequest request) {
         String result = authService.login(request);

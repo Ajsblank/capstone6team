@@ -1,4 +1,4 @@
-package com.asap.server.api.entity;
+package com.asap.server.domain;
 
 import java.time.LocalDateTime;
 
@@ -11,40 +11,41 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "contest_example_ai")
 @Getter
 @NoArgsConstructor
-public class Submission {
+public class ContestExampleAI {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
   @ManyToOne
-  @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_submission_user"))
-  private User user;
-
-  @ManyToOne
-  @JoinColumn(name = "contest_id", foreignKey = @ForeignKey(name = "fk_submission_contest"))
+  @JoinColumn(name = "contest_id", foreignKey = @ForeignKey(name = "fk_contest_example_ai_contest"))
   private Contest contest;
+
+  @Column(name = "example_order")
+  private Integer exampleOrder;
+
+  @Column(columnDefinition = "TEXT")
+  private String description;
 
   @Column
   private String code_url;
 
-  @Column
-  private String result;
-
   @Column(nullable = false)
   private LocalDateTime created_at;
 
-  public Submission(User user, Contest contest, String code_url, String result) {
-    this.user = user;
+  public ContestExampleAI(Contest contest, Integer exampleOrder, String description, String code_url) {
     this.contest = contest;
+    this.exampleOrder = exampleOrder;
+    this.description = description;
     this.code_url = code_url;
-    this.result = result;
   }
 
   @PrePersist

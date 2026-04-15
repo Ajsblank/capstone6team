@@ -1,4 +1,4 @@
-package com.asap.server.api.controller;
+package com.asap.server.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.asap.server.api.dto.request.CodeSubmitRequest;
-import com.asap.server.api.dto.response.CodeSubmitResponse;
+import com.asap.server.dto.request.CodeSubmitRequest;
+import com.asap.server.dto.response.CodeSubmitResponse;
 
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;

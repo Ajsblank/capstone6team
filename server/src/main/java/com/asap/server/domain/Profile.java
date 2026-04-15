@@ -1,4 +1,4 @@
-package com.asap.server.api.entity;
+package com.asap.server.domain;
 
 import java.time.LocalDateTime;
 
@@ -24,7 +24,7 @@ public class Profile {
 
   @ManyToOne
   @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_profile_user"))
-  private User user;
+  private users user;
 
   @Column(length = 50)
   private String nickname;
@@ -38,7 +38,7 @@ public class Profile {
   @Column
   private LocalDateTime deleted_at;
 
-  public Profile(User user, String nickname, String bio, String image_url) {
+  public Profile(users user, String nickname, String bio, String image_url) {
     this.user = user;
     this.nickname = nickname;
     this.bio = bio;

@@ -383,6 +383,43 @@ public:
         oppCharacter.SetPosition(1, 3);
     }
 
+    int GetManaCost(Card card) const
+    {
+        if (card == HEAL) return 60;
+        if (card == PERFECT_GUARD) return 25;
+        if (card > PERFECT_GUARD) return SkillCardMap.at(card).mana;
+        return 0;
+    }
+
+    Card GetMoveTowardOpponent() const
+    {
+        int dr = oppCharacter.r - myCharacter.r;
+        int dc = oppCharacter.c - myCharacter.c;
+        if (abs(dc) > abs(dr))
+            return dc > 0 ? RIGHT : LEFT;
+        return dr > 0 ? DOWN : UP;
+    }
+
+    Card GetDoubleMoveTowardOpponent() const
+    {
+        int dr = oppCharacter.r - myCharacter.r;
+        int dc = oppCharacter.c - myCharacter.c;
+        if (abs(dc) >= abs(dr))
+            return dc > 0 ? DOUBLE_RIGHT : DOUBLE_LEFT;
+        return dr > 0 ? DOWN : UP;
+    }
+
+    Card GetEscapeMove() const
+    {
+        if (myCharacter.c < oppCharacter.c)
+            return LEFT;
+        if (myCharacter.c > oppCharacter.c)
+            return RIGHT;
+        if (myCharacter.r < oppCharacter.r)
+            return UP;
+        return DOWN;
+    }
+
     // ============================================================
     // ====================== [필수 구현] ==========================
 
@@ -400,24 +437,121 @@ public:
     // 다음 라운드에 행동할 카드 3장을 순서대로 선택
     Behavior SelectCard()
     {
-        // 랜덤 카드 선택
-        Card canUseCard[14] = {UP, DOWN, LEFT, RIGHT, c001_A, c001_B, c001_C, c001_D, c001_E, MANA_HEAL, GUARD, HEAL, DOUBLE_LEFT, PERFECT_GUARD};
-        while(true)
-        {
-            int order[3] = {rand() % 14, rand() % 14, rand() % 14};
-            if(order[0] == order[1] || order[0] == order[2] || order[1] == order[2])
-                continue;
-            for(int i = 0; i < 3; i++)
-                myBehavior.card[i] = canUseCard[order[i]];
-            if(IsValidBehavior(myBehavior))
-                break;
-        }
-        {
-          
-            
+        Behavior behavior;
+        Card moveToward = GetMoveTowardOpponent();
+        Card doubleToward = GetDoubleMoveTowardOpponent();
+        Card escapeMove = GetEscapeMove();
 
+        auto TryBehavior = [&](Card a, Card b, Card c) {
+            behavior.card[0] = a;
+            behavior.card[1] = b;
+            behavior.card[2] = c;
+            return IsValidBehavior(behavior);
+        };
+
+        if (round == 1)
+        {
+            if (TryBehavior(DOUBLE_RIGHT, c001_E, c001_E))
+                return behavior;
+            if (TryBehavior(DOUBLE_RIGHT, c001_A, c001_E))
+                return behavior;
+            if (TryBehavior(DOUBLE_RIGHT, c001_E, GUARD))
+                return behavior;
         }
-        return myBehavior;
+
+        int hp = myCharacter.HP;
+        int mp = myCharacter.MP;
+        int distR = abs(myCharacter.r - oppCharacter.r);
+        int distC = abs(myCharacter.c - oppCharacter.c);
+        int manhattan = distR + distC;
+
+        // 긴급 회복 상황
+        if (hp < 50)
+        {
+            if (manhattan <= 2)
+            {
+                if (TryBehavior(HEAL, GUARD, MANA_HEAL)) return behavior;
+                if (TryBehavior(GUARD, HEAL, MANA_HEAL)) return behavior;
+                if (TryBehavior(HEAL, MANA_HEAL, GUARD)) return behavior;
+                if (TryBehavior(HEAL, MANA_HEAL, c001_E)) return behavior;
+                if (TryBehavior(GUARD, MANA_HEAL, HEAL)) return behavior;
+            }
+            else
+            {
+                if (TryBehavior(escapeMove, HEAL, GUARD)) return behavior;
+                if (TryBehavior(escapeMove, MANA_HEAL, HEAL)) return behavior;
+                if (TryBehavior(escapeMove, HEAL, MANA_HEAL)) return behavior;
+                if (TryBehavior(escapeMove, MANA_HEAL, GUARD)) return behavior;
+            }
+        }
+
+        // 상대가 사거리 내에 있는 경우, 안정적인 공격 우선
+        if (manhattan <= 1)
+        {
+            if (mp >= 45)
+            {
+                if (TryBehavior(c001_E, c001_E, c001_E)) return behavior;
+            }
+            if (mp >= 30)
+            {
+                if (TryBehavior(c001_E, c001_E, GUARD)) return behavior;
+                if (TryBehavior(c001_E, GUARD, c001_E)) return behavior;
+            }
+            if (TryBehavior(c001_E, MANA_HEAL, c001_E)) return behavior;
+            if (TryBehavior(c001_E, c001_E, MANA_HEAL)) return behavior;
+            if (TryBehavior(c001_E, c001_A, GUARD)) return behavior;
+        }
+
+        // 약간 떨어져 있는 경우, 거리 확보 후 공격
+        if (manhattan == 2)
+        {
+            if (TryBehavior(doubleToward, c001_E, MANA_HEAL)) return behavior;
+            if (TryBehavior(doubleToward, c001_E, GUARD)) return behavior;
+            if (TryBehavior(moveToward, c001_E, MANA_HEAL)) return behavior;
+            if (TryBehavior(moveToward, MANA_HEAL, c001_E)) return behavior;
+            if (TryBehavior(moveToward, GUARD, MANA_HEAL)) return behavior;
+        }
+
+        // 거리가 먼 상황, 우선 이동 및 MP 확보
+        if (manhattan >= 3)
+        {
+            if (mp >= 15)
+            {
+                if (TryBehavior(moveToward, MANA_HEAL, c001_E)) return behavior;
+                if (TryBehavior(moveToward, c001_E, MANA_HEAL)) return behavior;
+            }
+            if (TryBehavior(moveToward, MANA_HEAL, GUARD)) return behavior;
+            if (TryBehavior(moveToward, GUARD, MANA_HEAL)) return behavior;
+            if (TryBehavior(moveToward, moveToward, MANA_HEAL)) return behavior;
+        }
+
+        // 기본 fallback 조합
+        if (TryBehavior(MANA_HEAL, HEAL, GUARD)) return behavior;
+        if (TryBehavior(GUARD, MANA_HEAL, HEAL)) return behavior;
+        if (TryBehavior(c001_E, c001_E, MANA_HEAL)) return behavior;
+        if (TryBehavior(c001_E, c001_E, GUARD)) return behavior;
+        if (TryBehavior(c001_A, c001_E, MANA_HEAL)) return behavior;
+
+        // 무조건 찾을 수 있도록 마지막 시도
+        behavior.card[0] = MANA_HEAL;
+        behavior.card[1] = MANA_HEAL;
+        behavior.card[2] = c001_E;
+        if (IsValidBehavior(behavior)) return behavior;
+
+        behavior.card[0] = GUARD;
+        behavior.card[1] = MANA_HEAL;
+        behavior.card[2] = c001_E;
+        if (IsValidBehavior(behavior)) return behavior;
+
+        behavior.card[0] = c001_E;
+        behavior.card[1] = c001_E;
+        behavior.card[2] = GUARD;
+        if (IsValidBehavior(behavior)) return behavior;
+
+        // 안전 장치: 최소한 유효한 행동을 반환
+        for (int i = 0; i < 3; i++)
+            behavior.card[i] = MANA_HEAL;
+        return behavior;
     }
     // ====================== [필수 구현 끝] =======================
 
