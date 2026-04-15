@@ -1,93 +1,22 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
+import AppHeader from "../components/AppHeader";
 import "./HomePage.css";
 
 type HomeTab = "home" | "contest" | "help";
 
 const HomePage: React.FC = () => {
-  const { user, logout, navigate } = useApp();
+  const { navigate } = useApp();
   const [activeTab, setActiveTab] = useState<HomeTab>("home");
 
   return (
     <div className="home-page">
-      <header className="home-header">
-        <span className="home-logo" onClick={() => setActiveTab("home")}>
-          CodeBattle
-        </span>
-        <nav className="home-tab-nav">
-          <button
-            className={`home-tab-btn${activeTab === "home" ? " home-tab-btn--active" : ""}`}
-            onClick={() => setActiveTab("home")}
-          >
-            홈
-          </button>
-          <button
-            className="home-tab-btn"
-            onClick={() => navigate("problems")}
-          >
-            문제
-          </button>
-          <button
-            className={`home-tab-btn${activeTab === "contest" ? " home-tab-btn--active" : ""}`}
-            onClick={() => setActiveTab("contest")}
-          >
-            대회
-          </button>
-          <button
-            className={`home-tab-btn${activeTab === "help" ? " home-tab-btn--active" : ""}`}
-            onClick={() => setActiveTab("help")}
-          >
-            도움말
-          </button>
-        </nav>
-
-        <div className="home-auth-area">
-          <button
-            className="home-auth-btn home-auth-btn--battle"
-            onClick={() => navigate("submit")}
-          >
-            ⚔️ 코드 배틀로
-          </button>
-          {user ? (
-            <>
-              <span
-                className="home-username"
-                onClick={() => navigate("profile")}
-                title="프로필 보기"
-              >
-                {user.username}
-              </span>
-              <button
-                className="home-auth-btn home-auth-btn--secondary"
-                onClick={() => navigate("account-settings")}
-              >
-                설정
-              </button>
-              <button
-                className="home-auth-btn home-auth-btn--ghost"
-                onClick={() => { logout(); }}
-              >
-                로그아웃
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                className="home-auth-btn home-auth-btn--ghost"
-                onClick={() => navigate("signup")}
-              >
-                회원가입
-              </button>
-              <button
-                className="home-auth-btn home-auth-btn--primary"
-                onClick={() => navigate("login")}
-              >
-                로그인
-              </button>
-            </>
-          )}
-        </div>
-      </header>
+      <AppHeader
+        activePage={activeTab === "home" ? "home" : activeTab === "contest" ? "contest" : "help"}
+        onHomeClick={() => setActiveTab("home")}
+        onContestClick={() => setActiveTab("contest")}
+        onHelpClick={() => setActiveTab("help")}
+      />
 
       <main className="home-body">
         {activeTab === "home" && (
@@ -98,7 +27,7 @@ const HomePage: React.FC = () => {
                 백준의 정신을 이어받아, 알고리즘 문제를 풀 수 있는 사이트
               </p>
               <p className="home-hero-desc">
-                백바오야 가지마...<br />                
+                백바오야 가지마...<br />
               </p>
               <button className="home-cta-btn" onClick={() => navigate("problems")}>
                 문제 풀러 가기
