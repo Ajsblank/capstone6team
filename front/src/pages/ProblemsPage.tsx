@@ -1,5 +1,6 @@
 import React from "react";
 import { useApp } from "../context/AppContext";
+import AppHeader from "../components/AppHeader";
 import "./HomePage.css";
 
 // TODO: 백엔드 API 연동 시 타입 수정
@@ -32,63 +33,11 @@ const MOCK_PROBLEMS: Problem[] = [
 ];
 
 const ProblemsPage: React.FC = () => {
-  const { user, logout, navigate } = useApp();
+  const { navigate } = useApp();
 
   return (
     <div className="home-page">
-      <header className="home-header">
-        <span className="home-logo" onClick={() => navigate("home")}>
-          CodeBattle
-        </span>
-        <nav className="home-tab-nav">
-          <button className="home-tab-btn" onClick={() => navigate("home")}>홈</button>
-          <button className="home-tab-btn home-tab-btn--active">문제</button>
-          <button className="home-tab-btn">대회</button>
-          <button className="home-tab-btn">도움말</button>
-        </nav>
-        <div className="home-auth-area">
-          <button
-            className="home-auth-btn home-auth-btn--battle"
-            onClick={() => navigate("submit")}
-          >
-            ⚔️ 코드 배틀로
-          </button>
-          {user ? (
-            <>
-              <span className="home-username" onClick={() => navigate("profile")}>
-                {user.username}
-              </span>
-              <button
-                className="home-auth-btn home-auth-btn--secondary"
-                onClick={() => navigate("account-settings")}
-              >
-                설정
-              </button>
-              <button
-                className="home-auth-btn home-auth-btn--ghost"
-                onClick={() => logout()}
-              >
-                로그아웃
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                className="home-auth-btn home-auth-btn--ghost"
-                onClick={() => navigate("signup")}
-              >
-                회원가입
-              </button>
-              <button
-                className="home-auth-btn home-auth-btn--primary"
-                onClick={() => navigate("login")}
-              >
-                로그인
-              </button>
-            </>
-          )}
-        </div>
-      </header>
+      <AppHeader activePage="problems" />
 
       <main className="home-body">
         <div className="problems-content">

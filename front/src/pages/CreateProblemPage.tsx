@@ -1,7 +1,9 @@
 import React, { useState } from "react";
+import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useApp } from "../context/AppContext";
+import AppHeader from "../components/AppHeader";
 import { createAlgorithm, TestCaseDto } from "../api/algorithmApi";
 import "./HomePage.css";
 import "./CreateProblemPage.css";
@@ -55,12 +57,34 @@ const MdEditor: React.FC<MdEditorProps> = ({ value, onChange, rows = 6, placehol
   );
 };
 
-// ── helpers ──
+// ── helpers (컴포넌트 외부 — 렌더링마다 재생성되지 않음) ──
 const emptyTestCase = (): TestCaseDto => ({ input: "", output: "" });
+
+function updateTestCase(
+  list: TestCaseDto[],
+  setList: React.Dispatch<React.SetStateAction<TestCaseDto[]>>,
+  index: number,
+  field: keyof TestCaseDto,
+  value: string
+) {
+  setList(list.map((tc, i) => (i === index ? { ...tc, [field]: value } : tc)));
+}
+
+function addTestCase(setList: React.Dispatch<React.SetStateAction<TestCaseDto[]>>) {
+  setList((prev) => [...prev, emptyTestCase()]);
+}
+
+function removeTestCase(
+  list: TestCaseDto[],
+  setList: React.Dispatch<React.SetStateAction<TestCaseDto[]>>,
+  index: number
+) {
+  if (list.length > 1) setList(list.filter((_, i) => i !== index));
+}
 
 // ── page ──
 const CreateProblemPage: React.FC = () => {
-  const { user, logout, navigate } = useApp();
+  const { navigate } = useApp();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -74,26 +98,11 @@ const CreateProblemPage: React.FC = () => {
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const updateTestCase = (
-    list: TestCaseDto[],
-    setList: React.Dispatch<React.SetStateAction<TestCaseDto[]>>,
-    index: number,
-    field: keyof TestCaseDto,
-    value: string
-  ) => setList(list.map((tc, i) => (i === index ? { ...tc, [field]: value } : tc)));
-
-  const addTestCase = (setList: React.Dispatch<React.SetStateAction<TestCaseDto[]>>) =>
-    setList((prev) => [...prev, emptyTestCase()]);
-
-  const removeTestCase = (
-    list: TestCaseDto[],
-    setList: React.Dispatch<React.SetStateAction<TestCaseDto[]>>,
-    index: number
-  ) => list.length > 1 && setList(list.filter((_, i) => i !== index));
-
   const handleSubmit = async () => {
     if (!title.trim()) { setErrorMsg("제목을 입력해주세요."); return; }
     if (!description.trim()) { setErrorMsg("문제 설명을 입력해주세요."); return; }
+    if (!memoryLimitMB || memoryLimitMB < 16) { setErrorMsg("메모리 제한은 16MB 이상이어야 합니다."); return; }
+    if (!timeLimitSec || timeLimitSec < 1) { setErrorMsg("시간 제한은 1초 이상이어야 합니다."); return; }
 
     setStatus("submitting");
     setErrorMsg("");
@@ -110,14 +119,15 @@ const CreateProblemPage: React.FC = () => {
         hiddenTestcases,
       });
       setStatus("success");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus("error");
-      if (err.response) {
-        setErrorMsg(`[${err.response.status}] ${err.response.data?.message ?? err.response.statusText}`);
-      } else if (err.request) {
-        setErrorMsg("서버에 연결할 수 없습니다.");
+      if (axios.isAxiosError(err)) {
+        const msg = err.response?.data?.message ?? err.response?.statusText;
+        setErrorMsg(msg ? `[${err.response?.status}] ${msg}` : "서버에 연결할 수 없습니다.");
+      } else if (err instanceof Error) {
+        setErrorMsg(err.message);
       } else {
-        setErrorMsg(err.message ?? "알 수 없는 오류가 발생했습니다.");
+        setErrorMsg("알 수 없는 오류가 발생했습니다.");
       }
     }
   };
@@ -174,29 +184,7 @@ const CreateProblemPage: React.FC = () => {
 
   return (
     <div className="create-problem-page">
-      <header className="home-header">
-        <span className="home-logo" onClick={() => navigate("home")}>CodeBattle</span>
-        <nav className="home-tab-nav">
-          <button className="home-tab-btn" onClick={() => navigate("home")}>홈</button>
-          <button className="home-tab-btn home-tab-btn--active" onClick={() => navigate("problems")}>문제</button>
-          <button className="home-tab-btn">대회</button>
-          <button className="home-tab-btn">도움말</button>
-        </nav>
-        <div className="home-auth-area">
-          {user ? (
-            <>
-              <span className="home-username" onClick={() => navigate("profile")}>{user.username}</span>
-              <button className="home-auth-btn home-auth-btn--secondary" onClick={() => navigate("account-settings")}>설정</button>
-              <button className="home-auth-btn home-auth-btn--ghost" onClick={() => logout()}>로그아웃</button>
-            </>
-          ) : (
-            <>
-              <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("signup")}>회원가입</button>
-              <button className="home-auth-btn home-auth-btn--primary" onClick={() => navigate("login")}>로그인</button>
-            </>
-          )}
-        </div>
-      </header>
+      <AppHeader activePage="problems" />
 
       <main className="home-body">
         <div className="cp-content">
