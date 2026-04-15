@@ -34,6 +34,26 @@
   flex-shrink: 0;
 }
 
+.header-home-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid #45475a;
+  color: #a6adc8;
+  font-size: 0.82rem;
+  font-family: "Segoe UI", sans-serif;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.header-home-btn:hover {
+  background: #313244;
+  color: #cdd6f4;
+}
+
 .tab-nav {
   display: flex;
   align-items: stretch;
