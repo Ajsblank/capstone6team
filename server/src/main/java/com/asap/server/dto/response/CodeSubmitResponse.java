@@ -1,4 +1,4 @@
-package com.asap.server.api.dto.response;
+package com.asap.server.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

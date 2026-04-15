@@ -1,4 +1,4 @@
-package com.asap.server.api.dto.request;
+package com.asap.server.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;

@@ -1,4 +1,4 @@
-package com.asap.server.api.entity;
+package com.asap.server.domain;
 
 import java.time.LocalDateTime;
 

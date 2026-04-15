@@ -1,4 +1,4 @@
-package com.asap.server.api.entity;
+package com.asap.server.domain;
 
 import java.time.LocalDateTime;
 
@@ -29,15 +29,15 @@ public class Match {
 
   @ManyToOne
   @JoinColumn(name = "user1_id", foreignKey = @ForeignKey(name = "fk_match_user1"))
-  private User user1;
+  private users user1;
 
   @ManyToOne
   @JoinColumn(name = "user2_id", foreignKey = @ForeignKey(name = "fk_match_user2"))
-  private User user2;
+  private users user2;
 
   @ManyToOne
   @JoinColumn(name = "winner_id", foreignKey = @ForeignKey(name = "fk_match_winner"))
-  private User winner;
+  private users winner;
 
   @Column(columnDefinition = "TEXT")
   private String log;
@@ -45,7 +45,7 @@ public class Match {
   @Column(nullable = false)
   private LocalDateTime created_at;
 
-  public Match(Contest contest, User user1, User user2, User winner, String log) {
+  public Match(Contest contest, users user1, users user2, users winner, String log) {
     this.contest = contest;
     this.user1 = user1;
     this.user2 = user2;

@@ -1,4 +1,4 @@
-package com.asap.server.api.entity;
+package com.asap.server.domain;
 
 import java.time.LocalDateTime;
 
@@ -11,8 +11,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
-import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -30,7 +30,7 @@ public class Participant {
 
   @ManyToOne
   @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_participant_user"))
-  private User user;
+  private users user;
 
   @ManyToOne
   @JoinColumn(name = "contest_id", foreignKey = @ForeignKey(name = "fk_participant_contest"))
@@ -46,7 +46,7 @@ public class Participant {
   @Column(nullable = false)
   private LocalDateTime created_at;
 
-  public Participant(User user, Contest contest, Integer score, Submission submission) {
+  public Participant(users user, Contest contest, Integer score, Submission submission) {
     this.user = user;
     this.contest = contest;
     this.score = score;
