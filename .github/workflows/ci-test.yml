@@ -116,7 +116,10 @@ jobs:
       - name: add permission to execute
         run: chmod +x gradlew 
       - name: server build
-        run: ./gradlew build
+      # 테스트 용으로 로직은 제외
+        run: ./gradlew build -x test
+#        run: ./gradlew build 
+
       - name: server test
         run: ./gradlew test
       - name: EC2 server executing
