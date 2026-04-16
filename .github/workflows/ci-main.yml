@@ -1,5 +1,5 @@
 # git action workflow name
-name: ci
+name: "ci-main/develop"
 # executing name, can use environment variables
 run-name: "actor : ${{github.actor}}"
 # Controls when the workflow will run
@@ -71,7 +71,7 @@ jobs:
       - uses: actions/setup-node@v4
         name: node install
         with:
-          node-version: 18
+          node-version: 24
       - name: install npm
         run: npm ci
 

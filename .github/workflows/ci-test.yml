@@ -1,5 +1,5 @@
 # git action workflow name
-name: ci
+name: ci-test
 # executing name, can use environment variables
 run-name: "actor : ${{github.actor}}"
 # Controls when the workflow will run
@@ -71,16 +71,16 @@ jobs:
       - uses: actions/setup-node@v4
         name: node install
         with:
-          node-version: 18
+          node-version: 24
       - name: install npm
         run: npm ci
 
       - name: npm test
         run: |
-          npm test -- --watchAll=false --passWithNoTests
-
+            npm test -- --watchAll=false --passWithNoTests
       - name: npm build
         run: npm run build
+
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
