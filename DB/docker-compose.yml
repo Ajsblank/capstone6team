@@ -14,7 +14,7 @@ services:
       - asap-db-data:/var/lib/postgresql/data
       - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
 
-  # 2. Redis 세팅
+#  2. Redis 세팅
   # redis:
   #   image: redis
   #   container_name: chito-redis
