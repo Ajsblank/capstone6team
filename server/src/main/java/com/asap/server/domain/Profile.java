@@ -5,11 +5,11 @@ import java.time.LocalDateTime;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ForeignKey;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.OneToOne;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -19,10 +19,10 @@ import lombok.NoArgsConstructor;
 public class Profile {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+  private Long userId;
 
-  @ManyToOne
+  @OneToOne
+  @MapsId
   @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_profile_user"))
   private users user;
 
@@ -38,10 +38,15 @@ public class Profile {
   @Column
   private LocalDateTime deleted_at;
 
+  @Builder
   public Profile(users user, String nickname, String bio, String image_url) {
     this.user = user;
     this.nickname = nickname;
     this.bio = bio;
     this.image_url = image_url;
+  }
+
+  public void setUser(users user) {
+    this.user = user;
   }
 }

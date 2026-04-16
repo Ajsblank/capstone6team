@@ -3,11 +3,13 @@ package com.asap.server.domain;
 import java.time.LocalDateTime;
 
 // JPA 관련 어노테이션
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import lombok.AllArgsConstructor;
@@ -26,14 +28,19 @@ public class users {
   @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto Increment (PostgreSQL SERIAL)
   private Long id;
 
+  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+  private Profile profile;
+
+  public void setProfile(Profile profile) {
+    this.profile = profile;
+    profile.setUser(this); // 🔥 양방향 연결
+  }
+
   @Column(nullable = false, unique = true)
   private String email;
 
   @Column(nullable = false)
   private String password;
-
-  @Column(nullable = false)
-  private String nickname;
 
   @Column(length = 50)
   private String affiliation;
