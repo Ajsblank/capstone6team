@@ -1,19 +1,19 @@
 # git action workflow name
-name: "ci-main/develop"
+name: "ci-main"
 # executing name, can use environment variables
 run-name: "actor : ${{github.actor}}"
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ main, develop]
+    branches: main
       # 실행할 경로를 아래 경로 파일들의 변동으로 제한
     paths:
       - 'front/**'
       - 'server/**'
       - '.github/workflows/*'
   pull_request:
-    branches: [ "main", "develop"]
+    branches: main
     paths:
       - 'front/**'
       - 'server/**'
@@ -90,7 +90,8 @@ jobs:
       - name: check aws identity
         run: aws sts get-caller-identity
       - name: Upload to S3BUCKET
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' 
+        if: github.ref == 'refs/heads/main' 
+        # || github.ref == 'refs/heads/develop' 
         run: aws s3 sync build/ s3://caps-asap-bucket --delete
 
   server:
@@ -103,6 +104,11 @@ jobs:
     defaults:
       run:
         working-directory: server
+    env: 
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_URL: ${{ secrets.DB_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -158,6 +164,7 @@ jobs:
           --parameters '{
             "commands": [
               "export HOME=/home/ubuntu",
+              "mkdir -p /home/ubuntu/app",
               "cd /home/ubuntu/app",
               
               # 1. 기존 프로젝트가 없다면 clone, 있다면 pull (최신 코드 반영)
@@ -172,7 +179,12 @@ jobs:
               "cd server",
               "chmod +x gradlew",
               "./gradlew build -x test",
-              "nohup java -jar build/libs/*.jar > /home/ubuntu/app/server.log 2>&1 &"
+              "nohup java -jar \
+                -DDB_URL='$DB_URL' \
+                -DDB_NAME='$DB_NAME' \
+                -DDB_USER='$DB_USER' \
+                -DDB_PASSWORD='$DB_PW' \
+                build/libs/*.jar > /home/ubuntu/app/server.log 2>&1 &"
             ]
           }' \
           --query "Command.CommandId" \
