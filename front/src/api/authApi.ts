@@ -59,6 +59,16 @@ export const signUp = async (body: SignUpRequest): Promise<void> => {
   await api.post("/api/auth/signup", body);
 };
 
+// 이메일 인증번호 재발송 (TODO: 백엔드 재발송 전용 엔드포인트 확인 후 수정)
+export const resendVerificationEmail = async (email: string): Promise<void> => {
+  await api.post("/api/auth/mail/send", { email });
+};
+
+// 이메일 인증번호 확인
+export const verifyEmailCode = async (email: string, code: string): Promise<void> => {
+  await api.post("/api/auth/mail", { email, code });
+};
+
 // 로그인 → JWT 토큰 저장
 export const loginApi = async (body: LoginRequest): Promise<TokenResponse> => {
   const { data } = await api.post<TokenResponse>("/api/auth/login", body);
