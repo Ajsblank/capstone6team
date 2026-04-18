@@ -142,7 +142,7 @@ jobs:
       - name: Wait for SSM ready
         run: |
           echo "Waiting for SSM Agent to be online..."
-          while true; do
+          for i in {1..120}; do
             STATUS=$(aws ssm describe-instance-information \
               --filters "Key=InstanceIds,Values=${{ vars.EC2_ID_INSTANCE }}" \
               --query "InstanceInformationList[0].PingStatus" \
@@ -151,6 +151,11 @@ jobs:
             if [ "$STATUS" = "Online" ]; then
               echo "SSM Agent is Online!"
               break
+            fi
+
+            if [ "$i" -eq 120 ]; then
+              echo "SSM Agent did not become online in time."
+              exit 1
             fi
             
             echo "Current status: $STATUS. Waiting 5 seconds..."
@@ -161,16 +166,17 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
           --instance-ids ${{vars.EC2_ID_INSTANCE}} \
           --document-name "AWS-RunShellScript" \
+          --timeout-seconds 3600 \
           --parameters '{
             "commands": [
-              "cd /home/ubuntu",
               "export HOME=/home/ubuntu",
               "APP_DIR=/home/ubuntu/capstone6team",
+              "mkdir -p $APP_DIR",
+              "cd $APP_DIR",
 
               "if [ ! -d .git ]; then git clone https://github.com/${{ github.repository }}.git .; fi",
-              "cd capstone6team || exit 1",
-              "git fetch origin ${{github.ref_name}}",
-              "git reset --hard origin/${{github.ref_name}}",
+              "git fetch origin ${{ github.head_ref || github.ref_name }}",
+              "git reset --hard origin/${{ github.head_ref || github.ref_name }}",
 
               
               "fuser -k 8080/tcp || true",
@@ -179,21 +185,57 @@ jobs:
               "./gradlew clean build -x test || exit 1",
 
               "JAR_NAME=$(find build/libs -name \"*.jar\" ! -name \"*plain*\" | head -n 1)",
+              "if [ -z \"$JAR_NAME\" ]; then echo \"JAR not found after build\"; exit 1; fi",
               "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -jar $JAR_NAME > $APP_DIR/server.log 2>&1 &",
               
               "echo \"Waiting for server to start...\"",
               "sleep 15",
               "if ! pgrep -f $JAR_NAME > /dev/null; then echo \"Server failed to start\"; cat $APP_DIR/server.log; exit 1; fi",
              
-              "echo deploy_success > /home/ubuntu/app/test.txt"
+              "echo deploy_success > $APP_DIR/test.txt"
             ]
           }' \
           --query "Command.CommandId" \
           --output text)
 
-          aws ssm wait command-executed \
-          --command-id $COMMAND_ID \
-          --instance-id ${{vars.EC2_ID_INSTANCE}}
+          echo "SSM Command ID: $COMMAND_ID"
+          FINAL_STATUS=""
+          for i in {1..180}; do
+            STATUS=$(aws ssm list-command-invocations \
+              --command-id "$COMMAND_ID" \
+              --details \
+              --query "CommandInvocations[0].Status" \
+              --output text)
+
+            echo "SSM status[$i/180]: $STATUS"
+
+            if [[ "$STATUS" == "Success" ]]; then
+              FINAL_STATUS="$STATUS"
+              break
+            fi
+
+            if [[ "$STATUS" == "Failed" || "$STATUS" == "TimedOut" || "$STATUS" == "Cancelled" || "$STATUS" == "Cancelling" ]]; then
+              echo "SSM command finished with failure state."
+              aws ssm list-command-invocations \
+                --command-id "$COMMAND_ID" \
+                --details \
+                --query 'CommandInvocations[0].{Status:Status,StatusDetails:StatusDetails,ResponseCode:CommandPlugins[0].ResponseCode,Output:CommandPlugins[0].Output,StdErr:CommandPlugins[0].StandardErrorContent}' \
+                --output json
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          if [[ "$FINAL_STATUS" != "Success" ]]; then
+            echo "SSM command did not complete within the polling window."
+            aws ssm list-command-invocations \
+              --command-id "$COMMAND_ID" \
+              --details \
+              --query 'CommandInvocations[0].{Status:Status,StatusDetails:StatusDetails,ResponseCode:CommandPlugins[0].ResponseCode,Output:CommandPlugins[0].Output,StdErr:CommandPlugins[0].StandardErrorContent}' \
+              --output json
+            exit 1
+          fi
 
       # - name: Stop EC2
       #  if: always()
