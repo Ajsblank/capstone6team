@@ -1,6 +1,6 @@
 import React from "react";
 import { useApp } from "../context/AppContext";
-import "../pages/HomePage.css";
+import "../pages/AppLayout.css";
 
 interface AppHeaderProps {
   /** 현재 활성 탭 (네비게이션 하이라이트용) */
@@ -24,7 +24,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   return (
     <header className="home-header">
       <span className="home-logo" onClick={() => { onHomeClick?.(); navigate("home"); }}>
-        CodeBattle
+        ASAP 캡스톤
       </span>
       <nav className="home-tab-nav">
         <button
@@ -56,9 +56,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       <div className="home-auth-area">
         <button
           className="home-auth-btn home-auth-btn--battle"
-          onClick={() => navigate("submit")}
+          onClick={() => navigate("battle")}
         >
-          ⚔️ 코드 배틀로
+          ⚔️ 코드 배틀
         </button>
         {user ? (
           <>
