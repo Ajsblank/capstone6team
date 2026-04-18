@@ -176,13 +176,7 @@ jobs:
               "cd server",
               "chmod +x gradlew",
               "./gradlew build",
-              "nohup java \
-                -DDB_URL=$DB_URL \
-                -DDB_NAME=$DB_NAME \
-                -DDB_USER=$DB_USER \
-                -DDB_PASSWORD=$DB_PASSWORD \
-                -jar \
-                build/libs/*.jar > /home/ubuntu/app/server.log 2>&1 &"
+              "nohup java -DDB_URL=${{ env.DB_URL }} -DDB_NAME=${{ env.DB_NAME }} -DDB_USER=${{ env.DB_USER }} -DDB_PASSWORD=${{ env.DB_PASSWORD }} -jar build/libs/*.jar > /home/ubuntu/app/server.log 2>&1 &"
             ]
           }' \
           --query "Command.CommandId" \
