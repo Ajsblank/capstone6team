@@ -80,7 +80,7 @@ jobs:
             npm test -- --watchAll=false --passWithNoTests
       - name: npm build
         env:
-          REACT_APP_API_BASE_URL: ${{ vars.FRONT_API_BASE_URL }}
+          REACT_APP_API_BASE_URL: ${{ secrets.EC2_URL }}
         run: npm run build
 
 
