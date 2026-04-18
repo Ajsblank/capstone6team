@@ -71,7 +71,7 @@ export const loginApi = async (body: LoginRequest): Promise<TokenResponse> => {
 export const logoutApi = async (): Promise<void> => {
   const refreshToken = getRefreshToken();
   if (refreshToken) {
-    await api.post("/api/auth/logout", { refreshToken }).catch(() => { });
+    await api.post("/api/auth/logout", { refreshToken }).catch(() => {});
   }
   clearTokens();
 };

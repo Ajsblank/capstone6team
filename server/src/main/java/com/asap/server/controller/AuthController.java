@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.asap.server.dto.request.LoginRequest;
 import com.asap.server.dto.request.SignupRequest;
+import com.asap.server.dto.response.LoginResponse;
 import com.asap.server.service.AuthService;
 
 import jakarta.validation.Valid;
@@ -27,8 +28,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@Valid @RequestBody LoginRequest request) {
-        String result = authService.login(request);
-        return ResponseEntity.ok(result);
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
     }
 }

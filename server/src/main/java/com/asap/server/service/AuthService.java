@@ -9,6 +9,7 @@ import com.asap.server.domain.Profile;
 import com.asap.server.domain.users;
 import com.asap.server.dto.request.LoginRequest;
 import com.asap.server.dto.request.SignupRequest;
+import com.asap.server.dto.response.LoginResponse;
 import com.asap.server.repository.ProfileReposiroty;
 import com.asap.server.repository.usersRepository;
 
@@ -47,7 +48,7 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
-    public String login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         users user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다."));
 
@@ -56,6 +57,8 @@ public class AuthService {
         }
         Profile profile = user.getProfile();
         log.info("로그인 성공 - 닉네임: {}", profile.getNickname());
-        return jwtTokenProvider.createToken(user.getEmail());
+        String accessToken = jwtTokenProvider.createToken(user.getEmail());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
+        return new LoginResponse(accessToken, refreshToken);
     }
 }
