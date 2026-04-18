@@ -169,15 +169,12 @@ jobs:
               "mkdir -p /home/ubuntu/app",
               "cd /home/ubuntu/app",
               
-              # 1. 최신 코드 반영
               "if [ ! -d .git ]; then git clone https://github.com/${{ github.repository }}.git .; fi",
               "git fetch origin ${{github.ref_name}}",
               "git reset --hard origin/${{github.ref_name}}",
               
-              # 2. 서버 실행 중인 프로세스 종료 (8080포트 가정)
               "fuser -k 8080/tcp || true",
               
-              # 3. 프로젝트 위치(server 디렉토리)로 이동 후 빌드 및 실행
               "cd server",
               "chmod +x gradlew",
               "./gradlew build",
@@ -189,7 +186,6 @@ jobs:
                 -DDB_PASSWORD='${{secrets.DB_PASSWORD}}' \
                 build/libs/*.jar > /home/ubuntu/app/server.log 2>&1 &",
               
-              # 4. 중요: 서버가 완전히 켜질 때까지 대기 (Health Check)
               "echo \"Waiting for server to start...\"",
               "for i in {1..20}; do",
               "  # 서버가 응답을 시작했는지 확인 (HTTP 상태 코드가 000이 아니면 통과)",
@@ -203,7 +199,6 @@ jobs:
               "  sleep 5",
               "done",
 
-              # 5. 실제 API 테스트 (기본 접속 테스트)
               "echo \"Running API Test...\"",
               "# 루트 경로(/)로 접속했을 때 404가 뜨더라도 응답이 온다면 API 서버는 정상 기동된 것",
               "HTTP_CODE=$(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/)",
