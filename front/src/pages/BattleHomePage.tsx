@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
-import "./HomePage.css";
-import "./BattlePage.css";
+import "./AppLayout.css";
+import "./BattleHomePage.css";
 
 type BattleTab = "home" | "problems" | "contest" | "help";
 

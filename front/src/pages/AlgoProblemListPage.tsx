@@ -1,7 +1,7 @@
 import React from "react";
 import { useApp } from "../context/AppContext";
 import AppHeader from "../components/AppHeader";
-import "./HomePage.css";
+import "./AppLayout.css";
 
 // TODO: 백엔드 API 연동 시 타입 수정
 interface Problem {
