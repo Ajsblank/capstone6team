@@ -203,6 +203,31 @@
   transform: translateY(-1px);
 }
 
+.home-cta-btn--secondary {
+  background: transparent;
+  color: #89b4fa;
+  border: 2px solid #89b4fa;
+}
+
+.home-cta-btn--secondary:hover {
+  background: rgba(137, 180, 250, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Site description */
+.home-site-desc {
+  max-width: 600px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #a6adc8;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.home-site-desc strong {
+  color: #cba6f7;
+}
+
 /* Cards */
 .home-cards {
   display: flex;
