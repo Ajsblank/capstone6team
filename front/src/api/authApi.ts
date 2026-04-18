@@ -56,12 +56,12 @@ export interface TokenResponse {
 
 // 회원가입
 export const signUp = async (body: SignUpRequest): Promise<void> => {
-  await api.post("/auth/signup", body);
+  await api.post("/api/auth/signup", body);
 };
 
 // 로그인 → JWT 토큰 저장
 export const loginApi = async (body: LoginRequest): Promise<TokenResponse> => {
-  const { data } = await api.post<TokenResponse>("/auth/login", body);
+  const { data } = await api.post<TokenResponse>("/api/auth/login", body);
   setAccessToken(data.accessToken);
   saveRefreshToken(data.refreshToken);
   return data;
@@ -71,7 +71,7 @@ export const loginApi = async (body: LoginRequest): Promise<TokenResponse> => {
 export const logoutApi = async (): Promise<void> => {
   const refreshToken = getRefreshToken();
   if (refreshToken) {
-    await api.post("/auth/logout", { refreshToken }).catch(() => {});
+    await api.post("/api/auth/logout", { refreshToken }).catch(() => { });
   }
   clearTokens();
 };
@@ -79,7 +79,7 @@ export const logoutApi = async (): Promise<void> => {
 // 토큰 갱신
 export const refreshTokenApi = async (): Promise<string> => {
   const refreshToken = getRefreshToken();
-  const { data } = await api.post<TokenResponse>("/auth/refresh", { refreshToken });
+  const { data } = await api.post<TokenResponse>("/api/auth/refresh", { refreshToken });
   setAccessToken(data.accessToken);
   saveRefreshToken(data.refreshToken);
   return data.accessToken;
@@ -87,6 +87,6 @@ export const refreshTokenApi = async (): Promise<string> => {
 
 // 회원탈퇴
 export const signOutApi = async (password: string): Promise<void> => {
-  await api.patch("/auth/signout", { password });
+  await api.patch("/api/auth/signout", { password });
   clearTokens();
 };
