@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -7,6 +7,31 @@ import AppHeader from "../components/AppHeader";
 import { createAlgorithm, TestCaseDto } from "../api/algorithmApi";
 import "./HomePage.css";
 import "./CreateProblemPage.css";
+
+// ── Required asterisk ──
+const Req: React.FC<{ show: boolean }> = ({ show }) =>
+  show ? <span className="cp-required">*</span> : null;
+
+// ── Toast notification ──
+interface ToastProps { messages: string[]; onClose: () => void; }
+const Toast: React.FC<ToastProps> = ({ messages, onClose }) => {
+  useEffect(() => {
+    const t = setTimeout(onClose, 4000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+  return (
+    <div className="cp-toast">
+      <span className="cp-toast-icon">⚠</span>
+      <div className="cp-toast-body">
+        <strong>필수 항목을 입력해주세요</strong>
+        <ul className="cp-toast-list">
+          {messages.map((m) => <li key={m}>{m}</li>)}
+        </ul>
+      </div>
+      <button className="cp-toast-close" onClick={onClose}>✕</button>
+    </div>
+  );
+};
 
 // ── Markdown editor component ──
 interface MdEditorProps {
@@ -97,12 +122,15 @@ const CreateProblemPage: React.FC = () => {
 
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [toastMessages, setToastMessages] = useState<string[]>([]);
 
   const handleSubmit = async () => {
-    if (!title.trim()) { setErrorMsg("제목을 입력해주세요."); return; }
-    if (!description.trim()) { setErrorMsg("문제 설명을 입력해주세요."); return; }
-    if (!memoryLimitMB || memoryLimitMB < 16) { setErrorMsg("메모리 제한은 16MB 이상이어야 합니다."); return; }
-    if (!timeLimitSec || timeLimitSec < 1) { setErrorMsg("시간 제한은 1초 이상이어야 합니다."); return; }
+    const missing: string[] = [];
+    if (!title.trim())             missing.push("제목");
+    if (!description.trim())       missing.push("문제 설명");
+    if (!inputDescription.trim())  missing.push("입력 설명");
+    if (!outputDescription.trim()) missing.push("출력 설명");
+    if (missing.length > 0) { setToastMessages(missing); return; }
 
     setStatus("submitting");
     setErrorMsg("");
@@ -184,6 +212,9 @@ const CreateProblemPage: React.FC = () => {
 
   return (
     <div className="create-problem-page">
+      {toastMessages.length > 0 && (
+        <Toast messages={toastMessages} onClose={() => setToastMessages([])} />
+      )}
       <AppHeader activePage="problems" />
 
       <main className="home-body">
@@ -195,7 +226,7 @@ const CreateProblemPage: React.FC = () => {
             <section className="cp-section">
               <h3 className="cp-section-title">기본 정보</h3>
               <div className="cp-field">
-                <label className="cp-label">제목</label>
+                <label className="cp-label">제목 <Req show={!title.trim()} /></label>
                 <input
                   className="cp-input"
                   type="text"
@@ -205,7 +236,7 @@ const CreateProblemPage: React.FC = () => {
                 />
               </div>
               <div className="cp-field">
-                <label className="cp-label">문제 설명</label>
+                <label className="cp-label">문제 설명 <Req show={!description.trim()} /></label>
                 <MdEditor
                   value={description}
                   onChange={setDescription}
@@ -219,7 +250,7 @@ const CreateProblemPage: React.FC = () => {
             <section className="cp-section">
               <h3 className="cp-section-title">입출력 설명</h3>
               <div className="cp-field">
-                <label className="cp-label">입력 설명</label>
+                <label className="cp-label">입력 설명 <Req show={!inputDescription.trim()} /></label>
                 <MdEditor
                   value={inputDescription}
                   onChange={setInputDescription}
@@ -228,7 +259,7 @@ const CreateProblemPage: React.FC = () => {
                 />
               </div>
               <div className="cp-field">
-                <label className="cp-label">출력 설명</label>
+                <label className="cp-label">출력 설명 <Req show={!outputDescription.trim()} /></label>
                 <MdEditor
                   value={outputDescription}
                   onChange={setOutputDescription}
