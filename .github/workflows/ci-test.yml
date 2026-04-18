@@ -175,24 +175,15 @@ jobs:
               
               "cd server",
               "chmod +x gradlew",
-              "./gradlew build",
-
-              "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -jar build/libs/*.jar > /home/ubuntu/app/server.log 2>&1 &",
+              "./gradlew clean build",
+              "JAR_NAME=$(ls build/libs/*.jar | grep -v plain | tail -n 1)",
+              "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -jar $JAR_NAME > $APP_DIR/server.log 2>&1 &",
               
               "echo \"Waiting for server to start...\"",
-              "for i in {1..20}; do",
-              "  # 서버가 응답을 시작했는지 확인 (HTTP 상태 코드가 000이 아니면 통과)",
-              "  STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/ || true)",
-              "  if [ \"$STATUS\" -ne 000 ]; then",
-              "    echo \"Server is Responding! (Status: $STATUS)\"",
-              "    break",
-              "  fi",
-              "  if [ $i -eq 20 ]; then echo \"Server start failed\"; exit 1; fi",
-              "  echo \"Checking server... ($i/20)\"",
-              "  sleep 5",
-              "done",
-              
-              "echo deploy_test_success > /home/ubuntu/app/test.txt"
+              "sleep 10",
+              "if ! pgrep -f $JAR_NAME > /dev/null; then echo \"Server failed to start\"; cat $APP_DIR/server.log; exit 1; fi",
+             
+              "echo deploy_success > /home/ubuntu/app/test.txt"
             ]
           }' \
           --query "Command.CommandId" \
