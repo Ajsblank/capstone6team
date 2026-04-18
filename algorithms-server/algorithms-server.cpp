@@ -67,7 +67,7 @@ int main() {
             json data = json::parse(item->second);
 
             std::string submission_id = data["submissionId"];
-            std::regex valid_id_regex("^[a-zA-Z0-9_-]+$");
+            std::regex valid_id_regex("^[a-z0-9_-]+$");
             if (!std::regex_match(submission_id, valid_id_regex)) {
                 std::cout << "[보안 경고] 유효하지 않은 submissionId : " << submission_id << std::endl;
                 continue;
@@ -75,6 +75,7 @@ int main() {
             int time_limit_sec = data["timeLimitSec"];
             int memory_limit_mb = data["memoryLimitMB"];
             std::string work_dir = "./" + submission_id;
+            std::string abs_work_dir = fs::absolute(work_dir).string();
 
             std::cout << "▶ 제출 번호: " << submission_id << std::endl;
 
@@ -125,29 +126,20 @@ int main() {
 
             write_file(work_dir + "/runner.cpp", runner_code);
 
-            // 단일 파일 빌드용 Dockerfile 생성 (O2 최적화 옵션 포함)
-            std::string docker_content =
-                "FROM gcc:latest\n"
-                "WORKDIR /app\n"
-                "COPY main.cpp runner.cpp ./\n"
-                "RUN g++ -O2 -o solution main.cpp && g++ -O2 -o runner runner.cpp\n"
-                "CMD [\"./runner\", \"./solution\"]";
-            write_file(work_dir + "/Dockerfile", docker_content);
-
             json result_json;
             result_json["submissionId"] = submission_id;
 
             // 도커 빌드 (컴파일 에러 검출)
             std::cout << "빌드 중..." << std::endl;
-            CmdResult build_res = exec_cmd("docker build -t " + submission_id + " " + work_dir + " 2>&1");
+            std::string compile_cmd = "docker run --rm -v " + abs_work_dir + ":/app -w /app gcc:latest " +
+                                      "sh -c \"g++ -O2 -o solution main.cpp && g++ -O2 -o runner runner.cpp && chmod 777 solution runner\" 2>&1";
+            CmdResult build_res = exec_cmd(compile_cmd);
             if (build_res.exit_code != 0) {
                 std::cout << "[결과] ⚠️ 컴파일 에러!" << std::endl;
                 result_json["status"] = "COMPILE_ERROR";
                 result_json["log"] = build_res.output;
                 redis.lpush("algorithms_result_queue", result_json.dump());
                 
-                std::string cleanup_cmd = "docker rmi " + submission_id + " > /dev/null 2>&1";
-                exec_cmd(cleanup_cmd);
                 fs::remove_all(work_dir, ec);
                 continue;
             }
@@ -168,8 +160,9 @@ int main() {
 
                 // 도커 실행 시 `< in.txt` 를 통해 표준 입력을 제공
                 std::string run_cmd = "timeout " + std::to_string(time_limit_sec) + "s " +
-                                      "docker run -i --rm --memory=" + std::to_string(memory_limit_mb) + "m --network=none " + submission_id + 
-                                      " < " + work_dir + "/in.txt 2>&1";
+                                      "docker run -i --rm -v " + abs_work_dir + ":/app -w /app " +
+                                      "--memory=" + std::to_string(memory_limit_mb) + "m --network=none gcc:latest " + 
+                                      "./runner ./solution < " + abs_work_dir + "/in.txt 2>&1";
                 
                 CmdResult run_res = exec_cmd(run_cmd);
 
@@ -228,8 +221,6 @@ int main() {
             }
 
             redis.lpush("algorithms_result_queue", result_json.dump());
-            std::string cleanup_cmd = "docker rmi " + submission_id + " > /dev/null 2>&1";
-            exec_cmd(cleanup_cmd);
             fs::remove_all(work_dir, ec);
         }
     } catch (const sw::redis::Error &e) {
