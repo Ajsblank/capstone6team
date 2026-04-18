@@ -330,6 +330,14 @@
     }
 
     #b-char-p2 { background: #3498db; }
+    #b-char-p1 {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      overflow: visible !important;
+    }
 
     .hit-effect {
       position: absolute;
@@ -945,8 +953,8 @@
     function renderBattleChars(gs) {
       const cw = 720 / GRID_W, ch = 285 / GRID_H;
       const p1El = $('b-char-p1'), p2El = $('b-char-p2');
-      p1El.style.left = (gs.p1.x * cw + (cw - 70) / 2) + 'px';
-      p1El.style.top  = (gs.p1.y * ch + (ch - 90) / 2) + 'px';
+      p1El.style.left = (gs.p1.x * cw + cw / 2) + 'px';
+      p1El.style.top  = (gs.p1.y * ch + ch / 2) + 'px';
       p2El.style.left = (gs.p2.x * cw + (cw - 70) / 2) + 'px';
       p2El.style.top  = (gs.p2.y * ch + (ch - 90) / 2) + 'px';
     }
@@ -1100,6 +1108,14 @@
     async function animateAction(act, gs, bLog) {
       const { card, owner, target } = act;
       const ownerLabel = owner === gs.p1 ? 'P1' : 'P2';
+      if (owner === gs.p1 && p1Sprite) {
+        if (card.type === 'move' && card.dx !== 0) {
+          p1Sprite.setFacing(card.dx > 0 ? 1 : -1);
+        } else {
+          p1Sprite.setFacing(gs.p2.x > gs.p1.x ? 1 : -1);
+        }
+        p1Sprite.setState(cardToAnim(act.rawKey || card.id));
+      }
       const actionBoxId = owner === gs.p1 ? 'battle-p1-action' : 'battle-p2-action';
       const tiles = gs.tiles || [];
 
@@ -1191,6 +1207,107 @@
         }
       }
     }
+
+    // ── P1 Chito Sprite System ──────────────────────────────────────────
+    const CHITO_SPRITES = {};
+    const CHITO_ANIM = {
+      idle:   { file: 'chito_sprite_sheet_idle.png',   frameW: 1024, frameH: 1024, cols: 3, totalFrames: 4, fps: 6  },
+      move:   { file: 'chito_sprite_sheet_jump.png',   frameW: 1024, frameH: 1024, cols: 3, totalFrames: 4, fps: 10 },
+      attack: { file: 'chtio_sprite_sheet_attack.png', frameW: 1376, frameH: 768,  cols: 3, totalFrames: 4, fps: 12 },
+    };
+    let chitoSpritesLoaded = false;
+
+    function loadChitoSprites(cb) {
+      const entries = Object.entries(CHITO_ANIM);
+      let n = 0;
+      entries.forEach(([state, cfg]) => {
+        const img = new Image();
+        img.onload = img.onerror = () => {
+          CHITO_SPRITES[state] = img;
+          if (++n === entries.length) { chitoSpritesLoaded = true; cb && cb(); }
+        };
+        img.src = '/resources/sprites/chito/' + cfg.file;
+      });
+    }
+
+    class ChitoSprite {
+      constructor(canvas) {
+        this.canvas  = canvas;
+        this.ctx     = canvas.getContext('2d');
+        this.state   = 'idle';
+        this.frame   = 0;
+        this.elapsed = 0;
+        this.lastTs  = 0;
+        this.oneShot = false;
+        this.facing  = 1;  // 1=오른쪽, -1=왼쪽
+      }
+      setState(s) {
+        if (this.state === s && !this.oneShot) return;
+        this.state = s; this.frame = 0; this.elapsed = 0;
+        this.oneShot = s === 'move' || s === 'attack';
+      }
+      setFacing(dir) { this.facing = dir; }
+      update(ts) {
+        if (!chitoSpritesLoaded) return;
+        const dt  = ts - this.lastTs; this.lastTs = ts;
+        const cfg = CHITO_ANIM[this.state];
+        this.elapsed += dt;
+        const step = 1000 / cfg.fps;
+        if (this.elapsed >= step) {
+          this.elapsed -= step;
+          this.frame++;
+          if (this.frame >= cfg.totalFrames) {
+            if (this.oneShot) { this.setState('idle'); return; }
+            this.frame = 0;
+          }
+        }
+        this._draw();
+      }
+      _draw() {
+        const cfg = CHITO_ANIM[this.state];
+        const img = CHITO_SPRITES[this.state];
+        if (!img || !img.complete) return;
+        const col = this.frame % cfg.cols;
+        const row = Math.floor(this.frame / cfg.cols);
+        const { ctx, canvas: { width: cw, height: ch } } = this;
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.imageSmoothingEnabled = false;
+        if (this.facing === -1) {
+          ctx.save();
+          ctx.translate(cw, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(img, col * cfg.frameW, row * cfg.frameH, cfg.frameW, cfg.frameH, 0, 0, cw, ch);
+          ctx.restore();
+        } else {
+          ctx.drawImage(img, col * cfg.frameW, row * cfg.frameH, cfg.frameW, cfg.frameH, 0, 0, cw, ch);
+        }
+      }
+    }
+
+    let p1Sprite = null, _rafId = null;
+
+    function initP1Sprite() {
+      const el = $('b-char-p1');
+      if (!el) return;
+      el.innerHTML = '';
+      const cv = document.createElement('canvas');
+      cv.width = 135; cv.height = 135;
+      cv.style.cssText = 'position:absolute;width:135px;height:135px;left:-67px;top:-67px;display:block;';
+      el.appendChild(cv);
+      p1Sprite = new ChitoSprite(cv);
+      if (_rafId) cancelAnimationFrame(_rafId);
+      (function loop(ts) { if (p1Sprite) p1Sprite.update(ts); _rafId = requestAnimationFrame(loop); })(0);
+    }
+
+    function cardToAnim(key) {
+      const c = CARDS[key];
+      if (!c) return 'idle';
+      return c.type === 'move' ? 'move' : c.type === 'attack' ? 'attack' : 'idle';
+    }
+
+    loadChitoSprites(initP1Sprite);
+    // ────────────────────────────────────────────────────────────────────
+
   </script>
 </body>
 </html>
