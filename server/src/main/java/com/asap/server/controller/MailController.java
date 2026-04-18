@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/mail")
+@RequestMapping("/api/auth/mail")
 public class MailController {
 
   private final MailService mailService;

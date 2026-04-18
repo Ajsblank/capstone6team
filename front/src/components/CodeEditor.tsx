@@ -4,17 +4,16 @@ import { Language } from "../types";
 import "./CodeEditor.css";
 
 const LANGUAGE_OPTIONS: { label: string; value: Language }[] = [
-  { label: "Python", value: "python" },
-  { label: "Java", value: "java" },
   { label: "C++", value: "cpp" },
-  { label: "JavaScript", value: "javascript" },
+  { label: "Java", value: "java" },
+  { label: "Python", value: "python" },
 ];
 
 const LANGUAGE_DEFAULTS: Record<Language, string> = {
-  python: "# 여기에 코드를 작성하세요\n\ndef solution():\n    pass\n",
-  java: "// 여기에 코드를 작성하세요\n\npublic class Solution {\n    public static void main(String[] args) {\n        \n    }\n}\n",
+
   cpp: "// 여기에 코드를 작성하세요\n\n#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    \n    return 0;\n}\n",
-  javascript: "// 여기에 코드를 작성하세요\n\nfunction solution() {\n    \n}\n",
+  java: "// 여기에 코드를 작성하세요\n\npublic class Solution {\n    public static void main(String[] args) {\n        \n    }\n}\n",
+  python: "# 여기에 코드를 작성하세요\n\ndef solution():\n    pass\n",
 };
 
 interface Props {

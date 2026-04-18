@@ -25,10 +25,23 @@ public class JwtTokenProvider {
         this.validityInMilliseconds = validityInMilliseconds;
     }
 
-    // 토큰 생성
+    // 액세스 토큰 생성
     public String createToken(String email) {
         Date now = new Date();
         Date validity = new Date(now.getTime() + validityInMilliseconds);
+
+        return Jwts.builder()
+                .subject(email)
+                .issuedAt(now)
+                .expiration(validity)
+                .signWith(key)
+                .compact();
+    }
+
+    // 리프레시 토큰 생성 (7일)
+    public String createRefreshToken(String email) {
+        Date now = new Date();
+        Date validity = new Date(now.getTime() + 7L * 24 * 60 * 60 * 1000);
 
         return Jwts.builder()
                 .subject(email)
