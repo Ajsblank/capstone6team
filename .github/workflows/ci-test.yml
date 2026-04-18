@@ -93,7 +93,7 @@ jobs:
         run: aws sts get-caller-identity
       - name: Upload to S3 TEST BUCKET
         if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' 
-        run: aws s3 sync build/ s3://caps-asap-bucket-test --delete
+        run: aws s3 sync build/ s3://caps-asap-bucket-test --delete --exclude "backend-deploy/*"
         
 
 
@@ -120,28 +120,34 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+
       - name: add permission to execute
         run: chmod +x gradlew 
+
       - name: server build
         run: ./gradlew build -x test
-      - name: EC2 server executing
+
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{secrets.ARN_ROLE}}
           aws-region: ${{ vars.AWS_REGION }}
-      - run: aws sts get-caller-identity
-      - name: Start EC2
-        run: |
-          aws ec2 start-instances \
-          --instance-ids ${{ vars.EC2_ID_INSTANCE }}
 
-      - name: Wait for EC2 running
+      - name: Upload to S3
         run: |
-          aws ec2 wait instance-running \
-          --instance-ids ${{vars.EC2_ID_INSTANCE}}
+          # working-directory가 server이므로 경로에서 server/ 제거
+          JAR_FILE=$(ls build/libs/*.jar | grep -v plain | head -n 1)
+          aws s3 cp $JAR_FILE s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar
+
+      - name: Start EC2 and Wait
+        run: |
+          aws ec2 start-instances --instance-ids ${{ vars.EC2_ID_INSTANCE }}
+          aws ec2 wait instance-running --instance-ids ${{ vars.EC2_ID_INSTANCE }}
+
       - name: Wait for SSM ready
         run: |
           echo "Waiting for SSM Agent to be online..."
+          i=0
           while true; do
             STATUS=$(aws ssm describe-instance-information \
               --filters "Key=InstanceIds,Values=${{ vars.EC2_ID_INSTANCE }}" \
@@ -153,57 +159,15 @@ jobs:
               break
             fi
 
-            if [ "$i" -eq 120 ]; then
+            if [ "$i" -ge 24 ]; then # 5초 * 24 = 120초
               echo "SSM Agent did not become online in time."
               exit 1
             fi
             
-            echo "Current status: $STATUS. Waiting 5 seconds..."
+            echo "Current status: $STATUS. Waiting 5s... ($i)"
+            i=$((i+1))
             sleep 5
           done
-      - name: Run command and wait
-        run: |
-          COMMAND_ID=$(aws ssm send-command \
-          --instance-ids ${{vars.EC2_ID_INSTANCE}} \
-          --document-name "AWS-RunShellScript" \
-          --parameters '{
-            "commands": [
-              "export HOME=/home/ubuntu",
-              "mkdir -p /home/ubuntu/app",
-              "cd /home/ubuntu/app",
-
-              "if [ ! -d .git ]; then git clone https://github.com/${{ github.repository }}.git .; fi",
-              "git fetch origin ${{ github.head_ref || github.ref_name }}",
-              "git reset --hard origin/${{ github.head_ref || github.ref_name }}",
-
-              
-              "fuser -k 8080/tcp || true",
-              
-              "cd server && chmod +x gradlew",
-              "./gradlew build -x test || exit 1",
-
-              "JAR_PATH=$(ls build/libs/*.jar | grep -v plain | head -n 1)",
-              "JAR_NAME=$(basename $JAR_PATH)",
-
-             "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -jar $JAR_PATH > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
-              "echo \"Waiting for server to start...\"",
-              "for i in {1..20}; do",
-              "  sleep 5",
-              "  if ! pgrep -f $JAR_NAME > /dev/null; then",
-              "    echo \"Server failed to start\"; cat /home/ubuntu/app/server.log; exit 1",
-              "  fi",
-              "  STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/ || true)",
-              "  if [ \"$STATUS\" -ne 000 ]; then",
-              "    echo \"Server is Responding! (Status: $STATUS)\"",
-              "    break",
-              "  fi",
-              "done",
-             
-              "echo deploy_test_success > /home/ubuntu/app/test.txt"
-            ]
-          }' \
-          --query "Command.CommandId" \
-          --output text)
 
       - name: Run command and wait
         run: |
@@ -215,39 +179,24 @@ jobs:
               "export HOME=/home/ubuntu",
               "mkdir -p /home/ubuntu/app",
               "cd /home/ubuntu/app",
+              "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar .",
 
-              "if [ ! -d .git ]; then git clone https://github.com/${{ github.repository }}.git .; fi",
-              "git fetch origin ${{ github.head_ref || github.ref_name }}",
-              "git reset --hard origin/${{ github.head_ref || github.ref_name }}",
+              "sudo fuser -k 8080/tcp || true",
               
-              "fuser -k 8080/tcp || true",
+              "# JAR_PATH 대신 파일명 app.jar 사용, nohup 안정성 확보",
+              "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
               
-              "cd server && chmod +x gradlew",
-              "./gradlew build -x test || exit 1",
-
-              "JAR_PATH=$(ls build/libs/*.jar | grep -v plain | head -n 1)",
-              "JAR_NAME=$(basename $JAR_PATH)",
-
-              "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -jar $JAR_PATH > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
-              
-              "echo \"Waiting for server to start...\"",
-              "for i in {1..20}; do",
-              "  sleep 5",
-              "  if ! pgrep -f $JAR_NAME > /dev/null; then",
-              "    echo \"Server failed to start\"; cat /home/ubuntu/app/server.log; exit 1",
-              "  fi",
-              "  STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/ || true)",
-              "  if [ \"$STATUS\" -ne 000 ]; then",
-              "    echo \"Server is Responding! (Status: $STATUS)\"",
-              "    break",
-              "  fi",
-              "done",
-              
-              "echo deploy_test_success > /home/ubuntu/app/test.txt"
+              "echo deploy_success > /home/ubuntu/app/test.txt"
             ]
           }' \
           --query "Command.CommandId" \
           --output text)
+
+          aws ssm wait command-executed \
+          --command-id $COMMAND_ID \
+          --instance-id ${{vars.EC2_ID_INSTANCE}}
+
+      
 
       # - name: Stop EC2
       #  if: always()
