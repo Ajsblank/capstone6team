@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(BojGradingServer)
+project(algorithm-server)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -42,10 +42,10 @@ FetchContent_MakeAvailable(json)
 # 알고리즘 채점 서버 실행 파일 생성
 add_executable(algorithms-server algorithms-server.cpp)
 
-add_dependencies(boj_server redis_pp_ext)
-target_include_directories(boj_server PRIVATE ${DEPS_INSTALL_DIR}/include)
-target_link_directories(boj_server PRIVATE ${DEPS_INSTALL_DIR}/lib ${DEPS_INSTALL_DIR}/lib64)
-target_link_libraries(boj_server PRIVATE 
+add_dependencies(algorithms-server redis_pp_ext)
+target_include_directories(algorithms-server PRIVATE ${DEPS_INSTALL_DIR}/include)
+target_link_directories(algorithms-server PRIVATE ${DEPS_INSTALL_DIR}/lib ${DEPS_INSTALL_DIR}/lib64)
+target_link_libraries(algorithms-server PRIVATE 
     ${DEPS_INSTALL_DIR}/lib/libredis++.a 
     ${DEPS_INSTALL_DIR}/lib/libhiredis.a 
     pthread 

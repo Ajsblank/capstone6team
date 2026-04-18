@@ -8,11 +8,13 @@
 #include <stdexcept>
 #include <vector>
 #include <algorithm>
+#include <regex>
 #include <sw/redis++/redis++.h> // redis-plus-plus
 #include <nlohmann/json.hpp>    // json
 
 using json = nlohmann::json;
 using namespace sw::redis;
+namespace fs = std::filesystem;
 
 struct CmdResult {
     std::string output;
@@ -64,13 +66,23 @@ int main() {
             json data = json::parse(item->second);
 
             std::string submission_id = data["submissionId"];
+            std::regex valid_id_regex("^[a-zA-Z0-9_-]+$");
+            if (!std::regex_match(submission_id, valid_id_regex)) {
+                std::cout << "[보안 경고] 유효하지 않은 submissionId : " << submission_id << std::endl;
+                continue;
+            }
             int time_limit_sec = data["timeLimitSec"];
             int memory_limit_mb = data["memoryLimitMB"];
             std::string work_dir = "./" + submission_id;
 
             std::cout << "▶ 제출 번호: " << submission_id << std::endl;
 
-            system(("mkdir -p " + work_dir).c_str());
+            std::error_code ec;
+            fs::create_directories(work_dir, ec);
+            if (ec) {
+                std::cerr << "폴더 생성 실패: " << ec.message() << std::endl;
+                continue;
+            }
 
             // 유저가 제출한 단일 코드 저장
             write_file(work_dir + "/main.cpp", data["code"]);
@@ -152,7 +164,9 @@ int main() {
             }
 
             redis.lpush("algorithms_result_queue", result_json.dump());
-            system(("docker rmi " + submission_id + " > /dev/null 2>&1 && rm -rf " + work_dir).c_str());
+            std::string cleanup_cmd = "docker rmi " + submission_id + " > /dev/null 2>&1";
+            exec_cmd(cleanup_cmd);
+            fs::remove_all(work_dir, ec);
         }
     } catch (const sw::redis::Error &e) {
         std::cerr << "Redis 에러 발생: " << e.what() << std::endl;
