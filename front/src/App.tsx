@@ -7,6 +7,7 @@ import BattleHomePage from "./pages/BattleHomePage";
 import BattleSubmitPage from "./pages/BattleSubmitPage";
 import AlgoProblemListPage from "./pages/AlgoProblemListPage";
 import AlgoCreateProblemPage from "./pages/AlgoCreateProblemPage";
+import AlgoProblemDetailPage from "./pages/AlgoProblemDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import AccountSettingsPage from "./pages/AccountSettingsPage";
 
@@ -33,6 +34,7 @@ const PageRouter: React.FC = () => {
     case "submit":           return <BattleSubmitPage />;
     case "problems":         return <AlgoProblemListPage />;
     case "create-problem":   return <AlgoCreateProblemPage />;
+    case "problem-detail":   return <AlgoProblemDetailPage />;
     case "profile":          return <ProfilePage />;
     case "account-settings": return <AccountSettingsPage />;
     default:                 return <AlgoHomePage />;

@@ -27,6 +27,32 @@ export interface CreateAlgorithmRequest {
   hiddenTestcases: TestCaseDto[];
 }
 
-export const createAlgorithm = async (body: CreateAlgorithmRequest): Promise<void> => {
-  await api.post("/api/algorithms", body);
+// 백엔드 응답 (hiddenTestcases 제외)
+export interface AlgorithmProblemResponse {
+  id: number;
+  title: string;
+  description: string;
+  inputDescription: string;
+  outputDescription: string;
+  memoryLimitMB: number;
+  timeLimitSec: number;
+  exampleTestcases: TestCaseDto[];
+}
+
+// 문제 생성 → 생성된 문제 정보 반환
+export const createAlgorithm = async (body: CreateAlgorithmRequest): Promise<AlgorithmProblemResponse> => {
+  const { data } = await api.post<AlgorithmProblemResponse>("/api/algorithms/create", body);
+  return data;
+};
+
+// TODO: 백엔드 GET /api/algorithms/{id} 연동
+export const getAlgorithm = async (id: number): Promise<AlgorithmProblemResponse> => {
+  const { data } = await api.get<AlgorithmProblemResponse>(`/api/algorithms/${id}`);
+  return data;
+};
+
+// TODO: 백엔드 GET /api/algorithms 목록 연동
+export const getAlgorithmList = async (): Promise<AlgorithmProblemResponse[]> => {
+  const { data } = await api.get<AlgorithmProblemResponse[]>("/api/algorithms");
+  return data;
 };

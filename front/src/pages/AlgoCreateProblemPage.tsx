@@ -120,7 +120,7 @@ const CreateProblemPage: React.FC = () => {
   const [exampleTestcases, setExampleTestcases] = useState<TestCaseDto[]>([emptyTestCase()]);
   const [hiddenTestcases, setHiddenTestcases] = useState<TestCaseDto[]>([emptyTestCase()]);
 
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [toastMessages, setToastMessages] = useState<string[]>([]);
 
@@ -136,7 +136,7 @@ const CreateProblemPage: React.FC = () => {
     setErrorMsg("");
 
     try {
-      await createAlgorithm({
+      const result = await createAlgorithm({
         title: title.trim(),
         description: description.trim(),
         inputDescription: inputDescription.trim(),
@@ -146,7 +146,7 @@ const CreateProblemPage: React.FC = () => {
         exampleTestcases,
         hiddenTestcases,
       });
-      setStatus("success");
+      window.location.hash = `problem-detail/${result.id}`;
     } catch (err: unknown) {
       setStatus("error");
       if (axios.isAxiosError(err)) {
@@ -305,15 +305,14 @@ const CreateProblemPage: React.FC = () => {
               <button
                 className="cp-submit-btn"
                 onClick={handleSubmit}
-                disabled={status === "submitting" || status === "success"}
+                disabled={status === "submitting"}
               >
-                {status === "submitting" ? "제출 중..." : status === "success" ? "제출 완료" : "문제 등록"}
+                {status === "submitting" ? "제출 중..." : "문제 등록"}
               </button>
               <button className="cp-cancel-btn" onClick={() => navigate("problems")}>
                 취소
               </button>
               {status === "error" && <span className="cp-error-msg">{errorMsg}</span>}
-              {status === "success" && <span className="cp-success-msg">문제가 성공적으로 등록되었습니다.</span>}
             </div>
           </div>
         </div>
