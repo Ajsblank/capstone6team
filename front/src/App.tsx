@@ -3,6 +3,7 @@ import { AppProvider, useApp } from "./context/AppContext";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
+import BattlePage from "./pages/BattlePage";
 import SubmitPage from "./pages/SubmitPage";
 import ProblemsPage from "./pages/ProblemsPage";
 import CreateProblemPage from "./pages/CreateProblemPage";
@@ -28,6 +29,7 @@ const PageRouter: React.FC = () => {
     case "home":             return <HomePage />;
     case "login":            return <LoginPage />;
     case "signup":           return <SignUpPage />;
+    case "battle":           return <BattlePage />;
     case "submit":           return <SubmitPage />;
     case "problems":         return <ProblemsPage />;
     case "create-problem":   return <CreateProblemPage />;
