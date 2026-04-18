@@ -128,8 +128,7 @@ jobs:
         with:
           role-to-assume: ${{secrets.ARN_ROLE}}
           aws-region: ${{ vars.AWS_REGION }}
-      - name: check aws identity
-        run: aws sts get-caller-identity
+      - run: aws sts get-caller-identity
       - name: Start EC2
         run: |
           aws ec2 start-instances \
