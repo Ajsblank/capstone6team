@@ -1,21 +1,21 @@
 CREATE TYPE STATUS AS ENUM('TEST','RUNNING','END','PLANNED');
-CREATE TABLE users(
-  id SERIAL PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  password TEXT NOT NULL,
-  affiliation VARCHAR(50),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  deleted_at TIMESTAMP
-);
-CREATE TABLE Profile(
-  id SERIAL PRIMARY KEY,
-  user_id INT REFERENCES users(id),
-  nickname VARCHAR(50),
-  bio TEXT,
-  image_url TEXT,
-  deleted_at TIMESTAMP
-);
+  CREATE TABLE users(
+    id SERIAL PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    affiliation VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
+  );
+  CREATE TABLE Profile(
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    nickname VARCHAR(50),
+    bio TEXT,
+    image_url TEXT,
+    deleted_at TIMESTAMP
+  );
 CREATE TABLE Contest(
   id SERIAL PRIMARY KEY,
   title VARCHAR(50),

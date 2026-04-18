@@ -7,7 +7,7 @@ import { submitCode } from "../api/submissionApi";
 import { useApp } from "../context/AppContext";
 import { Language } from "../types";
 
-import "./SubmitPage.css";
+import "./BattleSubmitPage.css";
 
 
 type Tab = "problem" | "submit" | "viz1" | "viz2" | "viz3" | "leaderboard";

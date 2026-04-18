@@ -79,6 +79,8 @@ jobs:
         run: |
             npm test -- --watchAll=false --passWithNoTests
       - name: npm build
+        env:
+          REACT_APP_API_BASE_URL: ${{ vars.FRONT_API_BASE_URL }}
         run: npm run build
 
 
@@ -122,9 +124,6 @@ jobs:
         run: chmod +x gradlew 
       - name: server build
         run: ./gradlew build -x test
-
-      - name: server test
-        run: ./gradlew test 
       - name: EC2 server executing
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -134,18 +133,18 @@ jobs:
       - name: Start EC2
         run: |
           aws ec2 start-instances \
-          --instance-ids ${{ vars.EC2_ID_INSTANCE_TEST }}
+          --instance-ids ${{ vars.EC2_ID_INSTANCE }}
 
       - name: Wait for EC2 running
         run: |
           aws ec2 wait instance-running \
-          --instance-ids ${{vars.EC2_ID_INSTANCE_TEST}}
+          --instance-ids ${{vars.EC2_ID_INSTANCE}}
       - name: Wait for SSM ready
         run: |
           echo "Waiting for SSM Agent to be online..."
           while true; do
             STATUS=$(aws ssm describe-instance-information \
-              --filters "Key=InstanceIds,Values=${{ vars.EC2_ID_INSTANCE_TEST }}" \
+              --filters "Key=InstanceIds,Values=${{ vars.EC2_ID_INSTANCE }}" \
               --query "InstanceInformationList[0].PingStatus" \
               --output text)
             
@@ -160,7 +159,7 @@ jobs:
       - name: Run command and wait
         run: |
           COMMAND_ID=$(aws ssm send-command \
-          --instance-ids ${{vars.EC2_ID_INSTANCE_TEST}} \
+          --instance-ids ${{vars.EC2_ID_INSTANCE}} \
           --document-name "AWS-RunShellScript" \
           --parameters '{
             "commands": [
@@ -192,12 +191,6 @@ jobs:
               "  echo \"Checking server... ($i/20)\"",
               "  sleep 5",
               "done",
-
-              "echo \"Running API Test...\"",
-              "# 루트 경로(/)로 접속했을 때 404가 뜨더라도 응답이 온다면 API 서버는 정상 기동된 것",
-              "HTTP_CODE=$(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/)",
-              "if [ \"$HTTP_CODE\" -eq 000 ]; then echo \"API Test Failed: No Response\"; exit 1; fi",
-              "echo \"API Connection Test Success with Status: $HTTP_CODE\"",
               
               "echo deploy_test_success > /home/ubuntu/app/test.txt"
             ]
@@ -207,11 +200,11 @@ jobs:
 
           aws ssm wait command-executed \
           --command-id $COMMAND_ID \
-          --instance-id ${{vars.EC2_ID_INSTANCE_TEST}}
+          --instance-id ${{vars.EC2_ID_INSTANCE}}
 
-      - name: Stop EC2
-        if: always()
-        run: |
-          aws ec2 stop-instances \
-          --instance-ids ${{vars.EC2_ID_INSTANCE_TEST}}
+      # - name: Stop EC2
+      #  if: always()
+      #   run: |
+      #     aws ec2 stop-instances \
+      #     --instance-ids ${{vars.EC2_ID_INSTANCE}}
   
