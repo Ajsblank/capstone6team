@@ -9,6 +9,7 @@
 #include <vector>
 #include <algorithm>
 #include <regex>
+#include <filesystem>
 #include <sw/redis++/redis++.h> // redis-plus-plus
 #include <nlohmann/json.hpp>    // json
 
@@ -87,13 +88,50 @@ int main() {
             // 유저가 제출한 단일 코드 저장
             write_file(work_dir + "/main.cpp", data["code"]);
 
+            // 런타임/메모리 측정용 감시자(Runner) 코드 주입
+            std::string runner_code = R"(
+                #include <iostream>
+                #include <sys/time.h>
+                #include <sys/resource.h>
+                #include <sys/wait.h>
+                #include <unistd.h>
+                #include <stdio.h>
+                
+                int main(int argc, char* argv[]) {
+                    if (argc < 2) return 1;
+                    struct timeval start, end;
+                    gettimeofday(&start, NULL);
+                    
+                    pid_t pid = fork();
+                    if (pid == 0) {
+                        execvp(argv[1], argv+1); // 유저 코드 실행
+                        perror("execvp failed"); // 혹시 실행 실패하면 이유를 출력
+                        return 1;
+                    }
+                    
+                    int status;
+                    struct rusage usage;
+                    wait4(pid, &status, 0, &usage);
+                    gettimeofday(&end, NULL);
+                    
+                    long ms = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000;
+                    long mem_kb = usage.ru_maxrss;
+                    
+                    // 정답 텍스트와 겹치지 않게 무조건 줄바꿈(\n) 후 출력
+                    std::cerr << "\n[STATS]" << ms << "," << mem_kb << std::endl; 
+                    return WEXITSTATUS(status);
+                }
+                )";
+
+            write_file(work_dir + "/runner.cpp", runner_code);
+
             // 단일 파일 빌드용 Dockerfile 생성 (O2 최적화 옵션 포함)
             std::string docker_content =
                 "FROM gcc:latest\n"
                 "WORKDIR /app\n"
-                "COPY main.cpp .\n"
-                "RUN g++ -O2 -o solution main.cpp\n"
-                "CMD [\"./solution\"]";
+                "COPY main.cpp runner.cpp ./\n"
+                "RUN g++ -O2 -o solution main.cpp && g++ -O2 -o runner runner.cpp\n"
+                "CMD [\"./runner\", \"./solution\"]";
             write_file(work_dir + "/Dockerfile", docker_content);
 
             json result_json;
@@ -103,16 +141,21 @@ int main() {
             std::cout << "빌드 중..." << std::endl;
             CmdResult build_res = exec_cmd("docker build -t " + submission_id + " " + work_dir + " 2>&1");
             if (build_res.exit_code != 0) {
-                std::cout << "[결과] ❌ 컴파일 에러!" << std::endl;
+                std::cout << "[결과] ⚠️ 컴파일 에러!" << std::endl;
                 result_json["status"] = "COMPILE_ERROR";
                 result_json["log"] = build_res.output;
                 redis.lpush("algorithms_result_queue", result_json.dump());
-                system(("rm -rf " + work_dir).c_str());
+                
+                std::string cleanup_cmd = "docker rmi " + submission_id + " > /dev/null 2>&1";
+                exec_cmd(cleanup_cmd);
+                fs::remove_all(work_dir, ec);
                 continue;
             }
 
             // 테스트 케이스 반복 채점 로직
             bool is_accepted = true;
+            int max_time_ms = 0;
+            int max_memory_kb = 0;
             int tc_count = data["testcases"].size();
             std::cout << "총 " << tc_count << "개의 테스트 케이스 채점 시작..." << std::endl;
 
@@ -126,7 +169,7 @@ int main() {
                 // 도커 실행 시 `< in.txt` 를 통해 표준 입력을 제공
                 std::string run_cmd = "timeout " + std::to_string(time_limit_sec) + "s " +
                                       "docker run -i --rm --memory=" + std::to_string(memory_limit_mb) + "m --network=none " + submission_id + 
-                                      " < " + work_dir + "/in.txt";
+                                      " < " + work_dir + "/in.txt 2>&1";
                 
                 CmdResult run_res = exec_cmd(run_cmd);
 
@@ -148,19 +191,40 @@ int main() {
                     break;
                 }
 
-                if (trim(run_res.output) != trim(expected_output)) {
+                int cur_time = 0, cur_mem = 0;
+                std::string final_output = "";
+                
+                size_t stats_pos = run_res.output.rfind("[STATS]"); 
+                if (stats_pos != std::string::npos) {
+                    std::string stats_str = run_res.output.substr(stats_pos + 7);
+                    size_t comma_idx = stats_str.find(",");
+                    if (comma_idx != std::string::npos) {
+                        try {
+                            cur_time = std::stoi(stats_str.substr(0, comma_idx));
+                            cur_mem = std::stoi(stats_str.substr(comma_idx + 1));
+                        } catch (...) {}
+                    }
+                    final_output = run_res.output.substr(0, stats_pos);
+                }
+
+                max_time_ms = std::max(max_time_ms, cur_time);
+                max_memory_kb = std::max(max_memory_kb, cur_mem);
+
+                if (trim(final_output) != trim(expected_output)) {
                     std::cout << "[TC " << i+1 << "] ❌ 틀렸습니다!" << std::endl;
                     result_json["status"] = "WRONG_ANSWER";
                     is_accepted = false;
                     break;
                 } else {
-                    std::cout << "[TC " << i+1 << "] ✅ 통과" << std::endl;
+                    std::cout << "[TC " << i+1 << "] ✅ 통과 (" << cur_time << "ms, " << cur_mem << "KB)" << std::endl;
                 }
             }
 
             if (is_accepted) {
                 std::cout << "[최종 결과] 🎉 맞았습니다! (ACCEPTED)" << std::endl;
                 result_json["status"] = "ACCEPTED";
+                result_json["executionTimeMs"] = max_time_ms;
+                result_json["memoryUsageKB"] = max_memory_kb;
             }
 
             redis.lpush("algorithms_result_queue", result_json.dump());
