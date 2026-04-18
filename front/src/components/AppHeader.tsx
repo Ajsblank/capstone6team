@@ -1,6 +1,6 @@
 import React from "react";
 import { useApp } from "../context/AppContext";
-import "../pages/HomePage.css";
+import "../pages/AppLayout.css";
 
 interface AppHeaderProps {
   /** 현재 활성 탭 (네비게이션 하이라이트용) */

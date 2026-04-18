@@ -1,12 +1,12 @@
 import React from "react";
 import { AppProvider, useApp } from "./context/AppContext";
-import HomePage from "./pages/HomePage";
+import AlgoHomePage from "./pages/AlgoHomePage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
-import BattlePage from "./pages/BattlePage";
-import SubmitPage from "./pages/SubmitPage";
-import ProblemsPage from "./pages/ProblemsPage";
-import CreateProblemPage from "./pages/CreateProblemPage";
+import BattleHomePage from "./pages/BattleHomePage";
+import BattleSubmitPage from "./pages/BattleSubmitPage";
+import AlgoProblemListPage from "./pages/AlgoProblemListPage";
+import AlgoCreateProblemPage from "./pages/AlgoCreateProblemPage";
 import ProfilePage from "./pages/ProfilePage";
 import AccountSettingsPage from "./pages/AccountSettingsPage";
 
@@ -26,16 +26,16 @@ const PageRouter: React.FC = () => {
   const { currentPage } = useApp();
 
   switch (currentPage) {
-    case "home":             return <HomePage />;
+    case "home":             return <AlgoHomePage />;
     case "login":            return <LoginPage />;
     case "signup":           return <SignUpPage />;
-    case "battle":           return <BattlePage />;
-    case "submit":           return <SubmitPage />;
-    case "problems":         return <ProblemsPage />;
-    case "create-problem":   return <CreateProblemPage />;
+    case "battle":           return <BattleHomePage />;
+    case "submit":           return <BattleSubmitPage />;
+    case "problems":         return <AlgoProblemListPage />;
+    case "create-problem":   return <AlgoCreateProblemPage />;
     case "profile":          return <ProfilePage />;
     case "account-settings": return <AccountSettingsPage />;
-    default:                 return <HomePage />;
+    default:                 return <AlgoHomePage />;
   }
 };
 

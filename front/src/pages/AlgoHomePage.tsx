@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import AppHeader from "../components/AppHeader";
-import "./HomePage.css";
+import "./AppLayout.css";
 
 type HomeTab = "home" | "contest" | "help";
 
-const HomePage: React.FC = () => {
+const AlgoHomePage: React.FC = () => {
 const [activeTab, setActiveTab] = useState<HomeTab>("home");
 
   return (
@@ -50,4 +50,4 @@ const [activeTab, setActiveTab] = useState<HomeTab>("home");
   );
 };
 
-export default HomePage;
+export default AlgoHomePage;

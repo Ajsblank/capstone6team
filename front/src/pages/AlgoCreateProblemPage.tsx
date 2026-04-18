@@ -5,8 +5,8 @@ import remarkGfm from "remark-gfm";
 import { useApp } from "../context/AppContext";
 import AppHeader from "../components/AppHeader";
 import { createAlgorithm, TestCaseDto } from "../api/algorithmApi";
-import "./HomePage.css";
-import "./CreateProblemPage.css";
+import "./AppLayout.css";
+import "./AlgoCreateProblemPage.css";
 
 // ── Required asterisk ──
 const Req: React.FC<{ show: boolean }> = ({ show }) =>
