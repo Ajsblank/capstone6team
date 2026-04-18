@@ -164,8 +164,9 @@ jobs:
           --parameters '{
             "commands": [
               "export HOME=/home/ubuntu",
-              "mkdir -p /home/ubuntu/app",
-              "cd /home/ubuntu/app",
+              "APP_DIR=/home/ubuntu/app",
+              "mkdir -p $APP_DIR",
+              "cd $APP_DIR",
               
               "if [ ! -d .git ]; then git clone https://github.com/${{ github.repository }}.git .; fi",
               "git fetch origin ${{github.ref_name}}",
