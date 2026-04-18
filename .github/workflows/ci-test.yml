@@ -163,25 +163,26 @@ jobs:
           --document-name "AWS-RunShellScript" \
           --parameters '{
             "commands": [
+              "cd /home/ubuntu",
               "export HOME=/home/ubuntu",
-              "APP_DIR=/home/ubuntu/app",
-              "mkdir -p $APP_DIR",
-              "cd $APP_DIR",
-              
+              "APP_DIR=/home/ubuntu/capstone6team",
+
               "if [ ! -d .git ]; then git clone https://github.com/${{ github.repository }}.git .; fi",
+              "cd capstone6team || exit 1"
               "git fetch origin ${{github.ref_name}}",
               "git reset --hard origin/${{github.ref_name}}",
+
               
               "fuser -k 8080/tcp || true",
               
-              "cd server",
-              "chmod +x gradlew",
-              "./gradlew clean build",
-              "JAR_NAME=$(ls build/libs/*.jar | grep -v plain | tail -n 1)",
+              "cd server && chmod +x gradlew",
+              "./gradlew clean build -x test || exit 1",
+
+              "JAR_NAME=$(find build/libs -name \"*.jar\" ! -name \"*plain*\" | head -n 1)",
               "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -jar $JAR_NAME > $APP_DIR/server.log 2>&1 &",
               
               "echo \"Waiting for server to start...\"",
-              "sleep 10",
+              "sleep 15",
               "if ! pgrep -f $JAR_NAME > /dev/null; then echo \"Server failed to start\"; cat $APP_DIR/server.log; exit 1; fi",
              
               "echo deploy_success > /home/ubuntu/app/test.txt"
