@@ -168,7 +168,7 @@ jobs:
               "APP_DIR=/home/ubuntu/capstone6team",
 
               "if [ ! -d .git ]; then git clone https://github.com/${{ github.repository }}.git .; fi",
-              "cd capstone6team || exit 1"
+              "cd capstone6team || exit 1",
               "git fetch origin ${{github.ref_name}}",
               "git reset --hard origin/${{github.ref_name}}",
 
