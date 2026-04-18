@@ -22,7 +22,7 @@ CREATE TABLE Contest(
   description_url TEXT,
   status STATUS,
   -- status TEXT CHECK (status IN ('TEST','RUNNING','END','PLANNED')),
-  certifictaion BOOLEAN, -- True for certifiaction contest
+  certificataion BOOLEAN, -- True for certifiaction contest
   judge_code_url TEXT,
   example_code_url TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -48,7 +48,7 @@ CREATE TABLE Participant(
 );
 CREATE TABLE Match(
   id SERIAL PRIMARY KEY,
-  contest_id INT REFERENCES Contest(id),
+  contest_id INT REFERENCES Contest(id),  
   user1_id INT REFERENCES users(id),
   user2_id INT REFERENCES users(id),
   winner_id INT REFERENCES users(id),
