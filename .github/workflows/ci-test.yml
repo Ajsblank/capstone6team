@@ -95,8 +95,6 @@ jobs:
         if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' 
         run: aws s3 sync build/ s3://caps-asap-bucket-test --delete --exclude "backend-deploy/*"
         
-
-
   server:
     needs: filter
     if: needs.filter.outputs.server_change == 'true'
