@@ -20,9 +20,6 @@ public class CodeController {
     @PostMapping("/submit")
     public ResponseEntity<CodeSubmitResponse> submitCode(@Valid @RequestBody CodeSubmitRequest request) {
 
-        log.info("\nuserId : " + request.getUserId() + "\nlanguage : " + request.getLanguage() + "\n"
-                + request.getSourceCode());
-
         CodeSubmitResponse responseData = new CodeSubmitResponse(true, "코드가 서버에 성공적으로 제출되었습니다!");
 
         return ResponseEntity.ok(responseData);

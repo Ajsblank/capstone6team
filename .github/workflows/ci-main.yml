@@ -174,21 +174,13 @@ jobs:
               
               "cd server",
               "chmod +x gradlew",
-              "./gradlew build -x test",
+              "./gradlew build",
               "nohup java -DDB_URL=${{ env.DB_URL }} -DDB_NAME=${{ env.DB_NAME }} -DDB_USER=${{ env.DB_USER }} -DDB_PASSWORD=${{ env.DB_PASSWORD }} -jar build/libs/*.jar > /home/ubuntu/app/server.log 2>&1 &"
             ]
           }' \
           --query "Command.CommandId" \
           --output text)
 
-          if ! aws ssm wait command-executed \
-            --command-id $COMMAND_ID \
-            --instance-id ${{vars.EC2_ID_INSTANCE}}; then
-            echo "SSM command failed. Printing invocation details..."
-            aws ssm list-command-invocations \
-              --command-id $COMMAND_ID \
-              --details \
-              --query 'CommandInvocations[0].{Status:Status,StatusDetails:StatusDetails,ResponseCode:CommandPlugins[0].ResponseCode,Output:CommandPlugins[0].Output,StdErr:CommandPlugins[0].StandardErrorContent}' \
-              --output json
-            exit 1
-          fi
+          aws ssm wait command-executed \
+          --command-id $COMMAND_ID \
+          --instance-id ${{vars.EC2_ID_INSTANCE}}
