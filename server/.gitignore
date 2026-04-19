@@ -38,3 +38,5 @@ out/
 
 # H2 Database
 *.db
+mydocs*
+DB/**

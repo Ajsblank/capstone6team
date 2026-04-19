@@ -1,0 +1,74 @@
+package com.asap.server.domain;
+
+import java.time.LocalDateTime;
+
+// JPA 관련 어노테이션
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Entity(name = "users") // "이 클래스는 DB 테이블과 매핑된다"는 선언
+@Getter // Getter 메서드 자동 생성
+@NoArgsConstructor // 파라미터가 없는 기본 생성자 자동 생성 (JPA 필수)
+@AllArgsConstructor // 모든 필드를 포함한 생성자 자동 생성 (@Builder 필수)
+@Builder // Builder 패턴 자동 생성
+public class users {
+
+  @Id // Primary Key
+  @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto Increment (PostgreSQL SERIAL)
+  private Long id;
+
+  @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+  private Profile profile;
+
+  public void setProfile(Profile profile) {
+    this.profile = profile;
+    profile.setUser(this); // 🔥 양방향 연결
+  }
+
+  @Column(nullable = false, unique = true)
+  private String email;
+
+  @Column(nullable = false)
+  private String password;
+
+  @Column(length = 50)
+  private String affiliation;
+
+  @Column(nullable = false)
+  private LocalDateTime created_at;
+
+  @Column(nullable = false)
+  private LocalDateTime updated_at;
+
+  @Column
+  private LocalDateTime deleted_at;
+
+  // 생성자 추가
+  public users(String email, String password) {
+    this.email = email;
+    this.password = password;
+  }
+
+  // 타임스탬프 자동 설정
+  @PrePersist
+  protected void onCreate() {
+    created_at = LocalDateTime.now();
+    updated_at = LocalDateTime.now();
+  }
+
+  @PreUpdate
+  protected void onUpdate() {
+    updated_at = LocalDateTime.now();
+  }
+}

@@ -1,0 +1,186 @@
+# git action workflow name
+name: "ci-main"
+# executing name, can use environment variables
+run-name: "actor : ${{github.actor}}"
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: main
+      # 실행할 경로를 아래 경로 파일들의 변동으로 제한
+    paths:
+      - 'front/**'
+      - 'server/**'
+      - '.github/workflows/*'
+  pull_request:
+    branches: main
+    paths:
+      - 'front/**'
+      - 'server/**'
+      - '.github/workflows/*'
+
+  # Allows you to run this workflow manually from the Actions tab
+  #workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  filter:
+    runs-on: ubuntu-latest
+    outputs: 
+      server_change:  ${{steps.filter_server.outputs.server || 'false'}}
+      front_change: ${{steps.filter_front.outputs.front || 'false'}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v4
+        name: check if front directory exits
+        id: filter_front
+        if: hashFiles('front/**') !=  ''
+        with:
+          filters: |
+            front:
+              -  'front/**'
+              -  '.github/workflows/*'
+      - uses: dorny/paths-filter@v4
+        name: check if server directory exits
+        if: hashFiles('server/**') !=  ''
+        id: filter_server
+        with:
+          filters: |
+            server:
+              - 'server/**'
+              - '.github/workflows/*'
+
+  # This workflow contains a single job called "build"
+  front:
+    needs: filter
+    if: needs.filter.outputs.front_change == 'true'
+    permissions: 
+      id-token: write
+      contents: read
+      
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    # default setting
+    defaults:
+      run:
+        working-directory: front
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        name: node install
+        with:
+          node-version: 24
+      - name: install npm
+        run: npm ci
+
+      - name: npm test
+        run: |
+          npm test -- --watchAll=false --passWithNoTests
+
+      - name: npm build
+        run: npm run build
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{secrets.ARN_ROLE}}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: check aws identity
+        run: aws sts get-caller-identity
+      - name: Upload to S3BUCKET
+        if: github.ref == 'refs/heads/main' 
+        # || github.ref == 'refs/heads/develop' 
+        run: aws s3 sync build/ s3://caps-asap-bucket --delete
+
+  server:
+    needs: filter
+    if: needs.filter.outputs.server_change == 'true'
+    permissions: 
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    env: 
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_URL: ${{ secrets.DB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: set up jdk
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: add permission to execute
+        run: chmod +x gradlew 
+      - name: server build
+        run: ./gradlew build
+      - name: server test
+        run: ./gradlew test
+      - name: EC2 server executing
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{secrets.ARN_ROLE}}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: aws sts get-caller-identity
+      - name: Start EC2
+        run: |
+          aws ec2 start-instances \
+          --instance-ids ${{ vars.EC2_ID_INSTANCE }}
+
+      - name: Wait for EC2 running
+        run: |
+          aws ec2 wait instance-running \
+          --instance-ids ${{vars.EC2_ID_INSTANCE}}
+      - name: Wait for SSM ready
+        run: |
+          echo "Waiting for SSM Agent to be online..."
+          while true; do
+            STATUS=$(aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=${{ vars.EC2_ID_INSTANCE }}" \
+              --query "InstanceInformationList[0].PingStatus" \
+              --output text)
+            
+            if [ "$STATUS" = "Online" ]; then
+              echo "SSM Agent is Online!"
+              break
+            fi
+            
+            echo "Current status: $STATUS. Waiting 5 seconds..."
+            sleep 5
+          done
+      - name: EC2 server Deploy (renew)
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+          --instance-ids ${{vars.EC2_ID_INSTANCE}} \
+          --document-name "AWS-RunShellScript" \
+          --parameters '{
+            "commands": [
+              "export HOME=/home/ubuntu",
+              "mkdir -p /home/ubuntu/app",
+              "cd /home/ubuntu/app",
+              
+              "if [ ! -d .git ]; then git clone https://github.com/${{ github.repository }}.git .; fi",
+              "git fetch origin ${{github.ref_name}}",
+              "git reset --hard origin/${{github.ref_name}}",
+              
+              "fuser -k 8080/tcp || true",
+              
+              "cd server",
+              "chmod +x gradlew",
+              "./gradlew build",
+              "nohup java -DDB_URL=${{ env.DB_URL }} -DDB_NAME=${{ env.DB_NAME }} -DDB_USER=${{ env.DB_USER }} -DDB_PASSWORD=${{ env.DB_PASSWORD }} -jar build/libs/*.jar > /home/ubuntu/app/server.log 2>&1 &"
+            ]
+          }' \
+          --query "Command.CommandId" \
+          --output text)
+
+          aws ssm wait command-executed \
+          --command-id $COMMAND_ID \
+          --instance-id ${{vars.EC2_ID_INSTANCE}}
