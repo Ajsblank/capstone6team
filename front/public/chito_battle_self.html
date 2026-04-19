@@ -216,12 +216,49 @@
       width: 40%;
     }
 
+    :root {
+      /* 행동 종류별 강조 색상 — callout 및 action box 공통 */
+      --color-move:   #4da6ff;
+      --color-defend: #f1c40f;
+      --color-heal:   #2ecc71;
+      --color-attack: #e74c3c;
+      /* 플레이어 대표 색 */
+      --color-p1: #e74c3c;
+      --color-p2: #3498db;
+      /* callout 폴백 색상 (알 수 없는 카드 타입) */
+      --color-callout-fallback: #fff;
+    }
+
     .bar {
       height: 12px;
       background: #333;
       margin-bottom: 2px;
       position: relative;
       border: 1px solid #555;
+    }
+
+    .bar-text {
+      position: absolute;
+      top: 0;
+      font-size: 11px;
+      font-weight: bold;
+      line-height: 12px;
+      color: #fff;
+      text-shadow: 1px 1px 0 #000;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .bar-text--left  { left: 3px; }
+    .bar-text--right { right: 3px; }
+
+    .action-callout {
+      position: absolute;
+      z-index: 200;
+      pointer-events: none;
+      font-size: 13px;
+      font-weight: bold;
+      white-space: nowrap;
+      transform-origin: center center;
     }
 
     .bar-fill.hp {
@@ -770,24 +807,26 @@
     <div id="screen-action" class="hidden">
       <div class="top-bars">
         <div class="bar-group">
-          <div style="color: #fff; font-weight: bold; font-size: 12px; margin-bottom: 2px;">P1 HP <span
-              id="a-p1-hp-text"></span> / EN <span id="a-p1-en-text"></span></div>
+          <div style="color: var(--color-p1); font-weight: bold; font-size: 12px; margin-bottom: 2px;">P1</div>
           <div class="bar">
             <div class="bar-fill hp" id="a-p1-hp"></div>
+            <span class="bar-text bar-text--left" id="a-p1-hp-text"></span>
           </div>
           <div class="bar">
             <div class="bar-fill en" id="a-p1-en"></div>
+            <span class="bar-text bar-text--left" id="a-p1-en-text"></span>
           </div>
         </div>
         <div style="color: #d4af37; font-weight: bold; font-size: 16px;" id="action-turn-text">ROUND 01 - P1 TURN</div>
         <div class="bar-group" style="text-align: right;">
-          <div style="color: #fff; font-weight: bold; font-size: 12px; margin-bottom: 2px;">P2 HP <span
-              id="a-p2-hp-text"></span> / EN <span id="a-p2-en-text"></span></div>
+          <div style="color: var(--color-p2); font-weight: bold; font-size: 12px; margin-bottom: 2px;">P2</div>
           <div class="bar">
             <div class="bar-fill hp" id="a-p2-hp"></div>
+            <span class="bar-text bar-text--right" id="a-p2-hp-text"></span>
           </div>
           <div class="bar">
             <div class="bar-fill en" id="a-p2-en"></div>
+            <span class="bar-text bar-text--right" id="a-p2-en-text"></span>
           </div>
         </div>
       </div>
@@ -811,24 +850,26 @@
     <div id="screen-battle" class="hidden">
       <div class="top-bars" style="position: absolute; top: 0; width: 100%; box-sizing: border-box; z-index: 40;">
         <div class="bar-group">
-          <div style="color: #fff; font-weight: bold; font-size: 14px;">P1 HP <span id="b-p1-hp-text"></span> / EN <span
-              id="b-p1-en-text"></span></div>
+          <div style="color: var(--color-p1); font-weight: bold; font-size: 14px; margin-bottom: 2px;">P1</div>
           <div class="bar">
             <div class="bar-fill hp" id="b-p1-hp"></div>
+            <span class="bar-text bar-text--left" id="b-p1-hp-text"></span>
           </div>
           <div class="bar">
             <div class="bar-fill en" id="b-p1-en"></div>
+            <span class="bar-text bar-text--left" id="b-p1-en-text"></span>
           </div>
         </div>
         <div style="color: #d4af37; font-weight: bold; font-size: 20px;" id="battle-round-text">ROUND 01</div>
         <div class="bar-group" style="text-align: right;">
-          <div style="color: #fff; font-weight: bold; font-size: 14px;">P2 HP <span id="b-p2-hp-text"></span> / EN <span
-              id="b-p2-en-text"></span></div>
+          <div style="color: var(--color-p2); font-weight: bold; font-size: 14px; margin-bottom: 2px;">P2</div>
           <div class="bar">
             <div class="bar-fill hp" id="b-p2-hp"></div>
+            <span class="bar-text bar-text--right" id="b-p2-hp-text"></span>
           </div>
           <div class="bar">
             <div class="bar-fill en" id="b-p2-en"></div>
+            <span class="bar-text bar-text--right" id="b-p2-en-text"></span>
           </div>
         </div>
       </div>
@@ -1084,8 +1125,9 @@
       $(`s-p${state.currentPlayer}-char`).innerText = p.char;
       $(`s-p${state.currentPlayer}-cards`).innerHTML = p.selectCards.map(k => `<div class="info-card-mini">${CARDS[k].name}</div>`).join('');
 
-      if (state.currentPlayer === 1) { state.currentPlayer = 2; startCharSelect(); }
-      else {
+      if (state.currentPlayer === 1) {
+        state.currentPlayer = 2; startCharSelect();
+      } else {
         appendLog(`READY ${state.p1.char} VS ${state.p2.char}`, JSON.parse(JSON.stringify(state)));
         state.currentPlayer = 1; enterActionPhase();
       }
@@ -1178,10 +1220,11 @@
 
     function confirmActionSelection() {
       const p = state.currentPlayer === 1 ? state.p1 : state.p2;
-      // 제출 순서 그대로 저장 (턴 내 우선순위는 executeBattle에서 prio로 결정)
       p.actions = slotActions.map(a => a.key);
-      if (state.currentPlayer === 1) { state.currentPlayer = 2; enterActionPhase(); }
-      else {
+
+      if (state.currentPlayer === 1) {
+        state.currentPlayer = 2; enterActionPhase();
+      } else {
         appendLog(`ROUND ${state.round} ACTION SET`, JSON.parse(JSON.stringify(state)));
         appendLog(`P1: ${state.p1.actions.join(' | ')}`); appendLog(`P2: ${state.p2.actions.join(' | ')}`);
         executeBattle();
@@ -1272,6 +1315,7 @@
           if (hpTile) act.owner.hp = Math.min(MAX_HP, act.owner.hp + hpTile.val);
 
           const isP1 = act.owner === state.p1;
+          await showActionCallout(isP1 ? 'p1' : 'p2', act.name, act);
           const aBoxId = isP1 ? 'battle-p1-action' : 'battle-p2-action';
           const aCardKey = isP1 ? p1ActKey : p2ActKey;
           if (isP1 && p1Sprite) {
@@ -1285,8 +1329,18 @@
           }
           if (act.type === 'move') {
             let nx = act.owner.x + act.dx; let ny = act.owner.y + act.dy;
-            let upTile = state.tiles.find(t => t.c === nx && t.r === ny && t.type === 'TILE_UP');
-            if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H && !upTile) {
+            const stepX = act.dx === 0 ? 0 : act.dx > 0 ? 1 : -1;
+            const stepY = act.dy === 0 ? 0 : act.dy > 0 ? 1 : -1;
+            const steps = Math.max(Math.abs(act.dx), Math.abs(act.dy));
+            let blocked = false;
+            for (let s = 1; s <= steps; s++) {
+              const cx = act.owner.x + stepX * s;
+              const cy = act.owner.y + stepY * s;
+              if (state.tiles.find(t => t.c === cx && t.r === cy && t.type === 'TILE_UP')) {
+                blocked = true; break;
+              }
+            }
+            if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H && !blocked) {
               act.owner.x = nx; act.owner.y = ny;
               setActionBox(aBoxId, `${act.owner.id}: ${act.name}!`, aCardKey);
             } else {
@@ -1338,7 +1392,8 @@
         let msg = state.p1.hp <= 0 && state.p2.hp <= 0 ? "DRAW (무승부)" : state.p1.hp > 0 ? "PLAYER 1 WIN!" : "PLAYER 2 WIN!";
         bLog.innerText = `GAME SET! ${msg}`; bLog.style.color = "#f1c40f"; bLog.style.fontSize = "24px";
         if (!state.isReplaying) {
-          appendLog(`FINISH - ${msg}`); setTimeout(() => { alert(`게임 종료: ${msg}`); location.reload(); }, 2000);
+          appendLog(`FINISH - ${msg}`);
+          setTimeout(() => { alert(`게임 종료: ${msg}`); location.reload(); }, 2000);
         } else {
           bLog.innerText = `[리플레이] GAME SET! ${msg}`; nextBtn.innerText = "현재 상태로 복귀";
           nextBtn.onclick = returnToRealState; nextBtn.classList.remove('hidden');
@@ -1373,14 +1428,70 @@
         }
       });
     }
-    function endBattlePhase() { state.round++; state.currentPlayer = 1; state.isReplaying = false; enterActionPhase(); }
+    function endBattlePhase() {
+      state.round++; state.currentPlayer = 1; state.isReplaying = false; enterActionPhase();
+    }
+
+    // ── 행동 텍스트 강조 callout ────────────────────────────────────────
+    const _cs = getComputedStyle(document.documentElement);
+    const ACTION_CALLOUT_COLOR = {
+      move:   _cs.getPropertyValue('--color-move').trim(),
+      defend: _cs.getPropertyValue('--color-defend').trim(),
+      heal:   _cs.getPropertyValue('--color-heal').trim(),
+      attack: _cs.getPropertyValue('--color-attack').trim(),
+    };
+    const CALLOUT_FALLBACK_COLOR = _cs.getPropertyValue('--color-callout-fallback').trim();
+    const PLAYER_COLOR = {
+      p1: _cs.getPropertyValue('--color-p1').trim(),
+      p2: _cs.getPropertyValue('--color-p2').trim(),
+    };
+
+    function showActionCallout(pid, text, card) {
+      const owner = pid === 'p1' ? state.p1 : state.p2;
+      const cw = 720 / GRID_W;
+      const ch = 300 / GRID_H;
+      // battle-container: bottom 30px, height 300px → top = 500-30-300 = 170
+      const containerTop = 170;
+      const containerLeft = 40;
+      const tileX = containerLeft + owner.x * cw + cw / 2;
+      const tileY = containerTop + owner.y * ch + ch / 2;
+
+      const startX  = pid === 'p1' ? 200 : 600;
+      const startY  = 64;
+      const color    = ACTION_CALLOUT_COLOR[card?.type] ?? CALLOUT_FALLBACK_COLOR; // ★ 강조 색상
+      const pidColor = PLAYER_COLOR[pid]; // ★ 글자 테두리: 플레이어 대표색
+
+      return new Promise(resolve => {
+        const el = document.createElement('div');
+        el.className = 'action-callout';
+        el.textContent = text;
+        // ★ 초기 (날아가기 시작): color + 약한 글로우 + 플레이어 색 글자 테두리
+        el.style.cssText = `left:${startX}px;top:${startY}px;transform:translate(-50%,0) scale(1);color:${color};text-shadow:0 0 6px ${color};opacity:1;transition:none;-webkit-text-stroke:1px ${pidColor};paint-order:stroke fill;`;
+        $('screen-battle').appendChild(el);
+
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          el.style.transition = 'left 0.35s ease-in-out, top 0.35s ease-in-out, transform 0.35s ease-in-out, color 0.35s, text-shadow 0.35s';
+          el.style.left = `${tileX}px`;
+          el.style.top  = `${tileY - 28}px`;
+          el.style.transform = 'translate(-50%,-50%) scale(2.2)'; // ★ 확대 배율
+          el.style.color = color;
+          el.style.textShadow = `0 0 20px ${color}, 0 0 10px ${color}, 0 0 4px #fff`; // ★ 강조 글로우
+        }));
+
+        setTimeout(() => {
+          el.style.transition = 'opacity 0.25s ease';
+          el.style.opacity = '0';
+          setTimeout(() => { el.remove(); resolve(); }, 260);
+        }, 380);
+      });
+    }
 
     // ── P1 Chito Sprite System ──────────────────────────────────────────
     const CHITO_SPRITES = {};
     const CHITO_ANIM = {
       idle:   { file: 'chito_sprite_sheet_idle.png',   frameW: 1024, frameH: 1024, cols: 3, totalFrames: 4, fps: 6  },
       move:   { file: 'chito_sprite_sheet_jump.png',   frameW: 1024, frameH: 1024, cols: 3, totalFrames: 4, fps: 10 },
-      attack: { file: 'chtio_sprite_sheet_attack.png', frameW: 1376, frameH: 768,  cols: 3, totalFrames: 4, fps: 12 },
+      attack: { file: 'chtio_sprite_sheet_attack.png', frameW: 1376, frameH: 768,  cols: 3, totalFrames: 4, fps: 12, scale: 1.5 },
     };
     let chitoSpritesLoaded = false;
 
@@ -1439,14 +1550,19 @@
         const { ctx, canvas: { width: cw, height: ch } } = this;
         ctx.clearRect(0, 0, cw, ch);
         ctx.imageSmoothingEnabled = false;
+        const scale = cfg.scale || 1;
+        const dw = cw * scale;
+        const dh = ch * scale;
+        const dx = (cw - dw) / 2;
+        const dy = (ch - dh) / 2;
         if (this.facing === -1) {
           ctx.save();
           ctx.translate(cw, 0);
           ctx.scale(-1, 1);
-          ctx.drawImage(img, col * cfg.frameW, row * cfg.frameH, cfg.frameW, cfg.frameH, 0, 0, cw, ch);
+          ctx.drawImage(img, col * cfg.frameW, row * cfg.frameH, cfg.frameW, cfg.frameH, dx, dy, dw, dh);
           ctx.restore();
         } else {
-          ctx.drawImage(img, col * cfg.frameW, row * cfg.frameH, cfg.frameW, cfg.frameH, 0, 0, cw, ch);
+          ctx.drawImage(img, col * cfg.frameW, row * cfg.frameH, cfg.frameW, cfg.frameH, dx, dy, dw, dh);
         }
       }
     }
