@@ -1,4 +1,4 @@
-package com.asap.server.controller.controller;
+package com.asap.server.controller;
 
 import java.net.URI;
 
