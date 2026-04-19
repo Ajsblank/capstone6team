@@ -1,26 +1,6 @@
 services:
-  # 1. PostgreSQL 세팅
-  db:
-    image: postgres:16
-  # restart: always
-    container_name: asap-postgres
+  redis:
+    image: redis
+    container_name: chito-redis
     ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: "asap"
-      POSTGRES_DB: "asap_db"
-      POSTGRES_PASSWORD: "db1234"
-    volumes: # 데이터 안 날아가게 외장하드 연결
-      - asap-db-data:/var/lib/postgresql/data
-      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
-
-#  2. Redis 세팅
-  # redis:
-  #   image: redis
-  #   container_name: chito-redis
-  #   ports:
-  #     - "6379:6379"
-
-# 볼륨 이름 사용 선언
-volumes:
-  asap-db-data:
+      - "6379:6379"
