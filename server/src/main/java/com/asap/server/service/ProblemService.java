@@ -1,4 +1,4 @@
-package com.asap.server.api.service;
+package com.asap.server.service;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
