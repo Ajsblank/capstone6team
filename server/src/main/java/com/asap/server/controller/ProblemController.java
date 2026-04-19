@@ -1,7 +1,7 @@
 package com.asap.server.controller;
 
 import java.net.URI;
-
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -51,5 +51,17 @@ public class ProblemController {
         // Service에 페이징 정보를 넘겨서 DTO 변환된 결과를 받아옵니다.
         Page<AlgorithmProblemListResponse> responses = problemService.getProblemPage(pageable);
         return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<AlgorithmProblemDetailResponse> getProblemDetail(@PathVariable("id") Long id) {
+        // Service를 통해 ID로 문제 엔티티 조회
+        AlgorithmProblem problem = problemService.getProblemById(id);
+
+        // 엔티티를 상세 정보 DTO로 변환
+        AlgorithmProblemDetailResponse responseData = AlgorithmProblemDetailResponse.from(problem);
+
+        // 200 OK와 함께 데이터 반환
+        return ResponseEntity.ok(responseData);
     }
 }

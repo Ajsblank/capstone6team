@@ -1,5 +1,7 @@
 package com.asap.server.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,9 +14,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 @Slf4j
 @Service
@@ -53,5 +52,11 @@ public class ProblemService {
         // DB에서 지정된 페이지 크기만큼 꺼내온 뒤 DTO로 변환
         return algorithmProblemRepository.findAll(pageable)
                 .map(AlgorithmProblemListResponse::from);
+    }
+
+    @Transactional(readOnly = true)
+    public AlgorithmProblem getProblemById(Long id) {
+        return algorithmProblemRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 문제를 찾을 수 없습니다: " + id));
     }
 }
