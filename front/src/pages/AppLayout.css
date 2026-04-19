@@ -340,3 +340,12 @@
 .problems-row td { padding: 12px 14px; color: #cdd6f4; }
 
 .problems-row-title { color: #89b4fa; font-weight: 500; }
+
+.problems-status {
+  padding: 48px 0;
+  text-align: center;
+  color: #45475a;
+  font-size: 0.95rem;
+}
+
+.problems-status--error { color: #f38ba8; }

@@ -3,6 +3,7 @@ import ChitoBattleProblem from "../components/ChitoBattleProblem";
 import CodeEditor, { LANGUAGE_DEFAULTS } from "../components/CodeEditor";
 import SubmitBar from "../components/SubmitBar";
 import SubmitSuccessModal from "../components/SubmitSuccessModal";
+import MySubmissionsTab from "../components/MySubmissionsTab";
 import { submitCode } from "../api/submissionApi";
 import { useApp } from "../context/AppContext";
 import { Language } from "../types";
@@ -153,8 +154,15 @@ const SubmitPage: React.FC = () => {
           </div>
         )}
 
+        {/* 내 제출 탭 */}
+        {activeTab === "my-submissions" && (
+          <div className="full-panel" style={{ overflowY: "auto" }}>
+            <MySubmissionsTab />
+          </div>
+        )}
+
         {/* 미구현 탭 */}
-        {(activeTab === "my-submissions" || activeTab === "leaderboard" || activeTab === "battle-results") && (
+        {(activeTab === "leaderboard" || activeTab === "battle-results") && (
           <div className="placeholder-panel">
             <span className="placeholder-text">
               {TAB_LIST.find((t) => t.id === activeTab)?.label} — 준비 중입니다.
