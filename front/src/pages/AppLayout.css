@@ -349,3 +349,37 @@
 }
 
 .problems-status--error { color: #f38ba8; }
+
+.problems-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px 0;
+}
+
+.problems-page-btn {
+  background: none;
+  border: 1px solid #45475a;
+  color: #a6adc8;
+  font-size: 0.85rem;
+  padding: 5px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.problems-page-btn:hover:not(:disabled) {
+  background: #313244;
+  color: #cdd6f4;
+}
+
+.problems-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.problems-page-info {
+  font-size: 0.85rem;
+  color: #6c7086;
+}

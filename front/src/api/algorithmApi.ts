@@ -51,8 +51,27 @@ export const getAlgorithm = async (id: number): Promise<AlgorithmProblemResponse
   return data;
 };
 
-// TODO: 백엔드 GET /api/algorithms 목록 연동
-export const getAlgorithmList = async (): Promise<AlgorithmProblemResponse[]> => {
-  const { data } = await api.get<AlgorithmProblemResponse[]>("/api/algorithms");
+// GET /api/algorithms/list 응답 DTO (id + title만 포함)
+export interface AlgorithmProblemListItem {
+  id: number;
+  title: string;
+}
+
+// Spring Page 래퍼
+export interface AlgorithmPageResponse {
+  content: AlgorithmProblemListItem[];
+  totalPages: number;
+  totalElements: number;
+  number: number;   // 현재 페이지 (0-based)
+  size: number;
+}
+
+export const getAlgorithmList = async (
+  page: number = 0,
+  size: number = 20
+): Promise<AlgorithmPageResponse> => {
+  const { data } = await api.get<AlgorithmPageResponse>("/api/algorithms/list", {
+    params: { page, size },
+  });
   return data;
 };
