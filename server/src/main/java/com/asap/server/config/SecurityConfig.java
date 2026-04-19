@@ -41,23 +41,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        Set<String> originSet = new LinkedHashSet<>();
 
-        originSet.add("http://caps-asap-bucket-test.s3-website-us-east-1.amazonaws.com");
-        originSet.add("http://caps-asap-bucket.s3-website-us-east-1.amazonaws.com");
-        originSet.add("http://localhost:3000");
-        originSet.add("http://localhost:5173");
-        originSet.add("http://127.0.0.1:3000");
-
-        if (allowedOrigins != null && allowedOrigins.length > 0) {
-            Arrays.stream(allowedOrigins)
-                    .map(String::trim)
-                    .filter(origin -> !origin.isBlank())
-                    .map(origin -> origin.endsWith("/") ? origin.substring(0, origin.length() - 1) : origin)
-                    .forEach(originSet::add);
-        }
-
-        configuration.setAllowedOrigins(originSet.stream().toList());
+        configuration.setAllowedOriginPatterns(Arrays.asList("*")); 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
@@ -78,11 +63,8 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/api/algorithms/list").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/algorithms/**").permitAll()
                         .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
-                        .requestMatchers("/auth/**", "/api/auth/**", "/error").permitAll()
-                        .anyRequest().authenticated())
+                        .anyRequest().permitAll())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
