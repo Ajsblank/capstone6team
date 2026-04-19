@@ -2,7 +2,12 @@ package com.asap.server.controller;
 
 import java.net.URI;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.asap.server.domain.AlgorithmProblem;
 import com.asap.server.dto.request.CreateAlgorithmProblemRequest;
 import com.asap.server.dto.response.AlgorithmProblemDetailResponse;
+import com.asap.server.dto.response.AlgorithmProblemListResponse;
 import com.asap.server.service.ProblemService;
 
 import lombok.RequiredArgsConstructor;
@@ -36,5 +42,14 @@ public class ProblemController {
         return ResponseEntity
                 .created(URI.create("/api/algorithms/" + savedProblem.getId()))
                 .body(responseData);
+    }
+
+    @GetMapping("/list")
+    public ResponseEntity<Page<AlgorithmProblemListResponse>> getProblemList(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        
+        // Service에 페이징 정보를 넘겨서 DTO 변환된 결과를 받아옵니다.
+        Page<AlgorithmProblemListResponse> responses = problemService.getProblemPage(pageable);
+        return ResponseEntity.ok(responses);
     }
 }
