@@ -1,21 +1,35 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useApp } from "../context/AppContext";
 import AppHeader from "../components/AppHeader";
-import { getAlgorithmList, AlgorithmProblemResponse } from "../api/algorithmApi";
+import { getAlgorithmList, AlgorithmProblemListItem } from "../api/algorithmApi";
 import "./AppLayout.css";
+
+const PAGE_SIZE = 20;
 
 const ProblemsPage: React.FC = () => {
   const { navigate } = useApp();
-  const [problems, setProblems] = useState<AlgorithmProblemResponse[]>([]);
+  const [problems, setProblems] = useState<AlgorithmProblemListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
-  useEffect(() => {
-    getAlgorithmList()
-      .then(setProblems)
-      .catch(() => setError("문제 목록을 불러오지 못했습니다."))
-      .finally(() => setLoading(false));
+  const fetchPage = useCallback(async (p: number) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await getAlgorithmList(p, PAGE_SIZE);
+      setProblems(res.content);
+      setTotalPages(res.totalPages);
+      setPage(res.number);
+    } catch {
+      setError("문제 목록을 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { fetchPage(0); }, [fetchPage]);
 
   return (
     <div className="home-page">
@@ -51,8 +65,6 @@ const ProblemsPage: React.FC = () => {
                 <tr>
                   <th style={{ width: "60px" }}>#</th>
                   <th>제목</th>
-                  <th style={{ width: "110px" }}>시간 제한</th>
-                  <th style={{ width: "110px" }}>메모리 제한</th>
                 </tr>
               </thead>
               <tbody>
@@ -64,12 +76,30 @@ const ProblemsPage: React.FC = () => {
                   >
                     <td style={{ color: "#6c7086" }}>{p.id}</td>
                     <td className="problems-row-title">{p.title}</td>
-                    <td style={{ color: "#a6adc8" }}>{p.timeLimitSec}초</td>
-                    <td style={{ color: "#a6adc8" }}>{p.memoryLimitMB}MB</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          )}
+
+          {totalPages > 1 && (
+            <div className="problems-pagination">
+              <button
+                className="problems-page-btn"
+                disabled={page === 0 || loading}
+                onClick={() => fetchPage(page - 1)}
+              >
+                ‹ 이전
+              </button>
+              <span className="problems-page-info">{page + 1} / {totalPages}</span>
+              <button
+                className="problems-page-btn"
+                disabled={page >= totalPages - 1 || loading}
+                onClick={() => fetchPage(page + 1)}
+              >
+                다음 ›
+              </button>
+            </div>
           )}
         </div>
       </main>
