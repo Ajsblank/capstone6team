@@ -535,3 +535,63 @@
   font-size: 0.85rem;
   color: #a6e3a1;
 }
+
+/* ── 성공 모달 ── */
+.cp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.cp-modal {
+  background: #181825;
+  border: 1px solid #313244;
+  border-radius: 12px;
+  padding: 36px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-width: 300px;
+}
+
+.cp-modal-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #1e3a2f;
+  border: 2px solid #a6e3a1;
+  color: #a6e3a1;
+  font-size: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cp-modal-msg {
+  font-size: 1rem;
+  color: #cdd6f4;
+  margin: 0;
+  text-align: center;
+}
+
+.cp-modal-confirm {
+  margin-top: 8px;
+  padding: 8px 32px;
+  background: #cba6f7;
+  border: none;
+  border-radius: 6px;
+  color: #1e1e2e;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cp-modal-confirm:hover {
+  background: #b48ef7;
+}

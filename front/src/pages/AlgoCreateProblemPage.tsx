@@ -123,6 +123,7 @@ const CreateProblemPage: React.FC = () => {
   const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [toastMessages, setToastMessages] = useState<string[]>([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleSubmit = async () => {
     const missing: string[] = [];
@@ -136,7 +137,7 @@ const CreateProblemPage: React.FC = () => {
     setErrorMsg("");
 
     try {
-      const result = await createAlgorithm({
+      await createAlgorithm({
         title: title.trim(),
         description: description.trim(),
         inputDescription: inputDescription.trim(),
@@ -146,7 +147,9 @@ const CreateProblemPage: React.FC = () => {
         exampleTestcases,
         hiddenTestcases,
       });
-      window.location.hash = `problem-detail/${result.id}`;
+      // 201 수신 시 성공 팝업 표시. 확인 버튼 → 문제 목록으로 이동
+      setStatus("idle");
+      setShowSuccessModal(true);
     } catch (err: unknown) {
       setStatus("error");
       if (axios.isAxiosError(err)) {
@@ -215,6 +218,22 @@ const CreateProblemPage: React.FC = () => {
       {toastMessages.length > 0 && (
         <Toast messages={toastMessages} onClose={() => setToastMessages([])} />
       )}
+
+      {showSuccessModal && (
+        <div className="cp-modal-overlay">
+          <div className="cp-modal">
+            <div className="cp-modal-icon">✓</div>
+            <p className="cp-modal-msg">문제가 성공적으로 등록되었습니다.</p>
+            <button
+              className="cp-modal-confirm"
+              onClick={() => { setShowSuccessModal(false); navigate("problems"); }}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
       <AppHeader activePage="problems" />
 
       <main className="home-body">

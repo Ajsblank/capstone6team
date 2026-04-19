@@ -25,15 +25,16 @@ const AlgoProblemDetailPage: React.FC = () => {
   useEffect(() => {
     const id = getProblemIdFromHash();
 
-    if (id !== null) {
-      getAlgorithm(id)
-        .then((data) => setProblem(data))
-        .catch(() => setError("문제를 불러오는 데 실패했습니다."))
-        .finally(() => setLoading(false));
-    } else {
+    if (id === null) {
       setError("문제 ID를 찾을 수 없습니다.");
       setLoading(false);
+      return;
     }
+
+    getAlgorithm(id)
+      .then((data) => setProblem(data))
+      .catch(() => setError("문제를 불러오는 데 실패했습니다."))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
