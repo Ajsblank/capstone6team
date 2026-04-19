@@ -5,19 +5,19 @@ run-name: "actor : ${{github.actor}}"
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ develop, "dev/server", "dev/front","develop","feat/**","dev/**"]
-      # 실행할 경로를 아래 경로 파일들의 변동으로 제한
-    paths:
-      - 'front/**'
-      - 'server/**'
-      - '.github/workflows/*'
-  pull_request:
-    branches: [ develop, "dev/server","dev/front"]
-    paths:
-      - 'front/**'
-      - 'server/**'
-      - '.github/workflows/*'
+  # push:
+  #   branches: [ develop, "dev/server", "dev/front","develop","feat/**","dev/**"]
+  #     # 실행할 경로를 아래 경로 파일들의 변동으로 제한
+  #   paths:
+  #     - 'front/**'
+  #     - 'server/**'
+  #     - '.github/workflows/*'
+  # pull_request:
+  #   branches: [ develop, "dev/server","dev/front"]
+  #   paths:
+  #     - 'front/**'
+  #     - 'server/**'
+  #     - '.github/workflows/*'
 
   # Allows you to run this workflow manually from the Actions tab
   #workflow_dispatch:
