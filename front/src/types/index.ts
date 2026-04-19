@@ -52,6 +52,7 @@ export interface SubmissionsPageResponse {
 
 export interface SubmitRequest {
   userId: string;
+  problemId: string;
   language: string;
   sourceCode: string;
 }

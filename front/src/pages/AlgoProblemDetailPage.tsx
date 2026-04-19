@@ -63,6 +63,7 @@ const AlgoProblemDetailPage: React.FC = () => {
     try {
       const result = await submitCode({
         userId: user?.id ?? "guest",
+        problemId: String(problem!.id),
         language,
         sourceCode: code,
       });

@@ -2,30 +2,34 @@ import axios from "axios";
 import { SubmitRequest, SubmitResponse, SubmissionsPageResponse } from "../types";
 import { getAccessToken } from "./authApi";
 
-const BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+// 끝 슬래시 제거로 BASE_URL + "/path" 조합 시 // 방지
+const BASE_URL = (process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
 
-export const SUBMIT_URL = `${BASE_URL}/api/code/submit`;
+const api = axios.create({ baseURL: BASE_URL });
+
+api.interceptors.request.use((config) => {
+  const token = getAccessToken();
+  if (token) config.headers["Authorization"] = `Bearer ${token}`;
+  return config;
+});
+
+export const SUBMIT_URL = `/api/code/submit`;
 
 export const submitCode = async (payload: SubmitRequest): Promise<SubmitResponse> => {
-  const response = await axios.post<SubmitResponse>(SUBMIT_URL, payload);
+  const response = await api.post<SubmitResponse>("/api/code/submit", payload);
   return response.data;
 };
 
 // ── 내 제출 이력 ──────────────────────────────────────────────────────
 
-// TODO: contestId는 현재 치토 배틀 고정값(1) 사용 — 다중 대회 지원 시 동적으로 전달
 export const getMySubmissions = async (
   contestId: number = 1,
   page: number = 0,
   size: number = 10
 ): Promise<SubmissionsPageResponse> => {
-  const token = getAccessToken();
-  const response = await axios.get<SubmissionsPageResponse>(
-    `${BASE_URL}/contests/${contestId}/submissions`,
-    {
-      params: { page, size },
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }
+  const response = await api.get<SubmissionsPageResponse>(
+    `/contests/${contestId}/submissions`,
+    { params: { page, size } }
   );
   return response.data;
 };
