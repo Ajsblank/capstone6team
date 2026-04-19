@@ -79,6 +79,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/algorithms/list").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/algorithms/**").permitAll()
                         .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
                         .requestMatchers("/auth/**", "/api/auth/**", "/error").permitAll()
                         .anyRequest().authenticated())
