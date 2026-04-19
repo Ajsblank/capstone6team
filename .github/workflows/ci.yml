@@ -1,23 +1,23 @@
 # git action workflow name
-name: ci-test
+name: ci
 # executing name, can use environment variables
 run-name: "actor : ${{github.actor}}"
+# Controls when the workflow will run
 on:
-  # push:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [no-running]
-  #   branches: [ develop, "dev/server", "dev/front","develop","feat/**","dev/**"]
-  #     # 실행할 경로를 아래 경로 파일들의 변동으로 제한
-  #   paths:
-  #     - 'front/**'
-  #     - 'server/**'
-  #     - '.github/workflows/*'
-  # pull_request:
-  #   branches: [ develop, "dev/server","dev/front"]
-  #   paths:
-  #     - 'front/**'
-  #     - 'server/**'
-  #     - '.github/workflows/*'
+    branches: [ main, "dev/server", "dev/front","develop" ]
+      # 실행할 경로를 아래 경로 파일들의 변동으로 제한
+    paths:
+      - 'front/**'
+      - 'server/**'
+      - '.github/workflows/*'
+  pull_request:
+    branches: [ "main", "develop"]
+    paths:
+      - 'front/**'
+      - 'server/**'
+      - '.github/workflows/*'
 
   # Allows you to run this workflow manually from the Actions tab
   #workflow_dispatch:
@@ -27,25 +27,17 @@ jobs:
   filter:
     runs-on: ubuntu-latest
     outputs: 
-      server_change:  ${{steps.filter_server.outputs.server || 'false'}}
-      front_change: ${{steps.filter_front.outputs.front || 'false'}}
+      server_change:  ${{steps.filter.outputs.server}}
+      front_change: ${{steps.filter.outputs.front}}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v4
-        name: check if front directory exits
-        id: filter_front
-        if: hashFiles('front/**') !=  ''
+        id: filter
         with:
           filters: |
             front:
               -  'front/**'
               -  '.github/workflows/*'
-      - uses: dorny/paths-filter@v4
-        name: check if server directory exits
-        if: hashFiles('server/**') !=  ''
-        id: filter_server
-        with:
-          filters: |
             server:
               - 'server/**'
               - '.github/workflows/*'
@@ -77,13 +69,12 @@ jobs:
 
       - name: npm test
         run: |
-            npm test -- --watchAll=false --passWithNoTests
+          npm test -- --watchAll=false --passWithNoTests
+
       - name: npm build
         env:
-          # Frontend must target the active backend API server, not the Redis test instance URL.
-          REACT_APP_API_BASE_URL: ${{ secrets.EC2_URL }}
+          REACT_APP_API_BASE_URL: ${{ vars.REACT_APP_API_BASE_URL }}
         run: npm run build
-
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -92,10 +83,15 @@ jobs:
 
       - name: check aws identity
         run: aws sts get-caller-identity
-      - name: Upload to S3 TEST BUCKET
-        if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' 
-        run: aws s3 sync build/ s3://caps-asap-bucket-test --delete --exclude "backend-deploy/*"
+      - name: Upload to S3BUCKET
+        if: github.ref == 'refs/heads/main'
+        run: aws s3 sync build/ s3://caps-asap-bucket --delete
+      - name: Upload to S3BUCKET for Test
+        if: github.ref != 'refs/heads/main'
+        run: aws s3 sync build/ s3://caps-asap-bucket-test --delete
         
+
+
   server:
     needs: filter
     if: needs.filter.outputs.server_change == 'true'
@@ -106,11 +102,6 @@ jobs:
     defaults:
       run:
         working-directory: server
-    env: 
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_NAME: ${{ secrets.DB_NAME }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_URL: ${{ secrets.DB_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -119,33 +110,31 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-
       - name: add permission to execute
         run: chmod +x gradlew 
-
       - name: server build
         run: ./gradlew build
-
-      - name: Configure AWS credentials
+      - name: server test
+        run: ./gradlew test
+      - name: EC2 server executing
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{secrets.ARN_ROLE}}
           aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Upload to S3
+      - name: check aws identity
+        run: aws sts get-caller-identity
+      - name: Start EC2
         run: |
-          JAR_FILE=$(ls build/libs/*.jar | grep -v plain | head -n 1)
-          aws s3 cp $JAR_FILE s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar
+          aws ec2 start-instances \
+          --instance-ids ${{ vars.EC2_ID_INSTANCE }}
 
-      - name: Start EC2 and Wait
+      - name: Wait for EC2 running
         run: |
-          aws ec2 start-instances --instance-ids ${{ vars.EC2_ID_INSTANCE }}
-          aws ec2 wait instance-running --instance-ids ${{ vars.EC2_ID_INSTANCE }}
-
+          aws ec2 wait instance-running \
+          --instance-ids ${{vars.EC2_ID_INSTANCE}}
       - name: Wait for SSM ready
         run: |
           echo "Waiting for SSM Agent to be online..."
-          i=0
           while true; do
             STATUS=$(aws ssm describe-instance-information \
               --filters "Key=InstanceIds,Values=${{ vars.EC2_ID_INSTANCE }}" \
@@ -156,17 +145,10 @@ jobs:
               echo "SSM Agent is Online!"
               break
             fi
-
-            if [ "$i" -ge 24 ]; then # 5초 * 24 = 120초
-              echo "SSM Agent did not become online in time."
-              exit 1
-            fi
             
-            echo "Current status: $STATUS. Waiting 5s... ($i)"
-            i=$((i+1))
+            echo "Current status: $STATUS. Waiting 5 seconds..."
             sleep 5
           done
-
       - name: Run command and wait
         run: |
           COMMAND_ID=$(aws ssm send-command \
@@ -174,16 +156,8 @@ jobs:
           --document-name "AWS-RunShellScript" \
           --parameters '{
             "commands": [
-              "export HOME=/home/ubuntu",
               "mkdir -p /home/ubuntu/app",
-              "cd /home/ubuntu/app",
-              "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar .",
-
-              "sudo fuser -k 8080/tcp || true",
-              
-              "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
-              
-              "echo deploy_success > /home/ubuntu/app/test.txt"
+              "echo deploy_test_success > /home/ubuntu/app/test.txt"
             ]
           }' \
           --query "Command.CommandId" \
@@ -193,11 +167,9 @@ jobs:
           --command-id $COMMAND_ID \
           --instance-id ${{vars.EC2_ID_INSTANCE}}
 
-      
-
-      # - name: Stop EC2
-      #  if: always()
-      #   run: |
-      #     aws ec2 stop-instances \
-      #     --instance-ids ${{vars.EC2_ID_INSTANCE}}
+      - name: Stop EC2
+        if: always()
+        run: |
+          aws ec2 stop-instances \
+          --instance-ids ${{vars.EC2_ID_INSTANCE}}
   
