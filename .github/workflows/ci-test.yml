@@ -125,7 +125,7 @@ jobs:
         run: chmod +x gradlew 
 
       - name: server build
-        run: ./gradlew build -x test
+        run: ./gradlew build
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -135,7 +135,6 @@ jobs:
 
       - name: Upload to S3
         run: |
-          # working-directory가 server이므로 경로에서 server/ 제거
           JAR_FILE=$(ls build/libs/*.jar | grep -v plain | head -n 1)
           aws s3 cp $JAR_FILE s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar
 
@@ -183,7 +182,6 @@ jobs:
 
               "sudo fuser -k 8080/tcp || true",
               
-              "# JAR_PATH 대신 파일명 app.jar 사용, nohup 안정성 확보",
               "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
               
               "echo deploy_success > /home/ubuntu/app/test.txt"
