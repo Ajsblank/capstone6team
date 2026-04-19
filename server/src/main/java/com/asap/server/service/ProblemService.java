@@ -5,12 +5,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.asap.server.domain.AlgorithmProblem;
+import com.asap.server.dto.response.AlgorithmProblemListResponse;
 import com.asap.server.repository.AlgorithmProblemRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Slf4j
 @Service
@@ -42,5 +46,12 @@ public class ProblemService {
         } catch (JsonProcessingException e) {
             log.error("테스트케이스 JSON 변환 실패", e);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AlgorithmProblemListResponse> getProblemPage(Pageable pageable) {
+        // DB에서 지정된 페이지 크기만큼 꺼내온 뒤 DTO로 변환
+        return algorithmProblemRepository.findAll(pageable)
+                .map(AlgorithmProblemListResponse::from);
     }
 }
