@@ -26,9 +26,9 @@ public class RedisWarmUpRunner implements CommandLineRunner {
     @Override
     public void run(String... args) {
         log.info("Redis 캐시 웜업 시작...");
-        
+
         List<AlgorithmProblem> problems = algorithmProblemRepository.findAll();
-        
+
         for (AlgorithmProblem problem : problems) {
             try {
                 if (problem.getHiddenTestcases() != null) {
@@ -40,7 +40,7 @@ public class RedisWarmUpRunner implements CommandLineRunner {
                 log.error("문제 {}의 테스트케이스 캐싱 실패", problem.getId(), e);
             }
         }
-        
+
         log.info("Redis 캐시 웜업 완료! (총 {}건)", problems.size());
     }
 }

@@ -6,9 +6,8 @@ plugins {
 
 group = 'com.asap'
 version = '0.0.1-SNAPSHOT'
-
 java {
-	toolchain {
+	toolchain {  
 		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
@@ -18,7 +17,6 @@ configurations {
 		extendsFrom annotationProcessor
 	}
 }
-
 repositories {
 	mavenCentral()
 }
@@ -28,12 +26,16 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-jackson'
 	implementation 'org.springframework.boot:spring-boot-starter-json'
+	implementation 'org.hibernate.validator:hibernate-validator:8.0.1.Final'
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	runtimeOnly 'org.postgresql:postgresql'
 
 	//validation
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -47,9 +49,6 @@ dependencies {
 
 	//local test DB
 	runtimeOnly 'com.h2database:h2'
-
-	//postgre
-	runtimeOnly 'org.postgresql:postgresql'
 	//Redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	//email auth
