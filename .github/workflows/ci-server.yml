@@ -32,7 +32,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v4
         name: check if server directory exits
-        if: hashFiles('server/**') !=  ''
+        if: hashFiles('server/**', 'DB/**') !=  ''
         id: filter_server
         with:
           filters: |
@@ -162,7 +162,8 @@ jobs:
           aws ec2 wait instance-running --instance-ids ${{ vars.EC2_ID_INSTANCE_TEST }}
       - name: Upload to S3
         run: |
-          aws s3 cp DB/docker-compose.yml s3://caps-asap-bucket-test/backend-deploy/deploy/docker-compose.yml
+          ls -la "${{ github.workspace }}/DB"
+          aws s3 cp "${{ github.workspace }}/DB/docker-compose.yml" s3://caps-asap-bucket-test/backend-deploy/deploy/docker-compose.yml
       - name: Wait for SSM ready
         run: |
           echo "Waiting for SSM Agent to be online..."
