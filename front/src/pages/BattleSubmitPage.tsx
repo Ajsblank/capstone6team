@@ -61,7 +61,6 @@ const SubmitPage: React.FC = () => {
     try {
       const result = await submitCode({
         userId: "guest", // TODO: 로그인 구현 후 실제 유저 ID로 교체
-        problemId: "0",  // 코드 배틀 전용 제출 — 알고리즘 문제 ID 없음
         language: language as string,
         sourceCode: code,
       });
