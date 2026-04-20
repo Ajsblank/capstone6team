@@ -132,7 +132,7 @@ jobs:
 
               "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar .",
               
-              "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -Dspring.data.redis.host=100.51.237.125 -Dspring.data.redis.port=6379 -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
+              "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -Dspring.data.redis.host=3.216.165.85 -Dspring.data.redis.port=6379 -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
               
               
               "echo deploy_success > /home/ubuntu/app/test.txt"
