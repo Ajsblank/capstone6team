@@ -44,7 +44,7 @@ jobs:
   # This workflow contains a single job called "build"
         
   server:
-    needs: [filter, server-redis]
+    needs: [filter]
     if: needs.filter.outputs.server_change == 'true'
     permissions: 
       id-token: write
@@ -144,71 +144,3 @@ jobs:
           aws ssm wait command-executed \
           --command-id $COMMAND_ID \
           --instance-id ${{vars.EC2_ID_INSTANCE}}
-
-  server-redis:
-    needs: filter
-    if: needs.filter.outputs.server_change == 'true'
-    permissions: 
-      id-token: write
-      contents: read
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{secrets.ARN_ROLE}}
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Start Test EC2 and Wait
-        run: |
-          aws ec2 start-instances --instance-ids ${{ vars.EC2_ID_INSTANCE_TEST }}
-          aws ec2 wait instance-running --instance-ids ${{ vars.EC2_ID_INSTANCE_TEST }}
-      - name: Upload to S3
-        run: |
-          ls -la "${{ github.workspace }}/DB"
-          aws s3 cp "${{ github.workspace }}/DB/docker-compose.yml" s3://caps-asap-bucket-test/backend-deploy/deploy/docker-compose.yml
-      - name: Wait for SSM ready
-        run: |
-          echo "Waiting for SSM Agent to be online..."
-          i=0
-          while true; do
-            STATUS=$(aws ssm describe-instance-information \
-              --filters "Key=InstanceIds,Values=${{ vars.EC2_ID_INSTANCE_TEST }}" \
-              --query "InstanceInformationList[0].PingStatus" \
-              --output text)
-            
-            if [ "$STATUS" = "Online" ]; then
-              echo "SSM Agent is Online!"
-              break
-            fi
-
-            if [ "$i" -ge 24 ]; then # 5초 * 24 = 120초
-              echo "SSM Agent did not become online in time."
-              exit 1
-            fi
-            
-            echo "Current status: $STATUS. Waiting 5s... ($i)"
-            i=$((i+1))
-            sleep 5
-          done
-      
-      - name: Run command on Test EC2
-        run: |
-          COMMAND_ID=$(aws ssm send-command \
-          --instance-ids ${{ vars.EC2_ID_INSTANCE_TEST }} \
-          --document-name "AWS-RunShellScript" \
-          --parameters '{
-            "commands": [
-              "export HOME=/home/ubuntu",
-              "mkdir -p /home/ubuntu/app",
-              "cd /home/ubuntu/app",
-              "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/docker-compose.yml .",
-              "if command -v docker-compose >/dev/null 2>&1; then sudo docker-compose down || true; sudo docker-compose up -d --build; else sudo docker compose down || true; sudo docker compose up -d --build; fi"
-            ]
-          }' \
-          --query "Command.CommandId" \
-          --output text)
-          aws ssm wait command-executed --command-id $COMMAND_ID --instance-id ${{ vars.EC2_ID_INSTANCE_TEST }}
-
