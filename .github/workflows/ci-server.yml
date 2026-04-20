@@ -50,6 +50,11 @@ jobs:
     defaults:
       run:
         working-directory: server
+    services:
+      redis:
+        image: redis
+        ports: 
+          - 6379:6379
     env: 
       DB_USER: ${{ secrets.DB_USER }}
       DB_NAME: ${{ secrets.DB_NAME }}
@@ -57,7 +62,6 @@ jobs:
       DB_URL: ${{ secrets.DB_URL }}
     steps:
       - uses: actions/checkout@v4
-
       - name: set up jdk
         uses: actions/setup-java@v4
         with:
@@ -68,7 +72,7 @@ jobs:
         run: chmod +x gradlew 
 
       - name: server build
-        run: ./gradlew build -x test
+        run: ./gradlew build
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -121,9 +125,10 @@ jobs:
               "export HOME=/home/ubuntu",
               "mkdir -p /home/ubuntu/app",
               "cd /home/ubuntu/app",
-              "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar .",
-
+              
               "sudo fuser -k 8080/tcp || true",
+
+              "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar .",
               
               "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
               
