@@ -10,11 +10,13 @@ on:
       # 실행할 경로를 아래 경로 파일들의 변동으로 제한
     paths:
       - 'server/**'
+      - 'DB/**'
       - '.github/workflows/*'
   pull_request:
     branches: ["dev/server**","feat/server**"]
     paths:
       - 'server/**'
+      - 'DB/**'
       - '.github/workflows/*'
 
   # Allows you to run this workflow manually from the Actions tab
@@ -30,18 +32,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v4
         name: check if server directory exits
-        if: hashFiles('server/**') !=  ''
+        if: hashFiles('server/**', 'DB/**') !=  ''
         id: filter_server
         with:
           filters: |
             server:
               - 'server/**'
+              - 'DB/**'
               - '.github/workflows/*'
 
   # This workflow contains a single job called "build"
         
   server:
-    needs: filter
+    needs: [filter, server-redis]
     if: needs.filter.outputs.server_change == 'true'
     permissions: 
       id-token: write
@@ -84,7 +87,6 @@ jobs:
         run: |
           JAR_FILE=$(ls build/libs/*.jar | grep -v plain | head -n 1)
           aws s3 cp $JAR_FILE s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar
-
       - name: Start EC2 and Wait
         run: |
           aws ec2 start-instances --instance-ids ${{ vars.EC2_ID_INSTANCE }}
@@ -130,7 +132,8 @@ jobs:
 
               "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar .",
               
-              "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
+              "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -Dspring.data.redis.host=100.51.237.125 -Dspring.data.redis.port=6379 -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
+              
               
               "echo deploy_success > /home/ubuntu/app/test.txt"
             ]
@@ -141,3 +144,71 @@ jobs:
           aws ssm wait command-executed \
           --command-id $COMMAND_ID \
           --instance-id ${{vars.EC2_ID_INSTANCE}}
+
+  server-redis:
+    needs: filter
+    if: needs.filter.outputs.server_change == 'true'
+    permissions: 
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{secrets.ARN_ROLE}}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Start Test EC2 and Wait
+        run: |
+          aws ec2 start-instances --instance-ids ${{ vars.EC2_ID_INSTANCE_TEST }}
+          aws ec2 wait instance-running --instance-ids ${{ vars.EC2_ID_INSTANCE_TEST }}
+      - name: Upload to S3
+        run: |
+          ls -la "${{ github.workspace }}/DB"
+          aws s3 cp "${{ github.workspace }}/DB/docker-compose.yml" s3://caps-asap-bucket-test/backend-deploy/deploy/docker-compose.yml
+      - name: Wait for SSM ready
+        run: |
+          echo "Waiting for SSM Agent to be online..."
+          i=0
+          while true; do
+            STATUS=$(aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=${{ vars.EC2_ID_INSTANCE_TEST }}" \
+              --query "InstanceInformationList[0].PingStatus" \
+              --output text)
+            
+            if [ "$STATUS" = "Online" ]; then
+              echo "SSM Agent is Online!"
+              break
+            fi
+
+            if [ "$i" -ge 24 ]; then # 5초 * 24 = 120초
+              echo "SSM Agent did not become online in time."
+              exit 1
+            fi
+            
+            echo "Current status: $STATUS. Waiting 5s... ($i)"
+            i=$((i+1))
+            sleep 5
+          done
+      
+      - name: Run command on Test EC2
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+          --instance-ids ${{ vars.EC2_ID_INSTANCE_TEST }} \
+          --document-name "AWS-RunShellScript" \
+          --parameters '{
+            "commands": [
+              "export HOME=/home/ubuntu",
+              "mkdir -p /home/ubuntu/app",
+              "cd /home/ubuntu/app",
+              "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/docker-compose.yml .",
+              "if command -v docker-compose >/dev/null 2>&1; then sudo docker-compose down || true; sudo docker-compose up -d --build; else sudo docker compose down || true; sudo docker compose up -d --build; fi"
+            ]
+          }' \
+          --query "Command.CommandId" \
+          --output text)
+          aws ssm wait command-executed --command-id $COMMAND_ID --instance-id ${{ vars.EC2_ID_INSTANCE_TEST }}
+

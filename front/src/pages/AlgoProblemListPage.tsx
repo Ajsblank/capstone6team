@@ -63,8 +63,13 @@ const ProblemsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
+              {/* TODO: MOCK_PROBLEMS → getAlgorithmList() 결과로 교체 */}
               {MOCK_PROBLEMS.map((p) => (
-                <tr key={p.id} className="problems-row">
+                <tr
+                  key={p.id}
+                  className="problems-row"
+                  onClick={() => { window.location.hash = `problem-detail/${p.id}`; }}
+                >
                   <td style={{ color: "#6c7086" }}>{p.id}</td>
                   <td className="problems-row-title">{p.title}</td>
                   <td>
