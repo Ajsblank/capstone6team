@@ -11,13 +11,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "code_battle_submission")
 @Getter
 @NoArgsConstructor
-public class Submission {
+public class CodeBattleSubmission {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,14 +27,17 @@ public class Submission {
 
   @ManyToOne
   @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_submission_user"))
-  private users user;
+  private Users user;
 
   @ManyToOne
   @JoinColumn(name = "contest_id", foreignKey = @ForeignKey(name = "fk_submission_contest"))
-  private Contest contest;
+  private CodeBattleContest contest;
 
   @Column
-  private String code_url;
+  private String language;
+
+  @Column
+  private String code;
 
   @Column
   private String result;
@@ -40,10 +45,12 @@ public class Submission {
   @Column(nullable = false)
   private LocalDateTime created_at;
 
-  public Submission(users user, Contest contest, String code_url, String result) {
+  public CodeBattleSubmission(Users user, CodeBattleContest contest, String language, String code,
+      String result) {
     this.user = user;
     this.contest = contest;
-    this.code_url = code_url;
+    this.language = language;
+    this.code = code;
     this.result = result;
   }
 
