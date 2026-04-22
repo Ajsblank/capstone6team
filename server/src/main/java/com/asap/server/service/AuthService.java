@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.asap.server.config.JwtTokenProvider;
 import com.asap.server.domain.Profile;
-import com.asap.server.domain.users;
+import com.asap.server.domain.Users;
 import com.asap.server.dto.request.EmailVerifyRequest;
 import com.asap.server.dto.request.LoginRequest;
 import com.asap.server.dto.request.SignupRequest;
@@ -63,7 +63,7 @@ public class AuthService {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
 
-        users user = users.builder()
+        Users user = Users.builder()
                 .email(request.getEmail())
                 .password(pending.encodedPassword())
                 .build();
@@ -81,7 +81,7 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
-        users user = userRepository.findByEmail(request.getEmail())
+        Users user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다."));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {

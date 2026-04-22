@@ -11,23 +11,28 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "code_battle_contest")
 @Getter
 @NoArgsConstructor
-public class Contest {
+public class CodeBattleContest {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(length = 50)
+  @Column(length = 255)
   private String title;
 
-  @Column
-  private String description_url;
+  @Column(name = "time_limit_sec")
+  private int timeLimitSec;
+
+  @Column(name = "memory_limit_mb")
+  private int memoryLimitMB;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
@@ -36,29 +41,37 @@ public class Contest {
   @Column
   private Boolean certification; // True for certification contest
 
-  @Column
-  private String judge_code_url;
+  @Column(columnDefinition = "TEXT")
+  private String judge_code;
 
-  @Column
-  private String example_code_url;
+  @Column(columnDefinition = "TEXT")
+  private String example_code;
+
+  @Column(name = "max_participants")
+  private int maxParticipants;
+
+  @Column(name = "start_date")
+  private LocalDateTime startDate;
+
+  @Column(name = "end_date")
+  private LocalDateTime endDate;
 
   @Column(nullable = false)
   private LocalDateTime created_at;
 
-  @Column
+  @Column(nullable = false)
   private LocalDateTime updated_at;
 
   @Column
   private LocalDateTime deleted_at;
 
-  public Contest(String title, String description_url, ContestStatus status, Boolean certification,
-      String judge_code_url, String example_code_url) {
+  public CodeBattleContest(String title, ContestStatus status, Boolean certification,
+      String judge_code, String example_code) {
     this.title = title;
-    this.description_url = description_url;
     this.status = status;
     this.certification = certification;
-    this.judge_code_url = judge_code_url;
-    this.example_code_url = example_code_url;
+    this.judge_code = judge_code;
+    this.example_code = example_code;
   }
 
   @PrePersist
@@ -73,6 +86,6 @@ public class Contest {
   }
 
   public enum ContestStatus {
-    TEST, RUNNING, END, PLANNED
+    TEST, RUNNING, END, PLANNED, PAUSED
   }
 }
