@@ -13,6 +13,7 @@ import com.asap.server.domain.Users;
 import com.asap.server.dto.request.EmailVerifyRequest;
 import com.asap.server.dto.request.LoginRequest;
 import com.asap.server.dto.request.SignupRequest;
+import com.asap.server.dto.request.WithdrawRequest;
 import com.asap.server.dto.response.LoginResponse;
 import com.asap.server.repository.usersRepository;
 
@@ -92,5 +93,18 @@ public class AuthService {
         String accessToken = jwtTokenProvider.createToken(user.getEmail());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
         return new LoginResponse(accessToken, refreshToken);
+    }
+
+    @Transactional
+    public void withdraw(String email, WithdrawRequest request) {
+        Users user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        userRepository.delete(user);
+        log.info("회원탈퇴 완료 - 이메일: {}", email);
     }
 }

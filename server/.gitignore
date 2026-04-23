@@ -40,3 +40,5 @@ out/
 *.db
 mydocs*
 DB/**
+
+server_log.txt

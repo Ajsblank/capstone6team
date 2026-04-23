@@ -120,9 +120,10 @@ const CreateProblemPage: React.FC = () => {
   const [exampleTestcases, setExampleTestcases] = useState<TestCaseDto[]>([emptyTestCase()]);
   const [hiddenTestcases, setHiddenTestcases] = useState<TestCaseDto[]>([emptyTestCase()]);
 
-  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [toastMessages, setToastMessages] = useState<string[]>([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleSubmit = async () => {
     const missing: string[] = [];
@@ -146,7 +147,9 @@ const CreateProblemPage: React.FC = () => {
         exampleTestcases,
         hiddenTestcases,
       });
-      setStatus("success");
+      // 201 수신 시 성공 팝업 표시. 확인 버튼 → 문제 목록으로 이동
+      setStatus("idle");
+      setShowSuccessModal(true);
     } catch (err: unknown) {
       setStatus("error");
       if (axios.isAxiosError(err)) {
@@ -215,6 +218,22 @@ const CreateProblemPage: React.FC = () => {
       {toastMessages.length > 0 && (
         <Toast messages={toastMessages} onClose={() => setToastMessages([])} />
       )}
+
+      {showSuccessModal && (
+        <div className="cp-modal-overlay">
+          <div className="cp-modal">
+            <div className="cp-modal-icon">✓</div>
+            <p className="cp-modal-msg">문제가 성공적으로 등록되었습니다.</p>
+            <button
+              className="cp-modal-confirm"
+              onClick={() => { setShowSuccessModal(false); navigate("problems"); }}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
       <AppHeader activePage="problems" />
 
       <main className="home-body">
@@ -305,15 +324,14 @@ const CreateProblemPage: React.FC = () => {
               <button
                 className="cp-submit-btn"
                 onClick={handleSubmit}
-                disabled={status === "submitting" || status === "success"}
+                disabled={status === "submitting"}
               >
-                {status === "submitting" ? "제출 중..." : status === "success" ? "제출 완료" : "문제 등록"}
+                {status === "submitting" ? "제출 중..." : "문제 등록"}
               </button>
               <button className="cp-cancel-btn" onClick={() => navigate("problems")}>
                 취소
               </button>
               {status === "error" && <span className="cp-error-msg">{errorMsg}</span>}
-              {status === "success" && <span className="cp-success-msg">문제가 성공적으로 등록되었습니다.</span>}
             </div>
           </div>
         </div>

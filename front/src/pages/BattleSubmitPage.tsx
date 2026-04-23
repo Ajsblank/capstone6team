@@ -3,6 +3,7 @@ import ChitoBattleProblem from "../components/ChitoBattleProblem";
 import CodeEditor, { LANGUAGE_DEFAULTS } from "../components/CodeEditor";
 import SubmitBar from "../components/SubmitBar";
 import SubmitSuccessModal from "../components/SubmitSuccessModal";
+import MySubmissionsTab from "../components/MySubmissionsTab";
 import { submitCode } from "../api/submissionApi";
 import { useApp } from "../context/AppContext";
 import { Language } from "../types";
@@ -10,19 +11,20 @@ import { Language } from "../types";
 import "./BattleSubmitPage.css";
 
 
-type Tab = "problem" | "submit" | "viz1" | "viz2" | "viz3" | "leaderboard";
+type Tab = "problem" | "submit" | "my-submissions" | "viz1" | "viz2" | "leaderboard" | "battle-results";
 type SubmitStatus = "idle" | "submitting" | "success" | "error";
 
 const TAB_LIST: { id: Tab; label: string }[] = [
-  { id: "problem", label: "문제" },
-  { id: "submit", label: "제출" },
-  { id: "viz1", label: "로그 분석" },
-  { id: "viz2", label: "혼자서 하기" },
-  { id: "viz3", label: "시각화 3" },
-  { id: "leaderboard", label: "리더보드" },
+  { id: "problem",        label: "문제" },
+  { id: "submit",         label: "제출" },
+  { id: "my-submissions", label: "내 제출" },
+  { id: "viz1",           label: "로그 분석" },
+  { id: "viz2",           label: "혼자서 하기" },
+  { id: "leaderboard",    label: "리더보드" },
+  { id: "battle-results", label: "대결 결과" },
 ];
 
-const VALID_TABS: Tab[] = ["problem", "submit", "viz1", "viz2", "viz3", "leaderboard"];
+const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2", "leaderboard", "battle-results"];
 
 function getTabFromHash(): Tab {
   const sub = window.location.hash.replace("#", "").split("/")[1] as Tab;
@@ -85,7 +87,7 @@ const SubmitPage: React.FC = () => {
         <SubmitSuccessModal message={responseMessage} onClose={() => setShowSuccessModal(false)} />
       )}
       <header className="page-header">
-        <span className="header-logo">CodeBattle</span>
+        <span className="header-logo" onClick={() => navigate("battle")}>CodeBattle</span>
         <span className="header-divider" />
         <nav className="tab-nav">
           {TAB_LIST.map((tab) => (
@@ -98,7 +100,7 @@ const SubmitPage: React.FC = () => {
             </button>
           ))}
         </nav>
-        <button className="header-home-btn" onClick={() => navigate("home")}>
+        <button className="header-home-btn" onClick={() => navigate("battle")}>
           ← 홈으로
         </button>
       </header>
@@ -152,8 +154,15 @@ const SubmitPage: React.FC = () => {
           </div>
         )}
 
-        {/* 미구현 탭 (viz1, viz2 제외) */}
-        {(activeTab === "viz3" || activeTab === "leaderboard") && (
+        {/* 내 제출 탭 */}
+        {activeTab === "my-submissions" && (
+          <div className="full-panel" style={{ overflowY: "auto" }}>
+            <MySubmissionsTab />
+          </div>
+        )}
+
+        {/* 미구현 탭 */}
+        {(activeTab === "leaderboard" || activeTab === "battle-results") && (
           <div className="placeholder-panel">
             <span className="placeholder-text">
               {TAB_LIST.find((t) => t.id === activeTab)?.label} — 준비 중입니다.

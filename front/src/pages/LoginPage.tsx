@@ -32,9 +32,20 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleDevLogin = () => {
-    login({ id: "dev", username: "개발자", email: "dev@codebattle.kr" });
-    navigate("home");
+  const handleDevLogin = async () => {
+    setError("");
+    setSubmitting(true);
+    try {
+      await loginApi({ email: "dev@codebattle.kr", password: "devpassword1!" });
+      login({ id: "dev", username: "개발자", email: "dev@codebattle.kr" });
+      navigate("home");
+    } catch {
+      // API 실패 시 토큰 없이 UI만 로그인 (개발 편의용)
+      login({ id: "dev", username: "개발자", email: "dev@codebattle.kr" });
+      navigate("home");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
