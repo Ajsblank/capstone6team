@@ -7,15 +7,22 @@ const api = axios.create({ baseURL: BASE_URL });
 // ──────────────────────────────────────────
 // 토큰 관리
 // ──────────────────────────────────────────
-let accessToken: string | null = null;
+let accessToken: string | null = localStorage.getItem("accessToken");
+
+// 앱 시작 시 저장된 토큰을 axios 헤더에 복원
+if (accessToken) {
+  api.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
+}
 
 export const getAccessToken = () => accessToken;
 
 export const setAccessToken = (token: string | null) => {
   accessToken = token;
   if (token) {
+    localStorage.setItem("accessToken", token);
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   } else {
+    localStorage.removeItem("accessToken");
     delete api.defaults.headers.common["Authorization"];
   }
 };
@@ -71,7 +78,12 @@ export const verifyEmailCode = async (email: string, code: string): Promise<void
 
 // 로그인 → JWT 토큰 저장
 export const loginApi = async (body: LoginRequest): Promise<TokenResponse> => {
-  const { data } = await api.post<TokenResponse>("/api/auth/login", body);
+  const { data } = await api.post<TokenResponse | string>("/api/auth/login", body);
+  // 백엔드가 raw 문자열로 토큰을 반환하는 경우 처리
+  if (typeof data === "string") {
+    setAccessToken(data);
+    return { accessToken: data, refreshToken: "" };
+  }
   setAccessToken(data.accessToken);
   saveRefreshToken(data.refreshToken);
   return data;
@@ -81,7 +93,7 @@ export const loginApi = async (body: LoginRequest): Promise<TokenResponse> => {
 export const logoutApi = async (): Promise<void> => {
   const refreshToken = getRefreshToken();
   if (refreshToken) {
-    await api.post("/api/auth/logout", { refreshToken }).catch(() => { });
+    await api.post("/api/auth/logout", { refreshToken }).catch(() => {});
   }
   clearTokens();
 };

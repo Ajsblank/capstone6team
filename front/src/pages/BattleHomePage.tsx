@@ -22,7 +22,7 @@ const BattlePage: React.FC = () => {
   return (
     <div className="home-page">
       <header className="home-header">
-        <span className="home-logo" onClick={() => navigate("home")}>ASAP 캡스톤</span>
+        <span className="home-logo" onClick={() => setActiveTab("home")}>ASAP 캡스톤</span>
         <nav className="home-tab-nav">
           <button
             className={`home-tab-btn${activeTab === "home" ? " home-tab-btn--active" : ""}`}
