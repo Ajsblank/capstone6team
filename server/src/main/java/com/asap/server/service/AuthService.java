@@ -47,21 +47,19 @@ public class AuthService {
         sendVerificationCodeWithLog(request.getEmail(), request.getNickname(), false);
     }
 
-    @Transactional
     public void resendMail(EmailResendRequest request) {
-        String email = request.getEmail();
 
-        PendingSignup pending = pendingSignupStore.get(email);
+        PendingSignup pending = pendingSignupStore.get(request.getEmail());
         if (pending == null) {
             throw new IllegalArgumentException("회원가입 요청이 없습니다. 먼저 회원가입을 진행해주세요.");
         }
 
-        if (userRepository.existsByEmail(email)) {
-            pendingSignupStore.remove(email);
+        if (userRepository.existsByEmail(request.getEmail())) {
+            pendingSignupStore.remove(request.getEmail());
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
 
-        sendVerificationCodeWithLog(email, pending.nickname(), true);
+        sendVerificationCodeWithLog(request.getEmail(), pending.nickname(), true);
     }
 
     @Transactional
@@ -71,8 +69,7 @@ public class AuthService {
             throw new IllegalArgumentException("회원가입 요청이 없습니다. 먼저 회원가입을 진행해주세요.");
         }
 
-        boolean result = mailService.verifyCode(request.getEmail(), request.getCode());
-        if (!result) {
+        if (!mailService.verifyCode(request.getEmail(), request.getCode())) {
             throw new IllegalArgumentException("인증번호가 일치하지 않습니다.");
         }
 
