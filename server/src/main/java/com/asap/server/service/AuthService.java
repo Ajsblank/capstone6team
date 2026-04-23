@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.asap.server.config.JwtTokenProvider;
 import com.asap.server.domain.Profile;
 import com.asap.server.domain.Users;
+import com.asap.server.dto.request.EmailResendRequest;
 import com.asap.server.dto.request.EmailVerifyRequest;
 import com.asap.server.dto.request.LoginRequest;
 import com.asap.server.dto.request.SignupRequest;
@@ -43,8 +44,24 @@ public class AuthService {
                 request.getNickname(),
                 passwordEncoder.encode(request.getPassword()));
         pendingSignupStore.put(request.getEmail(), pending);
-        mailService.sendVerificationCode(request.getEmail());
-        log.info("회원가입 요청 접수(미인증) - 이메일: {}, 닉네임: {}", request.getEmail(), request.getNickname());
+        sendVerificationCodeWithLog(request.getEmail(), request.getNickname(), false);
+    }
+
+    @Transactional
+    public void resendMail(EmailResendRequest request) {
+        String email = request.getEmail();
+
+        PendingSignup pending = pendingSignupStore.get(email);
+        if (pending == null) {
+            throw new IllegalArgumentException("회원가입 요청이 없습니다. 먼저 회원가입을 진행해주세요.");
+        }
+
+        if (userRepository.existsByEmail(email)) {
+            pendingSignupStore.remove(email);
+            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+        }
+
+        sendVerificationCodeWithLog(email, pending.nickname(), true);
     }
 
     @Transactional
@@ -106,5 +123,14 @@ public class AuthService {
 
         userRepository.delete(user);
         log.info("회원탈퇴 완료 - 이메일: {}", email);
+    }
+
+    private void sendVerificationCodeWithLog(String email, String nickname, boolean resent) {
+        mailService.sendVerificationCode(email);
+        if (resent) {
+            log.info("회원가입 인증번호 재발송 완료 - 이메일: {}, 닉네임: {}", email, nickname);
+            return;
+        }
+        log.info("회원가입 인증번호 발송 완료 - 이메일: {}, 닉네임: {}", email, nickname);
     }
 }
