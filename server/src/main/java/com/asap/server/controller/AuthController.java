@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.asap.server.dto.request.EmailResendRequest;
 import com.asap.server.dto.request.EmailVerifyRequest;
 import com.asap.server.dto.request.LoginRequest;
 import com.asap.server.dto.request.SignupRequest;
@@ -30,6 +31,12 @@ public class AuthController {
         return ResponseEntity.status(201).body("회원가입이 완료되었습니다. 인증번호를 확인해주세요.");
     }
 
+    // @PostMapping("/signout")
+    // public ResponseEntity<String> singout(@RequestBody SignoutRequest request) {
+    // authService.signout(request);
+    // return ResponseEntity.ok("로그아웃이 완료됐습니다.")
+    // }
+
     @PostMapping("/withdraw")
     public ResponseEntity<String> withdraw(
             @AuthenticationPrincipal String email,
@@ -42,6 +49,12 @@ public class AuthController {
     public ResponseEntity<String> verifySignupMail(@RequestBody EmailVerifyRequest request) {
         authService.verifySignupMail(request);
         return ResponseEntity.ok("이메일 인증이 완료되었습니다.");
+    }
+
+    @PostMapping("/mail/send")
+    public ResponseEntity<String> resendCode(@Valid @RequestBody EmailResendRequest request) {
+        authService.resendMail(request);
+        return ResponseEntity.ok("인증번호를 재발송하였습니다.");
     }
 
     @PostMapping("/login")
