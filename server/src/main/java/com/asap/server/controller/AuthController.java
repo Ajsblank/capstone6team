@@ -52,9 +52,9 @@ public class AuthController {
     }
 
     @PostMapping("/mail/send")
-    public ResponseEntity<String> resendCode(@Valid @RequestBody EmailResendRequest request) {
+    public ResponseEntity<String> resendCode(@RequestBody EmailResendRequest request) {
         authService.resendMail(request);
-        return ResponseEntity.ok("인증번호를 재발송하였습니다.");
+        return ResponseEntity.status(200).body("이메일 인증번호를 재발송하였습니다.");
     }
 
     @PostMapping("/login")
