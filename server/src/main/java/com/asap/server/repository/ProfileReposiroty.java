@@ -11,6 +11,8 @@ import com.asap.server.domain.Profile;
 public interface ProfileReposiroty extends JpaRepository<Profile, Long> {
   Optional<Profile> findByUserId(Long userId);
 
+  Optional<Profile> findByNicknameAndTag(String nickname, Integer tag);
+
   boolean existsByUserId(Long userId);
 
   boolean existsByNicknameAndTag(String nickname, Integer tag);
