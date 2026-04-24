@@ -42,3 +42,4 @@ mydocs*
 DB/**
 
 server_log.txt
+.env_server
