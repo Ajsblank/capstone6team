@@ -30,8 +30,11 @@ public class Profile {
   @JoinColumn(name = "user_id")
   private Users user;
 
-  @Column(length = 50, nullable = true)
+  @Column(length = 50, nullable = false)
   private String nickname;
+
+  @Column(nullable = false)
+  private Integer tag;
 
   @Column(columnDefinition = "TEXT", nullable = true)
   private String bio;
@@ -46,9 +49,10 @@ public class Profile {
   private LocalDateTime updated_at;
 
   @Builder
-  public Profile(Users user, String nickname, String bio, String image_url, String affiliation) {
+  public Profile(Users user, String nickname, Integer tag, String bio, String image_url, String affiliation) {
     this.user = user;
     this.nickname = nickname;
+    this.tag = tag;
     this.bio = bio;
     this.image_url = image_url;
     this.affiliation = affiliation;
