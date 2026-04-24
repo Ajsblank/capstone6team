@@ -37,29 +37,28 @@ public class ProfileService {
     Users user = userRepository.findByEmail(email)
         .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+    String newNickname = normalizeNickname(request.getNickname());
+    if (newNickname == null) {
+      throw new IllegalArgumentException("닉네임은 필수입니다.");
+    }
+
     Profile profile = user.getProfile();
     if (profile == null) {
-      String nickname = normalizeNickname(request.getNickname());
-      if (nickname == null) {
-        throw new IllegalArgumentException("프로필 생성 시 닉네임은 필수입니다.");
-      }
-
-      int tag = allocateNextTag(nickname);
+      int tag = allocateNextTag(newNickname);
       Profile newProfile = Profile.builder()
           .user(user)
-          .nickname(nickname)
+          .nickname(newNickname)
           .tag(tag)
           .bio(request.getBio())
           .affiliation(request.getAffiliation())
           .image_url(request.getImageUrl())
           .build();
       user.setProfile(newProfile);
-      userRepository.save(user);
+      userRepository.save(user);  
       return ProfileResponse.from(newProfile);
     }
 
-    String newNickname = normalizeNickname(request.getNickname());
-    if (newNickname != null && !newNickname.equals(profile.getNickname())) {
+    if (!newNickname.equals(profile.getNickname())) {
       int newTag = allocateNextTag(newNickname);
       profile.updateNicknameAndTag(newNickname, newTag);
     }
