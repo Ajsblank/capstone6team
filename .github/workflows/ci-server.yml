@@ -133,14 +133,14 @@ jobs:
 
               "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar .",
               
-              "nohup java \
-               -DDB_URL=${{secrets.DB_URL}} \
-               -DDB_NAME=${{secrets.DB_NAME}} \
-               -DDB_USER=${{secrets.DB_USER}} \
-               -DDB_PASSWORD=${{secrets.DB_PASSWORD}} \
-               -DJWT_TOKEN=${{secrets.JWT_TOKEN}} \
-               -DGMAIL_PASSWORD=${{secrets.GMAIL_PASSWORD}} \
-               -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
+              export DB_URL=${{secrets.DB_URL}}
+              export DB_NAME=${{secrets.DB_NAME}}
+              export DB_USER=${{secrets.DB_USER}}
+              export DB_PASSWORD=${{secrets.DB_PASSWORD}}
+              export JWT_TOKEN=${{secrets.JWT_TOKEN}}
+              export GMAIL_PASSWORD=${{secrets.GMAIL_PASSWORD}}
+
+              "nohup java -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
               
               "echo deploy_success > /home/ubuntu/app/test.txt"
             ]
