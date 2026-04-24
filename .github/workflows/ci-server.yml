@@ -55,12 +55,13 @@ jobs:
         image: redis
         ports: 
           - 6379:6379
-    # 빌드 파일에 변수를 넣는 방식
-    # env: 
-    #   DB_USER: ${{ secrets.DB_USER }}
-    #   DB_NAME: ${{ secrets.DB_NAME }}
-    #   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-    #   DB_URL: ${{ secrets.DB_URL }}
+    env: 
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_URL: ${{ secrets.DB_URL }}
+      JWT_TOKEN: ${{secrets.JWT_TOKEN}}
+      GMAIL_PASSWORD: ${{secrets.GMAIL_PASSWORD}}
     steps:
       - uses: actions/checkout@v4
       - name: set up jdk
@@ -68,6 +69,7 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+     
 
       - name: add permission to execute
         run: chmod +x gradlew 
