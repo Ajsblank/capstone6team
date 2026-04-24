@@ -13,6 +13,7 @@ import com.asap.server.dto.request.UpdateProfileRequest;
 import com.asap.server.dto.response.ProfileResponse;
 import com.asap.server.service.ProfileService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -30,7 +31,7 @@ public class ProfileController {
     @PatchMapping("/me")
     public ResponseEntity<ProfileResponse> patchMyProfile(
             @AuthenticationPrincipal String email,
-            @RequestBody UpdateProfileRequest request) {
+            @Valid @RequestBody UpdateProfileRequest request) {
         return ResponseEntity.ok(profileService.updateMyProfile(email, request));
     }
 
