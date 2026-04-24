@@ -62,6 +62,23 @@ public class Profile {
     this.user = user;
   }
 
+  public void updateNicknameAndTag(String nickname, Integer tag) {
+    this.nickname = nickname;
+    this.tag = tag;
+  }
+
+  public void updateDetails(String bio, String affiliation, String image_url) {
+    if (bio != null) {
+      this.bio = bio;
+    }
+    if (affiliation != null) {
+      this.affiliation = affiliation;
+    }
+    if (image_url != null) {
+      this.image_url = image_url;
+    }
+  }
+
   @PrePersist
   protected void onCreate() {
     updated_at = LocalDateTime.now();
