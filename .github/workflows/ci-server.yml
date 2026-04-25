@@ -139,7 +139,6 @@ jobs:
               "export DB_PASSWORD=${{secrets.DB_PASSWORD}}",
               "export JWT_TOKEN=${{secrets.JWT_TOKEN}}",
               "export GMAIL_PASSWORD=${{secrets.GMAIL_PASSWORD}}",
-
               "nohup java -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
               
               "echo deploy_success > /home/ubuntu/app/test.txt"
