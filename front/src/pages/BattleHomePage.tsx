@@ -116,8 +116,19 @@ const BattlePage: React.FC = () => {
 
         {/* 대회 탭 */}
         {activeTab === "contest" && (
-          <div className="home-placeholder">
-            <span className="home-placeholder-text">대회 — 준비 중입니다.</span>
+          <div className="bp-contest">
+            <div className="bp-contest-header">
+              <h2 className="bp-contest-title">대회 목록</h2>
+              <button
+                className="bp-create-contest-btn"
+                onClick={() => navigate("create-contest")}
+              >
+                + 대회 개최
+              </button>
+            </div>
+            <div className="bp-contest-empty">
+              <span className="bp-contest-empty-text">아직 등록된 대회가 없습니다.</span>
+            </div>
           </div>
         )}
 

@@ -90,3 +90,58 @@
 .bp-problem-card:hover .bp-problem-arrow {
   color: #89b4fa;
 }
+
+/* ── contest tab ── */
+.bp-contest {
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.bp-contest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 760px;
+}
+
+.bp-contest-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #cdd6f4;
+  margin: 0;
+}
+
+.bp-create-contest-btn {
+  background: #89b4fa;
+  border: none;
+  border-radius: 8px;
+  color: #1e1e2e;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 10px 20px;
+  transition: background 0.15s;
+}
+
+.bp-create-contest-btn:hover {
+  background: #b4d0fa;
+}
+
+.bp-contest-empty {
+  max-width: 760px;
+  background: #181825;
+  border: 1px dashed #313244;
+  border-radius: 10px;
+  padding: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bp-contest-empty-text {
+  color: #45475a;
+  font-size: 0.9rem;
+}
