@@ -2,6 +2,52 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.5'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'jacoco'
+}
+jacoco {
+    toolVersion = "0.8.12" 
+}
+jacocoTestReport {
+    dependsOn test // 리포트 생성을 위해 테스트가 먼저 완료되어야 함
+    
+    reports {
+        xml.required = true
+        csv.required = false
+        html.required = true // 브라우저에서 볼 수 있는 HTML 리포트 생성
+    }
+		afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                "**/dto/**",          // dto 패키지 하위 전체
+                "**/global/**",       // global 패키지 하위 전체
+                "**/config/**",       // config 패키지 하위 전체
+                "**/*Application*",   // Application 이름 포함 클래스
+                "**/*Request*",       // Request 포함 DTO
+                "**/*Response*",      // Response 포함 DTO
+                "**/*Dto*"            // Dto 포함 클래스
+            ])
+        }))
+    }
+}
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            element = 'CLASS'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.0 // 테스트 커버리지 최소치 현재는 0으로 맞춰둠 
+            }
+						excludes = [
+                '**.*Application',
+                '**.*Request*',
+                '**.*Response*',
+								"**/global/**",
+                '**.*Dto*',
+                '**.*Config*'
+            ]
+        }
+    }
 }
 
 group = 'com.asap'
@@ -67,4 +113,8 @@ tasks.named('test') {
         events "passed", "skipped", "failed"
         exceptionFormat "full" // 에러 메시지를 생략 없이 다 보여줌
     }
+	finalizedBy jacocoTestReport
+}
+jacocoTestReport {
+    finalizedBy jacocoTestCoverageVerification
 }
