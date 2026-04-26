@@ -34,8 +34,12 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'
+
+// Junit6로 변경, 에러 로그 기능별로 명확
+	testImplementation 'org.junit.jupiter:junit-jupiter:6.0.3'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher:6.0.3'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
 	runtimeOnly 'org.postgresql:postgresql'
 
 	//validation
@@ -56,6 +60,11 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 }
 
+// Junit6설정 
 tasks.named('test') {
 	useJUnitPlatform()
+	testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full" // 에러 메시지를 생략 없이 다 보여줌
+    }
 }
