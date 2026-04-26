@@ -59,13 +59,19 @@ public class ContestController {
     }
 
     @GetMapping("/{contestId}")
-    public ResponseEntity<ContestDetailResponse> getContestDetail(@PathVariable Long contestId) {
+    public ResponseEntity<ContestResponse> getContestDetail(@PathVariable Long contestId) {
+        CodeBattleContest contest = contestService.getContestById(contestId);
+        return ResponseEntity.ok(ContestResponse.from(contest));
+    }
+
+    @GetMapping("/{contestId}/admin")
+    public ResponseEntity<ContestDetailResponse> getContestDetailAdmin(@PathVariable Long contestId) {
         CodeBattleContest contest = contestService.getContestById(contestId);
         return ResponseEntity.ok(ContestDetailResponse.from(contest));
     }
 
     @PatchMapping("/{contestId}")
-    public ResponseEntity<ContestResponse> updateContest(
+    public ResponseEntity<ContestDetailResponse> updateContest(
             @PathVariable Long contestId,
             @RequestBody UpdateContestRequest request) {
         return ResponseEntity.ok(contestService.updateContest(contestId, request));

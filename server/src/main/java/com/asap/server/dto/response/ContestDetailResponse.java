@@ -19,6 +19,7 @@ public class ContestDetailResponse {
   private Boolean certification;
   private Integer timeLimitSec;
   private Integer memoryLimitMb;
+  private String judgeCode;
   private String exampleCode;
   private ContestStatus status;
 
@@ -40,6 +41,7 @@ public class ContestDetailResponse {
         .certification(contest.getCertification())
         .timeLimitSec(contest.getTimeLimitSec())
         .memoryLimitMb(contest.getMemoryLimitMB())
+        .judgeCode(contest.getJudge_code())
         .exampleCode(contest.getExample_code())
         .status(contest.getStatus())
         .startDate(contest.getStartDate())

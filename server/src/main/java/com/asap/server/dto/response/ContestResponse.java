@@ -19,7 +19,7 @@ public class ContestResponse {
   private Boolean certification;
   private Integer timeLimitSec;
   private Integer memoryLimitMb;
-  private String judgeCode;
+  // 보안 조치 private String judgeCode;
   private String exampleCode;
   private ContestStatus status;
 
@@ -30,9 +30,7 @@ public class ContestResponse {
   private LocalDateTime endDate;
 
   private Integer maxParticipants;
-
   private LocalDateTime createdAt;
-
   private LocalDateTime updatedAt;
 
   public static ContestResponse from(CodeBattleContest contest) {
@@ -43,7 +41,7 @@ public class ContestResponse {
         .certification(contest.getCertification())
         .timeLimitSec(contest.getTimeLimitSec())
         .memoryLimitMb(contest.getMemoryLimitMB())
-        .judgeCode(contest.getJudge_code())
+        // .judgeCode(contest.getJudge_code())
         .exampleCode(contest.getExample_code())
         .status(contest.getStatus())
         .startDate(contest.getStartDate())
