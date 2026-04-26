@@ -40,6 +40,7 @@ public class CreateContestRequest {
   @NotBlank(message = "judgeCode는 필수입니다.")
   private String judgeCode;
 
+  @NotBlank(message = "ExampleCode는 필수입니다.")
   private String exampleCode;
 
   @NotNull(message = "상태는 필수입니다.")

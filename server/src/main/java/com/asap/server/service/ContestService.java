@@ -9,11 +9,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleContest.ContestStatus;
+import com.asap.server.domain.CodeBattleParticipant;
+import com.asap.server.domain.Users;
 import com.asap.server.dto.request.CreateContestRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
+import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
+import com.asap.server.dto.response.ContestParticipantResponse;
 import com.asap.server.dto.response.ContestResponse;
 import com.asap.server.repository.CodeBattleContestRepository;
+import com.asap.server.repository.CodeBattleParticipantRepository;
+import com.asap.server.repository.usersRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +28,8 @@ import lombok.RequiredArgsConstructor;
 public class ContestService {
 
     private final CodeBattleContestRepository contestRepository;
+    private final CodeBattleParticipantRepository participantRepository;
+    private final usersRepository userRepository;
 
     @Transactional
     public ContestResponse createContest(CreateContestRequest request) {
@@ -50,7 +58,7 @@ public class ContestService {
     }
 
     @Transactional
-    public ContestResponse updateContest(Long contestId, UpdateContestRequest request) {
+    public ContestDetailResponse updateContest(Long contestId, UpdateContestRequest request) {
         CodeBattleContest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다."));
 
@@ -72,7 +80,7 @@ public class ContestService {
         ContestStatus targetStatus = request.getStatus() != null ? request.getStatus() : contest.getStatus();
         contest.updateStatusAndSchedule(targetStatus, policy.startDate(), policy.endDate());
 
-        return ContestResponse.from(contest);
+        return ContestDetailResponse.from(contest);
     }
 
     @Transactional(readOnly = true)
@@ -85,6 +93,52 @@ public class ContestService {
     public CodeBattleContest getContestById(Long contestId) {
         return contestRepository.findById(contestId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 ID의 대회를 찾을 수 없습니다: " + contestId));
+    }
+
+    @Transactional
+    public void joinContest(Long contestId, String email) {
+        CodeBattleContest contest = getContestById(contestId);
+        validateJoinableContestStatus(contest.getStatus());
+
+        Users user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        if (participantRepository.existsByUserIdAndContestId(user.getId(), contestId)) {
+            throw new IllegalArgumentException("이미 참가 신청한 대회입니다.");
+        }
+
+        long currentParticipants = participantRepository.countByContestId(contestId);
+        if (currentParticipants >= contest.getMaxParticipants()) {
+            throw new IllegalArgumentException("대회 최대 참가자 수를 초과했습니다.");
+        }
+
+        CodeBattleParticipant participant = new CodeBattleParticipant(user, contest, 0, null);
+        participantRepository.save(participant);
+    }
+
+    @Transactional
+    public void cancelJoinContest(Long contestId, String email) {
+        Users user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        CodeBattleParticipant participant = participantRepository.findByUserIdAndContestId(user.getId(), contestId)
+                .orElseThrow(() -> new IllegalArgumentException("참가 신청 내역이 없습니다."));
+
+        participantRepository.delete(participant);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ContestParticipantResponse> getContestParticipants(Long contestId, Pageable pageable) {
+        getContestById(contestId);
+
+        return participantRepository.findAllByContestId(contestId, pageable)
+                .map(ContestParticipantResponse::from);
+    }
+
+    private void validateJoinableContestStatus(ContestStatus status) {
+        if (status == ContestStatus.END) {
+            throw new IllegalArgumentException("종료된 대회에는 참가할 수 없습니다.");
+        }
     }
 
     private DatePolicy resolveDatePolicyForCreate(
