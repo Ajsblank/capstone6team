@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { logoutApi } from "../api/authApi";
 
 export type Page =
@@ -10,6 +10,7 @@ export type Page =
   | "problems"
   | "problem-detail"
   | "create-problem"
+  | "create-contest"
   | "profile"
   | "account-settings";
 
@@ -28,7 +29,7 @@ interface AppContextValue {
   logout: () => void;
 }
 
-const VALID_PAGES: Page[] = ["home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "profile", "account-settings"];
+const VALID_PAGES: Page[] = ["home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "create-contest", "profile", "account-settings"];
 
 function getPageFromHash(): Page {
   const hash = window.location.hash.replace("#", "").split("/")[0] as Page;
@@ -42,8 +43,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [user, setUser] = useState<User | null>(null);
 
   // 브라우저 뒤로가기/앞으로가기 지원
+  // ref를 통해 항상 최신 getPageFromHash를 호출 (HMR 클로저 문제 방지)
+  const getPageRef = useRef(getPageFromHash);
+  useEffect(() => { getPageRef.current = getPageFromHash; });
+
   useEffect(() => {
-    const handleHashChange = () => setCurrentPage(getPageFromHash());
+    const handleHashChange = () => setCurrentPage(getPageRef.current());
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
