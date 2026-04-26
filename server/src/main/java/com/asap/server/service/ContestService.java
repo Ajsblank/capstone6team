@@ -84,7 +84,11 @@ public class ContestService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ContestListResponse> getContestPage(Pageable pageable) {
+    public Page<ContestListResponse> getContestPage(ContestStatus status, Pageable pageable) {
+        if (status != null) {
+            return contestRepository.findByStatus(status, pageable)
+                    .map(ContestListResponse::from);
+        }
         return contestRepository.findAll(pageable)
                 .map(ContestListResponse::from);
     }
