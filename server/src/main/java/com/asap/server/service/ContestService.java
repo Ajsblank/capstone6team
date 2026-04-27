@@ -101,7 +101,8 @@ public class ContestService {
 
     @Transactional
     public void joinContest(Long contestId, String email) {
-        CodeBattleContest contest = getContestById(contestId);
+        CodeBattleContest contest = contestRepository.findByIdWithLock(contestId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 대회를 찾을 수 없습니다: " + contestId));
         validateJoinableContestStatus(contest.getStatus());
 
         Users user = userRepository.findByEmail(email)
