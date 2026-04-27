@@ -303,6 +303,52 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.problems-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.problems-filter {
+  background: #181825;
+  border: 1px solid #313244;
+  border-radius: 6px;
+  color: #cdd6f4;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.problems-filter:focus {
+  border-color: #89b4fa;
+}
+
+.problems-search {
+  background: #181825;
+  border: 1px solid #313244;
+  border-radius: 6px;
+  color: #cdd6f4;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  width: 180px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.problems-search::placeholder {
+  color: #45475a;
+}
+
+.problems-search:focus {
+  border-color: #89b4fa;
 }
 
 .problems-title {
