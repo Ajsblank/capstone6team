@@ -226,11 +226,7 @@ const BattleCreateContestPage: React.FC = () => {
       {/* Header */}
       <header className="home-header">
         <span className="home-logo" onClick={() => navigate("battle")}>ASAP 캡스톤</span>
-        <div className="cc-header-center">
-          <button className="cc-back-link" onClick={() => navigate("battle")}>
-            ← 대회 목록
-          </button>
-        </div>
+        <div className="cc-header-spacer" />
         <div className="home-auth-area">
           <button
             className="home-auth-btn home-auth-btn--ghost"
@@ -255,6 +251,9 @@ const BattleCreateContestPage: React.FC = () => {
 
       <main className="home-body">
         <div className="cc-content">
+          <button className="cc-back-link" onClick={() => navigate("battle")}>
+            ← 대회 목록
+          </button>
           <h2 className="cc-page-title">대회 개최</h2>
 
           <div className="cc-form">

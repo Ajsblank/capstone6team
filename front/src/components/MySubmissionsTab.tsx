@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { getMySubmissions } from "../api/submissionApi";
+import { getMySubmissions } from "../api/codeBattleApi";
 import { SubmissionRecord, MatchResult } from "../types";
 import "./MySubmissionsTab.css";
 
