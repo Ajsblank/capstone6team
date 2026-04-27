@@ -32,7 +32,7 @@ function getTabFromHash(): Tab {
 }
 
 const SubmitPage: React.FC = () => {
-  const { navigate } = useApp();
+  const { navigate, user } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>(getTabFromHash);
 
   // 브라우저 뒤로가기/앞으로가기로 탭 변경 시 동기화
@@ -60,7 +60,7 @@ const SubmitPage: React.FC = () => {
 
     try {
       const result = await submitCode({
-        userId: "guest", // TODO: 로그인 구현 후 실제 유저 ID로 교체
+        userId: user?.id ?? "",
         language: language as string,
         sourceCode: code,
       });
