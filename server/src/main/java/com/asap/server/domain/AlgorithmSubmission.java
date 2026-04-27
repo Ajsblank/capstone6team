@@ -47,11 +47,11 @@ public class AlgorithmSubmission {
     @Column
     private String result;
 
-    @Column
-    private int execution_time_sec;
+    @Column(name = "execution_time_sec")
+    private int executionTimeSec;
 
-    @Column
-    private int memory_usage_mb;
+    @Column(name = "memory_usage_mb")
+    private int memoryUsageMb;
 
     @Column
     private LocalDateTime created_at;

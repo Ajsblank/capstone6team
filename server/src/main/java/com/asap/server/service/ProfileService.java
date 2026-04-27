@@ -54,7 +54,7 @@ public class ProfileService {
           .image_url(request.getImageUrl())
           .build();
       user.setProfile(newProfile);
-      userRepository.save(user);  
+      userRepository.save(user);
       return ProfileResponse.from(newProfile);
     }
 
@@ -77,19 +77,21 @@ public class ProfileService {
     return ProfileResponse.from(profile);
   }
 
+  public Profile createProfile(Users user, String nickname) {
+    int tag = allocateNextTag(nickname);
+    return Profile.builder()
+        .user(user)
+        .nickname(nickname)
+        .tag(tag)
+        .build();
+  }
+
   private int allocateNextTag(String nickname) {
     int maxTag = profileRepository.findMaxTagByNickname(nickname);
     if (maxTag >= 9999) {
       throw new IllegalStateException("해당 닉네임은 사용할 수 있는 태그(0001~9999)를 모두 사용했습니다.");
     }
-
-    for (int candidate = maxTag + 1; candidate <= 9999; candidate++) {
-      if (!profileRepository.existsByNicknameAndTag(nickname, candidate)) {
-        return candidate;
-      }
-    }
-
-    throw new IllegalStateException("해당 닉네임은 사용할 수 있는 태그(0001~9999)를 모두 사용했습니다.");
+    return maxTag + 1;
   }
 
   private String normalizeNickname(String nickname) {

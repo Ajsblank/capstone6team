@@ -16,7 +16,6 @@ import com.asap.server.dto.request.LoginRequest;
 import com.asap.server.dto.request.SignupRequest;
 import com.asap.server.dto.request.WithdrawRequest;
 import com.asap.server.dto.response.LoginResponse;
-import com.asap.server.repository.ProfileReposiroty;
 import com.asap.server.repository.usersRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -31,10 +30,10 @@ public class AuthService {
     }
 
     private final usersRepository userRepository;
-    private final ProfileReposiroty profileRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final MailService mailService;
+    private final ProfileService profileService;
     private final Map<String, PendingSignup> pendingSignupStore = new ConcurrentHashMap<>();
 
     @Transactional
@@ -85,13 +84,7 @@ public class AuthService {
                 .password(pending.encodedPassword())
                 .build();
 
-        int tag = allocateNextTag(pending.nickname());
-
-        Profile profile = Profile.builder()
-                .user(user)
-                .nickname(pending.nickname())
-                .tag(tag)
-                .build();
+        Profile profile = profileService.createProfile(user, pending.nickname());
         user.setProfile(profile);
 
         userRepository.save(user);
@@ -136,18 +129,4 @@ public class AuthService {
         log.info("회원가입 인증번호 발송 완료 - 이메일: {}, 닉네임: {}", email, nickname);
     }
 
-    private int allocateNextTag(String nickname) {
-        int maxTag = profileRepository.findMaxTagByNickname(nickname);
-        if (maxTag >= 9999) {
-            throw new IllegalStateException("해당 닉네임은 사용할 수 있는 태그(0001~9999)를 모두 사용했습니다.");
-        }
-
-        for (int candidate = maxTag + 1; candidate <= 9999; candidate++) {
-            if (!profileRepository.existsByNicknameAndTag(nickname, candidate)) {
-                return candidate;
-            }
-        }
-
-        throw new IllegalStateException("해당 닉네임은 사용할 수 있는 태그(0001~9999)를 모두 사용했습니다.");
-    }
 }
