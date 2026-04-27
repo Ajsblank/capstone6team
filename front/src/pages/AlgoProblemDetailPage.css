@@ -250,3 +250,63 @@
   border: 1px solid #313244;
   overflow: hidden;
 }
+
+/* 내 제출 탭 */
+.pd-my-submissions-panel {
+  overflow-y: auto;
+  padding: 32px 48px;
+}
+
+.pd-submissions-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #45475a;
+  font-size: 0.95rem;
+}
+
+.pd-submissions-table {
+  width: 100%;
+  max-width: 900px;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.pd-submissions-table thead tr {
+  border-bottom: 1px solid #313244;
+}
+
+.pd-submissions-table th {
+  padding: 10px 14px;
+  text-align: left;
+  color: #6c7086;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pd-submissions-table tbody tr {
+  border-bottom: 1px solid #181825;
+  transition: background 0.1s;
+}
+
+.pd-submissions-table tbody tr:hover {
+  background: #181825;
+}
+
+.pd-submissions-table td {
+  padding: 12px 14px;
+  color: #cdd6f4;
+  white-space: nowrap;
+}
+
+.pd-verdict {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.pd-verdict--accepted { color: #a6e3a1; }
+.pd-verdict--wrong    { color: #f38ba8; }
+.pd-verdict--error    { color: #fab387; }
+.pd-verdict--tle      { color: #f9e2af; }
+.pd-verdict--pending  { color: #6c7086; }

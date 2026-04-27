@@ -1,5 +1,5 @@
 import React from "react";
-import { SUBMIT_URL } from "../api/submissionApi";
+import { SUBMIT_URL } from "../api/codeBattleApi";
 import "./SubmitBar.css";
 
 type SubmitStatus = "idle" | "submitting" | "success" | "error";

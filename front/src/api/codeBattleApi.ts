@@ -13,10 +13,10 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export const SUBMIT_URL = `/api/code/submit`;
+export const SUBMIT_URL = `/api/code/submit/codebattle`;
 
 export const submitCode = async (payload: SubmitRequest): Promise<SubmitResponse> => {
-  const response = await api.post<SubmitResponse>("/api/code/submit", payload);
+  const response = await api.post<SubmitResponse>("/api/code/submit/codebattle", payload);
   return response.data;
 };
 

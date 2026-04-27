@@ -7,29 +7,31 @@
   font-family: "Segoe UI", sans-serif;
 }
 
-/* Header breadcrumb */
-.cc-header-center {
+/* Header spacer */
+.cc-header-spacer {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .cc-back-link {
-  background: none;
-  border: none;
-  color: #a6adc8;
+  background: #1e1e2e;
+  border: 1px solid #89b4fa;
+  color: #89b4fa;
   cursor: pointer;
   font-family: "Segoe UI", sans-serif;
-  font-size: 0.9rem;
-  padding: 6px 12px;
-  border-radius: 6px;
-  transition: color 0.15s, background 0.15s;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 20px;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  align-self: flex-end;
+  margin-right: 610px;
+  margin-bottom: 0px;
 }
 
 .cc-back-link:hover {
-  color: #89b4fa;
-  background: rgba(137, 180, 250, 0.1);
+  background: rgba(137, 180, 250, 0.12);
+  border-color: #b4d0fa;
+  color: #b4d0fa;
 }
 
 /* Content */
