@@ -14,6 +14,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 @Entity
@@ -21,6 +22,7 @@ import lombok.NoArgsConstructor;
     @UniqueConstraint(name = "uk_match_contest_user_pair", columnNames = { "contest_id", "user1_id", "user2_id" })
 })
 @Getter
+@Setter
 @NoArgsConstructor
 public class CodeBattleMatch {
 
