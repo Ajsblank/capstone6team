@@ -81,6 +81,30 @@
 }
 
 /* Field */
+.cc-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.cc-import-btn {
+  background: none;
+  border: 1px solid #45475a;
+  border-radius: 6px;
+  color: #a6adc8;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.cc-import-btn:hover {
+  border-color: #89b4fa;
+  color: #89b4fa;
+}
+
 .cc-field {
   display: flex;
   flex-direction: column;

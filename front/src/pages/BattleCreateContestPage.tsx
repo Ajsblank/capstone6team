@@ -142,8 +142,8 @@ const BattleCreateContestPage: React.FC = () => {
   const [judgeCode, setJudgeCode] = useState<File | null>(null);
   const [visualizationHtml, setVisualizationHtml] = useState<File | null>(null);
   const [soloPlayHtml, setSoloPlayHtml] = useState<File | null>(null);
-  const [problemMd, setProblemMd] = useState<File | null>(null);
   const [startDate, setStartDate] = useState("");
+  const descImportRef = useRef<HTMLInputElement>(null);
   const [endDate, setEndDate] = useState("");
   const [maxParticipants, setMaxParticipants] = useState<number>(100);
   const [certification, setCertification] = useState<boolean | null>(null);
@@ -161,7 +161,6 @@ const BattleCreateContestPage: React.FC = () => {
     if (!exampleCode)           missing.push("샘플 코드");
     if (!judgeCode)             missing.push("채점 코드");
     if (!visualizationHtml)     missing.push("시각화 HTML 파일");
-    if (!problemMd)             missing.push("문제 명세 MD 파일");
     if (!startDate)             missing.push("시작 일");
     if (!endDate)               missing.push("종료 일");
     if (certification === null) missing.push("인증 여부");
@@ -182,7 +181,6 @@ const BattleCreateContestPage: React.FC = () => {
         judgeCode: judgeCode!,
         visualizationHtml: visualizationHtml!,
         soloPlayHtml: soloPlayHtml ?? undefined,
-        problemMd: problemMd!,
         startDate,
         endDate,
         maxParticipants,
@@ -290,14 +288,35 @@ const BattleCreateContestPage: React.FC = () => {
             <section className="cc-section">
               <h3 className="cc-section-title">문제 설명</h3>
               <div className="cc-field">
-                <label className="cc-label">
-                  문제 설명 <Req show={!description.trim()} />
-                </label>
+                <div className="cc-label-row">
+                  <label className="cc-label">
+                    문제 설명 <Req show={!description.trim()} />
+                  </label>
+                  <button
+                    type="button"
+                    className="cc-import-btn"
+                    onClick={() => descImportRef.current?.click()}
+                  >
+                    📂 파일로 불러오기
+                  </button>
+                  <input
+                    ref={descImportRef}
+                    type="file"
+                    accept=".md,.txt"
+                    style={{ display: "none" }}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setDescription(await file.text());
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
                 <MdEditor
                   value={description}
                   onChange={setDescription}
                   rows={8}
-                  placeholder="문제를 설명해주세요. Markdown을 지원합니다."
+                  placeholder="문제를 설명해주세요. Markdown을 지원합니다. 또는 위 버튼으로 .md/.txt 파일을 불러올 수 있습니다."
                 />
               </div>
             </section>
@@ -364,13 +383,6 @@ const BattleCreateContestPage: React.FC = () => {
                 accept=".html"
                 value={soloPlayHtml}
                 onChange={setSoloPlayHtml}
-              />
-              <FileInput
-                label="문제 명세 MD 파일"
-                required
-                accept=".md,.txt"
-                value={problemMd}
-                onChange={setProblemMd}
               />
             </section>
 
