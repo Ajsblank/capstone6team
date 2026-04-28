@@ -92,7 +92,7 @@ export const submitAlgoCode = async (payload: {
   language: string;
   sourceCode: string;
 }): Promise<AlgoSubmitResponse> => {
-  const { data } = await api.post<AlgoSubmitResponse>("/api/code/submit/codebattle", payload);
+  const { data } = await api.post<AlgoSubmitResponse>("/api/code/submit", payload);
   return data;
 };
 
