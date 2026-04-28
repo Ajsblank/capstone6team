@@ -12,45 +12,40 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "code_battle_example_ai")
 @Getter
 @NoArgsConstructor
-@Table(uniqueConstraints = {
-    @UniqueConstraint(name = "uk_participant_user_contest", columnNames = { "user_id", "contest_id" })
-})
-public class Participant {
+public class CodeBattleExampleAI {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
   @ManyToOne
-  @JoinColumn(name = "user_id", foreignKey = @ForeignKey(name = "fk_participant_user"))
-  private users user;
+  @JoinColumn(name = "contest_id", foreignKey = @ForeignKey(name = "fk_contest_example_ai_contest"))
+  private CodeBattleContest contest;
 
-  @ManyToOne
-  @JoinColumn(name = "contest_id", foreignKey = @ForeignKey(name = "fk_participant_contest"))
-  private Contest contest;
+  @Column(name = "example_order")
+  private Integer example_order;
+
+  @Column(columnDefinition = "TEXT")
+  private String description;
 
   @Column
-  private Integer score;
-
-  @ManyToOne
-  @JoinColumn(name = "submission_id", foreignKey = @ForeignKey(name = "fk_participant_submission"))
-  private Submission submission;
+  private String code;
 
   @Column(nullable = false)
   private LocalDateTime created_at;
 
-  public Participant(users user, Contest contest, Integer score, Submission submission) {
-    this.user = user;
+  public CodeBattleExampleAI(CodeBattleContest contest, Integer example_order, String description, String code) {
     this.contest = contest;
-    this.score = score;
-    this.submission = submission;
+    this.example_order = example_order;
+    this.description = description;
+    this.code = code;
   }
 
   @PrePersist

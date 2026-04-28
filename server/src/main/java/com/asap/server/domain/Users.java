@@ -12,17 +12,19 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Entity(name = "users") // "이 클래스는 DB 테이블과 매핑된다"는 선언
+@Entity
+@Table(name = "users")
 @Getter // Getter 메서드 자동 생성
 @NoArgsConstructor // 파라미터가 없는 기본 생성자 자동 생성 (JPA 필수)
 @AllArgsConstructor // 모든 필드를 포함한 생성자 자동 생성 (@Builder 필수)
 @Builder // Builder 패턴 자동 생성
-public class users {
+public class Users {
 
   @Id // Primary Key
   @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto Increment (PostgreSQL SERIAL)
@@ -42,9 +44,6 @@ public class users {
   @Column(nullable = false)
   private String password;
 
-  @Column(length = 50)
-  private String affiliation;
-
   @Column(nullable = false)
   private LocalDateTime created_at;
 
@@ -55,7 +54,7 @@ public class users {
   private LocalDateTime deleted_at;
 
   // 생성자 추가
-  public users(String email, String password) {
+  public Users(String email, String password) {
     this.email = email;
     this.password = password;
   }

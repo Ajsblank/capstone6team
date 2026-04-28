@@ -101,12 +101,25 @@
       border-radius: 4px;
       min-height: 22px;
     }
+    :root {
+      /* 행동 종류별 강조 색상 — callout 및 action box 공통 */
+      --color-move:   #1620cc;
+      --color-defend: #f1c40f;
+      --color-heal:   #2ecc71;
+      --color-attack: #e74c3c;
+      /* 플레이어 대표 색 */
+      --color-p1: #e74c3c;
+      --color-p2: #3498db;
+      /* callout 폴백 색상 (알 수 없는 카드 타입) */
+      --color-callout-fallback: #fff;
+    }
+
     #battle-p1-action { border: 1px solid rgba(231, 76, 60, 0.7); color: #fff; }
     #battle-p2-action { border: 1px solid rgba(52, 152, 219, 0.7); color: #fff; text-align: right; }
-    .action-move   { color: #4da6ff !important; }
-    .action-defend { color: #f1c40f !important; }
-    .action-heal   { color: #2ecc71 !important; }
-    .action-attack { color: #e74c3c !important; }
+    .action-move   { color: var(--color-move)   !important; }
+    .action-defend { color: var(--color-defend) !important; }
+    .action-heal   { color: var(--color-heal)   !important; }
+    .action-attack { color: var(--color-attack) !important; }
 
     /* 업로드 화면 */
     #screen-upload {
@@ -257,6 +270,20 @@
       border: 1px solid #555;
     }
 
+    .bar-text {
+      position: absolute;
+      top: 0;
+      font-size: 11px;
+      font-weight: bold;
+      line-height: 12px;
+      color: #fff;
+      text-shadow: 1px 1px 0 #000;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .bar-text--left  { left: 3px; }
+    .bar-text--right { right: 3px; }
+
     .bar-fill.hp { background: red; height: 100%; width: 100%; transition: 0.3s; }
     .bar-fill.en { background: #1e90ff; height: 100%; width: 100%; transition: 0.3s; }
 
@@ -330,6 +357,14 @@
     }
 
     #b-char-p2 { background: #3498db; }
+    #b-char-p1 {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      overflow: visible !important;
+    }
 
     .hit-effect {
       position: absolute;
@@ -354,6 +389,16 @@
       z-index: 30;
       font-size: 13px;
       padding: 6px 14px;
+    }
+
+    .action-callout {
+      position: absolute;
+      z-index: 200;
+      pointer-events: none;
+      font-size: 13px;
+      font-weight: bold;
+      white-space: nowrap;
+      transform-origin: center center;
     }
 
     /* 로그 패널 */
@@ -459,19 +504,27 @@
     <div id="screen-battle" class="hidden">
       <div class="top-bars">
         <div class="bar-group">
-          <div style="color:#fff; font-weight:bold; font-size:12px; margin-bottom:2px;">
-            P1 HP <span id="b-p1-hp-text"></span> / EN <span id="b-p1-en-text"></span>
+          <div style="color:var(--color-p1); font-weight:bold; font-size:12px; margin-bottom:2px;">P1</div>
+          <div class="bar">
+            <div class="bar-fill hp" id="b-p1-hp"></div>
+            <span class="bar-text bar-text--left" id="b-p1-hp-text"></span>
           </div>
-          <div class="bar"><div class="bar-fill hp" id="b-p1-hp"></div></div>
-          <div class="bar"><div class="bar-fill en" id="b-p1-en"></div></div>
+          <div class="bar">
+            <div class="bar-fill en" id="b-p1-en"></div>
+            <span class="bar-text bar-text--left" id="b-p1-en-text"></span>
+          </div>
         </div>
         <div style="color:#d4af37; font-weight:bold; font-size:18px;" id="battle-round-text">ROUND 1</div>
         <div class="bar-group" style="text-align:right;">
-          <div style="color:#fff; font-weight:bold; font-size:12px; margin-bottom:2px;">
-            P2 HP <span id="b-p2-hp-text"></span> / EN <span id="b-p2-en-text"></span>
+          <div style="color:var(--color-p2); font-weight:bold; font-size:12px; margin-bottom:2px;">P2</div>
+          <div class="bar">
+            <div class="bar-fill hp" id="b-p2-hp"></div>
+            <span class="bar-text bar-text--right" id="b-p2-hp-text"></span>
           </div>
-          <div class="bar"><div class="bar-fill hp" id="b-p2-hp"></div></div>
-          <div class="bar"><div class="bar-fill en" id="b-p2-en"></div></div>
+          <div class="bar">
+            <div class="bar-fill en" id="b-p2-en"></div>
+            <span class="bar-text bar-text--right" id="b-p2-en-text"></span>
+          </div>
         </div>
       </div>
 
@@ -945,8 +998,8 @@
     function renderBattleChars(gs) {
       const cw = 720 / GRID_W, ch = 285 / GRID_H;
       const p1El = $('b-char-p1'), p2El = $('b-char-p2');
-      p1El.style.left = (gs.p1.x * cw + (cw - 70) / 2) + 'px';
-      p1El.style.top  = (gs.p1.y * ch + (ch - 90) / 2) + 'px';
+      p1El.style.left = (gs.p1.x * cw + cw / 2) + 'px';
+      p1El.style.top  = (gs.p1.y * ch + ch / 2 - 15) + 'px';
       p2El.style.left = (gs.p2.x * cw + (cw - 70) / 2) + 'px';
       p2El.style.top  = (gs.p2.y * ch + (ch - 90) / 2) + 'px';
     }
@@ -1049,6 +1102,7 @@
         gs.p2.guard = 0;
 
         for (const act of acts) {
+          await showActionCallout(act.pid, act.card.name, gs, act.card);
           await animateAction(act, gs, bLog);
           renderBattleChars(gs);
           updateBattleBars(gs);
@@ -1097,9 +1151,74 @@
       };
     }
 
+    // 행동 텍스트 강조 시 색상
+    const _cs = getComputedStyle(document.documentElement);
+    const ACTION_CALLOUT_COLOR = {
+      move:   _cs.getPropertyValue('--color-move').trim(),
+      defend: _cs.getPropertyValue('--color-defend').trim(),
+      heal:   _cs.getPropertyValue('--color-heal').trim(),
+      attack: _cs.getPropertyValue('--color-attack').trim(),
+    };
+    const CALLOUT_FALLBACK_COLOR = _cs.getPropertyValue('--color-callout-fallback').trim();
+    const PLAYER_COLOR = {
+      p1: _cs.getPropertyValue('--color-p1').trim(),
+      p2: _cs.getPropertyValue('--color-p2').trim(),
+    };
+
+    function showActionCallout(pid, text, gs, card) {
+      const owner = pid === 'p1' ? gs.p1 : gs.p2;
+      const cw = 720 / GRID_W;
+      const ch = 285 / GRID_H;
+      // battle-container: bottom 10px, height 285px → top = 500-10-285 = 205
+      // battle-container: width 720px, 800px 이 중앙 → left = 40
+      const containerTop = 205;
+      const containerLeft = 40;
+      const tileX = containerLeft + owner.x * cw + cw / 2;
+      const tileY = containerTop + owner.y * ch + ch / 2;
+
+      const startX = pid === 'p1' ? 200 : 600;
+      const startY = 64;
+      const color    = ACTION_CALLOUT_COLOR[card?.type] ?? CALLOUT_FALLBACK_COLOR; // ★ 강조 색상: ACTION_CALLOUT_COLOR에서 타입별로 결정
+      const pidColor = PLAYER_COLOR[pid]; // 글자 테두리: 플레이어 대표색
+
+      return new Promise(resolve => {
+        const el = document.createElement('div');
+        el.className = 'action-callout';
+        el.textContent = text;
+        // ★ 초기 색상 (날아가기 시작 시): color + 약한 글로우 + 플레이어 색 글자 테두리
+        el.style.cssText = `left:${startX}px;top:${startY}px;transform:translate(-50%,0) scale(1);color:${color};text-shadow:0 0 6px ${color};opacity:1;transition:none;-webkit-text-stroke:6px ${pidColor};paint-order:stroke fill;`;
+        $('screen-battle').appendChild(el);
+
+        // 다음 프레임에서 트랜지션 시작 (타일로 이동 + 확대)
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          el.style.transition = 'left 0.35s ease-in-out, top 0.35s ease-in-out, transform 0.35s ease-in-out, color 0.35s, text-shadow 0.35s';
+          el.style.left = `${tileX}px`;
+          el.style.top  = `${tileY - 28}px`;
+          el.style.transform = 'translate(-50%,-50%) scale(2.2)'; // 확대 배율 조절
+          el.style.color = color;
+          el.style.textShadow = `0 0 20px ${color}, 0 0 10px ${color}, 0 0 4px #fff`; // 강조 글로우 강도 조절
+        }));
+
+        // 이동 완료 후 페이드아웃
+        setTimeout(() => {
+          el.style.transition = 'opacity 0.25s ease';
+          el.style.opacity = '0';
+          setTimeout(() => { el.remove(); resolve(); }, 260);
+        }, 380);
+      });
+    }
+
     async function animateAction(act, gs, bLog) {
       const { card, owner, target } = act;
       const ownerLabel = owner === gs.p1 ? 'P1' : 'P2';
+      if (owner === gs.p1 && p1Sprite) {
+        if (card.type === 'move' && card.dx !== 0) {
+          p1Sprite.setFacing(card.dx > 0 ? 1 : -1);
+        } else {
+          p1Sprite.setFacing(gs.p2.x > gs.p1.x ? 1 : -1);
+        }
+        p1Sprite.setState(cardToAnim(act.rawKey || card.id));
+      }
       const actionBoxId = owner === gs.p1 ? 'battle-p1-action' : 'battle-p2-action';
       const tiles = gs.tiles || [];
 
@@ -1191,6 +1310,112 @@
         }
       }
     }
+
+    // ── P1 Chito Sprite System ──────────────────────────────────────────
+    const CHITO_SPRITES = {};
+    const CHITO_ANIM = {
+      idle:   { file: 'chito_sprite_sheet_idle.png',   frameW: 1024, frameH: 1024, cols: 3, totalFrames: 4, fps: 6  },
+      move:   { file: 'chito_sprite_sheet_jump.png',   frameW: 1024, frameH: 1024, cols: 3, totalFrames: 4, fps: 10 },
+      attack: { file: 'chtio_sprite_sheet_attack.png', frameW: 1376, frameH: 768,  cols: 3, totalFrames: 4, fps: 12, scale: 1.2 },
+    };
+    let chitoSpritesLoaded = false;
+
+    function loadChitoSprites(cb) {
+      const entries = Object.entries(CHITO_ANIM);
+      let n = 0;
+      entries.forEach(([state, cfg]) => {
+        const img = new Image();
+        img.onload = img.onerror = () => {
+          CHITO_SPRITES[state] = img;
+          if (++n === entries.length) { chitoSpritesLoaded = true; cb && cb(); }
+        };
+        img.src = '/resources/sprites/chito/' + cfg.file;
+      });
+    }
+
+    class ChitoSprite {
+      constructor(canvas) {
+        this.canvas  = canvas;
+        this.ctx     = canvas.getContext('2d');
+        this.state   = 'idle';
+        this.frame   = 0;
+        this.elapsed = 0;
+        this.lastTs  = 0;
+        this.oneShot = false;
+        this.facing  = 1;  // 1=오른쪽, -1=왼쪽
+      }
+      setState(s) {
+        if (this.state === s && !this.oneShot) return;
+        this.state = s; this.frame = 0; this.elapsed = 0;
+        this.oneShot = s === 'move' || s === 'attack';
+      }
+      setFacing(dir) { this.facing = dir; }
+      update(ts) {
+        if (!chitoSpritesLoaded) return;
+        const dt  = ts - this.lastTs; this.lastTs = ts;
+        const cfg = CHITO_ANIM[this.state];
+        this.elapsed += dt;
+        const step = 1000 / cfg.fps;
+        if (this.elapsed >= step) {
+          this.elapsed -= step;
+          this.frame++;
+          if (this.frame >= cfg.totalFrames) {
+            if (this.oneShot) { this.setState('idle'); return; }
+            this.frame = 0;
+          }
+        }
+        this._draw();
+      }
+      _draw() {
+        const cfg = CHITO_ANIM[this.state];
+        const img = CHITO_SPRITES[this.state];
+        if (!img || !img.complete) return;
+        const col = this.frame % cfg.cols;
+        const row = Math.floor(this.frame / cfg.cols);
+        const { ctx, canvas: { width: cw, height: ch } } = this;
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.imageSmoothingEnabled = false;
+        const scale = cfg.scale || 1;
+        const dw = cw * scale;
+        const dh = ch * scale;
+        const dx = (cw - dw) / 2;
+        const dy = (ch - dh) / 2;
+        if (this.facing === -1) {
+          ctx.save();
+          ctx.translate(cw, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(img, col * cfg.frameW, row * cfg.frameH, cfg.frameW, cfg.frameH, dx, dy, dw, dh);
+          ctx.restore();
+        } else {
+          ctx.drawImage(img, col * cfg.frameW, row * cfg.frameH, cfg.frameW, cfg.frameH, dx, dy, dw, dh);
+        }
+      }
+    }
+
+    let p1Sprite = null, _rafId = null;
+
+    function initP1Sprite() {
+      const el = $('b-char-p1');
+      if (!el) return;
+      el.innerHTML = '';
+      const cv = document.createElement('canvas');
+      cv.width = 135; cv.height = 135;
+      cv.style.cssText = 'position:absolute;width:135px;height:135px;left:-67px;top:-67px;display:block;';
+      el.appendChild(cv);
+      p1Sprite = new ChitoSprite(cv);
+      if (_rafId) cancelAnimationFrame(_rafId);
+      (function loop(ts) { if (p1Sprite) p1Sprite.update(ts); _rafId = requestAnimationFrame(loop); })(0);
+    }
+
+    function cardToAnim(key) {
+      const c = CARDS[key];
+      if (!c) return 'idle';
+      return c.type === 'move' ? 'move' : c.type === 'attack' ? 'attack' : 'idle';
+    }
+
+    loadChitoSprites(initP1Sprite);
+    // ────────────────────────────────────────────────────────────────────
+
   </script>
 </body>
 </html>

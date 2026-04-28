@@ -9,10 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.asap.server.config.JwtTokenProvider;
 import com.asap.server.domain.Profile;
-import com.asap.server.domain.users;
+import com.asap.server.domain.Users;
+import com.asap.server.dto.request.EmailResendRequest;
 import com.asap.server.dto.request.EmailVerifyRequest;
 import com.asap.server.dto.request.LoginRequest;
 import com.asap.server.dto.request.SignupRequest;
+import com.asap.server.dto.request.WithdrawRequest;
 import com.asap.server.dto.response.LoginResponse;
 import com.asap.server.repository.usersRepository;
 
@@ -31,6 +33,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final MailService mailService;
+    private final ProfileService profileService;
     private final Map<String, PendingSignup> pendingSignupStore = new ConcurrentHashMap<>();
 
     @Transactional
@@ -42,8 +45,22 @@ public class AuthService {
                 request.getNickname(),
                 passwordEncoder.encode(request.getPassword()));
         pendingSignupStore.put(request.getEmail(), pending);
-        mailService.sendVerificationCode(request.getEmail());
-        log.info("회원가입 요청 접수(미인증) - 이메일: {}, 닉네임: {}", request.getEmail(), request.getNickname());
+        sendVerificationCodeWithLog(request.getEmail(), request.getNickname(), false);
+    }
+
+    public void resendMail(EmailResendRequest request) {
+
+        PendingSignup pending = pendingSignupStore.get(request.getEmail());
+        if (pending == null) {
+            throw new IllegalArgumentException("회원가입 요청이 없습니다. 먼저 회원가입을 진행해주세요.");
+        }
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            pendingSignupStore.remove(request.getEmail());
+            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+        }
+
+        sendVerificationCodeWithLog(request.getEmail(), pending.nickname(), true);
     }
 
     @Transactional
@@ -53,8 +70,7 @@ public class AuthService {
             throw new IllegalArgumentException("회원가입 요청이 없습니다. 먼저 회원가입을 진행해주세요.");
         }
 
-        boolean result = mailService.verifyCode(request.getEmail(), request.getCode());
-        if (!result) {
+        if (!mailService.verifyCode(request.getEmail(), request.getCode())) {
             throw new IllegalArgumentException("인증번호가 일치하지 않습니다.");
         }
 
@@ -63,15 +79,12 @@ public class AuthService {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
 
-        users user = users.builder()
+        Users user = Users.builder()
                 .email(request.getEmail())
                 .password(pending.encodedPassword())
                 .build();
 
-        Profile profile = Profile.builder()
-                .user(user)
-                .nickname(pending.nickname())
-                .build();
+        Profile profile = profileService.createProfile(user, pending.nickname());
         user.setProfile(profile);
 
         userRepository.save(user);
@@ -81,7 +94,7 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
-        users user = userRepository.findByEmail(request.getEmail())
+        Users user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다."));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
@@ -93,4 +106,27 @@ public class AuthService {
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
         return new LoginResponse(accessToken, refreshToken);
     }
+
+    @Transactional
+    public void withdraw(String email, WithdrawRequest request) {
+        Users user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        userRepository.delete(user);
+        log.info("회원탈퇴 완료 - 이메일: {}", email);
+    }
+
+    private void sendVerificationCodeWithLog(String email, String nickname, boolean resent) {
+        mailService.sendVerificationCode(email);
+        if (resent) {
+            log.info("회원가입 인증번호 재발송 완료 - 이메일: {}, 닉네임: {}", email, nickname);
+            return;
+        }
+        log.info("회원가입 인증번호 발송 완료 - 이메일: {}, 닉네임: {}", email, nickname);
+    }
+
 }

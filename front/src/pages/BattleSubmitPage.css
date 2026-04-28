@@ -24,6 +24,8 @@
   letter-spacing: 0.05em;
   font-family: "Segoe UI", sans-serif;
   white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
 }
 
 .header-divider {

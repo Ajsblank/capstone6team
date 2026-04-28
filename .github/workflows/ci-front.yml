@@ -1,5 +1,5 @@
 # git action workflow name
-name: ci-test
+name: ci-front
 # executing name, can use environment variables
 run-name: "actor : ${{github.actor}}"
 # Controls when the workflow will run

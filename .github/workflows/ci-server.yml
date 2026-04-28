@@ -1,12 +1,12 @@
 # git action workflow name
-name: ci-test
+name: ci-server
 # executing name, can use environment variables
 run-name: "actor : ${{github.actor}}"
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: ["dev/server**","feat/server**"]
+    branches: ["dev/server**","feat/server**","feat/api"]
       # 실행할 경로를 아래 경로 파일들의 변동으로 제한
     paths:
       - 'server/**'
@@ -60,13 +60,16 @@ jobs:
       DB_NAME: ${{ secrets.DB_NAME }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       DB_URL: ${{ secrets.DB_URL }}
+      JWT_TOKEN: ${{secrets.JWT_TOKEN}}
+      GMAIL_PASSWORD: ${{secrets.GMAIL_PASSWORD}}
     steps:
       - uses: actions/checkout@v4
       - name: set up jdk
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
+     
 
       - name: add permission to execute
         run: chmod +x gradlew 
@@ -130,7 +133,13 @@ jobs:
 
               "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar .",
               
-              "nohup java -DDB_URL=${{secrets.DB_URL}} -DDB_NAME=${{secrets.DB_NAME}} -DDB_USER=${{secrets.DB_USER}} -DDB_PASSWORD=${{secrets.DB_PASSWORD}} -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
+              "export DB_URL=${{secrets.DB_URL}}",
+              "export DB_NAME=${{secrets.DB_NAME}}",
+              "export DB_USER=${{secrets.DB_USER}}",
+              "export DB_PASSWORD=${{secrets.DB_PASSWORD}}",
+              "export JWT_TOKEN=${{secrets.JWT_TOKEN}}",
+              "export GMAIL_PASSWORD=${{secrets.GMAIL_PASSWORD}}",
+              "nohup java -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
               
               "echo deploy_success > /home/ubuntu/app/test.txt"
             ]
