@@ -1,9 +1,17 @@
 package com.asap.server.controller;
 
 import com.asap.server.domain.AlgorithmProblem;
+import com.asap.server.domain.CodeBattleExampleAI;
+import com.asap.server.domain.CodeBattleSubmission;
+import com.asap.server.domain.CodeBattleContest;
+import com.asap.server.domain.Users;
 import com.asap.server.dto.request.CodeSubmitRequest;
 import com.asap.server.dto.response.CodeSubmitResponse;
-import com.asap.server.repository.AlgorithmProblemRepository; // 레포지토리 주입 필요
+import com.asap.server.repository.AlgorithmProblemRepository;
+import com.asap.server.repository.usersRepository;
+import com.asap.server.repository.CodeBattleExampleAIRepository;
+import com.asap.server.repository.CodeBattleSubmissionRepository;
+import com.asap.server.repository.CodeBattleContestRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -26,9 +34,14 @@ public class CodeController {
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
     private final AlgorithmProblemRepository problemRepository; // DB 조회를 위한 레포지토리
+    private final usersRepository userRepository;
+    private final CodeBattleExampleAIRepository exampleAIRepository;
+    private final CodeBattleContestRepository contestRepository;
+    private final CodeBattleSubmissionRepository submissionRepository;
 
     private static final String SUBMISSION_COUNT_KEY = "submission_count";
     private static final String GRADING_QUEUE_KEY = "algorithms_grading_queue";
+    private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
 
     @PostMapping("/submit")
     public ResponseEntity<CodeSubmitResponse> submitCode(@Valid @RequestBody CodeSubmitRequest request) {
@@ -73,6 +86,55 @@ public class CodeController {
 
         } catch (Exception e) {
             log.error("채점 요청 실패: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(new CodeSubmitResponse(false, e.getMessage()));
+        }
+    }
+
+    @PostMapping("/submit/codebattle")
+    public ResponseEntity<CodeSubmitResponse> submitBattle(@Valid @RequestBody CodeSubmitRequest request) {
+        try {
+            CodeBattleContest contest = contestRepository.findById(Long.parseLong(request.getProblemId()))
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대회입니다."));
+
+            Users user = userRepository.findById(Long.parseLong(request.getUserId()))
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
+
+            List<CodeBattleExampleAI> aiList = exampleAIRepository
+                    .findByContestIdOrderByExampleOrderAsc(contest.getId());
+
+            if (aiList.isEmpty()) {
+                throw new IllegalArgumentException("대회에 등록된 예시 AI가 없어 채점을 시작할 수 없습니다.");
+            }
+
+            CodeBattleSubmission submission = new CodeBattleSubmission(
+                    user,
+                    contest,
+                    request.getLanguage(),
+                    request.getSourceCode(),
+                    "PENDING"
+            );
+            submissionRepository.save(submission);
+
+            for (CodeBattleExampleAI ai : aiList) {
+                ObjectNode rootNode = objectMapper.createObjectNode();
+                
+                rootNode.put("submissionId", submission.getId());
+                rootNode.put("aiOrder", ai.getExampleOrder());
+                rootNode.put("timeLimitSec", contest.getTimeLimitSec());
+                rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
+
+                ObjectNode codesNode = rootNode.putObject("codes");
+                codesNode.put("judge", contest.getJudge_code());
+                codesNode.put("player1", request.getSourceCode());
+                codesNode.put("player2", ai.getCode());
+
+                String jsonPayload = objectMapper.writeValueAsString(rootNode);
+                redisTemplate.opsForList().leftPush(CODE_BATTLE_GRADING_QUEUE_KEY, jsonPayload);
+            }
+            
+            return ResponseEntity.ok(new CodeSubmitResponse(true, "코드 배틀 제출 완료 (ID: " + submission.getId() + ")"));
+
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(new CodeSubmitResponse(false, e.getMessage()));
         }
     }
