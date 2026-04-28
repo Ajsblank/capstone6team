@@ -9,29 +9,29 @@ import lombok.Getter;
 @Builder
 public class ProfileResponse {
 
-  private Long userId;
+  private Long user_id;
   private String nickname;
   private Integer tag;
-  private String tagCode;
-  private String nicknameTag;
-  private String profileUrl;
+  private String tag_code;
+  private String nickname_tag;
+  private String profile_url;
   private String bio;
   private String affiliation;
-  private String imageUrl;
+  private String image_url;
 
   public static ProfileResponse from(Profile profile) {
-    String tagCode = String.format("%04d", profile.getTag());
-    String nicknameTag = profile.getNickname() + "-" + tagCode;
+    String tag_code = String.format("%04d", profile.getTag());
+    String nickname_tag = profile.getNickname() + "-" + tag_code;
     return ProfileResponse.builder()
-        .userId(profile.getId())
+      .user_id(profile.getId())
         .nickname(profile.getNickname())
         .tag(profile.getTag())
-        .tagCode(tagCode)
-        .nicknameTag(nicknameTag)
-        .profileUrl("/api/profile/" + nicknameTag)
+      .tag_code(tag_code)
+      .nickname_tag(nickname_tag)
+      .profile_url("/api/profile/" + nickname_tag)
         .bio(profile.getBio())
         .affiliation(profile.getAffiliation())
-        .imageUrl(profile.getImage_url())
+      .image_url(profile.getImage_url())
         .build();
   }
 }

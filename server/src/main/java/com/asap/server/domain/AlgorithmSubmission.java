@@ -48,10 +48,10 @@ public class AlgorithmSubmission {
     private String result;
 
     @Column(name = "execution_time_sec")
-    private int executionTimeSec;
+    private int execution_time_sec;
 
     @Column(name = "memory_usage_mb")
-    private int memoryUsageMb;
+    private int memory_usage_mb;
 
     @Column
     private LocalDateTime created_at;
@@ -60,5 +60,4 @@ public class AlgorithmSubmission {
     protected void onCreate() {
         created_at = LocalDateTime.now();
     }
-
 }

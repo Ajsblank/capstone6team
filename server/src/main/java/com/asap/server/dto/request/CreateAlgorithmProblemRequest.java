@@ -16,14 +16,14 @@ public class CreateAlgorithmProblemRequest {
 
     private String title;
     private String description;
-    private String inputDescription;
-    private String outputDescription;
+    private String input_description;
+    private String output_description;
 
-    private int memoryLimitMB;
-    private int timeLimitSec;
+    private int memory_limit_mb;
+    private int time_limit_sec;
 
-    private List<VisibleTestCaseDto> exampleTestcases;
-    private List<VisibleTestCaseDto> hiddenTestcases;
+    private List<VisibleTestCaseDto> example_testcases;
+    private List<VisibleTestCaseDto> hidden_testcases;
 
     @Getter
     @NoArgsConstructor
@@ -43,14 +43,14 @@ public class CreateAlgorithmProblemRequest {
         return AlgorithmProblem.builder()
                 .title(this.title)
                 .description(this.description)
-                .inputDescription(this.inputDescription)
-                .outputDescription(this.outputDescription)
-                .memoryLimitMB(this.memoryLimitMB)
-                .timeLimitSec(this.timeLimitSec)
-                .exampleTestcases(this.exampleTestcases.stream()
+                .input_description(this.input_description)
+                .output_description(this.output_description)
+                .memory_limit_mb(this.memory_limit_mb)
+                .time_limit_sec(this.time_limit_sec)
+                .example_testcases(this.example_testcases.stream()
                         .map(VisibleTestCaseDto::toEntity)
                         .collect(Collectors.toList()))
-                .hiddenTestcases(this.hiddenTestcases.stream()
+                .hidden_testcases(this.hidden_testcases.stream()
                         .map(VisibleTestCaseDto::toEntity)
                         .collect(Collectors.toList()))
                 .build();

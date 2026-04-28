@@ -33,9 +33,9 @@ public class RedisWarmUpRunner implements CommandLineRunner {
 
         for (AlgorithmProblem problem : problems) {
             try {
-                if (problem.getHiddenTestcases() != null) {
+                if (problem.getHidden_testcases() != null) {
                     String key = "problem:" + problem.getId() + ":testcases";
-                    String value = objectMapper.writeValueAsString(problem.getHiddenTestcases());
+                    String value = objectMapper.writeValueAsString(problem.getHidden_testcases());
                     redisTemplate.opsForValue().set(key, value);
                 }
             } catch (JsonProcessingException e) {

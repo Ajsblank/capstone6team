@@ -20,21 +20,21 @@ public class ContestListResponse {
   private ContestStatus status;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
-  private LocalDateTime startDate;
+  private LocalDateTime start_date;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
-  private LocalDateTime endDate;
+  private LocalDateTime end_date;
 
-  private Integer maxParticipants;
+  private Integer max_participants;
 
   public static ContestListResponse from(CodeBattleContest contest) {
     return ContestListResponse.builder()
         .id(contest.getId())
         .title(contest.getTitle())
         .status(contest.getStatus())
-        .startDate(contest.getStartDate())
-        .endDate(contest.getEndDate())
-        .maxParticipants(contest.getMaxParticipants())
+        .start_date(contest.getStart_date())
+        .end_date(contest.getEnd_date())
+        .max_participants(contest.getMax_participants())
         .build();
   }
 }

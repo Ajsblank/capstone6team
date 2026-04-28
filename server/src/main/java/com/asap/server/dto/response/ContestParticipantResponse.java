@@ -11,14 +11,14 @@ import lombok.Getter;
 @Builder
 public class ContestParticipantResponse {
 
-  private Long participantId;
-  private Long userId;
+  private Long participant_id;
+  private Long user_id;
   private String email;
   private String nickname;
   private Integer tag;
-  private String nicknameTag;
+  private String nickname_tag;
   private Integer score;
-  private LocalDateTime joinedAt;
+  private LocalDateTime joined_at;
 
   public static ContestParticipantResponse from(CodeBattleParticipant participant) {
     String nickname = participant.getUser().getProfile().getNickname();
@@ -26,14 +26,14 @@ public class ContestParticipantResponse {
     String tagCode = String.format("%04d", tag);
 
     return ContestParticipantResponse.builder()
-        .participantId(participant.getId())
-        .userId(participant.getUser().getId())
+      .participant_id(participant.getId())
+      .user_id(participant.getUser().getId())
         .email(participant.getUser().getEmail())
         .nickname(nickname)
         .tag(tag)
-        .nicknameTag(nickname + "-" + tagCode)
+      .nickname_tag(nickname + "-" + tagCode)
         .score(participant.getScore())
-        .joinedAt(participant.getCreated_at())
+      .joined_at(participant.getCreated_at())
         .build();
   }
 }

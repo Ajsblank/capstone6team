@@ -27,7 +27,7 @@ public class CodeBattleExampleAI {
 
   @ManyToOne
   @JoinColumn(name = "contest_id", foreignKey = @ForeignKey(name = "fk_contest_example_ai_contest"))
-  private CodeBattleContest contest;
+  private CodeBattleContest contest_id;
 
   @Column(name = "example_order")
   private Integer example_order;
@@ -42,7 +42,7 @@ public class CodeBattleExampleAI {
   private LocalDateTime created_at;
 
   public CodeBattleExampleAI(CodeBattleContest contest, Integer example_order, String description, String code) {
-    this.contest = contest;
+    this.contest_id = contest;
     this.example_order = example_order;
     this.description = description;
     this.code = code;

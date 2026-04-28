@@ -37,8 +37,8 @@ public class ContestService {
 
         DatePolicy policy = resolveDatePolicyForCreate(
                 request.getStatus(),
-                request.getStartDate(),
-                request.getEndDate(),
+            request.getStart_date(),
+            request.getEnd_date(),
                 now);
 
         CodeBattleContest contest = CodeBattleContest.create(
@@ -46,11 +46,11 @@ public class ContestService {
                 request.getDescription(),
                 request.getStatus(),
                 request.getCertification(),
-                request.getTimeLimitSec(),
-                request.getMemoryLimitMb(),
-                request.getJudgeCode(),
-                request.getExampleCode(),
-                request.getMaxParticipants(),
+                request.getTime_limit_sec(),
+                request.getMemory_limit_mb(),
+                request.getJudge_code(),
+                request.getExample_code(),
+                request.getMax_participants(),
                 policy.startDate(),
                 policy.endDate());
 
@@ -71,11 +71,11 @@ public class ContestService {
                 trimToNull(request.getTitle()),
                 trimToNull(request.getDescription()),
                 request.getCertification(),
-                request.getTimeLimitSec(),
-                request.getMemoryLimitMb(),
-                trimToNull(request.getJudgeCode()),
-                trimToNull(request.getExampleCode()),
-                request.getMaxParticipants());
+                request.getTime_limit_sec(),
+                request.getMemory_limit_mb(),
+                trimToNull(request.getJudge_code()),
+                trimToNull(request.getExample_code()),
+                request.getMax_participants());
 
         ContestStatus targetStatus = request.getStatus() != null ? request.getStatus() : contest.getStatus();
         contest.updateStatusAndSchedule(targetStatus, policy.startDate(), policy.endDate());
@@ -112,7 +112,7 @@ public class ContestService {
         }
 
         long currentParticipants = participantRepository.countByContestId(contestId);
-        if (currentParticipants >= contest.getMaxParticipants()) {
+        if (currentParticipants >= contest.getMax_participants()) {
             throw new IllegalArgumentException("대회 최대 참가자 수를 초과했습니다.");
         }
 
@@ -173,11 +173,11 @@ public class ContestService {
             return new DatePolicy(null, null);
         }
 
-        LocalDateTime startDate = request.getStartDate() != null ? request.getStartDate() : contest.getStartDate();
-        LocalDateTime endDate = request.getEndDate() != null ? request.getEndDate() : contest.getEndDate();
+        LocalDateTime startDate = request.getStart_date() != null ? request.getStart_date() : contest.getStart_date();
+        LocalDateTime endDate = request.getEnd_date() != null ? request.getEnd_date() : contest.getEnd_date();
 
         // 상태를 RUNNING으로 바꾸면서 시작 시간이 없거나 미래면 현재 시각으로 시작
-        if (target == ContestStatus.RUNNING && request.getStartDate() == null
+        if (target == ContestStatus.RUNNING && request.getStart_date() == null
                 && (startDate == null || now.isBefore(startDate))) {
             startDate = now;
         }
@@ -188,13 +188,13 @@ public class ContestService {
     }
 
     private void validatePatchValues(UpdateContestRequest request) {
-        if (request.getTimeLimitSec() != null && request.getTimeLimitSec() <= 0) {
+        if (request.getTime_limit_sec() != null && request.getTime_limit_sec() <= 0) {
             throw new IllegalArgumentException("시간 제한은 1 이상이어야 합니다.");
         }
-        if (request.getMemoryLimitMb() != null && request.getMemoryLimitMb() <= 0) {
+        if (request.getMemory_limit_mb() != null && request.getMemory_limit_mb() <= 0) {
             throw new IllegalArgumentException("메모리 제한은 1 이상이어야 합니다.");
         }
-        if (request.getMaxParticipants() != null && request.getMaxParticipants() <= 0) {
+        if (request.getMax_participants() != null && request.getMax_participants() <= 0) {
             throw new IllegalArgumentException("최대 참가자 수는 1 이상이어야 합니다.");
         }
     }

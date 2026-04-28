@@ -65,8 +65,8 @@ class AuthControllerIntegrationTest {
     LoginResponse body = authController.login(request).getBody();
 
     assertThat(body).isNotNull();
-    assertThat(body.getAccessToken()).isNotBlank();
-    assertThat(body.getRefreshToken()).isNotBlank();
+    assertThat(body.getAccess_token()).isNotBlank();
+    assertThat(body.getRefresh_token()).isNotBlank();
   }
 
   @Test

@@ -8,11 +8,11 @@ import lombok.Setter;
 @Setter
 public class CodeSubmitRequest {
     @NotBlank
-    private String userId;
+    private String user_id;
     @NotBlank
-    private String problemId;
+    private String problem_id;
     @NotBlank
     private String language;
     @NotBlank
-    private String sourceCode;
+    private String source_code;
 }

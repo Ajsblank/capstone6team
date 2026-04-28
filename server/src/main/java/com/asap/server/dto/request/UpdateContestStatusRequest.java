@@ -15,6 +15,6 @@ public class UpdateContestStatusRequest {
     @NotNull(message = "상태는 필수입니다.")
     private ContestStatus status;
 
-    private LocalDateTime startDate;
-    private LocalDateTime endDate;
+    private LocalDateTime start_date;
+    private LocalDateTime end_date;
 }

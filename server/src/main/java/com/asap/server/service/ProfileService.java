@@ -51,7 +51,7 @@ public class ProfileService {
           .tag(tag)
           .bio(request.getBio())
           .affiliation(request.getAffiliation())
-          .image_url(request.getImageUrl())
+          .image_url(request.getImage_url())
           .build();
       user.setProfile(newProfile);
       userRepository.save(user);
@@ -63,7 +63,7 @@ public class ProfileService {
       profile.updateNicknameAndTag(newNickname, newTag);
     }
 
-    profile.updateDetails(request.getBio(), request.getAffiliation(), request.getImageUrl());
+    profile.updateDetails(request.getBio(), request.getAffiliation(), request.getImage_url());
     Profile updated = profileRepository.save(profile);
     return ProfileResponse.from(updated);
   }

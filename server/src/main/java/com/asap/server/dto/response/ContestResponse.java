@@ -17,21 +17,20 @@ public class ContestResponse {
   private String title;
   private String description;
   private Boolean certification;
-  private Integer timeLimitSec;
-  private Integer memoryLimitMb;
+  private Integer time_limit_sec;
+  private Integer memory_limit_mb;
   // 보안 조치 private String judgeCode;
-  private String exampleCode;
+  private String example_code;
   private ContestStatus status;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
-  private LocalDateTime startDate;
+  private LocalDateTime start_date;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
-  private LocalDateTime endDate;
+  private LocalDateTime end_date;
 
-  private Integer maxParticipants;
-  private LocalDateTime createdAt;
-  private LocalDateTime updatedAt;
+  private Integer max_participants;
+  private LocalDateTime created_at;
 
   public static ContestResponse from(CodeBattleContest contest) {
     return ContestResponse.builder()
@@ -39,16 +38,15 @@ public class ContestResponse {
         .title(contest.getTitle())
         .description(contest.getDescription())
         .certification(contest.getCertification())
-        .timeLimitSec(contest.getTimeLimitSec())
-        .memoryLimitMb(contest.getMemoryLimitMB())
+        .time_limit_sec(contest.getTime_limit_sec())
+        .memory_limit_mb(contest.getMemory_limit_mb())
         // .judgeCode(contest.getJudge_code())
-        .exampleCode(contest.getExample_code())
+        .example_code(contest.getExample_code())
         .status(contest.getStatus())
-        .startDate(contest.getStartDate())
-        .endDate(contest.getEndDate())
-        .maxParticipants(contest.getMaxParticipants())
-        .createdAt(contest.getCreated_at())
-        .updatedAt(contest.getUpdated_at())
+        .start_date(contest.getStart_date())
+        .end_date(contest.getEnd_date())
+        .max_participants(contest.getMax_participants())
+        .created_at(contest.getCreated_at())
         .build();
   }
 }

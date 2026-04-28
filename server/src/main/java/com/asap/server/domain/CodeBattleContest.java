@@ -13,7 +13,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,10 +34,10 @@ public class CodeBattleContest {
   private String description;
 
   @Column(name = "time_limit_sec")
-  private int timeLimitSec;
+  private int time_limit_sec;
 
   @Column(name = "memory_limit_mb")
-  private int memoryLimitMB;
+  private int memory_limit_mb;
 
   // PostgreSQL enum(status)와 Java enum 간 바인딩 타입을 명시한다.
   @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -56,56 +55,53 @@ public class CodeBattleContest {
   private String example_code;
 
   @Column(name = "max_participants")
-  private int maxParticipants;
+  private int max_participants;
 
   @Column(name = "start_date")
-  private LocalDateTime startDate;
+  private LocalDateTime start_date;
 
   @Column(name = "end_date")
-  private LocalDateTime endDate;
+  private LocalDateTime end_date;
 
   @Column(nullable = false)
   private LocalDateTime created_at;
-
-  @Column(nullable = false)
-  private LocalDateTime updated_at;
 
   @Column
   private LocalDateTime deleted_at;
 
   public static CodeBattleContest create(String title, String description, ContestStatus status, Boolean certification,
-      Integer timeLimitSec, Integer memoryLimitMB, String judge_code, String example_code,
-      Integer maxParticipants, LocalDateTime startDate, LocalDateTime endDate) {
+      Integer time_limit_sec, Integer memory_limit_mb, String judge_code, String example_code,
+      Integer max_participants, LocalDateTime start_date, LocalDateTime end_date) {
     CodeBattleContest contest = new CodeBattleContest();
     contest.title = title;
     contest.description = description;
     contest.status = status;
     contest.certification = certification;
-    contest.timeLimitSec = timeLimitSec;
-    contest.memoryLimitMB = memoryLimitMB;
+    contest.time_limit_sec = time_limit_sec;
+    contest.memory_limit_mb = memory_limit_mb;
     contest.judge_code = judge_code;
     contest.example_code = example_code;
-    contest.maxParticipants = maxParticipants;
-    contest.startDate = startDate;
-    contest.endDate = endDate;
+    contest.max_participants = max_participants;
+    contest.start_date = start_date;
+    contest.end_date = end_date;
     return contest;
   }
 
-  public void updateStatusAndSchedule(ContestStatus status, LocalDateTime startDate, LocalDateTime endDate) {
+  public void updateStatusAndSchedule(ContestStatus status, LocalDateTime start_date, LocalDateTime end_date) {
     this.status = status;
-    this.startDate = startDate;
-    this.endDate = endDate;
+    this.start_date = start_date;
+    this.end_date = end_date;
   }
 
   public void updateContestFields(
       String title,
       String description,
       Boolean certification,
-      Integer timeLimitSec,
-      Integer memoryLimitMB,
-      String judgeCode,
-      String exampleCode,
-      Integer maxParticipants) {
+      Integer time_limit_sec,
+      Integer memory_limit_mb,
+      String judge_code,
+      String example_code,
+      Integer max_participants) {
     if (title != null) {
       this.title = title;
     }
@@ -115,32 +111,26 @@ public class CodeBattleContest {
     if (certification != null) {
       this.certification = certification;
     }
-    if (timeLimitSec != null) {
-      this.timeLimitSec = timeLimitSec;
+    if (time_limit_sec != null) {
+      this.time_limit_sec = time_limit_sec;
     }
-    if (memoryLimitMB != null) {
-      this.memoryLimitMB = memoryLimitMB;
+    if (memory_limit_mb != null) {
+      this.memory_limit_mb = memory_limit_mb;
     }
-    if (judgeCode != null) {
-      this.judge_code = judgeCode;
+    if (judge_code != null) {
+      this.judge_code = judge_code;
     }
-    if (exampleCode != null) {
-      this.example_code = exampleCode;
+    if (example_code != null) {
+      this.example_code = example_code;
     }
-    if (maxParticipants != null) {
-      this.maxParticipants = maxParticipants;
+    if (max_participants != null) {
+      this.max_participants = max_participants;
     }
   }
 
   @PrePersist
   protected void onCreate() {
     created_at = LocalDateTime.now();
-    updated_at = LocalDateTime.now();
-  }
-
-  @PreUpdate
-  protected void onUpdate() {
-    updated_at = LocalDateTime.now();
   }
 
   public enum ContestStatus {

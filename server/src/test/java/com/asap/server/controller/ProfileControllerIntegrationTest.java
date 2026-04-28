@@ -57,8 +57,8 @@ class ProfileControllerIntegrationTest {
 
     assertThat(body).isNotNull();
     assertThat(body.getNickname()).isEqualTo("chito");
-    assertThat(body.getTagCode()).isEqualTo("0001");
-    assertThat(body.getNicknameTag()).isEqualTo("chito-0001");
+    assertThat(body.getTag_code()).isEqualTo("0001");
+    assertThat(body.getNickname_tag()).isEqualTo("chito-0001");
   }
 
   @Test
@@ -67,13 +67,13 @@ class ProfileControllerIntegrationTest {
     request.setNickname("newchito");
     request.setBio("updated bio");
     request.setAffiliation("asap");
-    request.setImageUrl("https://img.test/2.png");
+    request.setImage_url("https://img.test/2.png");
 
     ProfileResponse body = profileController.patchMyProfile("profile@test.com", request).getBody();
 
     assertThat(body).isNotNull();
     assertThat(body.getNickname()).isEqualTo("newchito");
-    assertThat(body.getTagCode()).isEqualTo("0001");
+    assertThat(body.getTag_code()).isEqualTo("0001");
     assertThat(body.getBio()).isEqualTo("updated bio");
     assertThat(body.getAffiliation()).isEqualTo("asap");
   }

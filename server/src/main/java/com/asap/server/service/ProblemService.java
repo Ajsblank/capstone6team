@@ -39,7 +39,7 @@ public class ProblemService {
         try {
             String key = "problem:" + problem.getId() + ":testcases";
             // 히든 테스트케이스 리스트를 JSON 문자열로 변환
-            String value = objectMapper.writeValueAsString(problem.getHiddenTestcases());
+            String value = objectMapper.writeValueAsString(problem.getHidden_testcases());
             redisTemplate.opsForValue().set(key, value);
             log.info("Redis 캐시 업데이트 완료: {}", key);
         } catch (JsonProcessingException e) {

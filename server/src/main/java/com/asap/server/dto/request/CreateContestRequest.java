@@ -31,17 +31,17 @@ public class CreateContestRequest {
 
   @NotNull(message = "시간 제한은 필수입니다.")
   @Positive(message = "시간 제한은 1 이상이어야 합니다.")
-  private Integer timeLimitSec;
+  private Integer time_limit_sec;
 
   @NotNull(message = "메모리 제한은 필수입니다.")
   @Positive(message = "메모리 제한은 1 이상이어야 합니다.")
-  private Integer memoryLimitMb;
+  private Integer memory_limit_mb;
 
   @NotBlank(message = "judgeCode는 필수입니다.")
-  private String judgeCode;
+  private String judge_code;
 
   @NotBlank(message = "ExampleCode는 필수입니다.")
-  private String exampleCode;
+  private String example_code;
 
   @NotNull(message = "상태는 필수입니다.")
   @Schema(description = "대회 상태 (TEST, PLANNED, RUNNING, PAUSED, END)", example = "PLANNED")
@@ -51,15 +51,15 @@ public class CreateContestRequest {
   @JsonAlias("start_date")
   @JsonDeserialize(using = FlexibleMinuteLocalDateTimeDeserializer.class)
   @Schema(description = "대회 시작 시각. 권장 형식: yyyy-MM-dd HH:mm (예: 2026-04-26 18:20). TEST 상태에서는 null로 저장됩니다.", type = "string", format = "date-time", example = "2026-04-26 18:20")
-  private LocalDateTime startDate;
+  private LocalDateTime start_date;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
   @JsonAlias("end_date")
   @JsonDeserialize(using = FlexibleMinuteLocalDateTimeDeserializer.class)
   @Schema(description = "대회 종료 시각. 권장 형식: yyyy-MM-dd HH:mm (예: 2026-04-26 20:20). TEST 상태에서는 null로 저장됩니다.", type = "string", format = "date-time", example = "2026-04-26 20:20")
-  private LocalDateTime endDate;
+  private LocalDateTime end_date;
 
   @NotNull(message = "최대 참가자 수는 필수입니다.")
   @Positive(message = "최대 참가자 수는 1 이상이어야 합니다.")
-  private Integer maxParticipants;
+  private Integer max_participants;
 }
