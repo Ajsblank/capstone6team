@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleContest.ContestStatus;
+import com.asap.server.dto.request.ContestResourceRequest;
 import com.asap.server.dto.request.CreateContestRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
 import com.asap.server.dto.response.ContestDetailResponse;
@@ -47,6 +48,13 @@ public class ContestController {
         return ResponseEntity.created(URI.create("/api/contests/" + response.getId())).body(response);
     }
 
+    @PostMapping("/{contest_id}/resources")
+    public ResponseEntity<ContestResponse> createContestResource(@PathVariable Long contest_id,
+            @Valid @RequestBody ContestResourceRequest request) {
+        ContestResponse response = contestService.createContestResource(contest_id, request);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/list")
     @Operation(summary = "대회 목록 조회", description = "status로 필터링하고 page, size, sort로 페이징/정렬 조회합니다. status를 지정하지 않으면 전체 조회합니다.")
     @Parameters({
@@ -63,23 +71,23 @@ public class ContestController {
         return ResponseEntity.ok(responses);
     }
 
-    @GetMapping("/{contestId}")
-    public ResponseEntity<ContestResponse> getContestDetail(@PathVariable Long contestId) {
-        CodeBattleContest contest = contestService.getContestById(contestId);
+    @GetMapping("/{contest_id}")
+    public ResponseEntity<ContestResponse> getContestDetail(@PathVariable Long contest_id) {
+        CodeBattleContest contest = contestService.getContestById(contest_id);
         return ResponseEntity.ok(ContestResponse.from(contest));
     }
 
-    @GetMapping("/{contestId}/admin")
-    public ResponseEntity<ContestDetailResponse> getContestDetailAdmin(@PathVariable Long contestId) {
-        CodeBattleContest contest = contestService.getContestById(contestId);
+    @GetMapping("/{contest_id}/admin")
+    public ResponseEntity<ContestDetailResponse> getContestDetailAdmin(@PathVariable Long contest_id) {
+        CodeBattleContest contest = contestService.getContestById(contest_id);
         return ResponseEntity.ok(ContestDetailResponse.from(contest));
     }
 
-    @PatchMapping("/{contestId}")
+    @PatchMapping("/{contest_id}")
     public ResponseEntity<ContestDetailResponse> updateContest(
-            @PathVariable Long contestId,
+            @PathVariable Long contest_id,
             @RequestBody UpdateContestRequest request) {
-        return ResponseEntity.ok(contestService.updateContest(contestId, request));
+        return ResponseEntity.ok(contestService.updateContest(contest_id, request));
     }
 
 }

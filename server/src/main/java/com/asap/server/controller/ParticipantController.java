@@ -31,25 +31,25 @@ public class ParticipantController {
 
   private final ContestService contestService;
 
-  @PostMapping("/{contestId}/join")
+  @PostMapping("/{contest_id}/join")
   @Operation(summary = "대회 참가 신청")
   public ResponseEntity<String> joinContest(
-      @PathVariable Long contestId,
+      @PathVariable Long contest_id,
       @RequestParam String email) {
-    contestService.joinContest(contestId, email);
+    contestService.joinContest(contest_id, email);
     return ResponseEntity.ok("대회 참가 신청이 완료되었습니다.");
   }
 
-  @DeleteMapping("/{contestId}/join")
+  @DeleteMapping("/{contest_id}/join")
   @Operation(summary = "대회 참가 취소")
   public ResponseEntity<String> cancelJoinContest(
-      @PathVariable Long contestId,
+      @PathVariable Long contest_id,
       @RequestParam String email) {
-    contestService.cancelJoinContest(contestId, email);
+    contestService.cancelJoinContest(contest_id, email);
     return ResponseEntity.ok("대회 참가 취소가 완료되었습니다.");
   }
 
-  @GetMapping("/{contestId}/participants")
+  @GetMapping("/{contest_id}/participants")
   @Operation(summary = "대회 참가자 목록 조회", description = "page, size, sort를 함께 사용해 페이징/정렬 조회합니다.")
   @Parameters({
       @Parameter(in = ParameterIn.QUERY, name = "page", description = "페이지 번호 (0부터 시작)", schema = @Schema(type = "integer", defaultValue = "0", example = "0")),
@@ -57,8 +57,8 @@ public class ParticipantController {
       @Parameter(in = ParameterIn.QUERY, name = "sort", description = "정렬 기준 (사용법: 컬럼명,asc|desc)", array = @ArraySchema(schema = @Schema(type = "string", example = "id,desc")))
   })
   public ResponseEntity<Page<ContestParticipantResponse>> getContestParticipants(
-      @PathVariable Long contestId,
+      @PathVariable Long contest_id,
       @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
-    return ResponseEntity.ok(contestService.getContestParticipants(contestId, pageable));
+    return ResponseEntity.ok(contestService.getContestParticipants(contest_id, pageable));
   }
 }

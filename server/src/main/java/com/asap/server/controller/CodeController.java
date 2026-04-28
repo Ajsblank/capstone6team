@@ -45,15 +45,15 @@ public class CodeController {
 
             // Redis에서 순차 ID 생성
             Long nextId = redisTemplate.opsForValue().increment(SUBMISSION_COUNT_KEY);
-            String submissionId = String.valueOf(nextId);
+            String submission_id = String.valueOf(nextId);
 
             // C++ 서버 전용 JSON Payload 구성
             ObjectNode rootNode = objectMapper.createObjectNode();
-            rootNode.put("submissionId", submissionId);
+            rootNode.put("submission_id", submission_id);
             rootNode.put("code", request.getSource_code());
-            rootNode.put("language", request.getLanguage());
-            rootNode.put("timeLimitSec", problem.getTime_limit_sec());
-            rootNode.put("memoryLimitMB", problem.getMemory_limit_mb());
+            rootNode.put("language", request.getLanguage().name());
+            rootNode.put("time_limit_sec", problem.getTime_limit_sec());
+            rootNode.put("memory_limit_mb", problem.getMemory_limit_mb());
 
             // 테스트케이스 합치기
             ArrayNode testcasesNode = rootNode.putArray("testcases");
@@ -74,9 +74,9 @@ public class CodeController {
             String jsonPayload = objectMapper.writeValueAsString(rootNode);
             redisTemplate.opsForList().leftPush(GRADING_QUEUE_KEY, jsonPayload);
 
-            log.info("채점 요청 성공 - ID: {}, 문제: {}", submissionId, problem.getTitle());
+            log.info("채점 요청 성공 - ID: {}, 문제: {}", submission_id, problem.getTitle());
 
-            return ResponseEntity.ok(new CodeSubmitResponse(true, "제출 성공! (ID: " + submissionId + ")"));
+            return ResponseEntity.ok(new CodeSubmitResponse(true, "제출 성공! (ID: " + submission_id + ")"));
 
         } catch (Exception e) {
             log.error("채점 요청 실패: {}", e.getMessage());

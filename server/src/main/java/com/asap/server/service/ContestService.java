@@ -11,6 +11,7 @@ import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleContest.ContestStatus;
 import com.asap.server.domain.CodeBattleParticipant;
 import com.asap.server.domain.Users;
+import com.asap.server.dto.request.ContestResourceRequest;
 import com.asap.server.dto.request.CreateContestRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
 import com.asap.server.dto.response.ContestDetailResponse;
@@ -37,8 +38,8 @@ public class ContestService {
 
         DatePolicy policy = resolveDatePolicyForCreate(
                 request.getStatus(),
-            request.getStart_date(),
-            request.getEnd_date(),
+                request.getStart_date(),
+                request.getEnd_date(),
                 now);
 
         CodeBattleContest contest = CodeBattleContest.create(
@@ -55,6 +56,22 @@ public class ContestService {
                 policy.endDate());
 
         return ContestResponse.from(contestRepository.save(contest));
+    }
+
+    @Transactional
+    public ContestResponse createContestResource(Long contest_id, ContestResourceRequest request) {
+        contestRepository.findById(contest_id)
+                .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다."));
+
+        String visualization_html = request.getVisualization_html();
+        String solo_play_html = request.getSolo_play_html();
+
+        // TODO: S3 업로드 구현 위치
+        // 1) visualization_html, solo_play_html 내용을 각각 HTML 파일로 S3에 업로드
+        // 2) 업로드 완료 후 S3 URL을 반환/응답에 포함 (DB 저장 없음)
+        // 3) 예: visualization_html_url, solo_play_html_url 형태로 응답 DTO 구성
+
+        return ContestResponse.from(getContestById(contest_id));
     }
 
     @Transactional

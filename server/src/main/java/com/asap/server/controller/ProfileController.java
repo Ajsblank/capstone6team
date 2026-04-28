@@ -36,9 +36,9 @@ public class ProfileController {
     }
 
     // 예시: /api/profile/chito-0001
-    @GetMapping("/{nicknameTag}")
-    public ResponseEntity<ProfileResponse> getOtherProfile(@PathVariable String nicknameTag) {
-        return ResponseEntity.ok(profileService.getOtherProfile(nicknameTag));
+    @GetMapping("/{nickname_tag}")
+    public ResponseEntity<ProfileResponse> getOtherProfile(@PathVariable String nickname_tag) {
+        return ResponseEntity.ok(profileService.getOtherProfile(nickname_tag));
     }
 
 }
