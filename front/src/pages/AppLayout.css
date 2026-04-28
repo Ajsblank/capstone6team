@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #1e1e2e;
+  background: #2c2c3f;
   color: #cdd6f4;
   font-family: "Segoe UI", sans-serif;
 }
@@ -13,7 +13,7 @@
   align-items: center;
   padding: 0 32px;
   height: 56px;
-  background: #181825;
+  background: #080829;
   border-bottom: 1px solid #313244;
   flex-shrink: 0;
   gap: 8px;
@@ -22,7 +22,7 @@
 .home-logo {
   font-size: 1.15rem;
   font-weight: 800;
-  color: #cba6f7;
+  color: #c5b6c5;
   letter-spacing: 0.05em;
   cursor: pointer;
   white-space: nowrap;
@@ -340,3 +340,46 @@
 .problems-row td { padding: 12px 14px; color: #cdd6f4; }
 
 .problems-row-title { color: #89b4fa; font-weight: 500; }
+
+.problems-status {
+  padding: 48px 0;
+  text-align: center;
+  color: #45475a;
+  font-size: 0.95rem;
+}
+
+.problems-status--error { color: #f38ba8; }
+
+.problems-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px 0;
+}
+
+.problems-page-btn {
+  background: none;
+  border: 1px solid #45475a;
+  color: #a6adc8;
+  font-size: 0.85rem;
+  padding: 5px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.problems-page-btn:hover:not(:disabled) {
+  background: #313244;
+  color: #cdd6f4;
+}
+
+.problems-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.problems-page-info {
+  font-size: 0.85rem;
+  color: #6c7086;
+}
