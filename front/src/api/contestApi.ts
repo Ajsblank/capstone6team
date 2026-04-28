@@ -13,38 +13,59 @@ api.interceptors.request.use((config) => {
 
 export interface CreateContestData {
   title: string;
+  // ⚠ 백엔드 CreateContestRequest 필드 확인 필요 (미수신 가능성)
   targetAudience: string;
-  description: string;
+  description: string;   // problemMd 통합 — 텍스트 직접 입력 또는 파일 불러오기
   certification: boolean;
   timeLimitSec: number;
   memoryLimitMb: number;
   exampleCode: File;
+  // ⚠ 백엔드 ContestResponse에서 주석 처리됨 (.judgeCode 미포함)
   judgeCode: File;
+  // ⚠ 백엔드 CreateContestRequest 필드 확인 필요 (미수신 가능성)
   visualizationHtml: File;
+  // ⚠ 백엔드 CreateContestRequest 필드 확인 필요 (미수신 가능성)
   soloPlayHtml?: File;
-  problemMd: File;
   startDate: string;
   endDate: string;
   maxParticipants: number;
 }
 
-export const createContest = async (data: CreateContestData): Promise<void> => {
-  const fd = new FormData();
-  fd.append("title", data.title);
-  fd.append("description", data.description);
-  fd.append("certification", String(data.certification));
-  fd.append("timeLimitSec", String(data.timeLimitSec));
-  fd.append("memoryLimitMb", String(data.memoryLimitMb));
-  fd.append("exampleCode", data.exampleCode);
-  fd.append("judgeCode", data.judgeCode);
-  fd.append("visualizationHtml", data.visualizationHtml);
-  if (data.soloPlayHtml) fd.append("soloPlayHtml", data.soloPlayHtml);
-  fd.append("problemMd", data.problemMd);
-  fd.append("startDate", data.startDate);
-  fd.append("endDate", data.endDate);
-  fd.append("maxParticipants", String(data.maxParticipants));
-  fd.append("status", "PLANNED");
-  fd.append("targetAudience", data.targetAudience);
+export type ContestStatus = "TEST" | "PLANNED" | "RUNNING" | "PAUSED" | "END";
 
-  await api.post("/contests/create", fd);
+export interface ContestResponse {
+  id: number;
+  status: ContestStatus;
+  createdAt: string;        // ISO 8601
+  // updatedAt: string      // 백엔드 응답에 있으나 현재 미사용
+}
+
+export const createContest = async (data: CreateContestData): Promise<ContestResponse> => {
+  const [exampleCode, judgeCode, visualizationHtml, soloPlayHtml] =
+    await Promise.all([
+      data.exampleCode.text(),
+      data.judgeCode.text(),
+      data.visualizationHtml.text(),
+      data.soloPlayHtml ? data.soloPlayHtml.text() : Promise.resolve(undefined),
+    ]);
+
+  const { data: res } = await api.post<ContestResponse>("/api/contests/create", {
+    title:            data.title,
+    // 백엔드 CreateContestRequest 필드 확인 필요
+    targetAudience:   data.targetAudience,
+    description:      data.description,
+    certification:    data.certification,
+    timeLimitSec:     data.timeLimitSec,
+    memoryLimitMb:    data.memoryLimitMb,
+    startDate:        data.startDate,
+    endDate:          data.endDate,
+    maxParticipants:  data.maxParticipants,
+    exampleCode,
+    // 백엔드 ContestResponse에서 주석 처리됨
+    judgeCode,
+    // 백엔드 CreateContestRequest 필드 확인 필요
+    visualizationHtml,
+    ...(soloPlayHtml !== undefined && { soloPlayHtml }),
+  });
+  return res;
 };
