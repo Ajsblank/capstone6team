@@ -57,6 +57,11 @@ public class CodeBattleContest {
   @Column(name = "max_participants")
   private int max_participants;
 
+  @Column(length = 255)
+  private String visualization_html_url;
+  @Column(length = 255)
+  private String solo_play_html_url;
+
   @Column(name = "start_date")
   private LocalDateTime start_date;
 
