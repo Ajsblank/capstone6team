@@ -1416,6 +1416,13 @@
     loadChitoSprites(initP1Sprite);
     // ────────────────────────────────────────────────────────────────────
 
+    // React 앱에서 로그 클릭 시 postMessage로 전달받아 자동 분석
+    window.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "LOAD_LOG" && typeof event.data.log === "string") {
+        parseLog(event.data.log);
+      }
+    });
+
   </script>
 </body>
 </html>
