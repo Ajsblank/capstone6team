@@ -19,23 +19,6 @@ function formatDate(d: Date): string {
   return d.toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-function formatSize(bytes: number): string {
-  return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
-}
-
-const VERDICT_MAP: Record<string, { label: string; cls: string }> = {
-  ACCEPTED:              { label: "맞았습니다",  cls: "pd-verdict--accepted" },
-  WRONG_ANSWER:          { label: "틀렸습니다",  cls: "pd-verdict--wrong"    },
-  COMPILE_ERROR:         { label: "컴파일 에러", cls: "pd-verdict--error"    },
-  RUNTIME_ERROR:         { label: "런타임 에러", cls: "pd-verdict--error"    },
-  TIME_LIMIT_EXCEEDED:   { label: "시간 초과",   cls: "pd-verdict--tle"      },
-  MEMORY_LIMIT_EXCEEDED: { label: "메모리 초과", cls: "pd-verdict--tle"      },
-};
-
-function verdictInfo(v: string | null): { label: string; cls: string } {
-  if (!v) return { label: "처리중", cls: "pd-verdict--pending" };
-  return VERDICT_MAP[v.toUpperCase()] ?? { label: v, cls: "pd-verdict--pending" };
-}
 type SubmitStatus = "idle" | "submitting" | "success" | "error";
 
 function getProblemIdFromHash(): number | null {
@@ -83,24 +66,20 @@ const AlgoProblemDetailPage: React.FC = () => {
   const handleSubmit = async () => {
     if (!code.trim()) return;
     const submittedAt = new Date();
-    const codeSize = new Blob([code]).size;
     setSubmitStatus("submitting");
     setSubmitError("");
     try {
       const result = await submitAlgoCode({
-        userId: user?.id ?? "guest",
-        problemId: String(problem!.id),
-        language,
-        sourceCode: code,
+        user_id: user?.id ?? "",
+        problem_id: String(problem!.id),
+        language: language.toUpperCase(),
+        source_code: code,
       });
       setSubmissions(prev => [{
         submittedAt,
         language,
-        codeSize,
-        verdict: result.verdict ?? null,
-        memoryMb: result.memoryMb ?? null,
-        cpuMs: result.cpuMs ?? null,
-        submissionId: result.submissionId,
+        success: result.success,
+        message: result.message,
       }, ...prev]);
       setResponseMessage(result.message);
       setSubmitStatus("success");
@@ -271,26 +250,23 @@ const AlgoProblemDetailPage: React.FC = () => {
                 <tr>
                   <th>제출 일시</th>
                   <th>언어</th>
-                  <th>코드 용량</th>
-                  <th>메모리</th>
-                  <th>CPU 시간</th>
                   <th>결과</th>
+                  <th>메시지</th>
                 </tr>
               </thead>
               <tbody>
-                {submissions.map((sub, i) => {
-                  const { label, cls } = verdictInfo(sub.verdict);
-                  return (
-                    <tr key={i}>
-                      <td>{formatDate(sub.submittedAt)}</td>
-                      <td>{LANGUAGE_LABELS[sub.language] ?? sub.language}</td>
-                      <td>{formatSize(sub.codeSize)}</td>
-                      <td>{sub.memoryMb != null ? `${sub.memoryMb} MB` : "-"}</td>
-                      <td>{sub.cpuMs != null ? `${sub.cpuMs} ms` : "-"}</td>
-                      <td><span className={`pd-verdict ${cls}`}>{label}</span></td>
-                    </tr>
-                  );
-                })}
+                {submissions.map((sub, i) => (
+                  <tr key={i}>
+                    <td>{formatDate(sub.submittedAt)}</td>
+                    <td>{LANGUAGE_LABELS[sub.language] ?? sub.language}</td>
+                    <td>
+                      <span className={`pd-verdict ${sub.success ? "pd-verdict--accepted" : "pd-verdict--wrong"}`}>
+                        {sub.success ? "성공" : "실패"}
+                      </span>
+                    </td>
+                    <td style={{ color: "#a6adc8" }}>{sub.message}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           )}

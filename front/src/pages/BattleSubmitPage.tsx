@@ -1,18 +1,26 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import ChitoBattleProblem from "../components/ChitoBattleProblem";
 import CodeEditor, { LANGUAGE_DEFAULTS } from "../components/CodeEditor";
 import SubmitBar from "../components/SubmitBar";
 import SubmitSuccessModal from "../components/SubmitSuccessModal";
 import MySubmissionsTab from "../components/MySubmissionsTab";
 import { submitCode } from "../api/codeBattleApi";
+import { setMatchCallback } from "../api/sseApi";
+import { BattleMatchResult } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
 import { Language } from "../types";
-
 import "./BattleSubmitPage.css";
-
 
 type Tab = "problem" | "submit" | "my-submissions" | "viz1" | "viz2" | "leaderboard" | "battle-results";
 type SubmitStatus = "idle" | "submitting" | "success" | "error";
+
+export interface LocalSubmission {
+  submittedAt: Date;
+  language: string;
+  success: boolean;
+  message: string;
+  matches: BattleMatchResult[]; // SSE로 실시간 누적
+}
 
 const TAB_LIST: { id: Tab; label: string }[] = [
   { id: "problem",        label: "문제" },
@@ -35,26 +43,66 @@ const SubmitPage: React.FC = () => {
   const { navigate, user } = useApp();
   const [activeTab, setActiveTab] = useState<Tab>(getTabFromHash);
 
-  // 브라우저 뒤로가기/앞으로가기로 탭 변경 시 동기화
-  useEffect(() => {
-    const handleHashChange = () => setActiveTab(getTabFromHash());
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
-
-  const handleTabChange = (tab: Tab) => {
-    window.location.hash = `submit/${tab}`;
-    setActiveTab(tab);
-  };
   const [language, setLanguage] = useState<Language>("cpp");
   const [code, setCode] = useState<string>(LANGUAGE_DEFAULTS["cpp"]);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [responseMessage, setResponseMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [localSubmissions, setLocalSubmissions] = useState<LocalSubmission[]>([]);
+
+  // 로그 분석 iframe ref + 전달할 로그
+  const logIframeRef = useRef<HTMLIFrameElement>(null);
+  const [pendingLog, setPendingLog] = useState<string | null>(null);
+
+  // 해시 변경 감지
+  useEffect(() => {
+    const handleHashChange = () => setActiveTab(getTabFromHash());
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  // SSE 콜백 등록 — 이 페이지가 마운트 되어 있는 동안 매치 결과를 최신 제출에 누적
+  useEffect(() => {
+    setMatchCallback((result: BattleMatchResult) => {
+      setLocalSubmissions(prev => {
+        if (prev.length === 0) return prev;
+        const [latest, ...rest] = prev;
+        return [{ ...latest, matches: [...latest.matches, result] }, ...rest];
+      });
+    });
+    return () => {
+      setMatchCallback(() => {}); // 언마운트 시 콜백 해제
+    };
+  }, []);
+
+  const handleTabChange = useCallback((tab: Tab) => {
+    window.location.hash = `submit/${tab}`;
+    setActiveTab(tab);
+  }, []);
+
+  // 로그 클릭 → viz1 탭으로 이동 후 iframe에 로그 전달
+  const handleLogClick = useCallback((log: string) => {
+    setPendingLog(log);
+    handleTabChange("viz1");
+  }, [handleTabChange]);
+
+  // iframe 로드 완료 시 pendingLog postMessage 전송
+  const handleIframeLoad = useCallback(() => {
+    if (pendingLog !== null && logIframeRef.current?.contentWindow) {
+      setTimeout(() => {
+        logIframeRef.current?.contentWindow?.postMessage(
+          { type: "LOAD_LOG", log: pendingLog },
+          "*"
+        );
+      }, 100);
+      setPendingLog(null);
+    }
+  }, [pendingLog]);
 
   const handleSubmit = async () => {
     if (!code.trim()) return;
+    const submittedAt = new Date();
     setSubmitStatus("submitting");
     setErrorMessage("");
 
@@ -64,16 +112,21 @@ const SubmitPage: React.FC = () => {
         language: language as string,
         sourceCode: code,
       });
+      setLocalSubmissions(prev => [{
+        submittedAt,
+        language,
+        success: result.success,
+        message: result.message,
+        matches: [],
+      }, ...prev]);
       setResponseMessage(result.message);
       setSubmitStatus("success");
       setShowSuccessModal(true);
     } catch (err: any) {
       setSubmitStatus("error");
       if (err.response) {
-        // 서버가 응답을 반환한 경우
         setErrorMessage(`[${err.response.status}] ${err.response.data?.message ?? err.response.statusText}`);
       } else if (err.request) {
-        // 서버에 요청이 닿지 않은 경우 (네트워크 오류, CORS 등)
         setErrorMessage("서버에 연결할 수 없습니다. 네트워크 또는 CORS를 확인하세요.");
       } else {
         setErrorMessage(err.message ?? "알 수 없는 오류가 발생했습니다.");
@@ -106,14 +159,12 @@ const SubmitPage: React.FC = () => {
       </header>
 
       <div className="page-body">
-        {/* 문제 탭 */}
         {activeTab === "problem" && (
           <div className="full-panel">
             <ChitoBattleProblem />
           </div>
         )}
 
-        {/* 제출 탭 */}
         {activeTab === "submit" && (
           <div className="code-submit-panel">
             <div className="editor-panel">
@@ -128,11 +179,34 @@ const SubmitPage: React.FC = () => {
           </div>
         )}
 
-        {/* 혼자서 하기 (viz2) 탭: iframe으로 HTML 게임 불러오기 */}
-        {activeTab === "viz2" && (
-          <div className="full-panel" style={{ height: "800px" }}> {/* 적절한 높이 지정 */}
+        {activeTab === "my-submissions" && (
+          <div className="full-panel" style={{ overflowY: "auto" }}>
+            <MySubmissionsTab
+              localSubmissions={localSubmissions}
+              onLogClick={handleLogClick}
+            />
+          </div>
+        )}
+
+        {/* viz1: 로그 분석 — pendingLog를 iframe에 postMessage로 전달 */}
+        {activeTab === "viz1" && (
+          <div className="full-panel" style={{ height: "800px" }}>
             <iframe
-              src="/chito_battle_self.html" /* public 폴더에 저장한 파일명 */
+              ref={logIframeRef}
+              src="/chito_battle_log.html"
+              title="Battle Log Analysis"
+              width="100%"
+              height="100%"
+              style={{ border: "none", borderRadius: "8px", backgroundColor: "#222" }}
+              onLoad={handleIframeLoad}
+            />
+          </div>
+        )}
+
+        {activeTab === "viz2" && (
+          <div className="full-panel" style={{ height: "800px" }}>
+            <iframe
+              src="/chito_battle_self.html"
               title="Demon Tournament Game"
               width="100%"
               height="100%"
@@ -141,27 +215,6 @@ const SubmitPage: React.FC = () => {
           </div>
         )}
 
-        {/* 로그 분석 (viz1) 탭 */}
-        {activeTab === "viz1" && (
-          <div className="full-panel" style={{ height: "800px" }}>
-            <iframe
-              src="/chito_battle_log.html"
-              title="Battle Log Analysis"
-              width="100%"
-              height="100%"
-              style={{ border: "none", borderRadius: "8px", backgroundColor: "#222" }}
-            />
-          </div>
-        )}
-
-        {/* 내 제출 탭 */}
-        {activeTab === "my-submissions" && (
-          <div className="full-panel" style={{ overflowY: "auto" }}>
-            <MySubmissionsTab />
-          </div>
-        )}
-
-        {/* 미구현 탭 */}
         {(activeTab === "leaderboard" || activeTab === "battle-results") && (
           <div className="placeholder-panel">
             <span className="placeholder-text">

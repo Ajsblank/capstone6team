@@ -3,7 +3,7 @@ import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useApp } from "../context/AppContext";
-import { createContest } from "../api/contestApi";
+import { createContest, ContestResponse, ContestStatus } from "../api/contestApi";
 import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
@@ -134,7 +134,6 @@ const BattleCreateContestPage: React.FC = () => {
   const { user, logout, navigate } = useApp();
 
   const [title, setTitle] = useState("");
-  const [targetAudience, setTargetAudience] = useState("");
   const [description, setDescription] = useState("");
   const [timeLimitSec, setTimeLimitSec] = useState<number>(1);
   const [memoryLimitMb, setMemoryLimitMb] = useState<number>(256);
@@ -151,12 +150,11 @@ const BattleCreateContestPage: React.FC = () => {
   const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [toastMessages, setToastMessages] = useState<string[]>([]);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdContest, setCreatedContest] = useState<ContestResponse | null>(null);
 
   const handleSubmit = async () => {
     const missing: string[] = [];
     if (!title.trim())          missing.push("대회 이름");
-    if (!targetAudience.trim()) missing.push("참가 대상");
     if (!description.trim())    missing.push("문제 설명");
     if (!exampleCode)           missing.push("샘플 코드");
     if (!judgeCode)             missing.push("채점 코드");
@@ -170,9 +168,8 @@ const BattleCreateContestPage: React.FC = () => {
     setErrorMsg("");
 
     try {
-      await createContest({
+      const result = await createContest({
         title: title.trim(),
-        targetAudience: targetAudience.trim(),
         description: description.trim(),
         certification: certification!,
         timeLimitSec,
@@ -186,7 +183,7 @@ const BattleCreateContestPage: React.FC = () => {
         maxParticipants,
       });
       setSubmitStatus("idle");
-      setShowSuccessModal(true);
+      setCreatedContest(result);
     } catch (err: unknown) {
       setSubmitStatus("error");
       if (axios.isAxiosError(err)) {
@@ -206,14 +203,30 @@ const BattleCreateContestPage: React.FC = () => {
         <Toast messages={toastMessages} onClose={() => setToastMessages([])} />
       )}
 
-      {showSuccessModal && (
+      {createdContest !== null && (
         <div className="cc-modal-overlay">
           <div className="cc-modal">
             <div className="cc-modal-icon">✓</div>
             <p className="cc-modal-msg">대회가 성공적으로 등록되었습니다.</p>
+            <div className="cc-modal-info">
+              <div className="cc-modal-info-row">
+                <span className="cc-modal-info-label">ID</span>
+                <span className="cc-modal-info-value">{createdContest.id}</span>
+              </div>
+              <div className="cc-modal-info-row">
+                <span className="cc-modal-info-label">상태</span>
+                <span className="cc-modal-info-value">{createdContest.status}</span>
+              </div>
+              <div className="cc-modal-info-row">
+                <span className="cc-modal-info-label">생성 일시</span>
+                <span className="cc-modal-info-value">
+                  {new Date(createdContest.createdAt).toLocaleString("ko-KR")}
+                </span>
+              </div>
+            </div>
             <button
               className="cc-modal-confirm"
-              onClick={() => { setShowSuccessModal(false); navigate("battle"); }}
+              onClick={() => { setCreatedContest(null); navigate("battle"); }}
             >
               확인
             </button>
@@ -268,18 +281,6 @@ const BattleCreateContestPage: React.FC = () => {
                   placeholder="대회 이름을 입력하세요"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-              <div className="cc-field">
-                <label className="cc-label">
-                  참가 대상 <Req show={!targetAudience.trim()} />
-                </label>
-                <input
-                  className="cc-input"
-                  type="text"
-                  placeholder="예: 전체 참가 가능, 컴퓨터공학과 3학년 이상"
-                  value={targetAudience}
-                  onChange={(e) => setTargetAudience(e.target.value)}
                 />
               </div>
             </section>
