@@ -104,7 +104,7 @@ public class AuthService {
         log.info("로그인 성공 - 닉네임: {}", profile.getNickname());
         String accessToken = jwtTokenProvider.createToken(user.getEmail());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
-        return new LoginResponse(accessToken, refreshToken);
+        return new LoginResponse(user.getId(), accessToken, refreshToken);
     }
 
     @Transactional
