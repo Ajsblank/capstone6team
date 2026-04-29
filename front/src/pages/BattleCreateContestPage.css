@@ -586,3 +586,31 @@
 .cc-modal-confirm:hover {
   background: #b48ef7;
 }
+
+.cc-modal-info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #1e1e2e;
+  border: 1px solid #313244;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 4px 0 8px;
+}
+
+.cc-modal-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+}
+
+.cc-modal-info-label {
+  color: #6c7086;
+  font-weight: 600;
+}
+
+.cc-modal-info-value {
+  color: #cdd6f4;
+}

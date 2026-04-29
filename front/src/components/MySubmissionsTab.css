@@ -236,6 +236,100 @@
   padding: 4px 0;
 }
 
+/* ── 채점 중 ── */
+.ms-pending {
+  color: #6c7086;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* ── 매치 상세 테이블 ── */
+.ms-match-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.ms-match-table th {
+  padding: 6px 12px;
+  text-align: left;
+  color: #6c7086;
+  font-weight: 600;
+  border-bottom: 1px solid #313244;
+}
+
+.ms-match-row td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #1e1e2e;
+  color: #cdd6f4;
+}
+
+.ms-match-num {
+  color: #6c7086;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ms-winner--me  { color: #a6e3a1; font-weight: 700; }
+.ms-winner--ai  { color: #f38ba8; font-weight: 700; }
+
+.ms-log-btn {
+  background: none;
+  border: 1px solid #45475a;
+  border-radius: 4px;
+  color: #89b4fa;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.ms-log-btn:hover {
+  background: #1e3a5f;
+  border-color: #89b4fa;
+}
+
+/* ── Table ── */
+.ms-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.ms-table thead tr {
+  border-bottom: 1px solid #313244;
+}
+
+.ms-table th {
+  padding: 10px 14px;
+  text-align: left;
+  color: #6c7086;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ms-table tbody tr {
+  border-bottom: 1px solid #181825;
+  transition: background 0.1s;
+}
+
+.ms-table tbody tr:hover {
+  background: #181825;
+}
+
+.ms-table td {
+  padding: 12px 14px;
+  color: #cdd6f4;
+  white-space: nowrap;
+}
+
+.ms-message {
+  color: #a6adc8 !important;
+  white-space: normal !important;
+  font-size: 0.85rem;
+}
+
 /* ── Pagination ── */
 .ms-pagination {
   display: flex;

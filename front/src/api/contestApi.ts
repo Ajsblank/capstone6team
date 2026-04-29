@@ -13,18 +13,13 @@ api.interceptors.request.use((config) => {
 
 export interface CreateContestData {
   title: string;
-  // ⚠ 백엔드 CreateContestRequest 필드 확인 필요 (미수신 가능성)
-  targetAudience: string;
   description: string;   // problemMd 통합 — 텍스트 직접 입력 또는 파일 불러오기
   certification: boolean;
   timeLimitSec: number;
   memoryLimitMb: number;
-  exampleCode: File;
-  // ⚠ 백엔드 ContestResponse에서 주석 처리됨 (.judgeCode 미포함)
-  judgeCode: File;
-  // ⚠ 백엔드 CreateContestRequest 필드 확인 필요 (미수신 가능성)
-  visualizationHtml: File;
-  // ⚠ 백엔드 CreateContestRequest 필드 확인 필요 (미수신 가능성)
+  exampleCode: File;  
+  judgeCode: File;  
+  visualizationHtml: File;  
   soloPlayHtml?: File;
   startDate: string;
   endDate: string;
@@ -51,8 +46,6 @@ export const createContest = async (data: CreateContestData): Promise<ContestRes
 
   const { data: res } = await api.post<ContestResponse>("/api/contests/create", {
     title:            data.title,
-    // 백엔드 CreateContestRequest 필드 확인 필요
-    targetAudience:   data.targetAudience,
     description:      data.description,
     certification:    data.certification,
     timeLimitSec:     data.timeLimitSec,

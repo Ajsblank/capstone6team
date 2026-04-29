@@ -8,6 +8,7 @@ const api = axios.create({ baseURL: BASE_URL });
 // 토큰 관리
 // ──────────────────────────────────────────
 let accessToken: string | null = localStorage.getItem("accessToken");
+let userId: string | null = localStorage.getItem("userId");
 
 // 앱 시작 시 저장된 토큰을 axios 헤더에 복원
 if (accessToken) {
@@ -15,6 +16,7 @@ if (accessToken) {
 }
 
 export const getAccessToken = () => accessToken;
+export const getUserId = () => userId;
 
 export const setAccessToken = (token: string | null) => {
   accessToken = token;
@@ -27,6 +29,15 @@ export const setAccessToken = (token: string | null) => {
   }
 };
 
+export const setUserId = (id: string | null) => {
+  userId = id;
+  if (id !== null) {
+    localStorage.setItem("userId", id);
+  } else {
+    localStorage.removeItem("userId");
+  }
+};
+
 export const saveRefreshToken = (token: string) =>
   localStorage.setItem("refreshToken", token);
 
@@ -35,6 +46,7 @@ export const getRefreshToken = () =>
 
 export const clearTokens = () => {
   setAccessToken(null);
+  setUserId(null);
   localStorage.removeItem("refreshToken");
 };
 
@@ -55,6 +67,7 @@ export interface LoginRequest {
 export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
+  userId: string;
 }
 
 // ──────────────────────────────────────────
@@ -76,16 +89,14 @@ export const verifyEmailCode = async (email: string, code: string): Promise<void
   await api.post("/api/auth/mail", { email, code });
 };
 
-// 로그인 → JWT 토큰 저장
+// 로그인 → JWT + userId 저장
 export const loginApi = async (body: LoginRequest): Promise<TokenResponse> => {
-  const { data } = await api.post<TokenResponse | string>("/api/auth/login", body);
-  // 백엔드가 raw 문자열로 토큰을 반환하는 경우 처리
-  if (typeof data === "string") {
-    setAccessToken(data);
-    return { accessToken: data, refreshToken: "" };
-  }
+  const { data } = await api.post<TokenResponse>("/api/auth/login", body);
   setAccessToken(data.accessToken);
   saveRefreshToken(data.refreshToken);
+  setUserId(data.userId);
+  // TODO: SSE 연동 준비되면 아래 주석 해제
+  // subscribeToResults(data.userId, () => {});
   return data;
 };
 
@@ -95,6 +106,8 @@ export const logoutApi = async (): Promise<void> => {
   if (refreshToken) {
     await api.post("/api/auth/logout", { refreshToken }).catch(() => {});
   }
+  // TODO: SSE 연동 후 주석 해제
+  // unsubscribeFromResults();
   clearTokens();
 };
 

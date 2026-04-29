@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
-import { loginApi } from "../api/authApi";
+import { loginApi, getUserId } from "../api/authApi";
+import { subscribeToResults } from "../api/sseApi";
 import "./LoginPage.css";
 
 const LoginPage: React.FC = () => {
@@ -20,9 +21,10 @@ const LoginPage: React.FC = () => {
 
     setSubmitting(true);
     try {
-      await loginApi({ email, password });
-      // JWT 토큰은 authApi 내부에서 저장됨
-      login({ id: email, username: email, email });
+      const tokenData = await loginApi({ email, password });
+      const uid = getUserId() ?? tokenData.userId;
+      if (uid) subscribeToResults(uid, () => {});
+      login({ id: uid ?? email, username: email, email });
       navigate("home");
     } catch (err: any) {
       const msg = err.response?.data?.message ?? "이메일 또는 비밀번호가 올바르지 않습니다.";

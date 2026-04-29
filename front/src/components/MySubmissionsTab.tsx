@@ -1,168 +1,139 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { getMySubmissions } from "../api/codeBattleApi";
-import { SubmissionRecord, MatchResult } from "../types";
+import React, { useState } from "react";
+import { LocalSubmission } from "../pages/BattleSubmitPage";
+import { BattleMatchResult } from "../api/sseApi";
 import "./MySubmissionsTab.css";
 
-const CONTEST_ID = 1; // TODO: 다중 대회 지원 시 props로 수신
-const PAGE_SIZE = 10;
+interface Props {
+  localSubmissions: LocalSubmission[];
+  onLogClick: (log: string) => void;
+}
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
+const LANGUAGE_LABELS: Record<string, string> = {
+  cpp: "C++", java: "Java", python: "Python",
+};
+
+function formatDate(d: Date): string {
   return d.toLocaleString("ko-KR", {
     year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
   });
 }
 
-function ResultBadge({ result }: { result: "WIN" | "LOSS" | "DRAW" }) {
+// 승자 문자열 → 표시 텍스트
+// TODO: 백엔드 winner 값 확정 후 매핑 수정 (현재 "player1" = 나, 그 외 = 샘플 AI로 가정)
+function winnerLabel(winner: string): { text: string; isMe: boolean } {
+  const lower = winner.toLowerCase();
+  if (lower === "player1" || lower === "me" || lower === "user") {
+    return { text: "나", isMe: true };
+  }
+  return { text: "샘플 AI", isMe: false };
+}
+
+// ── 매치 상세 행 ──
+function MatchRow({ match, index, onLogClick }: {
+  match: BattleMatchResult;
+  index: number;
+  onLogClick: (log: string) => void;
+}) {
+  const { text, isMe } = winnerLabel(match.winner);
   return (
-    <span className={`ms-badge ms-badge--${result.toLowerCase()}`}>
-      {result === "WIN" ? "승" : result === "LOSS" ? "패" : "무"}
-    </span>
+    <tr className="ms-match-row">
+      <td className="ms-match-num">#{index + 1}</td>
+      <td>
+        <span className={isMe ? "ms-winner--me" : "ms-winner--ai"}>{text}</span>
+      </td>
+      <td>
+        <button
+          className="ms-log-btn"
+          onClick={() => onLogClick(match.log)}
+          title="로그 분석 페이지에서 확인"
+        >
+          로그 보기 →
+        </button>
+      </td>
+    </tr>
   );
 }
 
-function MatchDetail({ match }: { match: MatchResult }) {
-  const [open, setOpen] = useState(false);
+// ── 제출 아이템 ──
+function SubmissionItem({ sub, onLogClick }: {
+  sub: LocalSubmission;
+  onLogClick: (log: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
 
-  return (
-    <div className="ms-match">
-      <div className="ms-match-header" onClick={() => setOpen(v => !v)}>
-        <ResultBadge result={match.result} />
-        <span className="ms-match-opp">vs {match.opponentName}</span>
-        <span className="ms-match-toggle">{open ? "▲" : "▼"}</span>
-      </div>
-      {open && (
-        <div className="ms-match-logs">
-          {match.rounds.length === 0 ? (
-            <div className="ms-empty">라운드 정보 없음</div>
-          ) : (
-            match.rounds.map(r => (
-              <div key={r.round} className="ms-log-row">
-                <span className="ms-log-round">R{r.round}</span>
-                <span className="ms-log-cards">
-                  나: {r.p1Cards.join(" › ")}
-                </span>
-                <span className="ms-log-cards">
-                  AI: {r.p2Cards.join(" › ")}
-                </span>
-                <span className={`ms-log-result ms-log-result--${r.roundWinner}`}>
-                  {r.roundWinner === "p1" ? "승" : r.roundWinner === "p2" ? "패" : "무"}
-                </span>
-                <span className="ms-log-hp">
-                  HP {r.p1HpAfter} : {r.p2HpAfter}
-                </span>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SubmissionItem({ record }: { record: SubmissionRecord }) {
-  const [open, setOpen] = useState(false);
-  const total = record.wins + record.losses + record.draws;
+  const wins   = sub.matches.filter(m => winnerLabel(m.winner).isMe).length;
+  const losses = sub.matches.length - wins;
 
   return (
     <div className="ms-item">
-      <div className="ms-item-header" onClick={() => setOpen(v => !v)}>
-        <span className="ms-item-date">{formatDate(record.submittedAt)}</span>
-        <span className="ms-item-lang">{record.language.toUpperCase()}</span>
+      <div className="ms-item-header">
+        <span className="ms-item-date">{formatDate(sub.submittedAt)}</span>
+        <span className="ms-item-lang">{LANGUAGE_LABELS[sub.language] ?? sub.language.toUpperCase()}</span>
+
+        {/* 승패 카운트 — SSE 수신될 때마다 실시간 갱신 */}
         <span className="ms-item-record">
-          <span className="ms-win">{record.wins}승</span>
-          {" "}
-          <span className="ms-loss">{record.losses}패</span>
-          {record.draws > 0 && <> <span className="ms-draw">{record.draws}무</span></>}
-          <span className="ms-total"> / {total}전</span>
+          {sub.matches.length === 0 ? (
+            <span className="ms-pending">채점 중...</span>
+          ) : (
+            <>
+              <span className="ms-win">{wins}승</span>
+              {" "}
+              <span className="ms-loss">{losses}패</span>
+              <span className="ms-total"> / {sub.matches.length}전</span>
+            </>
+          )}
         </span>
-        <button className="ms-expand-btn" aria-label="펼치기/접기">
-          {open ? "▲" : "▼"}
+
+        {/* 자세히 버튼 */}
+        <button
+          className="ms-expand-btn"
+          onClick={() => setExpanded(v => !v)}
+          title="대전 상세 보기"
+          disabled={sub.matches.length === 0}
+        >
+          {expanded ? "▲" : "▼"}
         </button>
       </div>
 
-      {open && (
+      {/* 매치 상세 */}
+      {expanded && sub.matches.length > 0 && (
         <div className="ms-item-body">
-          {record.matches.length === 0 ? (
-            <div className="ms-empty">매치 정보가 없습니다.</div>
-          ) : (
-            record.matches.map(m => (
-              <MatchDetail key={m.matchId} match={m} />
-            ))
-          )}
+          <table className="ms-match-table">
+            <thead>
+              <tr>
+                <th>매치</th>
+                <th>승자</th>
+                <th>로그</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sub.matches.map((m, i) => (
+                <MatchRow key={m.matchId} match={m} index={i} onLogClick={onLogClick} />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
   );
 }
 
-const MySubmissionsTab: React.FC = () => {
-  const [records, setRecords] = useState<SubmissionRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>("");
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-
-  const fetchPage = useCallback(async (p: number) => {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await getMySubmissions(CONTEST_ID, p, PAGE_SIZE);
-      setRecords(res.content);
-      setTotalPages(res.totalPages);
-      setPage(res.number);
-    } catch (e: any) {
-      setError(
-        e.response?.data?.message ??
-        e.message ??
-        "제출 이력을 불러오지 못했습니다."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchPage(0); }, [fetchPage]);
-
+// ── 탭 컴포넌트 ──
+const MySubmissionsTab: React.FC<Props> = ({ localSubmissions, onLogClick }) => {
   return (
     <div className="ms-container">
       <div className="ms-header-row">
         <h2 className="ms-title">내 제출 이력</h2>
-        <button className="ms-refresh-btn" onClick={() => fetchPage(page)} disabled={loading}>
-          {loading ? "..." : "↺ 새로고침"}
-        </button>
       </div>
 
-      {error && <div className="ms-error">{error}</div>}
-
-      {!loading && !error && records.length === 0 && (
+      {localSubmissions.length === 0 ? (
         <div className="ms-empty-state">아직 제출한 코드가 없습니다.</div>
-      )}
-
-      <div className="ms-list">
-        {records.map(r => (
-          <SubmissionItem key={r.submissionId} record={r} />
-        ))}
-      </div>
-
-      {totalPages > 1 && (
-        <div className="ms-pagination">
-          <button
-            className="ms-page-btn"
-            disabled={page === 0 || loading}
-            onClick={() => fetchPage(page - 1)}
-          >
-            ‹ 이전
-          </button>
-          <span className="ms-page-info">{page + 1} / {totalPages}</span>
-          <button
-            className="ms-page-btn"
-            disabled={page >= totalPages - 1 || loading}
-            onClick={() => fetchPage(page + 1)}
-          >
-            다음 ›
-          </button>
+      ) : (
+        <div className="ms-list">
+          {localSubmissions.map((sub, i) => (
+            <SubmissionItem key={i} sub={sub} onLogClick={onLogClick} />
+          ))}
         </div>
       )}
     </div>

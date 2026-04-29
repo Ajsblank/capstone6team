@@ -79,18 +79,15 @@ export interface AlgoSubmitResponse {
 export interface AlgoSubmission {
   submittedAt: Date;
   language: string;
-  codeSize: number;       // bytes (프론트 산출)
-  verdict: string | null; // 백엔드
-  memoryMb: number | null;
-  cpuMs: number | null;
-  submissionId?: number;
+  success: boolean;
+  message: string;
 }
 
 export const submitAlgoCode = async (payload: {
-  userId: string;
-  problemId: string;
+  user_id: string;
+  problem_id: string;
   language: string;
-  sourceCode: string;
+  source_code: string;
 }): Promise<AlgoSubmitResponse> => {
   const { data } = await api.post<AlgoSubmitResponse>("/api/code/submit", payload);
   return data;
