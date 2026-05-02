@@ -14,6 +14,8 @@ import com.asap.server.dto.request.EmailResendRequest;
 import com.asap.server.dto.request.EmailVerifyRequest;
 import com.asap.server.dto.request.LoginRequest;
 import com.asap.server.dto.request.SignupRequest;
+import com.asap.server.dto.request.SmsCodeVerifyRequest;
+import com.asap.server.dto.request.SmsVerifyRequest;
 import com.asap.server.dto.request.WithdrawRequest;
 import com.asap.server.dto.response.LoginResponse;
 import com.asap.server.repository.usersRepository;
@@ -33,6 +35,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final MailService mailService;
+    private final SmsService smsService;
     private final ProfileService profileService;
     private final Map<String, PendingSignup> pendingSignupStore = new ConcurrentHashMap<>();
 
@@ -127,6 +130,14 @@ public class AuthService {
             return;
         }
         log.info("회원가입 인증번호 발송 완료 - 이메일: {}, 닉네임: {}", email, nickname);
+    }
+
+    public void sendSMS(SmsVerifyRequest request) {
+        smsService.sendSMS(request);
+    }
+
+    public void verifySMS(SmsCodeVerifyRequest request) {
+        smsService.verifySMS(request);
     }
 
 }

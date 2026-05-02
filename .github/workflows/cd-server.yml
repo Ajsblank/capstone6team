@@ -49,6 +49,9 @@ jobs:
       DB_URL: ${{ secrets.DB_URL }}
       JWT_TOKEN: ${{secrets.JWT_TOKEN}}
       GMAIL_PASSWORD: ${{secrets.GMAIL_PASSWORD}}
+      SOL_API_KEY: ${{secrets.SOL_API_KEY}}
+      SOL_API_SECRET: ${{secrets.SOL_API_SECRET}}
+      SOL_SENDER_NUMBER: ${{secrets.SOL_SENDER_NUMBER}}
     steps:
       - uses: actions/checkout@v4
       - name: set up jdk
@@ -126,6 +129,9 @@ jobs:
               "export DB_PASSWORD=${{secrets.DB_PASSWORD}}",
               "export JWT_TOKEN=${{secrets.JWT_TOKEN}}",
               "export GMAIL_PASSWORD=${{secrets.GMAIL_PASSWORD}}",
+              "export SOL_API_KEY=${{secrets.SOL_API_KEY}}",
+              "export SOL_API_SECRET=${{secrets.SOL_API_SECRET}}",
+              "export SOL_SENDER_NUMBER=${{secrets.SOL_SENDER_NUMBER}}",
               "nohup java -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
               
               "echo deploy_success > /home/ubuntu/app/test.txt"
