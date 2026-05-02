@@ -111,7 +111,7 @@ public class SmsService {
   }
 
   private String normalizePhoneNumber(String phoneNumber) {
-    return phoneNumber.replaceAll("[^0-9]", "").trim();
+    return phoneNumber;
   }
 
   private String smsCodeKey(String phoneNumber) {
