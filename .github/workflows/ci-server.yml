@@ -1,152 +1,36 @@
 # git action workflow name
 name: ci-server
-# executing name, can use environment variables
-run-name: "actor : ${{github.actor}}"
+# executing name: actor name
+run-name: "CI actor : ${{github.actor}}"
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: ["dev/server**","feat/server**","feat/api"]
-      # 실행할 경로를 아래 경로 파일들의 변동으로 제한
-    paths:
-      - 'server/**'
-      - '.github/workflows/*'
+  push: 
+    branches: ["main"]
   pull_request:
-    branches: ["dev/server**","feat/server**"]
     paths:
       - 'server/**'
       - '.github/workflows/*'
 
-  # Allows you to run this workflow manually from the Actions tab
-  #workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  filter:
-    runs-on: ubuntu-latest
-    outputs: 
-      server_change:  ${{steps.filter_server.outputs.server || 'false'}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v4
-        name: check if server directory exits
-        if: hashFiles('server/**') !=  ''
-        id: filter_server
-        with:
-          filters: |
-            server:
-              - 'server/**'
-              - '.github/workflows/*'
-
-  # This workflow contains a single job called "build"
-        
   server:
-    needs: filter
-    if: needs.filter.outputs.server_change == 'true'
-    permissions: 
-      id-token: write
-      contents: read
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: server
-    services:
-      redis:
-        image: redis
-        ports: 
-          - 6379:6379
-    env: 
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_NAME: ${{ secrets.DB_NAME }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_URL: ${{ secrets.DB_URL }}
-      JWT_TOKEN: ${{secrets.JWT_TOKEN}}
-      GMAIL_PASSWORD: ${{secrets.GMAIL_PASSWORD}}
     steps:
       - uses: actions/checkout@v4
+
       - name: set up jdk
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
-     
 
       - name: add permission to execute
         run: chmod +x gradlew 
 
-      - name: server build
+      - name: server Test
+        run: ./gradlew test
+      
+      - name: server Build
         run: ./gradlew build
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{secrets.ARN_ROLE}}
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Upload to S3
-        run: |
-          JAR_FILE=$(ls build/libs/*.jar | grep -v plain | head -n 1)
-          aws s3 cp $JAR_FILE s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar
-
-      - name: Start EC2 and Wait
-        run: |
-          aws ec2 start-instances --instance-ids ${{ vars.EC2_ID_INSTANCE }}
-          aws ec2 wait instance-running --instance-ids ${{ vars.EC2_ID_INSTANCE }}
-          
-      - name: Wait for SSM ready
-        run: |
-          echo "Waiting for SSM Agent to be online..."
-          i=0
-          while true; do
-            STATUS=$(aws ssm describe-instance-information \
-              --filters "Key=InstanceIds,Values=${{ vars.EC2_ID_INSTANCE }}" \
-              --query "InstanceInformationList[0].PingStatus" \
-              --output text)
-            
-            if [ "$STATUS" = "Online" ]; then
-              echo "SSM Agent is Online!"
-              break
-            fi
-
-            if [ "$i" -ge 24 ]; then # 5초 * 24 = 120초
-              echo "SSM Agent did not become online in time."
-              exit 1
-            fi
-            
-            echo "Current status: $STATUS. Waiting 5s... ($i)"
-            i=$((i+1))
-            sleep 5
-          done
-
-      - name: Run command and wait
-        run: |
-          COMMAND_ID=$(aws ssm send-command \
-          --instance-ids ${{vars.EC2_ID_INSTANCE}} \
-          --document-name "AWS-RunShellScript" \
-          --parameters '{
-            "commands": [
-              "export HOME=/home/ubuntu",
-              "mkdir -p /home/ubuntu/app",
-              "cd /home/ubuntu/app",
-              
-              "sudo fuser -k 8080/tcp || true",
-
-              "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar .",
-              
-              "export DB_URL=${{secrets.DB_URL}}",
-              "export DB_NAME=${{secrets.DB_NAME}}",
-              "export DB_USER=${{secrets.DB_USER}}",
-              "export DB_PASSWORD=${{secrets.DB_PASSWORD}}",
-              "export JWT_TOKEN=${{secrets.JWT_TOKEN}}",
-              "export GMAIL_PASSWORD=${{secrets.GMAIL_PASSWORD}}",
-              "nohup java -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
-              
-              "echo deploy_success > /home/ubuntu/app/test.txt"
-            ]
-          }' \
-          --query "Command.CommandId" \
-          --output text)
-
-          aws ssm wait command-executed \
-          --command-id $COMMAND_ID \
-          --instance-id ${{vars.EC2_ID_INSTANCE}}
