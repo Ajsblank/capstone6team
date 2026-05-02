@@ -13,6 +13,16 @@ on:
 
 jobs:
   server:
+    env: 
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_URL: ${{ secrets.DB_URL }}
+      JWT_TOKEN: ${{secrets.JWT_TOKEN}}
+      GMAIL_PASSWORD: ${{secrets.GMAIL_PASSWORD}}
+      SOL_API_KEY: ${{secrets.SOL_API_KEY}}
+      SOL_API_SECRET: ${{secrets.SOL_API_SECRET}}
+      SOL_SENDER_NUMBER: ${{secrets.SOL_SENDER_NUMBER}}
     runs-on: ubuntu-latest
     defaults:
       run:
