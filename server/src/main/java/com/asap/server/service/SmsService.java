@@ -41,12 +41,6 @@ public class SmsService {
 
   private final StringRedisTemplate redisTemplate;
 
-  @Value("${solapi.api-key}")
-  private String apiKey;
-
-  @Value("${solapi.api-secret}")
-  private String apiSecret;
-
   @Value("${solapi.from-number}")
   private String fromNumber;
 

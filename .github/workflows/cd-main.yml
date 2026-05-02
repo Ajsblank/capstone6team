@@ -65,6 +65,9 @@ jobs:
       DB_URL: ${{ secrets.DB_URL }}
       JWT_TOKEN: ${{secrets.JWT_TOKEN}}
       GMAIL_PASSWORD: ${{secrets.GMAIL_PASSWORD}}
+      SOL_API_KEY: ${{secrets.SOL_API_KEY}}
+      SOL_API_SECRET: ${{secrets.SOL_API_SECRET}}
+      SOL_SENDER_NUMBER: ${{secrets.SOL_SENDER_NUMBER}}
     steps:
       - uses: actions/checkout@v4
       - name: set up jdk
