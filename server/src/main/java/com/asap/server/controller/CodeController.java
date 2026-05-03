@@ -1,29 +1,34 @@
 package com.asap.server.controller;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.asap.server.domain.AlgorithmProblem;
+import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleExampleAI;
 import com.asap.server.domain.CodeBattleSubmission;
-import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.Users;
 import com.asap.server.dto.request.CodeSubmitRequest;
 import com.asap.server.dto.response.CodeSubmitResponse;
 import com.asap.server.repository.AlgorithmProblemRepository;
-import com.asap.server.repository.usersRepository;
+import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
-import com.asap.server.repository.CodeBattleContestRepository;
+import com.asap.server.repository.usersRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -45,7 +50,7 @@ public class CodeController {
 
     @PostMapping("/submit")
     public ResponseEntity<CodeSubmitResponse> submitCode(@Valid @RequestBody CodeSubmitRequest request) {
-        
+
         try {
             // DB에서 문제 정보 조회
             AlgorithmProblem problem = problemRepository.findById(Long.parseLong(request.getProblemId()))
@@ -65,10 +70,12 @@ public class CodeController {
 
             // 테스트케이스 합치기
             ArrayNode testcasesNode = rootNode.putArray("testcases");
-            
+
             List<AlgorithmProblem.TestCase> allTestCases = new ArrayList<>();
-            if (problem.getExampleTestcases() != null) allTestCases.addAll(problem.getExampleTestcases());
-            if (problem.getHiddenTestcases() != null) allTestCases.addAll(problem.getHiddenTestcases());
+            if (problem.getExampleTestcases() != null)
+                allTestCases.addAll(problem.getExampleTestcases());
+            if (problem.getHiddenTestcases() != null)
+                allTestCases.addAll(problem.getHiddenTestcases());
 
             for (AlgorithmProblem.TestCase tc : allTestCases) {
                 ObjectNode tcNode = testcasesNode.addObject();
@@ -79,7 +86,7 @@ public class CodeController {
             // Redis 전송
             String jsonPayload = objectMapper.writeValueAsString(rootNode);
             redisTemplate.opsForList().leftPush(GRADING_QUEUE_KEY, jsonPayload);
-            
+
             log.info("채점 요청 성공 - ID: {}, 문제: {}", submissionId, problem.getTitle());
 
             return ResponseEntity.ok(new CodeSubmitResponse(true, "제출 성공! (ID: " + submissionId + ")"));
@@ -111,27 +118,26 @@ public class CodeController {
                     contest,
                     request.getLanguage(),
                     request.getSourceCode(),
-                    "PENDING"
-            );
+                    "PENDING");
             submissionRepository.save(submission);
 
             for (CodeBattleExampleAI ai : aiList) {
                 ObjectNode rootNode = objectMapper.createObjectNode();
-                
+
                 rootNode.put("submissionId", submission.getId());
                 rootNode.put("aiOrder", ai.getExampleOrder());
                 rootNode.put("timeLimitSec", contest.getTimeLimitSec());
                 rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
 
                 ObjectNode codesNode = rootNode.putObject("codes");
-                codesNode.put("judge", contest.getJudge_code());
+                codesNode.put("judge", contest.getJudgeCode());
                 codesNode.put("player1", request.getSourceCode());
                 codesNode.put("player2", ai.getCode());
 
                 String jsonPayload = objectMapper.writeValueAsString(rootNode);
                 redisTemplate.opsForList().leftPush(CODE_BATTLE_GRADING_QUEUE_KEY, jsonPayload);
             }
-            
+
             return ResponseEntity.ok(new CodeSubmitResponse(true, "코드 배틀 제출 완료 (ID: " + submission.getId() + ")"));
 
         } catch (Exception e) {
