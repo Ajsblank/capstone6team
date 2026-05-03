@@ -1,0 +1,409 @@
+/* ── Base ── */
+.lp-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: #ffffff;
+  color: #111827;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ── Header ── */
+.lp-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 32px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.97);
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 200;
+}
+
+.lp-logo {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #111827;
+  cursor: pointer;
+  margin-right: 20px;
+  letter-spacing: 0.1em;
+  user-select: none;
+  font-family: "Courier New", "Consolas", monospace;
+}
+
+.lp-nav { display: flex; gap: 2px; flex: 1; }
+
+.lp-nav-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.9rem;
+  padding: 6px 14px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.lp-nav-btn:hover { background: #f3f4f6; color: #111827; }
+
+.lp-auth { display: flex; align-items: center; gap: 8px; }
+
+.lp-username {
+  font-size: 0.9rem;
+  color: #111827;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 0.15s;
+  user-select: none;
+}
+.lp-username:hover { background: #f3f4f6; }
+
+.lp-auth-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #374151;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 7px 16px;
+  transition: all 0.15s;
+}
+.lp-auth-btn--ghost:hover { background: #f3f4f6; border-color: #9ca3af; color: #111827; }
+.lp-auth-btn--primary { background: #16a34a; border-color: #16a34a; color: #ffffff; }
+.lp-auth-btn--primary:hover { background: #15803d; border-color: #15803d; }
+
+/* ── Main ── */
+.lp-main {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  cursor: default;
+}
+
+/* ── Panels ── */
+.lp-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Gradient right triangles in outer corners */
+.lp-panel::before {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.lp-panel--algo {
+  left: 0;
+  background: linear-gradient(160deg, #ffffff 0%, #f0fdf4 60%, #dcfce7 100%);
+  border-right: 1px solid #e5e7eb;
+}
+/* Top-left right triangle: right angle at top-left */
+.lp-panel--algo::before {
+  top: 0; left: 0;
+  width: 70%; height: 70%;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  background: radial-gradient(ellipse at 0% 0%,
+    rgba(22, 163, 74, 0.18) 0%,
+    rgba(22, 163, 74, 0.07) 40%,
+    transparent 65%);
+}
+
+.lp-panel--battle {
+  right: 0;
+  background: linear-gradient(160deg, #ffffff 0%, #fff7ed 60%, #ffedd5 100%);
+}
+/* Top-right right triangle: right angle at top-right */
+.lp-panel--battle::before {
+  top: 0; right: 0;
+  width: 70%; height: 70%;
+  clip-path: polygon(100% 0, 0 0, 100% 100%);
+  background: radial-gradient(ellipse at 100% 0%,
+    rgba(234, 88, 12, 0.18) 0%,
+    rgba(234, 88, 12, 0.07) 40%,
+    transparent 65%);
+}
+
+/* ── Panel inner (holds strip + cta absolutely) ── */
+.lp-panel-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* ── Scrollable content area ── */
+.lp-scroll {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 96px;
+  scrollbar-width: thin;
+}
+
+/* Algo panel: scrollbar on LEFT */
+.lp-panel--algo .lp-scroll {
+  direction: rtl;
+  scrollbar-color: rgba(22, 163, 74, 0.35) transparent;
+}
+.lp-panel--algo .lp-scroll > * {
+  direction: ltr;
+}
+
+.lp-panel--battle .lp-scroll {
+  scrollbar-color: rgba(234, 88, 12, 0.35) transparent;
+}
+
+.lp-scroll::-webkit-scrollbar { width: 4px; }
+.lp-scroll::-webkit-scrollbar-track { background: transparent; }
+.lp-panel--algo .lp-scroll::-webkit-scrollbar-thumb {
+  background: rgba(22, 163, 74, 0.35);
+  border-radius: 2px;
+}
+.lp-panel--battle .lp-scroll::-webkit-scrollbar-thumb {
+  background: rgba(234, 88, 12, 0.35);
+  border-radius: 2px;
+}
+
+/* ── Hero ── */
+.lp-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 80px 48px 52px;
+  gap: 16px;
+  width: 100%;
+  max-width: 600px;
+}
+
+.lp-icon {
+  font-size: 4rem;
+  line-height: 1;
+  display: block;
+}
+
+.lp-title {
+  font-size: 2.9rem;
+  font-weight: 900;
+  margin: 0;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  line-height: 1.1;
+}
+.lp-title--algo {
+  color: #15803d;
+  text-shadow: 0 2px 24px rgba(22, 163, 74, 0.2);
+}
+.lp-title--battle {
+  color: #c2410c;
+  text-shadow: 0 2px 24px rgba(234, 88, 12, 0.2);
+}
+
+.lp-subtitle {
+  font-size: 1.05rem;
+  color: #6b7280;
+  margin: 0;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  font-style: italic;
+}
+
+/* ── Expanding details ── */
+.lp-details {
+  width: 100%;
+  max-width: 540px;
+  padding: 0 40px 40px;
+}
+
+.lp-divider {
+  height: 2px;
+  border-radius: 1px;
+  margin-bottom: 44px;
+}
+.lp-divider--algo {
+  background: linear-gradient(90deg, rgba(22,163,74,0.6), rgba(22,163,74,0.15), transparent);
+}
+.lp-divider--battle {
+  background: linear-gradient(90deg, rgba(234,88,12,0.6), rgba(234,88,12,0.15), transparent);
+}
+
+/* ── Feature sections ── */
+.lp-section { margin-bottom: 52px; }
+
+.lp-section-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  margin: 0 0 12px;
+  font-family: "Courier New", monospace;
+}
+.lp-section-label--algo { color: #16a34a; }
+.lp-section-label--battle { color: #ea580c; }
+
+.lp-section-body {
+  font-size: 0.94rem;
+  color: #374151;
+  line-height: 2;
+  margin: 0 0 16px;
+  font-weight: 400;
+}
+
+/* ── Lists ── */
+.lp-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lp-list li {
+  font-size: 0.9rem;
+  color: #6b7280;
+  padding-left: 1.4em;
+  position: relative;
+  line-height: 1.7;
+}
+.lp-panel--algo .lp-list li::before {
+  content: "›";
+  position: absolute; left: 0;
+  color: #16a34a;
+  font-weight: 900; font-size: 1.1rem; line-height: 1.5;
+}
+.lp-panel--battle .lp-list li::before {
+  content: "›";
+  position: absolute; left: 0;
+  color: #ea580c;
+  font-weight: 900; font-size: 1.1rem; line-height: 1.5;
+}
+
+/* ── Badges ── */
+.lp-badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.lp-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.lp-badge--bronze  { background: #fef3c7; color: #92400e; border: 1px solid #d97706; }
+.lp-badge--silver  { background: #f3f4f6; color: #374151; border: 1px solid #9ca3af; }
+.lp-badge--gold    { background: #fef9c3; color: #854d0e; border: 1px solid #ca8a04; }
+.lp-badge--platinum{ background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
+.lp-badge--purple  { background: #f3e8ff; color: #6b21a8; border: 1px solid #a855f7; }
+.lp-badge--ranked  { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
+.lp-badge--event   { background: #fff7ed; color: #9a3412; border: 1px solid #fb923c; }
+
+/* ── Lang tags ── */
+.lp-lang-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.lp-lang-tag {
+  padding: 4px 11px;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-family: "Courier New", "Consolas", monospace;
+  font-weight: 600;
+  background: #f9fafb;
+  color: #1d4ed8;
+  border: 1px solid #dbeafe;
+}
+
+/* ── Category chips ── */
+.lp-cat-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.lp-cat-chip {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.lp-cat-chip--algo {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+.lp-cat-chip--battle {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+/* ── CTA bar (pinned bottom of panel) ── */
+.lp-cta-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 28px 32px 32px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease 0.1s;
+}
+.lp-cta-bar--algo {
+  background: linear-gradient(to bottom, transparent, rgba(240,253,244,0.92) 40%, #f0fdf4);
+}
+.lp-cta-bar--battle {
+  background: linear-gradient(to bottom, transparent, rgba(255,247,237,0.92) 40%, #fff7ed);
+}
+.lp-cta-bar--visible { opacity: 1; pointer-events: auto; }
+
+.lp-cta {
+  padding: 14px 42px;
+  border: none;
+  border-radius: 10px;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.97rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+.lp-cta:hover { transform: scale(1.07); box-shadow: 0 8px 28px rgba(0,0,0,0.18); }
+
+.lp-cta--algo { background: #16a34a; color: #ffffff; }
+.lp-cta--algo:hover { background: #15803d; }
+.lp-cta--battle { background: #ea580c; color: #ffffff; }
+.lp-cta--battle:hover { background: #c2410c; }
+
+/* ── Strip indicator ── */
+.lp-strip {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.lp-strip--algo   { right: 0; }
+.lp-strip--battle { left: 0; }
+
+.lp-strip span {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  font-family: "Courier New", monospace;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.lp-strip--visible span { opacity: 1; }
+.lp-strip--algo span   { color: #16a34a; }
+.lp-strip--battle span { color: #ea580c; }

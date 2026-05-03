@@ -1,5 +1,6 @@
 import React from "react";
 import { AppProvider, useApp } from "./context/AppContext";
+import LandingPage from "./pages/LandingPage";
 import AlgoHomePage from "./pages/AlgoHomePage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
@@ -28,6 +29,7 @@ const PageRouter: React.FC = () => {
   const { currentPage } = useApp();
 
   switch (currentPage) {
+    case "landing":          return <LandingPage />;
     case "home":             return <AlgoHomePage />;
     case "login":            return <LoginPage />;
     case "signup":           return <SignUpPage />;
