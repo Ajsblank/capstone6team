@@ -18,6 +18,8 @@ public interface CodeBattleMatchRepository extends JpaRepository<CodeBattleMatch
     long countByContestId(Long contestId);
 
     @Query("SELECT COUNT(m) FROM CodeBattleMatch m WHERE m.contest.id = :contestId AND m.log IS NOT NULL")
-    
+
     long countFinishedMatchesByContestId(@Param("contestId") Long contestId);
+
+    CodeBattleMatch findByIdAndUser2Id(Long submissionId, Long user2Id);
 }
