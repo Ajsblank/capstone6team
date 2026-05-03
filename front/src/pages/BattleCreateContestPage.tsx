@@ -146,6 +146,7 @@ const BattleCreateContestPage: React.FC = () => {
   const [endDate, setEndDate] = useState("");
   const [maxParticipants, setMaxParticipants] = useState<number>(100);
   const [certification, setCertification] = useState<boolean | null>(null);
+  const [contestStatus, setContestStatus] = useState<ContestStatus>("PLANNED");
 
   const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -159,8 +160,8 @@ const BattleCreateContestPage: React.FC = () => {
     if (!exampleCode)           missing.push("샘플 코드");
     if (!judgeCode)             missing.push("채점 코드");
     if (!visualizationHtml)     missing.push("시각화 HTML 파일");
-    if (!startDate)             missing.push("시작 일");
-    if (!endDate)               missing.push("종료 일");
+    if (contestStatus !== "TEST" && !startDate) missing.push("시작 일시");
+    if (contestStatus !== "TEST" && !endDate)   missing.push("종료 일시");
     if (certification === null) missing.push("인증 여부");
     if (missing.length > 0) { setToastMessages(missing); return; }
 
@@ -178,6 +179,7 @@ const BattleCreateContestPage: React.FC = () => {
         judgeCode: judgeCode!,
         visualizationHtml: visualizationHtml!,
         soloPlayHtml: soloPlayHtml ?? undefined,
+        status: contestStatus,
         startDate,
         endDate,
         maxParticipants,
@@ -187,7 +189,23 @@ const BattleCreateContestPage: React.FC = () => {
     } catch (err: unknown) {
       setSubmitStatus("error");
       if (axios.isAxiosError(err)) {
-        const msg = err.response?.data?.message ?? err.response?.statusText;
+        const data = err.response?.data;
+        console.error("createContest 400 응답:", data);
+        let msg: string;
+        if (Array.isArray(data?.errors) && data.errors.length > 0) {
+          msg = data.errors
+            .map((e: { defaultMessage?: string; field?: string }) =>
+              e.field ? `[${e.field}] ${e.defaultMessage}` : e.defaultMessage
+            )
+            .filter(Boolean)
+            .join(" / ");
+        } else {
+          msg =
+            data?.message ??
+            (typeof data === "string" ? data : JSON.stringify(data)) ??
+            err.response?.statusText ??
+            "";
+        }
         setErrorMsg(msg ? `[${err.response?.status}] ${msg}` : "서버에 연결할 수 없습니다.");
       } else if (err instanceof Error) {
         setErrorMsg(err.message);
@@ -390,25 +408,42 @@ const BattleCreateContestPage: React.FC = () => {
             {/* 대회 설정 */}
             <section className="cc-section">
               <h3 className="cc-section-title">대회 설정</h3>
+              <div className="cc-field">
+                <label className="cc-label">
+                  대회 상태 <span className="cc-required">*</span>
+                </label>
+                <div className="cc-cert-group">
+                  {(["TEST", "PLANNED"] as ContestStatus[]).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className={`cc-cert-btn${contestStatus === s ? " cc-cert-btn--certified" : ""}`}
+                      onClick={() => setContestStatus(s)}
+                    >
+                      {s === "TEST" ? "테스트" : "예정"}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="cc-row">
                 <div className="cc-field">
                   <label className="cc-label">
-                    시작 일 <Req show={!startDate} />
+                    시작 일시 <Req show={contestStatus !== "TEST" && !startDate} />
                   </label>
                   <input
                     className="cc-input cc-input--date"
-                    type="date"
+                    type="datetime-local"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                   />
                 </div>
                 <div className="cc-field">
                   <label className="cc-label">
-                    종료 일 <Req show={!endDate} />
+                    종료 일시 <Req show={contestStatus !== "TEST" && !endDate} />
                   </label>
                   <input
                     className="cc-input cc-input--date"
-                    type="date"
+                    type="datetime-local"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                   />
