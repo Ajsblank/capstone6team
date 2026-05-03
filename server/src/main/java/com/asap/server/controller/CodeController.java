@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +50,7 @@ public class CodeController {
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
 
     @PostMapping("/submit")
+    @Operation(description = "language는 eunm 타입입니다. (CPP,PYTHON,JAVA,C)")
     public ResponseEntity<CodeSubmitResponse> submitCode(@Valid @RequestBody CodeSubmitRequest request) {
 
         try {
@@ -64,9 +66,9 @@ public class CodeController {
             ObjectNode rootNode = objectMapper.createObjectNode();
             rootNode.put("submissionId", submissionId);
             rootNode.put("code", request.getSourceCode());
-            rootNode.put("language", request.getLanguage());
+            rootNode.put("language", request.getLanguage().name());
             rootNode.put("timeLimitSec", problem.getTimeLimitSec());
-            rootNode.put("memoryLimitMB", problem.getMemoryLimitMB());
+            rootNode.put("memoryLimitMb", problem.getMemoryLimitMb());
 
             // 테스트케이스 합치기
             ArrayNode testcasesNode = rootNode.putArray("testcases");
@@ -98,6 +100,7 @@ public class CodeController {
     }
 
     @PostMapping("/submit/codebattle")
+    @Operation(description = "language는 eunm 타입입니다. (CPP,PYTHON,JAVA,C)")
     public ResponseEntity<CodeSubmitResponse> submitBattle(@Valid @RequestBody CodeSubmitRequest request) {
         try {
             CodeBattleContest contest = contestRepository.findById(Long.parseLong(request.getProblemId()))
@@ -126,6 +129,7 @@ public class CodeController {
 
                 rootNode.put("submissionId", submission.getId());
                 rootNode.put("aiOrder", ai.getExampleOrder());
+                rootNode.put("language", request.getLanguage().name());
                 rootNode.put("timeLimitSec", contest.getTimeLimitSec());
                 rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
 
