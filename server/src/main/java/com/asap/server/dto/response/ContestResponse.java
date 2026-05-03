@@ -31,7 +31,6 @@ public class ContestResponse {
 
   private Integer maxParticipants;
   private LocalDateTime createdAt;
-  private LocalDateTime updatedAt;
 
   public static ContestResponse from(CodeBattleContest contest) {
     return ContestResponse.builder()
@@ -42,13 +41,12 @@ public class ContestResponse {
         .timeLimitSec(contest.getTimeLimitSec())
         .memoryLimitMb(contest.getMemoryLimitMB())
         // .judgeCode(contest.getJudge_code())
-        .exampleCode(contest.getExample_code())
+        .exampleCode(contest.getExampleCode())
         .status(contest.getStatus())
         .startDate(contest.getStartDate())
         .endDate(contest.getEndDate())
         .maxParticipants(contest.getMaxParticipants())
-        .createdAt(contest.getCreated_at())
-        .updatedAt(contest.getUpdated_at())
+        .createdAt(contest.getCreatedAt())
         .build();
   }
 }
