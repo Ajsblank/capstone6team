@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useCallback, useEf
 import { logoutApi } from "../api/authApi";
 
 export type Page =
+  | "landing"
   | "home"
   | "login"
   | "signup"
@@ -29,11 +30,11 @@ interface AppContextValue {
   logout: () => void;
 }
 
-const VALID_PAGES: Page[] = ["home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "create-contest", "profile", "account-settings"];
+const VALID_PAGES: Page[] = ["landing", "home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "create-contest", "profile", "account-settings"];
 
 function getPageFromHash(): Page {
   const hash = window.location.hash.replace("#", "").split("/")[0] as Page;
-  return VALID_PAGES.includes(hash) ? hash : "home";
+  return VALID_PAGES.includes(hash) ? hash : "landing";
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -62,8 +63,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const logout = useCallback(async () => {
     await logoutApi();
     setUser(null);
-    window.location.hash = "home";
-    setCurrentPage("home");
+    window.location.hash = "landing";
+    setCurrentPage("landing");
   }, []);
 
   const value = useMemo(

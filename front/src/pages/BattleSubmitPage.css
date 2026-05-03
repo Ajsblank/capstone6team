@@ -1,9 +1,26 @@
+/* BattleSubmitPage — White / Orange Theme */
+
 .submit-page {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #1e1e2e;
+  background: #ffffff;
   overflow: hidden;
+  position: relative;
+}
+
+.submit-page::before {
+  content: '';
+  position: fixed;
+  top: 0; right: 0;
+  width: 44vmin; height: 44vmin;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  background: radial-gradient(ellipse at 100% 0%,
+    rgba(234, 88, 12, 0.15) 0%,
+    rgba(234, 88, 12, 0.05) 45%,
+    transparent 68%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .page-header {
@@ -11,121 +28,83 @@
   align-items: center;
   gap: 0;
   padding: 0 24px;
-  height: 52px;
-  background: #181825;
-  border-bottom: 1px solid #313244;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.97);
+  border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
+  position: relative;
+  z-index: 100;
 }
 
 .header-logo {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #cba6f7;
-  letter-spacing: 0.05em;
-  font-family: "Segoe UI", sans-serif;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #111827;
+  letter-spacing: 0.08em;
+  font-family: "Courier New", "Consolas", monospace;
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
 }
 
 .header-divider {
-  width: 1px;
-  height: 24px;
-  background: #313244;
-  margin: 0 20px;
-  flex-shrink: 0;
+  width: 1px; height: 24px;
+  background: #e5e7eb;
+  margin: 0 20px; flex-shrink: 0;
 }
 
 .header-home-btn {
   margin-left: auto;
   background: none;
-  border: 1px solid #45475a;
-  color: #a6adc8;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
   font-size: 0.82rem;
   font-family: "Segoe UI", sans-serif;
   padding: 5px 12px;
   border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   flex-shrink: 0;
 }
-
-.header-home-btn:hover {
-  background: #313244;
-  color: #cdd6f4;
-}
+.header-home-btn:hover { background: #fff7ed; color: #ea580c; border-color: #fed7aa; }
 
 .tab-nav {
-  display: flex;
-  align-items: stretch;
-  height: 100%;
-  gap: 2px;
+  display: flex; align-items: stretch; height: 100%; gap: 2px;
 }
-
 .tab-btn {
-  background: none;
-  border: none;
+  background: none; border: none;
   border-bottom: 2px solid transparent;
-  color: #6c7086;
-  font-size: 0.9rem;
+  color: #6b7280; font-size: 0.9rem;
   font-family: "Segoe UI", sans-serif;
-  padding: 0 16px;
-  cursor: pointer;
+  padding: 0 16px; cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
-  white-space: nowrap;
-  height: 100%;
+  white-space: nowrap; height: 100%;
 }
-
-.tab-btn:hover {
-  color: #cdd6f4;
-}
-
-.tab-btn--active {
-  color: #89b4fa;
-  border-bottom-color: #89b4fa;
-  font-weight: 600;
-}
+.tab-btn:hover { color: #111827; }
+.tab-btn--active { color: #ea580c; border-bottom-color: #ea580c; font-weight: 600; }
 
 .page-body {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  flex: 1; overflow: hidden;
+  display: flex; flex-direction: column;
+  position: relative; z-index: 1;
 }
 
-.full-panel {
-  flex: 1;
-  overflow: hidden;
-}
+.full-panel { flex: 1; overflow: hidden; }
 
 .placeholder-panel {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex: 1; display: flex; align-items: center; justify-content: center;
 }
-
-.placeholder-text {
-  font-size: 1rem;
-  color: #45475a;
-  font-family: "Segoe UI", sans-serif;
-}
-
+.placeholder-text { font-size: 1rem; color: #9ca3af; font-family: "Segoe UI", sans-serif; }
 
 .code-submit-panel {
-  flex: 1;
-  display: flex;
-  padding: 20px 60px;
-  overflow: hidden;
-  box-sizing: border-box;
+  flex: 1; display: flex;
+  padding: 20px 60px; overflow: hidden; box-sizing: border-box;
 }
 
 .editor-panel {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow: hidden;
-  border-radius: 8px;
-  border: 1px solid #313244;
+  display: flex; flex-direction: column;
+  flex: 1; overflow: hidden;
+  border-radius: 8px; border: 1px solid #e5e7eb;
+  background: #ffffff;
 }
