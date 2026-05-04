@@ -29,7 +29,7 @@ public class AlgorithmProblemDetailResponse {
                 .description(problem.getDescription())
                 .inputDescription(problem.getInputDescription())
                 .outputDescription(problem.getOutputDescription())
-                .memoryLimitMB(problem.getMemoryLimitMB())
+                .memoryLimitMB(problem.getMemoryLimitMb())
                 .timeLimitSec(problem.getTimeLimitSec())
                 .exampleTestcases(problem.getExampleTestcases())
                 .build();
