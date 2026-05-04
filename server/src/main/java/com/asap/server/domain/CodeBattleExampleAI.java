@@ -35,7 +35,7 @@ public class CodeBattleExampleAI {
   @Column(columnDefinition = "TEXT")
   private String description;
 
-  @Column
+  @Column(columnDefinition = "TEXT")
   private String code;
 
   @Column(nullable = false)
