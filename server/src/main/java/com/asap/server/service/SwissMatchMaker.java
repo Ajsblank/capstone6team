@@ -136,7 +136,7 @@ public class SwissMatchMaker {
                 rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
 
                 ObjectNode codesNode = rootNode.putObject("codes");
-                codesNode.put("judge", contest.getJudge_code());
+                codesNode.put("judge", contest.getJudgeCode());
                 codesNode.put("player1", p1.getSubmission().getCode());
                 codesNode.put("player2", p2.getSubmission().getCode());
 
