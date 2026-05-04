@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.AlgorithmProblem;
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleExampleAI;
@@ -125,6 +126,19 @@ public class CodeController {
             submissionRepository.save(submission);
 
             for (CodeBattleExampleAI ai : aiList) {
+                Users aiUser = userRepository.getReferenceById(1L);
+                Users submitter = submission.getUser();
+
+                CodeBattleMatch aiMatch = new CodeBattleMatch(
+                        contest,
+                        submitter,    // user1 (제출자)
+                        aiUser,       // user2 (AI, ID 1)
+                        null,         // winner
+                        null,         // log
+                        ai.getExampleOrder()
+                    );
+                aiMatch.setSubmission(submission);
+
                 ObjectNode rootNode = objectMapper.createObjectNode();
 
                 rootNode.put("submissionId", submission.getId());
