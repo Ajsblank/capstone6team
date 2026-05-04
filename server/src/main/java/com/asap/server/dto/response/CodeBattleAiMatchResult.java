@@ -18,7 +18,7 @@ public class CodeBattleAiMatchResult {
 
         String status = "DRAW";
         if (match.getWinner() != null) {
-            status = match.getWinner().equals(userId) ? "WIN" : "LOSS";
+            status = match.getWinner().getId().equals(userId) ? "WIN" : "LOSS";
         }
 
         return CodeBattleAiMatchResult.builder()
