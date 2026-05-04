@@ -3,8 +3,10 @@
    AppLayout.css의 green 삼각형을 orange로 override
    ══════════════════════════════════════════ */
 
+/* 배틀 홈 전용 — .battle-home-page 스코프로 제한하여 알고리즘 페이지에 영향 없음 */
+
 /* 직삼각형 배경 color override → 주황 */
-.home-page::before {
+.battle-home-page.home-page::before {
   background: radial-gradient(ellipse at 100% 0%,
     rgba(234, 88, 12, 0.18) 0%,
     rgba(234, 88, 12, 0.06) 45%,
@@ -12,27 +14,27 @@
 }
 
 /* Header tab active: 주황 */
-.home-tab-btn--active {
+.battle-home-page .home-tab-btn--active {
   color: #ea580c;
   border-bottom-color: #ea580c;
 }
 
 /* Username: 주황 */
-.home-username { color: #c2410c; }
-.home-username:hover { background: #fff7ed; }
+.battle-home-page .home-username { color: #c2410c; }
+.battle-home-page .home-username:hover { background: #fff7ed; }
 
 /* Buttons: 주황 primary */
-.home-auth-btn--primary {
+.battle-home-page .home-auth-btn--primary {
   background: #ea580c;
   border: none;
 }
-.home-auth-btn--primary:hover { background: #c2410c; }
+.battle-home-page .home-auth-btn--primary:hover { background: #c2410c; }
 
 /* Hero title: 주황 */
-.home-hero-title { color: #c2410c; }
+.battle-home-page .home-hero-title { color: #c2410c; }
 
 /* site-desc strong */
-.home-site-desc strong { color: #c2410c; }
+.battle-home-page .home-site-desc strong { color: #c2410c; }
 
 /* ── 배틀 문제 목록 ── */
 .bp-problems {

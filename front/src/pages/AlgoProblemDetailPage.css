@@ -183,3 +183,77 @@
 .pd-verdict--error    { color: #ea580c; }
 .pd-verdict--tle      { color: #d97706; }
 .pd-verdict--pending  { color: #9ca3af; }
+
+/* ── 로그인 필요 모달 ── */
+.pd-login-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.pd-login-modal {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  min-width: 280px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  animation: pd-modal-in 0.18s ease;
+}
+
+@keyframes pd-modal-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.pd-login-modal-msg {
+  font-size: 0.95rem;
+  color: #111827;
+  margin: 0;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.pd-login-modal-btns {
+  display: flex;
+  gap: 10px;
+}
+
+.pd-login-modal-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 9px 24px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.pd-login-modal-btn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.pd-login-modal-btn--primary {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+.pd-login-modal-btn--primary:hover {
+  background: #15803d;
+  border-color: #15803d;
+  color: #ffffff;
+}

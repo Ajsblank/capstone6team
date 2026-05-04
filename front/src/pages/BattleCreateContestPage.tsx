@@ -236,7 +236,7 @@ const BattleCreateContestPage: React.FC = () => {
 
       {/* Header */}
       <header className="home-header">
-        <span className="home-logo" onClick={() => navigate("battle")}>ASAP 캡스톤</span>
+        <span className="home-logo" onClick={() => navigate("landing")}>ASAP 캡스톤</span>
         <div className="cc-header-spacer" />
         <div className="home-auth-area">
           <button

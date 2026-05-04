@@ -35,8 +35,6 @@ const LandingPage: React.FC = () => {
 
   const algoDetailOpacity = Math.min(1, algoProgress / 0.4);
   const battleDetailOpacity = Math.min(1, battleProgress / 0.4);
-  const showAlgoCta = algoProgress > 0.55;
-  const showBattleCta = battleProgress > 0.55;
 
   return (
     <div className="lp-page">
@@ -87,7 +85,7 @@ const LandingPage: React.FC = () => {
                   className="lp-icon"
                   style={{ transform: `scale(${1 + algoProgress * 0.3})`, transition: "transform 0.2s ease" }}
                 >
-                  📝
+                  <span className={`lp-icon-inner${!isMouseInside ? " lp-icon-inner--float" : ""}`}>📝</span>
                 </div>
                 <h2 className="lp-title lp-title--algo">알고리즘 문제</h2>
                 <p className="lp-subtitle">실력을 키우는 진짜 코딩 도전</p>
@@ -197,14 +195,9 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Sticky CTA */}
-            <div className={`lp-cta-bar lp-cta-bar--algo${showAlgoCta ? " lp-cta-bar--visible" : ""}`}>
-              <button
-                className="lp-cta lp-cta--algo"
-                onClick={(e) => { e.stopPropagation(); navigate("home"); }}
-              >
-                알고리즘 문제 풀러 이동 →
-              </button>
+            {/* 하단 고정 클릭 힌트 */}
+            <div className="lp-click-hint lp-click-hint--algo">
+              클릭하여 시작
             </div>
 
             {/* Strip indicator (visible when battle is expanded) */}
@@ -229,7 +222,7 @@ const LandingPage: React.FC = () => {
                   className="lp-icon"
                   style={{ transform: `scale(${1 + battleProgress * 0.3})`, transition: "transform 0.2s ease" }}
                 >
-                  ⚔️
+                  <span className={`lp-icon-inner${!isMouseInside ? " lp-icon-inner--float" : ""}`}>⚔️</span>
                 </div>
                 <h2 className="lp-title lp-title--battle">코드 배틀</h2>
                 <p className="lp-subtitle">AI 봇과 펼치는 실시간 코드 대결</p>
@@ -340,14 +333,9 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Sticky CTA */}
-            <div className={`lp-cta-bar lp-cta-bar--battle${showBattleCta ? " lp-cta-bar--visible" : ""}`}>
-              <button
-                className="lp-cta lp-cta--battle"
-                onClick={(e) => { e.stopPropagation(); navigate("battle"); }}
-              >
-                코드 배틀 하러 이동 →
-              </button>
+            {/* 하단 고정 클릭 힌트 */}
+            <div className="lp-click-hint lp-click-hint--battle">
+              클릭하여 시작
             </div>
 
             {/* Strip indicator (visible when algo is expanded) */}

@@ -20,9 +20,9 @@ const BattlePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<BattleTab>("home");
 
   return (
-    <div className="home-page">
+    <div className="home-page battle-home-page">
       <header className="home-header">
-        <span className="home-logo" onClick={() => setActiveTab("home")}>ASAP 캡스톤</span>
+        <span className="home-logo" onClick={() => navigate("landing")}>ASAP 캡스톤</span>
         <nav className="home-tab-nav">
           <button
             className={`home-tab-btn${activeTab === "home" ? " home-tab-btn--active" : ""}`}
@@ -52,9 +52,9 @@ const BattlePage: React.FC = () => {
         <div className="home-auth-area">
           <button
             className="home-auth-btn home-auth-btn--ghost"
-            onClick={() => navigate("home")}
+            onClick={() => navigate("landing")}
           >
-            📝 알고리즘 문제
+            홈
           </button>
           {user ? (
             <>
