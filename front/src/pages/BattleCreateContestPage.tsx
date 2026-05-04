@@ -146,6 +146,7 @@ const BattleCreateContestPage: React.FC = () => {
   const [endDate, setEndDate] = useState("");
   const [maxParticipants, setMaxParticipants] = useState<number>(100);
   const [certification, setCertification] = useState<boolean | null>(null);
+  const [status, setStatus] = useState<ContestStatus>("PLANNED");
 
   const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -159,6 +160,7 @@ const BattleCreateContestPage: React.FC = () => {
     if (!exampleCode)           missing.push("샘플 코드");
     if (!judgeCode)             missing.push("채점 코드");
     if (!visualizationHtml)     missing.push("시각화 HTML 파일");
+    if (!soloPlayHtml)          missing.push("혼자서 하기 HTML 파일");
     if (!startDate)             missing.push("시작 일");
     if (!endDate)               missing.push("종료 일");
     if (certification === null) missing.push("인증 여부");
@@ -177,7 +179,8 @@ const BattleCreateContestPage: React.FC = () => {
         exampleCode: exampleCode!,
         judgeCode: judgeCode!,
         visualizationHtml: visualizationHtml!,
-        soloPlayHtml: soloPlayHtml ?? undefined,
+        soloPlayHtml: soloPlayHtml!,
+        status,
         startDate,
         endDate,
         maxParticipants,
@@ -426,6 +429,23 @@ const BattleCreateContestPage: React.FC = () => {
                   value={maxParticipants}
                   onChange={(e) => setMaxParticipants(Number(e.target.value))}
                 />
+              </div>
+            </section>
+
+            {/* 대회 상태 */}
+            <section className="cc-section">
+              <h3 className="cc-section-title">대회 상태 <span className="cc-required">*</span></h3>
+              <div className="cc-cert-group">
+                {(["TEST", "PLANNED", "RUNNING"] as ContestStatus[]).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`cc-cert-btn${status === s ? " cc-cert-btn--certified" : ""}`}
+                    onClick={() => setStatus(s)}
+                  >
+                    {s}
+                  </button>
+                ))}
               </div>
             </section>
 

@@ -17,10 +17,11 @@ export interface CreateContestData {
   certification: boolean;
   timeLimitSec: number;
   memoryLimitMb: number;
-  exampleCode: File;  
-  judgeCode: File;  
-  visualizationHtml: File;  
-  soloPlayHtml?: File;
+  exampleCode: File;
+  judgeCode: File;
+  visualizationHtml: File;
+  soloPlayHtml: File;
+  status: ContestStatus;
   startDate: string;
   endDate: string;
   maxParticipants: number;
@@ -41,7 +42,7 @@ export const createContest = async (data: CreateContestData): Promise<ContestRes
       data.exampleCode.text(),
       data.judgeCode.text(),
       data.visualizationHtml.text(),
-      data.soloPlayHtml ? data.soloPlayHtml.text() : Promise.resolve(undefined),
+      data.soloPlayHtml.text(),
     ]);
 
   const { data: res } = await api.post<ContestResponse>("/api/contests/create", {
@@ -50,15 +51,14 @@ export const createContest = async (data: CreateContestData): Promise<ContestRes
     certification:    data.certification,
     timeLimitSec:     data.timeLimitSec,
     memoryLimitMb:    data.memoryLimitMb,
-    startDate:        data.startDate,
-    endDate:          data.endDate,
+    status:           data.status,
+    startDate:        data.startDate ? `${data.startDate} 00:00` : undefined,
+    endDate:          data.endDate   ? `${data.endDate} 00:00`   : undefined,
     maxParticipants:  data.maxParticipants,
     exampleCode,
-    // 백엔드 ContestResponse에서 주석 처리됨
     judgeCode,
-    // 백엔드 CreateContestRequest 필드 확인 필요
     visualizationHtml,
-    ...(soloPlayHtml !== undefined && { soloPlayHtml }),
+    soloPlayHtml,
   });
   return res;
 };

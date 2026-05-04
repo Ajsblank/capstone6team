@@ -6,6 +6,7 @@ import "./MySubmissionsTab.css";
 
 interface Props {
   contestId: number;
+  refreshKey: number;
   localSubmissions: LocalSubmission[];
   onLocalUpdate: React.Dispatch<React.SetStateAction<LocalSubmission[]>>;
   onLogClick: (log: string) => void;
@@ -134,32 +135,33 @@ function SubmissionItem({ sub, userId, onLogClick }: {
 
 // ── 탭 컴포넌트 ──
 const MySubmissionsTab: React.FC<Props> = ({
-  contestId, localSubmissions, onLocalUpdate, onLogClick, userId,
+  contestId, refreshKey, localSubmissions, onLocalUpdate, onLogClick, userId,
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchFromServer = useCallback(async () => {
+    console.log("[MySubmissionsTab] fetchFromServer called, contestId:", contestId);
     setLoading(true);
     setError(null);
     try {
       const data = await getMyBattleSubmissions(contestId);
-      // 서버 데이터를 기준으로 로컬 상태 교체
-      // finalized=false인 항목(현재 채점 중)은 로컬 최신 항목을 유지
+      console.log("[MySubmissionsTab] 응답:", data);
       onLocalUpdate(prev => {
         const inProgress = prev.filter(s => !s.finalized);
         const serverItems = data.map(summaryToLocal);
-        // 진행 중인 항목이 서버 항목과 중복되지 않도록 submissionId로 필터
         const serverIds = new Set(serverItems.map(s => s.submissionId));
         const stillPending = inProgress.filter(s => !s.submissionId || !serverIds.has(s.submissionId));
-        return [...stillPending, ...serverItems];
+        return [...stillPending, ...serverItems]
+          .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
       });
     } catch (e: any) {
+      console.error("[MySubmissionsTab] 에러:", e);
       setError(e.response?.data?.message ?? "데이터를 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
-  }, [contestId, onLocalUpdate]);
+  }, [contestId, refreshKey, onLocalUpdate]);
 
   // 탭 마운트 시 서버에서 이력 조회
   useEffect(() => {
