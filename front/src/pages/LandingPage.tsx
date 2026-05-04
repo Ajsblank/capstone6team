@@ -57,7 +57,7 @@ const LandingPage: React.FC = () => {
           ) : (
             <>
               <button className="lp-auth-btn lp-auth-btn--ghost" onClick={() => navigate("signup")}>회원가입</button>
-              <button className="lp-auth-btn lp-auth-btn--primary" onClick={() => navigate("login")}>로그인</button>
+              <button className="lp-auth-btn lp-auth-btn--primary" onClick={() => { localStorage.setItem("loginRedirect", "landing"); navigate("login"); }}>로그인</button>
             </>
           )}
         </div>
