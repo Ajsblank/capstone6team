@@ -1,6 +1,7 @@
 package com.asap.server.global;
 
 import com.asap.server.dto.response.CodeBattleMatchResult;
+import org.springframework.transaction.annotation.Transactional;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.service.SseService;
@@ -21,6 +22,7 @@ import com.asap.server.repository.CodeBattleParticipantRepository;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class RedisResultWorker implements CommandLineRunner {
 
     private final StringRedisTemplate redisTemplate;
