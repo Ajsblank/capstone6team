@@ -1,0 +1,33 @@
+# git action workflow name
+name: ci-front
+# executing name: actor name
+run-name: "CI actor : ${{github.actor}}"
+# Controls when the workflow will run
+on:
+  pull_request:
+    paths:
+      - 'front/**'
+      - '.github/workflows/*'
+
+jobs:
+  front:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: front
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        name: node install
+        with:
+          node-version: 24
+      - name: install npm
+        run: npm ci
+
+      - name: npm test
+        run: |
+            npm test -- --watchAll=false --passWithNoTests
+      - name: npm build
+        env:
+          REACT_APP_API_BASE_URL: http://localhost:8080
+        run: npm run build

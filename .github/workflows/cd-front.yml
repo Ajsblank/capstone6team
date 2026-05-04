@@ -1,0 +1,67 @@
+# git action workflow name
+name: cd-front
+# executing name, can use environment variables
+run-name: "CD actor : ${{github.actor}}"
+# Controls when the workflow will run
+on:
+  push:
+    branches: [ "dev/front","develop"]
+    paths:
+      - 'front/**'
+      - '.github/workflows/*'
+
+jobs:
+  filter:
+    runs-on: ubuntu-latest
+    outputs: 
+      front_change: ${{steps.filter_front.outputs.front || 'false'}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v4
+        name: check if front directory exits
+        id: filter_front
+        if: hashFiles('front/**') !=  ''
+        with:
+          filters: |
+            front:
+              -  'front/**'
+              -  '.github/workflows/*'
+
+  front:
+    needs: filter
+    if: needs.filter.outputs.front_change == 'true'
+    permissions: 
+      id-token: write
+      contents: read
+      
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: front
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        name: node install
+        with:
+          node-version: 24
+      - name: install npm
+        run: npm ci
+
+      - name: npm test
+        run: |
+            npm test -- --watchAll=false --passWithNoTests
+      - name: npm build
+        env:
+          REACT_APP_API_BASE_URL: ${{ secrets.EC2_URL }}
+        run: npm run build
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{secrets.ARN_ROLE}}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: check aws identity
+        run: aws sts get-caller-identity
+      - name: Upload to S3 TEST BUCKET
+        run: aws s3 sync build/ s3://caps-asap-bucket-test --delete --exclude "backend-deploy/*"
+        
