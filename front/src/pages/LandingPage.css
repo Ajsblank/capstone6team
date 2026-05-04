@@ -151,7 +151,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-bottom: 96px;
+  padding-bottom: 72px;
   scrollbar-width: thin;
 }
 
@@ -342,43 +342,28 @@
   border: 1px solid #fed7aa;
 }
 
-/* ── CTA bar (pinned bottom of panel) ── */
-.lp-cta-bar {
+/* ── Click hint (fixed bottom, always visible) ── */
+.lp-click-hint {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  display: flex;
-  justify-content: center;
-  padding: 28px 32px 32px;
-  opacity: 0;
+  text-align: center;
+  padding: 24px 24px 28px;
   pointer-events: none;
-  transition: opacity 0.35s ease 0.1s;
-}
-.lp-cta-bar--algo {
-  background: linear-gradient(to bottom, transparent, rgba(240,253,244,0.92) 40%, #f0fdf4);
-}
-.lp-cta-bar--battle {
-  background: linear-gradient(to bottom, transparent, rgba(255,247,237,0.92) 40%, #fff7ed);
-}
-.lp-cta-bar--visible { opacity: 1; pointer-events: auto; }
-
-.lp-cta {
-  padding: 14px 42px;
-  border: none;
-  border-radius: 10px;
-  font-family: "Segoe UI", sans-serif;
-  font-size: 0.97rem;
+  user-select: none;
+  font-size: 0.72rem;
   font-weight: 800;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  white-space: nowrap;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-family: "Courier New", monospace;
 }
-.lp-cta:hover { transform: scale(1.07); box-shadow: 0 8px 28px rgba(0,0,0,0.18); }
-
-.lp-cta--algo { background: #16a34a; color: #ffffff; }
-.lp-cta--algo:hover { background: #15803d; }
-.lp-cta--battle { background: #ea580c; color: #ffffff; }
-.lp-cta--battle:hover { background: #c2410c; }
+.lp-click-hint--algo {
+  background: linear-gradient(to bottom, transparent, rgba(240,253,244,0.95) 45%);
+  color: rgba(22, 163, 74, 0.7);
+}
+.lp-click-hint--battle {
+  background: linear-gradient(to bottom, transparent, rgba(255,247,237,0.95) 45%);
+  color: rgba(234, 88, 12, 0.7);
+}
 
 /* ── Strip indicator ── */
 .lp-strip {
@@ -407,3 +392,19 @@
 .lp-strip--visible span { opacity: 1; }
 .lp-strip--algo span   { color: #16a34a; }
 .lp-strip--battle span { color: #ea580c; }
+
+/* ── Icon float animation (idle state) ── */
+.lp-icon-inner {
+  display: block;
+  line-height: 1;
+}
+
+@keyframes lp-icon-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-14px); }
+}
+
+.lp-icon-inner--float {
+  animation: lp-icon-float 2.4s ease-in-out infinite;
+}
+

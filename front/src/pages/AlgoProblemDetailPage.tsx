@@ -40,6 +40,15 @@ const AlgoProblemDetailPage: React.FC = () => {
 
   // ── 탭 ──
   const [activeTab, setActiveTab] = useState<Tab>("problem");
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const handleTabClick = (tab: Tab) => {
+    if ((tab === "submit" || tab === "my-submissions") && !user) {
+      setShowLoginModal(true);
+      return;
+    }
+    setActiveTab(tab);
+  };
 
   // ── 제출 ──
   const [language, setLanguage] = useState<Language>("cpp");
@@ -133,6 +142,32 @@ const AlgoProblemDetailPage: React.FC = () => {
 
       <AppHeader activePage="problems" />
 
+      {/* 로그인 필요 모달 */}
+      {showLoginModal && (
+        <div className="pd-login-modal-overlay">
+          <div className="pd-login-modal">
+            <p className="pd-login-modal-msg">로그인이 필요한 기능입니다.<br />로그인 페이지로 이동하시겠습니까?</p>
+            <div className="pd-login-modal-btns">
+              <button
+                className="pd-login-modal-btn pd-login-modal-btn--primary"
+                onClick={() => {
+                  localStorage.setItem("loginRedirect", window.location.hash);
+                  navigate("login");
+                }}
+              >
+                이동
+              </button>
+              <button
+                className="pd-login-modal-btn"
+                onClick={() => setShowLoginModal(false)}
+              >
+                뒤로
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 탭 바 */}
       <div className="pd-tab-bar">
         <button
@@ -143,13 +178,13 @@ const AlgoProblemDetailPage: React.FC = () => {
         </button>
         <button
           className={`pd-tab-btn${activeTab === "submit" ? " pd-tab-btn--active" : ""}`}
-          onClick={() => setActiveTab("submit")}
+          onClick={() => handleTabClick("submit")}
         >
           제출
         </button>
         <button
           className={`pd-tab-btn${activeTab === "my-submissions" ? " pd-tab-btn--active" : ""}`}
-          onClick={() => setActiveTab("my-submissions")}
+          onClick={() => handleTabClick("my-submissions")}
         >
           내 제출
         </button>

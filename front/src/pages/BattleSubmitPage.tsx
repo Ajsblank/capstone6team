@@ -178,7 +178,7 @@ const SubmitPage: React.FC = () => {
         <SubmitSuccessModal message={responseMessage} onClose={() => setShowSuccessModal(false)} />
       )}
       <header className="page-header">
-        <span className="header-logo" onClick={() => navigate("battle")}>CodeBattle</span>
+        <span className="header-logo" onClick={() => navigate("landing")}>CodeBattle</span>
         <span className="header-divider" />
         <nav className="tab-nav">
           {TAB_LIST.map((tab) => (
@@ -191,8 +191,8 @@ const SubmitPage: React.FC = () => {
             </button>
           ))}
         </nav>
-        <button className="header-home-btn" onClick={() => navigate("battle")}>
-          ← 홈으로
+        <button className="header-home-btn" onClick={() => window.history.back()}>
+          ← 이전으로
         </button>
       </header>
 

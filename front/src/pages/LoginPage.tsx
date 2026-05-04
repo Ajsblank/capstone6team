@@ -25,7 +25,13 @@ const LoginPage: React.FC = () => {
       const uid = getUserId() ?? tokenData.userId;
       if (uid) subscribeToResults(uid, () => {});
       login({ id: uid ?? email, username: email, email });
-      navigate("home");
+      const redirect = localStorage.getItem("loginRedirect");
+      localStorage.removeItem("loginRedirect");
+      if (redirect) {
+        window.location.hash = redirect.replace("#", "");
+      } else {
+        navigate("home");
+      }
     } catch (err: any) {
       const msg = err.response?.data?.message ?? "이메일 또는 비밀번호가 올바르지 않습니다.";
       setError(msg);
@@ -53,7 +59,7 @@ const LoginPage: React.FC = () => {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-logo" onClick={() => navigate("home")}>CodeBattle</div>
+        <div className="login-logo" onClick={() => navigate("landing")}>CodeBattle</div>
         <h2 className="login-title">로그인</h2>
 
         <form className="login-form" onSubmit={handleLogin} noValidate>
@@ -106,8 +112,8 @@ const LoginPage: React.FC = () => {
           </button>
         </div>
 
-        <button className="login-back-btn" onClick={() => navigate("home")}>
-          ← 홈으로 돌아가기
+        <button className="login-back-btn" onClick={() => window.history.back()}>
+          ← 이전으로
         </button>
       </div>
     </div>
