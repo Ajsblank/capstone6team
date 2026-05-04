@@ -1,12 +1,14 @@
 package com.asap.server.controller;
 
 import java.net.URI;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,7 +25,9 @@ import com.asap.server.dto.request.UpdateContestRequest;
 import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestResponse;
+import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.service.ContestService;
+import com.asap.server.service.CodeBattleSubmissionService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,6 +44,7 @@ import lombok.RequiredArgsConstructor;
 public class ContestController {
 
     private final ContestService contestService;
+    private final CodeBattleSubmissionService submissionService;
 
     @PostMapping("/create")
     public ResponseEntity<ContestResponse> createContest(@Valid @RequestBody CreateContestRequest request) {
@@ -79,6 +84,16 @@ public class ContestController {
             @PathVariable Long contestId,
             @RequestBody UpdateContestRequest request) {
         return ResponseEntity.ok(contestService.updateContest(contestId, request));
+    }
+
+    @GetMapping("/{contestId}/mySubmission")
+    @Operation(summary = "내 제출 및 AI 결과 조회", description = "내가 해당 대회에 제출한 코드와 샘플 AI와의 대결 결과를 조회합니다.")
+    public ResponseEntity<List<CodeBattleMySubmissionResponse>> getMySubmissions(
+            @PathVariable Long contestId,
+            @AuthenticationPrincipal Long userId) {
+
+        List<CodeBattleMySubmissionResponse> responses = submissionService.getMySubmissionsWithAi(contestId, userId);
+        return ResponseEntity.ok(responses);
     }
 
 }

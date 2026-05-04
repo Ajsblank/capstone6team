@@ -14,10 +14,12 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor
 @Table(name = "code_battle_participant", uniqueConstraints = {
     @UniqueConstraint(name = "uk_participant_user_contest", columnNames = { "user_id", "contest_id" })
