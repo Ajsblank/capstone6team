@@ -95,7 +95,7 @@ const BattlePage: React.FC = () => {
                 <div
                   key={p.id}
                   className="bp-problem-card"
-                  onClick={() => navigate("submit")}
+                  onClick={() => { window.location.hash = `submit/${p.id}`; }}
                 >
                   <div className="bp-problem-card-left">
                     <span className="bp-problem-num">#{p.id}</span>

@@ -39,25 +39,25 @@ const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2"
 
 /**
  * 해시 파싱
- * 형식 A: #submit/tab          → contestId=1 (기본값)
- * 형식 B: #submit/123/tab      → contestId=123
+ * 형식 A: #submit/tab          → problemId=1 (기본값)
+ * 형식 B: #submit/123/tab      → problemId=123
  */
-function parseHash(): { contestId: number; tab: Tab } {
+function parseHash(): { problemId: number; tab: Tab } {
   const parts = window.location.hash.replace("#", "").split("/");
   // parts[0] = "submit"
   const maybeId = Number(parts[1]);
   if (!isNaN(maybeId) && maybeId > 0) {
     const tab = (parts[2] ?? "problem") as Tab;
-    return { contestId: maybeId, tab: VALID_TABS.includes(tab) ? tab : "problem" };
+    return { problemId: maybeId, tab: VALID_TABS.includes(tab) ? tab : "problem" };
   }
   const tab = (parts[1] ?? "problem") as Tab;
-  return { contestId: 1, tab: VALID_TABS.includes(tab) ? tab : "problem" };
+  return { problemId: 1, tab: VALID_TABS.includes(tab) ? tab : "problem" };
 }
 
 const SubmitPage: React.FC = () => {
   const { navigate, user } = useApp();
 
-  const [{ contestId, tab: activeTab }, setHashState] = useState(parseHash);
+  const [{ problemId, tab: activeTab }, setHashState] = useState(parseHash);
 
   const [language, setLanguage] = useState<Language>("cpp");
   const [code, setCode] = useState<string>(LANGUAGE_DEFAULTS["cpp"]);
@@ -66,6 +66,7 @@ const SubmitPage: React.FC = () => {
   const [responseMessage, setResponseMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [localSubmissions, setLocalSubmissions] = useState<LocalSubmission[]>([]);
+  const [submissionsRefreshKey, setSubmissionsRefreshKey] = useState(0);
 
   // 로그 분석 iframe ref + 전달할 로그
   const logIframeRef = useRef<HTMLIFrameElement>(null);
@@ -113,10 +114,11 @@ const SubmitPage: React.FC = () => {
   }, []);
 
   const handleTabChange = useCallback((tab: Tab) => {
-    const base = contestId === 1 ? "submit" : `submit/${contestId}`;
+    const base = problemId === 1 ? "submit" : `submit/${problemId}`;
     window.location.hash = `${base}/${tab}`;
     setHashState(prev => ({ ...prev, tab }));
-  }, [contestId]);
+    if (tab === "my-submissions") setSubmissionsRefreshKey(k => k + 1);
+  }, [problemId]);
 
   // 로그 클릭 → viz1 탭으로 이동 후 iframe에 로그 전달
   const handleLogClick = useCallback((log: string) => {
@@ -146,7 +148,8 @@ const SubmitPage: React.FC = () => {
     try {
       const result = await submitCode({
         userId: user?.id ?? "",
-        language: language as string,
+        problemId: String(problemId),
+        language: language.toUpperCase(),
         sourceCode: code,
       });
       setLocalSubmissions(prev => [{
@@ -220,7 +223,8 @@ const SubmitPage: React.FC = () => {
         {activeTab === "my-submissions" && (
           <div className="full-panel" style={{ overflowY: "auto" }}>
             <MySubmissionsTab
-              contestId={contestId}
+              contestId={problemId}
+              refreshKey={submissionsRefreshKey}
               localSubmissions={localSubmissions}
               onLocalUpdate={setLocalSubmissions}
               onLogClick={handleLogClick}
