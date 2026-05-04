@@ -1,62 +1,21 @@
 # git action workflow name
 name: ci-front
-# executing name, can use environment variables
-run-name: "actor : ${{github.actor}}"
+# executing name: actor name
+run-name: "CI actor : ${{github.actor}}"
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: [ "dev/front**","feat/front**"]
-      # 실행할 경로를 아래 경로 파일들의 변동으로 제한
-    paths:
-      - 'front/**'
-      - 'server/**'
-      - '.github/workflows/*'
   pull_request:
-    branches: ["dev/front**","feat/front**"]
     paths:
       - 'front/**'
-      - 'server/**'
       - '.github/workflows/*'
 
-  # Allows you to run this workflow manually from the Actions tab
-  #workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  filter:
-    runs-on: ubuntu-latest
-    outputs: 
-      front_change: ${{steps.filter_front.outputs.front || 'false'}}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v4
-        name: check if front directory exits
-        id: filter_front
-        if: hashFiles('front/**') !=  ''
-        with:
-          filters: |
-            front:
-              -  'front/**'
-              -  '.github/workflows/*'
-
-  # This workflow contains a single job called "build"
   front:
-    needs: filter
-    if: needs.filter.outputs.front_change == 'true'
-    permissions: 
-      id-token: write
-      contents: read
-      
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    # default setting
     defaults:
       run:
         working-directory: front
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         name: node install
@@ -70,16 +29,5 @@ jobs:
             npm test -- --watchAll=false --passWithNoTests
       - name: npm build
         env:
-          REACT_APP_API_BASE_URL: ${{ secrets.EC2_URL }}
+          REACT_APP_API_BASE_URL: http://localhost:8080
         run: npm run build
-
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{secrets.ARN_ROLE}}
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: check aws identity
-        run: aws sts get-caller-identity
-      - name: Upload to S3 TEST BUCKET
-        run: aws s3 sync build/ s3://caps-asap-bucket-test --delete --exclude "backend-deploy/*"
-        
