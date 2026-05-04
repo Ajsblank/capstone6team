@@ -136,6 +136,7 @@ public class RedisResultWorker implements CommandLineRunner {
             else aiMatch.setWinner(null);
 
             aiMatch.setLog(result.getLog());
+            aiMatch.setAiOrder(result.getAiOrder());
             matchRepository.save(aiMatch);
 
             sseService.sendToUser(aiMatch.getUser1().getId(), result);
