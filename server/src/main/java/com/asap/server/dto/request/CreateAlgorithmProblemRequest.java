@@ -19,7 +19,7 @@ public class CreateAlgorithmProblemRequest {
     private String inputDescription;
     private String outputDescription;
 
-    private int memoryLimitMB;
+    private int memoryLimitMb;
     private int timeLimitSec;
 
     private List<VisibleTestCaseDto> exampleTestcases;
@@ -45,7 +45,7 @@ public class CreateAlgorithmProblemRequest {
                 .description(this.description)
                 .inputDescription(this.inputDescription)
                 .outputDescription(this.outputDescription)
-                .memoryLimitMB(this.memoryLimitMB)
+                .memoryLimitMb(this.memoryLimitMb)
                 .timeLimitSec(this.timeLimitSec)
                 .exampleTestcases(this.exampleTestcases.stream()
                         .map(VisibleTestCaseDto::toEntity)

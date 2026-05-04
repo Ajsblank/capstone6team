@@ -63,7 +63,7 @@ public class AlgorithmProblem {
     private int timeLimitSec;
 
     @Column(name = "memory_limit_mb")
-    private int memoryLimitMB;
+    private int memoryLimitMb;
 
     @Getter
     @Setter

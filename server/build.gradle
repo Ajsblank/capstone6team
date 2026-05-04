@@ -104,6 +104,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	//email auth
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	//solapi
+	implementation 'com.solapi:sdk:1.0.3'
 }
 
 // Junit6설정 

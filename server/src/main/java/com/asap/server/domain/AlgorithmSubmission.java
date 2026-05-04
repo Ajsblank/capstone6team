@@ -2,6 +2,8 @@ package com.asap.server.domain;
 
 import java.time.LocalDateTime;
 
+import com.asap.server.global.type.Language;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ForeignKey;
@@ -39,7 +41,7 @@ public class AlgorithmSubmission {
     private AlgorithmProblem problem;
 
     @Column
-    private String language;
+    private Language language;
 
     @Column
     private String code;

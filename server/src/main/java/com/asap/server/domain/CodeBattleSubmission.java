@@ -2,6 +2,8 @@ package com.asap.server.domain;
 
 import java.time.LocalDateTime;
 
+import com.asap.server.global.type.Language;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.ForeignKey;
@@ -34,7 +36,7 @@ public class CodeBattleSubmission {
   private CodeBattleContest contest;
 
   @Column
-  private String language;
+  private Language language;
 
   @Column
   private String code;
@@ -45,7 +47,7 @@ public class CodeBattleSubmission {
   @Column(nullable = false)
   private LocalDateTime created_at;
 
-  public CodeBattleSubmission(Users user, CodeBattleContest contest, String language, String code,
+  public CodeBattleSubmission(Users user, CodeBattleContest contest, Language language, String code,
       String result) {
     this.user = user;
     this.contest = contest;

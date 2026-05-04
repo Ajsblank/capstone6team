@@ -13,7 +13,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -49,11 +48,11 @@ public class CodeBattleContest {
   @Column
   private Boolean certification; // True for certification contest
 
-  @Column(columnDefinition = "TEXT")
-  private String judge_code;
+  @Column(columnDefinition = "TEXT", name = "judge_code")
+  private String judgeCode;
 
-  @Column(columnDefinition = "TEXT")
-  private String example_code;
+  @Column(columnDefinition = "TEXT", name = "example_code")
+  private String exampleCode;
 
   @Column(name = "max_participants")
   private int maxParticipants;
@@ -64,17 +63,14 @@ public class CodeBattleContest {
   @Column(name = "end_date")
   private LocalDateTime endDate;
 
-  @Column(nullable = false)
-  private LocalDateTime created_at;
+  @Column(nullable = false, name = "created_at")
+  private LocalDateTime createdAt;
 
-  @Column(nullable = false)
-  private LocalDateTime updated_at;
-
-  @Column
-  private LocalDateTime deleted_at;
+  @Column(name = "deleted_at")
+  private LocalDateTime deletedAt;
 
   public static CodeBattleContest create(String title, String description, ContestStatus status, Boolean certification,
-      Integer timeLimitSec, Integer memoryLimitMB, String judge_code, String example_code,
+      Integer timeLimitSec, Integer memoryLimitMB, String judgeCode, String exampleCode,
       Integer maxParticipants, LocalDateTime startDate, LocalDateTime endDate) {
     CodeBattleContest contest = new CodeBattleContest();
     contest.title = title;
@@ -83,8 +79,8 @@ public class CodeBattleContest {
     contest.certification = certification;
     contest.timeLimitSec = timeLimitSec;
     contest.memoryLimitMB = memoryLimitMB;
-    contest.judge_code = judge_code;
-    contest.example_code = example_code;
+    contest.judgeCode = judgeCode;
+    contest.exampleCode = exampleCode;
     contest.maxParticipants = maxParticipants;
     contest.startDate = startDate;
     contest.endDate = endDate;
@@ -122,10 +118,10 @@ public class CodeBattleContest {
       this.memoryLimitMB = memoryLimitMB;
     }
     if (judgeCode != null) {
-      this.judge_code = judgeCode;
+      this.judgeCode = judgeCode;
     }
     if (exampleCode != null) {
-      this.example_code = exampleCode;
+      this.exampleCode = exampleCode;
     }
     if (maxParticipants != null) {
       this.maxParticipants = maxParticipants;
@@ -134,13 +130,7 @@ public class CodeBattleContest {
 
   @PrePersist
   protected void onCreate() {
-    created_at = LocalDateTime.now();
-    updated_at = LocalDateTime.now();
-  }
-
-  @PreUpdate
-  protected void onUpdate() {
-    updated_at = LocalDateTime.now();
+    createdAt = LocalDateTime.now();
   }
 
   public enum ContestStatus {
