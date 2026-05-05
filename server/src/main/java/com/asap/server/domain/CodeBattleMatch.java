@@ -52,6 +52,9 @@ public class CodeBattleMatch {
   @Column(nullable = false)
   private LocalDateTime created_at;
 
+  @Column(name = "ai_order")
+  private int aiOrder;
+
   public CodeBattleMatch(CodeBattleContest contest, Users user1, Users user2, Users winner, String log) {
     this.contest = contest;
     this.user1 = user1;

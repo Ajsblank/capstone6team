@@ -22,6 +22,9 @@ public class CreateAlgorithmProblemRequest {
     private int memoryLimitMb;
     private int timeLimitSec;
 
+    private String visualizationHtml;
+    private String soloPlayHtml;
+
     private List<VisibleTestCaseDto> exampleTestcases;
     private List<VisibleTestCaseDto> hiddenTestcases;
 
