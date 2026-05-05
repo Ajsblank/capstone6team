@@ -51,6 +51,7 @@ public class RedisResultWorker implements CommandLineRunner {
             try {
                 rawData = redisTemplate.opsForList().rightPop("code_battle_result_queue", 5, TimeUnit.SECONDS);
                 if (rawData == null) continue;
+                log.info("🤖 [대회용] Redis 결과 처리...");
                 processNormalResult(rawData);
             } catch (Exception e) {
                 if (Thread.currentThread().isInterrupted()) break;
@@ -111,6 +112,7 @@ public class RedisResultWorker implements CommandLineRunner {
             try {
                 rawData = redisTemplate.opsForList().rightPop("code_battle_ai_result_queue", 5, TimeUnit.SECONDS);
                 if (rawData == null) continue;
+                log.info("🤖 [AI 전용] Redis 결과 처리...");
                 processAiResult(rawData);
             } catch (Exception e) {
                 if (Thread.currentThread().isInterrupted()) break;
@@ -127,16 +129,18 @@ public class RedisResultWorker implements CommandLineRunner {
         CodeBattleSubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new RuntimeException("Submission not found (ID: " + submissionId + ")"));
 
-        CodeBattleMatch aiMatch = matchRepository.findByIdAndUser2Id(submission.getId(), 1L);
+        CodeBattleMatch aiMatch = matchRepository.findBySubmissionIdAndAiOrder(submissionId, result.getAiOrder())
+        .orElse(null);
+        log.error("여기까지 됨1");
 
         if (aiMatch != null) {
+            log.error("여기까지 됨2");
             int comp = Integer.parseInt(result.getWinner());
             if (comp == 1) aiMatch.setWinner(aiMatch.getUser1());
             else if (comp == 2) aiMatch.setWinner(aiMatch.getUser2());
             else aiMatch.setWinner(null);
 
             aiMatch.setLog(result.getLog());
-            aiMatch.setAiOrder(result.getAiOrder());
             matchRepository.save(aiMatch);
 
             sseService.sendToUser(aiMatch.getUser1().getId(), result);

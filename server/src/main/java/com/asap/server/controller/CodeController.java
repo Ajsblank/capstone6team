@@ -21,6 +21,7 @@ import com.asap.server.dto.response.CodeSubmitResponse;
 import com.asap.server.repository.AlgorithmProblemRepository;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
+import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.asap.server.repository.usersRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,6 +44,7 @@ public class CodeController {
     private final AlgorithmProblemRepository problemRepository; // DB 조회를 위한 레포지토리
     private final usersRepository userRepository;
     private final CodeBattleExampleAIRepository exampleAIRepository;
+    private final CodeBattleMatchRepository matchRepository;
     private final CodeBattleContestRepository contestRepository;
     private final CodeBattleSubmissionRepository submissionRepository;
 
@@ -138,6 +140,7 @@ public class CodeController {
                         ai.getExampleOrder()
                     );
                 aiMatch.setSubmission(submission);
+                matchRepository.save(aiMatch);
 
                 ObjectNode rootNode = objectMapper.createObjectNode();
 

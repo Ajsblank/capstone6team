@@ -54,6 +54,7 @@ public class CodeBattleMatch {
   @Column(columnDefinition = "TEXT")
   private String log;
 
+  @Column(name = "ai_order")
   private Integer aiOrder;
 
   @Column(nullable = false)
