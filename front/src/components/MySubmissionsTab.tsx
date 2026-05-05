@@ -145,7 +145,7 @@ const MySubmissionsTab: React.FC<Props> = ({
     setLoading(true);
     setError(null);
     try {
-      const data = await getMyBattleSubmissions(contestId);
+      const data = await getMyBattleSubmissions(contestId, userId);
       console.log("[MySubmissionsTab] 응답:", data);
       onLocalUpdate(prev => {
         const inProgress = prev.filter(s => !s.finalized);

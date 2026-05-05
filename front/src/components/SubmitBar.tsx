@@ -1,5 +1,4 @@
 import React from "react";
-import { SUBMIT_URL } from "../api/codeBattleApi";
 import "./SubmitBar.css";
 
 type SubmitStatus = "idle" | "submitting" | "success" | "error";
@@ -20,7 +19,6 @@ const STATUS_MESSAGE: Record<SubmitStatus, string> = {
 const SubmitBar: React.FC<Props> = ({ status, errorMessage, onSubmit }) => {
   return (
     <div className="submit-bar">
-      <span className="submit-url">서버: {SUBMIT_URL}</span>
       {status !== "idle" && (
         <span className={`submit-status submit-status--${status}`}>
           {status === "error" && errorMessage ? errorMessage : STATUS_MESSAGE[status]}
