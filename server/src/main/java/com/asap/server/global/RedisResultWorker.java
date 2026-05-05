@@ -131,10 +131,8 @@ public class RedisResultWorker implements CommandLineRunner {
 
         CodeBattleMatch aiMatch = matchRepository.findBySubmissionIdAndAiOrder(submissionId, result.getAiOrder())
         .orElse(null);
-        log.error("여기까지 됨1");
 
         if (aiMatch != null) {
-            log.error("여기까지 됨2");
             int comp = Integer.parseInt(result.getWinner());
             if (comp == 1) aiMatch.setWinner(aiMatch.getUser1());
             else if (comp == 2) aiMatch.setWinner(aiMatch.getUser2());
