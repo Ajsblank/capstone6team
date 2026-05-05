@@ -68,7 +68,8 @@ public class SwissMatchMaker {
                     p1.getUser(),
                     p2.getUser(),
                     null, // winner
-                    null  // log
+                    null,  // log
+                    0
             );
             matches.add(match);
         }
@@ -109,7 +110,8 @@ public class SwissMatchMaker {
                     participants.get(i).getUser(),
                     participants.get(i + 1).getUser(),
                     null, // winner
-                    null  // log
+                    null,  // log
+                    0
             );
             matches.add(match);
         }

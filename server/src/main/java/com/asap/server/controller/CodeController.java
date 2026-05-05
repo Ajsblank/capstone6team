@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.AlgorithmProblem;
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleExampleAI;
@@ -20,6 +21,7 @@ import com.asap.server.dto.response.CodeSubmitResponse;
 import com.asap.server.repository.AlgorithmProblemRepository;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
+import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.asap.server.repository.usersRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,6 +44,7 @@ public class CodeController {
     private final AlgorithmProblemRepository problemRepository; // DB 조회를 위한 레포지토리
     private final usersRepository userRepository;
     private final CodeBattleExampleAIRepository exampleAIRepository;
+    private final CodeBattleMatchRepository matchRepository;
     private final CodeBattleContestRepository contestRepository;
     private final CodeBattleSubmissionRepository submissionRepository;
 
@@ -125,6 +128,20 @@ public class CodeController {
             submissionRepository.save(submission);
 
             for (CodeBattleExampleAI ai : aiList) {
+                Users aiUser = userRepository.getReferenceById(1L);
+                Users submitter = submission.getUser();
+
+                CodeBattleMatch aiMatch = new CodeBattleMatch(
+                        contest,
+                        submitter,    // user1 (제출자)
+                        aiUser,       // user2 (AI, ID 1)
+                        null,         // winner
+                        null,         // log
+                        ai.getExampleOrder()
+                    );
+                aiMatch.setSubmission(submission);
+                matchRepository.save(aiMatch);
+
                 ObjectNode rootNode = objectMapper.createObjectNode();
 
                 rootNode.put("submissionId", submission.getId());
