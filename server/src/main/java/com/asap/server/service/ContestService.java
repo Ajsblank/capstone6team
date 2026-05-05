@@ -52,7 +52,9 @@ public class ContestService {
                 request.getExampleCode(),
                 request.getMaxParticipants(),
                 policy.startDate(),
-                policy.endDate());
+                policy.endDate(),
+                request.getSoloPlayHtml(),
+                request.getVisualizationHtml());
 
         return ContestResponse.from(contestRepository.save(contest));
     }

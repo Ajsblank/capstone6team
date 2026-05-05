@@ -39,6 +39,12 @@ public class CodeBattleContest {
   @Column(name = "memory_limit_mb")
   private int memoryLimitMB;
 
+  @Column(name = "visualization_html_url")
+  private String visualizationHtml;
+  
+  @Column(name = "solo_play_html_url")
+  private String soloPlayHtml;
+
   // PostgreSQL enum(status)와 Java enum 간 바인딩 타입을 명시한다.
   @JdbcTypeCode(SqlTypes.NAMED_ENUM)
   @Enumerated(EnumType.STRING)
@@ -71,7 +77,8 @@ public class CodeBattleContest {
 
   public static CodeBattleContest create(String title, String description, ContestStatus status, Boolean certification,
       Integer timeLimitSec, Integer memoryLimitMB, String judgeCode, String exampleCode,
-      Integer maxParticipants, LocalDateTime startDate, LocalDateTime endDate) {
+      Integer maxParticipants, LocalDateTime startDate, LocalDateTime endDate, 
+      String visualizationHtml,String soloPlayHtml) {
     CodeBattleContest contest = new CodeBattleContest();
     contest.title = title;
     contest.description = description;
@@ -84,6 +91,8 @@ public class CodeBattleContest {
     contest.maxParticipants = maxParticipants;
     contest.startDate = startDate;
     contest.endDate = endDate;
+    contest.visualizationHtml=visualizationHtml;
+    contest.soloPlayHtml=soloPlayHtml;
     return contest;
   }
 
