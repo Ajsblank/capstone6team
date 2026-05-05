@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.asap.server.config.CustomUserDetails;
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleContest.ContestStatus;
 import com.asap.server.dto.request.CreateContestRequest;
@@ -86,13 +87,14 @@ public class ContestController {
         return ResponseEntity.ok(contestService.updateContest(contestId, request));
     }
 
-    @GetMapping("/{contestId}/mySubmission")
+    @GetMapping("/{contestId}/{targetUserId}")
     @Operation(summary = "내 제출 및 AI 결과 조회", description = "내가 해당 대회에 제출한 코드와 샘플 AI와의 대결 결과를 조회합니다.")
     public ResponseEntity<List<CodeBattleMySubmissionResponse>> getMySubmissions(
             @PathVariable Long contestId,
-            @AuthenticationPrincipal Long userId) {
+            @PathVariable Long targetUserId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        List<CodeBattleMySubmissionResponse> responses = submissionService.getMySubmissionsWithAi(contestId, userId);
+        List<CodeBattleMySubmissionResponse> responses = submissionService.getMySubmissionsWithAi(contestId, targetUserId);
         return ResponseEntity.ok(responses);
     }
 
