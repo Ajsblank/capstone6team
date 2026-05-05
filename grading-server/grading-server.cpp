@@ -46,21 +46,23 @@ CmdResult exec_cmd(const std::string& cmd) {
 int main() {
     try {
         // Redis 연결 설정
-        auto redis = Redis("tcp://127.0.0.1:6379");
+      //auto redis = Redis("tcp://3.216.165.85:6379");
+        auto redis = Redis("tcp://localhost:6379");
         std::cout << "[Worker] 코드 배틀 서버 시작...\n";
 
         while (true) {
-            auto item = redis.brpop("code_battle_queue", 0);
+            auto item = redis.brpop("code_battle_grading_queue", 0);
             if (!item) continue;
 
             std::string json_str = item->second;
             json data = json::parse(json_str);
 
-            std::string match_id = data["matchId"];
+            long long match_id_num = data["submissionId"];
+            std::string match_id = std::to_string(match_id_num);
 
             std::regex valid_id_regex("^[a-zA-Z0-9_-]+$");
             if (!std::regex_match(match_id, valid_id_regex)) {
-                std::cout << "[보안 경고] 유효하지 않은 matchId : " << match_id << std::endl;
+                std::cout << "[보안 경고] 유효하지 않은 submissionId : " << match_id << std::endl;
                 continue;
             }
             
@@ -84,46 +86,64 @@ int main() {
             write_file(work_dir + "/player2.cpp", data["codes"]["player2"]);
 
             json result_json;
-            result_json["matchId"] = match_id;
+            result_json["matchId"] = match_id_num;
+            result_json["winner"] = 0;
+            result_json["log"] = "";
 
             // Dockerfile 생성 및 build 제거 -> 볼륨 마운트로 즉시 컴파일
             std::cout << "빌드 중..." << std::endl;
-            std::string compile_cmd = "docker run --rm -v " + abs_work_dir + ":/app -w /app gcc:latest " +
-                                      "sh -c \"g++ -O2 -o judge judge.cpp && g++ -O2 -o player1 player1.cpp && g++ -O2 -o player2 player2.cpp && chmod 777 judge player1 player2\" 2>&1";
+            auto compile = [&](const std::string& file, const std::string& out) {
+            return exec_cmd("docker run --rm -v " + abs_work_dir + ":/app -w /app gcc:latest g++ -O2 -o " + out + " " + file);
+            };
+            CmdResult res_j = compile("judge.cpp", "judge");
+            CmdResult res_p1 = compile("player1.cpp", "player1");
+            CmdResult res_p2 = compile("player2.cpp", "player2");
+            std::cout << "log:" << res_j.exit_code << res_p1.exit_code << res_p2.exit_code << std::endl;
             
-            CmdResult build_res = exec_cmd(compile_cmd);
-            if (build_res.exit_code != 0) {
-                result_json["status"] = "COMPILE_ERROR";
-                result_json["log"] = build_res.output;
+            if (res_j.exit_code != 0) {
+                result_json["winner"] = 0;
+            } else if (res_p1.exit_code != 0 && res_p2.exit_code != 0) {
+                result_json["winner"] = 0;
+            } else if (res_p1.exit_code != 0) {
+                result_json["winner"] = 2;
+            } else if (res_p2.exit_code != 0) {
+                result_json["winner"] = 1;
+            }
+            else
+            {
+                std::cout << "실행 및 채점 중..." << std::endl;
+                std::cout << "실행 및 채점 중..." << std::endl;
+                std::string run_cmd = "timeout " + std::to_string(time_limit_sec) + "s " +
+                                    "docker run -i --rm -v " + abs_work_dir + ":/app -w /app " +
+                                    "--memory=512m --network=none gcc:latest " +
+                                    "./judge ./player1 ./player2 2>&1";
+            
+                CmdResult run_res = exec_cmd(run_cmd);
+                result_json["log"] = run_res.output;
+                // 결과 판정
+                if (run_res.exit_code == 124) {
+                    std::cout << "[결과] ❌ 전체 시간 초과 (Timeout)!" << std::endl;
+                    result_json["winner"] = -1;
+                }
+                else if (run_res.exit_code == 0) {
+                    std::cout << "[결과] ✅ 정상 종료!" << std::endl;
+                    if (run_res.output.find("PLAYER1_WIN") != std::string::npos) result_json["winner"] = 1;
+                    else if (run_res.output.find("PLAYER2_WIN") != std::string::npos) result_json["winner"] = 2;
+                }
+                else {
+                    std::cout << "[결과] ⚠️ 런타임 에러 (Exit Code: " << run_res.exit_code << ")" << std::endl;
+                    result_json["status"] = "RUNTIME_ERROR";
+                    if (run_res.output.find("PLAYER1_CRASHED") != std::string::npos) result_json["winner"] = 2;
+                    else if (run_res.output.find("PLAYER2_CRASHED") != std::string::npos) result_json["winner"] = 1;
+                }
+            }
+            if(data["aiOrder"] == 0)
                 redis.lpush("code_battle_result_queue", result_json.dump());
-                fs::remove_all(work_dir, ec);
-                continue;
+            else
+            {
+                result_json["aiOrder"] = data["aiOrder"];
+                redis.lpush("code_battle_ai_result_queue", result_json.dump());
             }
-
-            std::cout << "실행 및 채점 중..." << std::endl;
-            std::string run_cmd = "timeout " + std::to_string(time_limit_sec) + "s " +
-                                  "docker run -i --rm -v " + abs_work_dir + ":/app -w /app " +
-                                  "--memory=512m --network=none gcc:latest " +
-                                  "./judge ./player1 ./player2 2>&1";
-            
-            CmdResult run_res = exec_cmd(run_cmd);
-            result_json["log"] = run_res.output;
-
-            // 결과 판정
-            if (run_res.exit_code == 124) {
-                std::cout << "[결과] ❌ 전체 시간 초과 (Timeout)!" << std::endl;
-                result_json["status"] = "TIME_LIMIT_EXCEEDED";
-            }
-            else if (run_res.exit_code == 0) {
-                std::cout << "[결과] ✅ 정상 종료!" << std::endl;
-                result_json["status"] = "SUCCESS";
-            }
-            else {
-                std::cout << "[결과] ⚠️ 런타임 에러 (Exit Code: " << run_res.exit_code << ")" << std::endl;
-                result_json["status"] = "RUNTIME_ERROR";
-            }
-
-            redis.lpush("code_battle_result_queue", result_json.dump());
 
             // 이미지 및 임시 폴더 삭제
             fs::remove_all(work_dir, ec);
