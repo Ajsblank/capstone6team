@@ -17,19 +17,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export const SUBMIT_URL = `/api/code/submit/codebattle`;
-
 export const submitCode = async (payload: SubmitRequest): Promise<SubmitResponse> => {
   const response = await api.post<SubmitResponse>("/api/code/submit/codebattle", payload);
   return response.data;
 };
 
-// ── 내 제출 목록 조회 — GET /api/contests/{contestId}/mySubmission ──
+// ── 내 제출 목록 조회 — GET /api/contests/{contestId}/{targetUserId} ──
 export const getMyBattleSubmissions = async (
-  contestId: number
+  contestId: number,
+  targetUserId: string
 ): Promise<SubmissionSummary[]> => {
   const response = await api.get<SubmissionSummary[]>(
-    `/api/contests/${contestId}/mySubmission`
+    `/api/contests/${contestId}/${targetUserId}`
   );
   return response.data;
 };
