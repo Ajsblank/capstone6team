@@ -24,6 +24,8 @@ public class UpdateContestRequest {
   private Integer memoryLimitMb;
   private String judgeCode;
   private String exampleCode;
+  private String visualizationHtml;
+  private String soloPlayHtml;
   @Schema(description = "대회 상태 (TEST, PLANNED, RUNNING, PAUSED, END)", example = "PLANNED")
   private ContestStatus status;
 

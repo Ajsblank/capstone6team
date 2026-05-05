@@ -22,6 +22,8 @@ public class ContestDetailResponse {
   private String judgeCode;
   private String exampleCode;
   private ContestStatus status;
+  private String visualizationHtml;
+  private String soloPlayHtml;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
   private LocalDateTime startDate;
@@ -47,6 +49,8 @@ public class ContestDetailResponse {
         .endDate(contest.getEndDate())
         .maxParticipants(contest.getMaxParticipants())
         .createdAt(contest.getCreatedAt())
+        .visualizationHtml(contest.getVisualizationHtml())
+        .soloPlayHtml(contest.getSoloPlayHtml())
         .build();
   }
 }

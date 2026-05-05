@@ -23,6 +23,9 @@ public class ContestResponse {
   private String exampleCode;
   private ContestStatus status;
 
+  private String visualizationHtml;
+  private String soloPlayHtml;
+
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm")
   private LocalDateTime startDate;
 
@@ -40,13 +43,15 @@ public class ContestResponse {
         .certification(contest.getCertification())
         .timeLimitSec(contest.getTimeLimitSec())
         .memoryLimitMb(contest.getMemoryLimitMB())
-        // .judgeCode(contest.getJudge_code())
+        // .judgeCode(contest.getJudgeCode())
         .exampleCode(contest.getExampleCode())
         .status(contest.getStatus())
         .startDate(contest.getStartDate())
         .endDate(contest.getEndDate())
         .maxParticipants(contest.getMaxParticipants())
         .createdAt(contest.getCreatedAt())
+        .visualizationHtml(contest.getVisualizationHtml())
+        .soloPlayHtml(contest.getSoloPlayHtml())
         .build();
   }
 }
