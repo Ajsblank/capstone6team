@@ -43,6 +43,12 @@ public class CreateContestRequest {
   @NotBlank(message = "ExampleCode는 필수입니다.")
   private String exampleCode;
 
+  @NotBlank(message = "시각화 리소스")
+  private String visualizationHtml;
+
+  @NotBlank(message = "혼자하기")
+  private String soloPlayHtml;
+
   @NotNull(message = "상태는 필수입니다.")
   @Schema(description = "대회 상태 (TEST, PLANNED, RUNNING, PAUSED, END)", example = "PLANNED")
   private ContestStatus status;

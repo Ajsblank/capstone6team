@@ -52,7 +52,9 @@ public class ContestService {
                 request.getExampleCode(),
                 request.getMaxParticipants(),
                 policy.startDate(),
-                policy.endDate());
+                policy.endDate(),
+                request.getVisualizationHtml(),
+                request.getSoloPlayHtml());
 
         return ContestResponse.from(contestRepository.save(contest));
     }
@@ -73,6 +75,8 @@ public class ContestService {
                 request.getCertification(),
                 request.getTimeLimitSec(),
                 request.getMemoryLimitMb(),
+                request.getVisualizationHtml(),
+                request.getSoloPlayHtml(),
                 trimToNull(request.getJudgeCode()),
                 trimToNull(request.getExampleCode()),
                 request.getMaxParticipants());
