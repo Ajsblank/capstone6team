@@ -142,7 +142,7 @@ public class RedisResultWorker implements CommandLineRunner {
             aiMatch.setLog(result.getLog());
             matchRepository.save(aiMatch);
 
-            sseService.sendToUser(aiMatch.getUser1().getId(), result);
+            sseService.sendToUser(aiMatch.getUser1().getId(), aiMatch);
         }
     }
 
