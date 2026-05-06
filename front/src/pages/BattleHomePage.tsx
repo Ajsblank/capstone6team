@@ -7,10 +7,17 @@ import "./BattleHomePage.css";
 type BattleTab = "home" | "problems" | "contest" | "help";
 
 const PAGE_SIZE = 10;
+const VALID_BATTLE_TABS: BattleTab[] = ["home", "problems", "contest", "help"];
+
+function getTabFromHash(): BattleTab {
+  const parts = window.location.hash.replace("#", "").split("/");
+  const tab = parts[1] as BattleTab;
+  return VALID_BATTLE_TABS.includes(tab) ? tab : "home";
+}
 
 const BattlePage: React.FC = () => {
   const { user, logout, navigate } = useApp();
-  const [activeTab, setActiveTab] = useState<BattleTab>("home");
+  const [activeTab, setActiveTab] = useState<BattleTab>(getTabFromHash);
 
   // 대회 목록 상태
   const [contests, setContests] = useState<ContestItem[]>([]);
@@ -18,6 +25,23 @@ const BattlePage: React.FC = () => {
   const [contestTotalPages, setContestTotalPages] = useState(0);
   const [contestLoading, setContestLoading] = useState(false);
   const [contestError, setContestError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const parts = window.location.hash.replace("#", "").split("/");
+      if (parts[0] === "battle") {
+        const tab = parts[1] as BattleTab;
+        setActiveTab(VALID_BATTLE_TABS.includes(tab) ? tab : "home");
+      }
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  const handleTabChange = (tab: BattleTab) => {
+    window.location.hash = `battle/${tab}`;
+    setActiveTab(tab);
+  };
 
   const fetchContests = useCallback(async (page: number) => {
     setContestLoading(true);
@@ -46,25 +70,25 @@ const BattlePage: React.FC = () => {
         <nav className="home-tab-nav">
           <button
             className={`home-tab-btn${activeTab === "home" ? " home-tab-btn--active" : ""}`}
-            onClick={() => setActiveTab("home")}
+            onClick={() => handleTabChange("home")}
           >
             홈
           </button>
           <button
             className={`home-tab-btn${activeTab === "problems" ? " home-tab-btn--active" : ""}`}
-            onClick={() => setActiveTab("problems")}
+            onClick={() => handleTabChange("problems")}
           >
             문제
           </button>
           <button
             className={`home-tab-btn${activeTab === "contest" ? " home-tab-btn--active" : ""}`}
-            onClick={() => setActiveTab("contest")}
+            onClick={() => handleTabChange("contest")}
           >
             대회
           </button>
           <button
             className={`home-tab-btn${activeTab === "help" ? " home-tab-btn--active" : ""}`}
-            onClick={() => setActiveTab("help")}
+            onClick={() => handleTabChange("help")}
           >
             도움말
           </button>
