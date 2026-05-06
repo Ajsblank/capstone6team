@@ -23,66 +23,58 @@
   z-index: 0;
 }
 
-.page-header {
+/* home-page::before 삼각형 비활성화 — submit-page::before로 대체 */
+.submit-page.home-page::before { display: none; }
+
+/* ── 문제 제목 바 ── */
+.sp-problem-bar {
   display: flex;
   align-items: center;
-  gap: 0;
-  padding: 0 24px;
-  height: 56px;
+  padding: 0 32px;
+  height: 48px;
+  background: #fff7ed;
+  border-bottom: 1px solid #fed7aa;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 90;
+}
+
+.sp-problem-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #c2410c;
+  letter-spacing: -0.01em;
+}
+
+/* ── 서브탭 바 ── */
+.sp-sub-tab-bar {
+  display: flex;
+  align-items: stretch;
+  height: 44px;
   background: rgba(255, 255, 255, 0.97);
   border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
+  padding: 0 16px;
+  gap: 2px;
   position: relative;
-  z-index: 100;
+  z-index: 90;
 }
 
-.header-logo {
-  font-size: 1.15rem;
-  font-weight: 900;
-  color: #111827;
-  letter-spacing: 0.08em;
-  font-family: "Courier New", "Consolas", monospace;
-  white-space: nowrap;
-  cursor: pointer;
-  user-select: none;
-}
-
-.header-divider {
-  width: 1px; height: 24px;
-  background: #e5e7eb;
-  margin: 0 20px; flex-shrink: 0;
-}
-
-.header-home-btn {
-  margin-left: auto;
+.sp-sub-tab-btn {
   background: none;
-  border: 1px solid #d1d5db;
-  color: #6b7280;
-  font-size: 0.82rem;
-  font-family: "Segoe UI", sans-serif;
-  padding: 5px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  flex-shrink: 0;
-}
-.header-home-btn:hover { background: #fff7ed; color: #ea580c; border-color: #fed7aa; }
-
-.tab-nav {
-  display: flex; align-items: stretch; height: 100%; gap: 2px;
-}
-.tab-btn {
-  background: none; border: none;
+  border: none;
   border-bottom: 2px solid transparent;
-  color: #6b7280; font-size: 0.9rem;
+  color: #6b7280;
+  font-size: 0.88rem;
   font-family: "Segoe UI", sans-serif;
-  padding: 0 16px; cursor: pointer;
+  padding: 0 14px;
+  cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
-  white-space: nowrap; height: 100%;
+  white-space: nowrap;
+  height: 100%;
 }
-.tab-btn:hover { color: #111827; }
-.tab-btn--active { color: #ea580c; border-bottom-color: #ea580c; font-weight: 600; }
+.sp-sub-tab-btn:hover { color: #111827; }
+.sp-sub-tab-btn--active { color: #ea580c; border-bottom-color: #ea580c; font-weight: 600; }
 
 .page-body {
   flex: 1; overflow: hidden;

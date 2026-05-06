@@ -1,23 +1,43 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useApp } from "../context/AppContext";
+import { getContestList, ContestItem } from "../api/codeBattleApi";
 import "./AppLayout.css";
 import "./BattleHomePage.css";
 
 type BattleTab = "home" | "problems" | "contest" | "help";
 
-// TODO: 백엔드 /api/battle/problems 연동 시 교체
-const BATTLE_PROBLEMS = [
-  {
-    id: 1,
-    title: "치토 배틀",
-    description: "AI 코드를 제출하여 상대방의 치토와 배틀을 펼치세요.",
-    difficulty: "일반",
-  },
-];
+const PAGE_SIZE = 10;
 
 const BattlePage: React.FC = () => {
   const { user, logout, navigate } = useApp();
   const [activeTab, setActiveTab] = useState<BattleTab>("home");
+
+  // 대회 목록 상태
+  const [contests, setContests] = useState<ContestItem[]>([]);
+  const [contestPage, setContestPage] = useState(0);
+  const [contestTotalPages, setContestTotalPages] = useState(0);
+  const [contestLoading, setContestLoading] = useState(false);
+  const [contestError, setContestError] = useState<string | null>(null);
+
+  const fetchContests = useCallback(async (page: number) => {
+    setContestLoading(true);
+    setContestError(null);
+    try {
+      const data = await getContestList(page, PAGE_SIZE, ["id,desc"]);
+      setContests(data.content);
+      setContestTotalPages(data.totalPages);
+    } catch (e: any) {
+      setContestError("대회 목록을 불러오지 못했습니다.");
+    } finally {
+      setContestLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "contest") {
+      fetchContests(contestPage);
+    }
+  }, [activeTab, contestPage, fetchContests]);
 
   return (
     <div className="home-page battle-home-page">
@@ -91,25 +111,22 @@ const BattlePage: React.FC = () => {
           <div className="bp-problems">
             <h2 className="bp-problems-title">배틀 문제 목록</h2>
             <div className="bp-problem-list">
-              {BATTLE_PROBLEMS.map((p) => (
-                <div
-                  key={p.id}
-                  className="bp-problem-card"
-                  onClick={() => { window.location.hash = `submit/${p.id}`; }}
-                >
-                  <div className="bp-problem-card-left">
-                    <span className="bp-problem-num">#{p.id}</span>
-                    <div>
-                      <p className="bp-problem-title">{p.title}</p>
-                      <p className="bp-problem-desc">{p.description}</p>
-                    </div>
-                  </div>
-                  <div className="bp-problem-card-right">
-                    <span className="bp-problem-difficulty">{p.difficulty}</span>
-                    <span className="bp-problem-arrow">→</span>
+              <div
+                className="bp-problem-card"
+                onClick={() => { window.location.hash = "submit/1"; }}
+              >
+                <div className="bp-problem-card-left">
+                  <span className="bp-problem-num">#1</span>
+                  <div>
+                    <p className="bp-problem-title">치토 배틀</p>
+                    <p className="bp-problem-desc">AI 코드를 제출하여 상대방의 치토와 배틀을 펼치세요.</p>
                   </div>
                 </div>
-              ))}
+                <div className="bp-problem-card-right">
+                  <span className="bp-problem-difficulty">일반</span>
+                  <span className="bp-problem-arrow">→</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -126,9 +143,76 @@ const BattlePage: React.FC = () => {
                 + 대회 개최
               </button>
             </div>
-            <div className="bp-contest-empty">
-              <span className="bp-contest-empty-text">아직 등록된 대회가 없습니다.</span>
-            </div>
+
+            {contestLoading && (
+              <div className="bp-contest-empty">
+                <span className="bp-contest-empty-text">불러오는 중...</span>
+              </div>
+            )}
+
+            {contestError && (
+              <div className="bp-contest-empty">
+                <span className="bp-contest-empty-text" style={{ color: "#dc2626" }}>{contestError}</span>
+              </div>
+            )}
+
+            {!contestLoading && !contestError && contests.length === 0 && (
+              <div className="bp-contest-empty">
+                <span className="bp-contest-empty-text">아직 등록된 대회가 없습니다.</span>
+              </div>
+            )}
+
+            {!contestLoading && !contestError && contests.length > 0 && (
+              <>
+                <div className="bp-problem-list">
+                  {contests.map((c) => (
+                    <div
+                      key={c.id}
+                      className="bp-problem-card"
+                      onClick={() => { window.location.hash = `submit/${c.id}`; }}
+                    >
+                      <div className="bp-problem-card-left">
+                        <span className="bp-problem-num">#{c.id}</span>
+                        <div>
+                          <p className="bp-problem-title">{c.title}</p>
+                          {c.description && (
+                            <p className="bp-problem-desc">{c.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="bp-problem-card-right">
+                        {c.status && (
+                          <span className="bp-problem-difficulty">{c.status}</span>
+                        )}
+                        <span className="bp-problem-arrow">→</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {contestTotalPages > 1 && (
+                  <div className="bp-pagination">
+                    <button
+                      className="bp-page-btn"
+                      disabled={contestPage === 0}
+                      onClick={() => setContestPage((p) => p - 1)}
+                    >
+                      ← 이전
+                    </button>
+                    <span className="bp-page-info">
+                      {contestPage + 1} / {contestTotalPages}
+                    </span>
+                    <button
+                      className="bp-page-btn"
+                      disabled={contestPage >= contestTotalPages - 1}
+                      onClick={() => setContestPage((p) => p + 1)}
+                    >
+                      다음 →
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
