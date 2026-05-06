@@ -8,6 +8,8 @@ import { submitCode } from "../api/codeBattleApi";
 import { setMatchCallback, setSummaryCallback, BattleMatchResult, SubmissionSummary } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
 import { Language } from "../types";
+import "./AppLayout.css";
+import "./BattleHomePage.css";
 import "./BattleSubmitPage.css";
 
 type Tab = "problem" | "submit" | "my-submissions" | "viz1" | "viz2" | "leaderboard" | "battle-results";
@@ -55,7 +57,7 @@ function parseHash(): { problemId: number; tab: Tab } {
 }
 
 const SubmitPage: React.FC = () => {
-  const { navigate, user } = useApp();
+  const { navigate, user, logout } = useApp();
 
   const [{ problemId, tab: activeTab }, setHashState] = useState(parseHash);
 
@@ -176,28 +178,54 @@ const SubmitPage: React.FC = () => {
   };
 
   return (
-    <div className="submit-page">
+    <div className="submit-page home-page battle-home-page">
       {showSuccessModal && (
         <SubmitSuccessModal message={responseMessage} onClose={() => setShowSuccessModal(false)} />
       )}
-      <header className="page-header">
-        <span className="header-logo" onClick={() => navigate("landing")}>CodeBattle</span>
-        <span className="header-divider" />
-        <nav className="tab-nav">
-          {TAB_LIST.map((tab) => (
-            <button
-              key={tab.id}
-              className={`tab-btn${activeTab === tab.id ? " tab-btn--active" : ""}`}
-              onClick={() => handleTabChange(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
+
+      {/* 메인 헤더 — BattleHomePage와 동일 */}
+      <header className="home-header">
+        <span className="home-logo" onClick={() => navigate("landing")}>ASAP 캡스톤</span>
+        <nav className="home-tab-nav">
+          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle"; }}>홈</button>
+          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle"; }}>문제</button>
+          <button className="home-tab-btn home-tab-btn--active" onClick={() => { window.location.hash = "battle"; }}>대회</button>
+          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle"; }}>도움말</button>
         </nav>
-        <button className="header-home-btn" onClick={() => window.history.back()}>
-          ← 이전으로
-        </button>
+        <div className="home-auth-area">
+          <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("landing")}>홈</button>
+          {user ? (
+            <>
+              <span className="home-username" onClick={() => navigate("profile")}>{user.username}</span>
+              <button className="home-auth-btn home-auth-btn--secondary" onClick={() => navigate("account-settings")}>설정</button>
+              <button className="home-auth-btn home-auth-btn--ghost" onClick={() => logout()}>로그아웃</button>
+            </>
+          ) : (
+            <>
+              <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("signup")}>회원가입</button>
+              <button className="home-auth-btn home-auth-btn--primary" onClick={() => navigate("login")}>로그인</button>
+            </>
+          )}
+        </div>
       </header>
+
+      {/* 문제 제목 바 */}
+      <div className="sp-problem-bar">
+        <span className="sp-problem-title">치토 배틀</span>
+      </div>
+
+      {/* 서브탭 */}
+      <div className="sp-sub-tab-bar">
+        {TAB_LIST.map((tab) => (
+          <button
+            key={tab.id}
+            className={`sp-sub-tab-btn${activeTab === tab.id ? " sp-sub-tab-btn--active" : ""}`}
+            onClick={() => handleTabChange(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       <div className="page-body">
         {activeTab === "problem" && (

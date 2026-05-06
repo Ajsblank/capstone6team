@@ -183,3 +183,41 @@
   border-radius: 10px;
 }
 .bp-contest-empty-text { font-size: 0.95rem; color: #9ca3af; }
+
+/* ── 페이지네이션 ── */
+.bp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 0 4px;
+}
+
+.bp-page-btn {
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  color: #374151;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 7px 18px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.bp-page-btn:hover:not(:disabled) {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #ea580c;
+}
+.bp-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.bp-page-info {
+  font-size: 0.85rem;
+  color: #6b7280;
+  min-width: 60px;
+  text-align: center;
+}
