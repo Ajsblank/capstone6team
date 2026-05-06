@@ -13,15 +13,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@Table(name = "code_battle_match", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_match_contest_user_pair", columnNames = { "contest_id", "user1_id", "user2_id" })
-})
+@Table(name = "code_battle_match")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -60,7 +57,8 @@ public class CodeBattleMatch {
   @Column(nullable = false)
   private LocalDateTime created_at;
 
-  public CodeBattleMatch(CodeBattleContest contest, Users user1, Users user2, Users winner, String log, Integer aiOrder) {
+  public CodeBattleMatch(CodeBattleContest contest, Users user1, Users user2, Users winner, String log,
+      Integer aiOrder) {
     this.contest = contest;
     this.user1 = user1;
     this.user2 = user2;
