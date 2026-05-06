@@ -1,11 +1,14 @@
 package com.asap.server.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+
+@Slf4j
 @Service
 public class SseService {
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
@@ -22,6 +25,7 @@ public class SseService {
 
     public void sendToUser(Long userId, Object data) {
         SseEmitter emitter = emitters.get(userId);
+        log.info("[SSE] : {}", emitters.toString());
         if (emitter != null) {
             try {
                 emitter.send(SseEmitter.event().name("match_result").data(data));
