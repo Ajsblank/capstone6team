@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAccessToken } from "./authApi";
+import { getAccessToken, applyAuthInterceptor } from "./authApi";
 
 const BASE_URL = (process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -10,6 +10,7 @@ api.interceptors.request.use((config) => {
   if (token) config.headers["Authorization"] = `Bearer ${token}`;
   return config;
 });
+applyAuthInterceptor(api);
 
 export interface CreateContestData {
   title: string;

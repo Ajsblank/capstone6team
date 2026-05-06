@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import ChitoBattleProblem from "../components/ChitoBattleProblem";
+import ContestProblemDetail from "../components/ContestProblemDetail";
 import CodeEditor, { LANGUAGE_DEFAULTS } from "../components/CodeEditor";
 import SubmitBar from "../components/SubmitBar";
 import SubmitSuccessModal from "../components/SubmitSuccessModal";
 import MySubmissionsTab from "../components/MySubmissionsTab";
-import { submitCode } from "../api/codeBattleApi";
+import { submitCode, getContestDetail, ContestDetail } from "../api/codeBattleApi";
 import { setMatchCallback, setSummaryCallback, BattleMatchResult, SubmissionSummary } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
 import { Language } from "../types";
@@ -70,6 +70,23 @@ const SubmitPage: React.FC = () => {
   const [localSubmissions, setLocalSubmissions] = useState<LocalSubmission[]>([]);
   const [submissionsRefreshKey, setSubmissionsRefreshKey] = useState(0);
 
+  const [contestDetail, setContestDetail] = useState<ContestDetail | null>(null);
+  const [contestDetailLoading, setContestDetailLoading] = useState(false);
+  const [contestDetailError, setContestDetailError] = useState<string | null>(null);
+
+  // 대회 상세 조회
+  useEffect(() => {
+    let cancelled = false;
+    setContestDetail(null);
+    setContestDetailError(null);
+    setContestDetailLoading(true);
+    getContestDetail(problemId)
+      .then(data => { if (!cancelled) setContestDetail(data); })
+      .catch(() => { if (!cancelled) setContestDetailError("대회 정보를 불러오지 못했습니다."); })
+      .finally(() => { if (!cancelled) setContestDetailLoading(false); });
+    return () => { cancelled = true; };
+  }, [problemId]);
+
   // 로그 분석 iframe ref + 전달할 로그
   const logIframeRef = useRef<HTMLIFrameElement>(null);
   const [pendingLog, setPendingLog] = useState<string | null>(null);
@@ -116,8 +133,7 @@ const SubmitPage: React.FC = () => {
   }, []);
 
   const handleTabChange = useCallback((tab: Tab) => {
-    const base = problemId === 1 ? "submit" : `submit/${problemId}`;
-    window.location.hash = `${base}/${tab}`;
+    window.location.hash = `submit/${problemId}/${tab}`;
     setHashState(prev => ({ ...prev, tab }));
     if (tab === "my-submissions") setSubmissionsRefreshKey(k => k + 1);
   }, [problemId]);
@@ -187,10 +203,10 @@ const SubmitPage: React.FC = () => {
       <header className="home-header">
         <span className="home-logo" onClick={() => navigate("landing")}>ASAP 캡스톤</span>
         <nav className="home-tab-nav">
-          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle"; }}>홈</button>
-          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle"; }}>문제</button>
-          <button className="home-tab-btn home-tab-btn--active" onClick={() => { window.location.hash = "battle"; }}>대회</button>
-          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle"; }}>도움말</button>
+          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle/home"; }}>홈</button>
+          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle/problems"; }}>문제</button>
+          <button className="home-tab-btn home-tab-btn--active" onClick={() => { window.location.hash = "battle/contest"; }}>대회</button>
+          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle/help"; }}>도움말</button>
         </nav>
         <div className="home-auth-area">
           <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("landing")}>홈</button>
@@ -203,7 +219,10 @@ const SubmitPage: React.FC = () => {
           ) : (
             <>
               <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("signup")}>회원가입</button>
-              <button className="home-auth-btn home-auth-btn--primary" onClick={() => navigate("login")}>로그인</button>
+              <button className="home-auth-btn home-auth-btn--primary" onClick={() => {
+                localStorage.setItem("loginRedirect", window.location.hash.replace("#", "") || "battle/contest");
+                navigate("login");
+              }}>로그인</button>
             </>
           )}
         </div>
@@ -211,7 +230,9 @@ const SubmitPage: React.FC = () => {
 
       {/* 문제 제목 바 */}
       <div className="sp-problem-bar">
-        <span className="sp-problem-title">치토 배틀</span>
+        <span className="sp-problem-title">
+          {contestDetailLoading ? "불러오는 중..." : (contestDetail?.title ?? "대회")}
+        </span>
       </div>
 
       {/* 서브탭 */}
@@ -230,7 +251,11 @@ const SubmitPage: React.FC = () => {
       <div className="page-body">
         {activeTab === "problem" && (
           <div className="full-panel">
-            <ChitoBattleProblem />
+            <ContestProblemDetail
+              detail={contestDetail}
+              loading={contestDetailLoading}
+              error={contestDetailError}
+            />
           </div>
         )}
 

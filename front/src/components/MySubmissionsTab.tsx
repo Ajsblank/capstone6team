@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { LocalSubmission } from "../pages/BattleSubmitPage";
 import { BattleMatchResult } from "../api/sseApi";
-import { getMyBattleSubmissions, SubmissionSummaryResponse } from "../api/codeBattleApi";
+import { getMyBattleSubmissions, ContestSubmissionResponse } from "../api/codeBattleApi";
 import "./MySubmissionsTab.css";
 
 interface Props {
@@ -26,17 +26,28 @@ function formatDate(d: Date | string): string {
   });
 }
 
-// ── 서버 응답을 LocalSubmission으로 변환 ──
-function summaryToLocal(s: SubmissionSummaryResponse): LocalSubmission {
+// 백엔드 응답 → LocalSubmission 변환
+// result.status: "WIN" → winner=userId, "LOSE" → winner="ai", "DRAW" → winner="draw"
+function serverSubmissionToLocal(
+  s: ContestSubmissionResponse,
+  userId: string
+): LocalSubmission {
+  const { status, log } = s.result;
+  const winner = status === "WIN" ? userId : status === "DRAW" ? "draw" : "ai";
+  const match: BattleMatchResult = {
+    matchId: s.submissionId,
+    winner,
+    log,
+  };
   return {
     submissionId: s.submissionId,
-    submittedAt: new Date(s.submittedAt),
-    language: s.language,
+    submittedAt: new Date(s.createdAt),
+    language: "",
     success: true,
     message: "",
-    wins: s.wins,
-    losses: s.losses,
-    matches: s.matches,
+    wins:   status === "WIN"  ? 1 : 0,
+    losses: status === "LOSE" ? 1 : 0,
+    matches: [match],
     finalized: true,
   };
 }
@@ -48,12 +59,15 @@ function MatchRow({ match, index, userId, onLogClick }: {
   userId: string;
   onLogClick: (log: string) => void;
 }) {
-  const isMe = match.winner === userId;
+  const isDraw = match.winner === "draw";
+  const isMe   = !isDraw && match.winner === userId;
   return (
     <tr className="ms-match-row">
       <td className="ms-match-num">#{index + 1}</td>
       <td>
-        <span className={isMe ? "ms-winner--me" : "ms-winner--ai"}>{isMe ? "나" : "샘플 AI"}</span>
+        <span className={isDraw ? "ms-winner--draw" : isMe ? "ms-winner--me" : "ms-winner--ai"}>
+          {isDraw ? "무승부" : isMe ? "나" : "샘플 AI"}
+        </span>
       </td>
       <td>
         <button
@@ -76,16 +90,18 @@ function SubmissionItem({ sub, userId, onLogClick }: {
 }) {
   const [expanded, setExpanded] = useState(false);
 
-  // finalized면 서버 확정값 사용, 아니면 실시간 누적값 계산
   const wins   = sub.finalized && sub.wins   !== undefined ? sub.wins   : sub.matches.filter(m => m.winner === userId).length;
-  const losses = sub.finalized && sub.losses !== undefined ? sub.losses : sub.matches.length - wins;
+  const losses = sub.finalized && sub.losses !== undefined ? sub.losses : sub.matches.filter(m => m.winner !== userId && m.winner !== "draw").length;
   const total  = sub.matches.length;
+  const draws  = total - wins - losses;
 
   return (
     <div className="ms-item">
       <div className="ms-item-header">
         <span className="ms-item-date">{formatDate(sub.submittedAt)}</span>
-        <span className="ms-item-lang">{LANGUAGE_LABELS[sub.language] ?? sub.language.toUpperCase()}</span>
+        {sub.language && (
+          <span className="ms-item-lang">{LANGUAGE_LABELS[sub.language] ?? sub.language.toUpperCase()}</span>
+        )}
 
         <span className="ms-item-record">
           {total === 0 ? (
@@ -94,6 +110,7 @@ function SubmissionItem({ sub, userId, onLogClick }: {
             <>
               <span className="ms-win">{wins}승</span>
               {" "}
+              {draws > 0 && <><span className="ms-draw">{draws}무</span>{" "}</>}
               <span className="ms-loss">{losses}패</span>
               <span className="ms-total"> / {total}전</span>
               {!sub.finalized && <span className="ms-pending"> (채점 중)</span>}
@@ -117,7 +134,7 @@ function SubmissionItem({ sub, userId, onLogClick }: {
             <thead>
               <tr>
                 <th>매치</th>
-                <th>승자</th>
+                <th>결과</th>
                 <th>로그</th>
               </tr>
             </thead>
@@ -149,7 +166,7 @@ const MySubmissionsTab: React.FC<Props> = ({
       console.log("[MySubmissionsTab] 응답:", data);
       onLocalUpdate(prev => {
         const inProgress = prev.filter(s => !s.finalized);
-        const serverItems = data.map(summaryToLocal);
+        const serverItems = data.map(s => serverSubmissionToLocal(s, userId));
         const serverIds = new Set(serverItems.map(s => s.submissionId));
         const stillPending = inProgress.filter(s => !s.submissionId || !serverIds.has(s.submissionId));
         return [...stillPending, ...serverItems]
@@ -161,9 +178,8 @@ const MySubmissionsTab: React.FC<Props> = ({
     } finally {
       setLoading(false);
     }
-  }, [contestId, refreshKey, onLocalUpdate]);
+  }, [contestId, refreshKey, onLocalUpdate, userId]);
 
-  // 탭 마운트 시 서버에서 이력 조회
   useEffect(() => {
     fetchFromServer();
   }, [fetchFromServer]);

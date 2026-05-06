@@ -270,8 +270,9 @@
   white-space: nowrap;
 }
 
-.ms-winner--me  { color: #a6e3a1; font-weight: 700; }
-.ms-winner--ai  { color: #f38ba8; font-weight: 700; }
+.ms-winner--me   { color: #a6e3a1; font-weight: 700; }
+.ms-winner--ai   { color: #f38ba8; font-weight: 700; }
+.ms-winner--draw { color: #fab387; font-weight: 700; }
 
 .ms-log-btn {
   background: none;

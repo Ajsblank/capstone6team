@@ -1,7 +1,6 @@
 import axios from "axios";
 import { SubmitRequest, SubmitResponse } from "../types";
-import { getAccessToken } from "./authApi";
-import type { SubmissionSummary } from "./sseApi";
+import { getAccessToken, applyAuthInterceptor } from "./authApi";
 
 export interface ContestItem {
   id: number;
@@ -13,6 +12,21 @@ export interface ContestItem {
   problemTitle?: string;
 }
 
+export interface ContestDetail {
+  id: number;
+  title: string;
+  description: string;
+  certification: boolean;
+  timeLimitSec: number;
+  memoryLimitMb: number;
+  exampleCode: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  maxParticipants: number;
+  createdAt: string;
+}
+
 export interface ContestListResponse {
   content: ContestItem[];
   totalPages: number;
@@ -21,8 +35,6 @@ export interface ContestListResponse {
   number: number;
 }
 
-// ── SubmissionSummaryResponse = sseApi.SubmissionSummary (단일 정의) ──
-export type { SubmissionSummary as SubmissionSummaryResponse } from "./sseApi";
 
 // 끝 슬래시 제거로 BASE_URL + "/path" 조합 시 // 방지
 const BASE_URL = (process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
@@ -34,6 +46,7 @@ api.interceptors.request.use((config) => {
   if (token) config.headers["Authorization"] = `Bearer ${token}`;
   return config;
 });
+applyAuthInterceptor(api);
 
 export const submitCode = async (payload: SubmitRequest): Promise<SubmitResponse> => {
   const response = await api.post<SubmitResponse>("/api/code/submit/codebattle", payload);
@@ -54,12 +67,30 @@ export const getContestList = async (
   return response.data;
 };
 
+// ── 대회 상세 조회 — GET /api/contests/{contestId} ──
+export const getContestDetail = async (contestId: number): Promise<ContestDetail> => {
+  const { data } = await api.get<ContestDetail>(`/api/contests/${contestId}`);
+  return data;
+};
+
+export interface ContestMatchResult {
+  aiId: number;
+  status: "WIN" | "LOSE" | "DRAW";
+  log: string;
+}
+
+export interface ContestSubmissionResponse {
+  submissionId: number;
+  createdAt: string;
+  result: ContestMatchResult;
+}
+
 // ── 내 제출 목록 조회 — GET /api/contests/{contestId}/{targetUserId} ──
 export const getMyBattleSubmissions = async (
   contestId: number,
   targetUserId: string
-): Promise<SubmissionSummary[]> => {
-  const response = await api.get<SubmissionSummary[]>(
+): Promise<ContestSubmissionResponse[]> => {
+  const response = await api.get<ContestSubmissionResponse[]>(
     `/api/contests/${contestId}/${targetUserId}`
   );
   return response.data;
