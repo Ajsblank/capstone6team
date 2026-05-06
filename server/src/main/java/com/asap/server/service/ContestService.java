@@ -53,8 +53,8 @@ public class ContestService {
                 request.getMaxParticipants(),
                 policy.startDate(),
                 policy.endDate(),
-                request.getSoloPlayHtml(),
-                request.getVisualizationHtml());
+                request.getVisualizationHtml(),
+                request.getSoloPlayHtml());
 
         return ContestResponse.from(contestRepository.save(contest));
     }
