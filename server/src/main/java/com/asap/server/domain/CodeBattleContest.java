@@ -16,10 +16,12 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "code_battle_contest")
 @Getter
+@Setter
 @NoArgsConstructor
 public class CodeBattleContest {
 
@@ -30,7 +32,7 @@ public class CodeBattleContest {
   @Column(length = 255)
   private String title;
 
-  @Column(length = 1000)
+  @Column
   private String description;
 
   @Column(name = "time_limit_sec")
@@ -41,7 +43,7 @@ public class CodeBattleContest {
 
   @Column(name = "visualization_html_url")
   private String visualizationHtml;
-  
+
   @Column(name = "solo_play_html_url")
   private String soloPlayHtml;
 
@@ -77,8 +79,8 @@ public class CodeBattleContest {
 
   public static CodeBattleContest create(String title, String description, ContestStatus status, Boolean certification,
       Integer timeLimitSec, Integer memoryLimitMB, String judgeCode, String exampleCode,
-      Integer maxParticipants, LocalDateTime startDate, LocalDateTime endDate, 
-      String visualizationHtml,String soloPlayHtml) {
+      Integer maxParticipants, LocalDateTime startDate, LocalDateTime endDate,
+      String visualizationHtml, String soloPlayHtml) {
     CodeBattleContest contest = new CodeBattleContest();
     contest.title = title;
     contest.description = description;
@@ -91,8 +93,8 @@ public class CodeBattleContest {
     contest.maxParticipants = maxParticipants;
     contest.startDate = startDate;
     contest.endDate = endDate;
-    contest.visualizationHtml=visualizationHtml;
-    contest.soloPlayHtml=soloPlayHtml;
+    contest.visualizationHtml = visualizationHtml;
+    contest.soloPlayHtml = soloPlayHtml;
     return contest;
   }
 
