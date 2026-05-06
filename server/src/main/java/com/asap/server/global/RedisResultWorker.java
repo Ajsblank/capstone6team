@@ -1,6 +1,7 @@
 package com.asap.server.global;
 
 import com.asap.server.dto.response.CodeBattleMatchResult;
+import com.asap.server.dto.response.CodeBattleAiMatchResult;
 import org.springframework.transaction.annotation.Transactional;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
@@ -141,8 +142,12 @@ public class RedisResultWorker implements CommandLineRunner {
 
             aiMatch.setLog(result.getLog());
             matchRepository.save(aiMatch);
-
-            sseService.sendToUser(aiMatch.getUser1().getId(), aiMatch);
+            
+            Long targetUserId = aiMatch.getUser1().getId();
+            
+            CodeBattleAiMatchResult sseResponse = CodeBattleAiMatchResult.from(aiMatch, targetUserId);
+            
+            sseService.sendToUser(targetUserId, sseResponse);
         }
     }
 
