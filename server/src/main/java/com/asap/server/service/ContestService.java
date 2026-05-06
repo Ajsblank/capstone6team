@@ -75,6 +75,8 @@ public class ContestService {
                 request.getCertification(),
                 request.getTimeLimitSec(),
                 request.getMemoryLimitMb(),
+                request.getVisualizationHtml(),
+                request.getSoloPlayHtml(),
                 trimToNull(request.getJudgeCode()),
                 trimToNull(request.getExampleCode()),
                 request.getMaxParticipants());

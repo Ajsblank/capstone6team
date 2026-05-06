@@ -108,6 +108,8 @@ public class CodeBattleContest {
       Boolean certification,
       Integer timeLimitSec,
       Integer memoryLimitMB,
+      String visualizationHtml,
+      String soloPlayHtml,
       String judgeCode,
       String exampleCode,
       Integer maxParticipants) {
@@ -125,6 +127,12 @@ public class CodeBattleContest {
     }
     if (memoryLimitMB != null) {
       this.memoryLimitMB = memoryLimitMB;
+    }
+    if (visualizationHtml != null) {
+      this.visualizationHtml = visualizationHtml;
+    }
+    if (soloPlayHtml != null) {
+      this.soloPlayHtml = soloPlayHtml;
     }
     if (judgeCode != null) {
       this.judgeCode = judgeCode;
