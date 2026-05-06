@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { logoutApi } from "../api/authApi";
+import { logoutApi, getAccessToken, getUserId, getUsername } from "../api/authApi";
 
 export type Page =
   | "landing"
@@ -41,7 +41,13 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentPage, setCurrentPage] = useState<Page>(getPageFromHash);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const token = getAccessToken();
+    const uid   = getUserId();
+    const uname = getUsername();
+    if (token && uid) return { id: uid, username: uname ?? uid, email: uname ?? "" };
+    return null;
+  });
 
   // 브라우저 뒤로가기/앞으로가기 지원
   // ref를 통해 항상 최신 getPageFromHash를 호출 (HMR 클로저 문제 방지)

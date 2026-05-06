@@ -29,9 +29,9 @@ const BattlePage: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const parts = window.location.hash.replace("#", "").split("/");
-      if (parts[0] === "battle") {
+      if (parts[0] === "battle" && parts[1]) {
         const tab = parts[1] as BattleTab;
-        setActiveTab(VALID_BATTLE_TABS.includes(tab) ? tab : "home");
+        if (VALID_BATTLE_TABS.includes(tab)) setActiveTab(tab);
       }
     };
     window.addEventListener("hashchange", handleHashChange);
@@ -109,7 +109,10 @@ const BattlePage: React.FC = () => {
           ) : (
             <>
               <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("signup")}>회원가입</button>
-              <button className="home-auth-btn home-auth-btn--primary" onClick={() => navigate("login")}>로그인</button>
+              <button className="home-auth-btn home-auth-btn--primary" onClick={() => {
+                localStorage.setItem("loginRedirect", window.location.hash.replace("#", "") || "battle");
+                navigate("login");
+              }}>로그인</button>
             </>
           )}
         </div>
