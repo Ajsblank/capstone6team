@@ -11,4 +11,5 @@ public class CodeBattleMatchResult {
     private Long matchId;
     private String winner;
     private String log;
+    private Integer aiOrder;
 }
