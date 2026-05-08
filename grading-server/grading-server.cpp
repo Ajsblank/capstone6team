@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
 #include <cstdlib>
 #include <sys/wait.h>
 #include <cstdio>
@@ -46,8 +47,8 @@ CmdResult exec_cmd(const std::string& cmd) {
 int main() {
     try {
         // Redis 연결 설정
-      //auto redis = Redis("tcp://3.216.165.85:6379");
-        auto redis = Redis("tcp://localhost:6379");
+      auto redis = Redis("tcp://3.216.165.85:6379");
+        //auto redis = Redis("tcp://localhost:6379");
         std::cout << "[Worker] 코드 배틀 서버 시작...\n";
 
         while (true) {
@@ -89,6 +90,8 @@ int main() {
             result_json["matchId"] = match_id_num;
             result_json["winner"] = 0;
             result_json["log"] = "";
+            //result_json["player1Result"] = "ERROR";
+            //result_json["player2Result"] = "ERROR";
 
             // Dockerfile 생성 및 build 제거 -> 볼륨 마운트로 즉시 컴파일
             std::cout << "빌드 중..." << std::endl;
@@ -98,7 +101,6 @@ int main() {
             CmdResult res_j = compile("judge.cpp", "judge");
             CmdResult res_p1 = compile("player1.cpp", "player1");
             CmdResult res_p2 = compile("player2.cpp", "player2");
-            std::cout << "log:" << res_j.exit_code << res_p1.exit_code << res_p2.exit_code << std::endl;
             
             if (res_j.exit_code != 0) {
                 result_json["winner"] = 0;
@@ -112,7 +114,6 @@ int main() {
             else
             {
                 std::cout << "실행 및 채점 중..." << std::endl;
-                std::cout << "실행 및 채점 중..." << std::endl;
                 std::string run_cmd = "timeout " + std::to_string(time_limit_sec) + "s " +
                                     "docker run -i --rm -v " + abs_work_dir + ":/app -w /app " +
                                     "--memory=512m --network=none gcc:latest " +
@@ -125,16 +126,45 @@ int main() {
                     std::cout << "[결과] ❌ 전체 시간 초과 (Timeout)!" << std::endl;
                     result_json["winner"] = -1;
                 }
-                else if (run_res.exit_code == 0) {
-                    std::cout << "[결과] ✅ 정상 종료!" << std::endl;
-                    if (run_res.output.find("PLAYER1_WIN") != std::string::npos) result_json["winner"] = 1;
-                    else if (run_res.output.find("PLAYER2_WIN") != std::string::npos) result_json["winner"] = 2;
-                }
                 else {
-                    std::cout << "[결과] ⚠️ 런타임 에러 (Exit Code: " << run_res.exit_code << ")" << std::endl;
-                    result_json["status"] = "RUNTIME_ERROR";
-                    if (run_res.output.find("PLAYER1_CRASHED") != std::string::npos) result_json["winner"] = 2;
-                    else if (run_res.output.find("PLAYER2_CRASHED") != std::string::npos) result_json["winner"] = 1;
+                    std::string out = run_res.output;
+                    out.erase(out.find_last_not_of(" \n\r\t") + 1);
+                    size_t last_nl = out.find_last_of("\n");
+                    std::string last_line = (last_nl == std::string::npos) ? out : out.substr(last_nl + 1);
+                    
+                    std::string p1_str, p2_str;
+                    std::stringstream ss(last_line);
+                    ss >> p1_str >> p2_str;
+                
+                    auto parse_enum = [](const std::string& s) {
+                        if (s == "0" || s == "NONE") return "NONE";
+                        if (s == "1" || s == "WIN") return "WIN";
+                        if (s == "2" || s == "LOSE") return "LOSE";
+                        if (s == "3" || s == "TIME_LIMIT") return "TIME_LIMIT";
+                        if (s == "4" || s == "MEMORY_LIMIT") return "MEMORY_LIMIT";
+                        if (s == "5" || s == "ERROR") return "ERROR";
+                        return "ERROR";
+                    };
+                
+                    std::string p1_result = parse_enum(p1_str);
+                    std::string p2_result = parse_enum(p2_str);
+                
+                    //result_json["player1Result"] = p1_result;
+                    //result_json["player2Result"] = p2_result;
+                
+                    if(p1_result == p2_result)
+                        result_json["winner"] = 0;
+                    else if (p1_result == "WIN") result_json["winner"] = 1;
+                    else if (p2_result == "WIN") result_json["winner"] = 2;
+                    else result_json["winner"] = 0;
+                
+                    if (run_res.exit_code == 0) {
+                        std::cout << "[결과] ✅ 정상 종료! (P1: " << p1_result << ", P2: " << p2_result << ")" << std::endl;
+                    }
+                    else {
+                        std::cout << "[결과] ⚠️ 런타임 에러 (Exit Code: " << run_res.exit_code << ")" << std::endl;
+                        result_json["status"] = "RUNTIME_ERROR";
+                    }
                 }
             }
             if(data["aiOrder"] == 0)
