@@ -25,6 +25,7 @@ export interface LocalSubmission {
   losses?: number;
   matches: BattleMatchResult[]; // SSE match-result로 실시간 누적
   finalized: boolean;           // submission-summary 수신 완료 여부
+  error?: string;               // 채점 오류 메시지
 }
 
 const TAB_LIST: { id: Tab; label: string }[] = [

@@ -131,6 +131,7 @@
 .ms-item--loss    { border-left-color: #e05475; }
 .ms-item--draw    { border-left-color: #e8883a; }
 .ms-item--pending { border-left-color: #b0b0c8; }
+.ms-item--error   { border-left-color: #e05475; }
 
 .ms-item-header {
   display: flex;
@@ -195,6 +196,7 @@
 .ms-result-label--loss    { background: #fde8ee; color: #b82244; border: 1px solid #f0b8c8; }
 .ms-result-label--draw    { background: #fef0e0; color: #a05010; border: 1px solid #f0c888; }
 .ms-result-label--pending { background: #f0f0f8; color: #8888aa; border: 1px solid #d0d0e0; }
+.ms-result-label--error   { background: #fde8ee; color: #b82244; border: 1px solid #f0b8c8; }
 
 .ms-expand-btn {
   background: none;
@@ -266,6 +268,13 @@
   color: #9090aa;
   font-size: 0.85rem;
   font-style: italic;
+}
+
+/* ── 채점 오류 인라인 ── */
+.ms-error-inline {
+  color: #e05475;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 /* ── 로딩 스피너 ── */
