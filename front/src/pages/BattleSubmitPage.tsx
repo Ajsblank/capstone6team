@@ -210,7 +210,9 @@ const SubmitPage: React.FC = () => {
 
       {/* 메인 헤더 — BattleHomePage와 동일 */}
       <header className="home-header">
-        <span className="home-logo" onClick={() => navigate("landing")}>ASAP 캡스톤</span>
+        <span className="home-logo" onClick={() => navigate("landing")}>
+          <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
+        </span>
         <nav className="home-tab-nav">
           <button className="home-tab-btn" onClick={() => { window.location.hash = "battle/home"; }}>홈</button>
           <button className="home-tab-btn" onClick={() => { window.location.hash = "battle/problems"; }}>문제</button>
@@ -218,7 +220,7 @@ const SubmitPage: React.FC = () => {
           <button className="home-tab-btn" onClick={() => { window.location.hash = "battle/help"; }}>도움말</button>
         </nav>
         <div className="home-auth-area">
-          <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("landing")}>홈</button>
+          <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("landing")}>메인</button>
           {user ? (
             <>
               <span className="home-username" onClick={() => navigate("profile")}>{user.username}</span>

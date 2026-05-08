@@ -66,7 +66,9 @@ const BattlePage: React.FC = () => {
   return (
     <div className="home-page battle-home-page">
       <header className="home-header">
-        <span className="home-logo" onClick={() => navigate("landing")}>ASAP 캡스톤</span>
+        <span className="home-logo" onClick={() => navigate("landing")}>
+          <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
+        </span>
         <nav className="home-tab-nav">
           <button
             className={`home-tab-btn${activeTab === "home" ? " home-tab-btn--active" : ""}`}
@@ -98,7 +100,7 @@ const BattlePage: React.FC = () => {
             className="home-auth-btn home-auth-btn--ghost"
             onClick={() => navigate("landing")}
           >
-            홈
+            메인
           </button>
           {user ? (
             <>

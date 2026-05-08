@@ -14,24 +14,29 @@
   align-items: center;
   gap: 8px;
   padding: 0 32px;
-  height: 60px;
+  height: 80px;
   background: rgba(255, 255, 255, 0.97);
   border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
   position: sticky;
   top: 0;
   z-index: 200;
+  backdrop-filter: blur(6px);
 }
 
 .lp-logo {
-  font-size: 1.4rem;
-  font-weight: 900;
-  color: #111827;
   cursor: pointer;
   margin-right: 20px;
-  letter-spacing: 0.1em;
   user-select: none;
-  font-family: "Courier New", "Consolas", monospace;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.lp-logo-img {
+  height: 112px;
+  width: auto;
+  display: block;
 }
 
 .lp-nav { display: flex; gap: 2px; flex: 1; }
@@ -42,8 +47,8 @@
   color: #6b7280;
   cursor: pointer;
   font-family: "Segoe UI", sans-serif;
-  font-size: 0.9rem;
-  padding: 6px 14px;
+  font-size: 1.05rem;
+  padding: 8px 20px;
   border-radius: 6px;
   transition: background 0.15s, color 0.15s;
 }
@@ -78,19 +83,6 @@
 .lp-auth-btn--primary { background: #16a34a; border-color: #16a34a; color: #ffffff; }
 .lp-auth-btn--primary:hover { background: #15803d; border-color: #15803d; }
 
-/* ── 공통 아이콘 ── */
-.lp-hero-icon {
-  font-size: 4.5rem;
-  line-height: 1;
-  display: block;
-}
-.lp-hero-icon--float {
-  animation: lp-float 2.4s ease-in-out infinite;
-}
-@keyframes lp-float {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-14px); }
-}
 
 /* ════════════════════════════════════════
    CodeBattle Hero
@@ -101,32 +93,30 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 60px);
+  min-height: calc(100vh - 80px);
   padding: 80px 32px 100px;
-  background: linear-gradient(160deg, #ffffff 0%, #fff7ed 55%, #ffedd5 100%);
+  /*
+   * 좌측 25~28% 영역에 불규칙한 주황빛 패턴
+   * 각 blob: center-x 0~22%, 반경-x 12~22% → 오른쪽 끝 최대 ~28%
+   */
+  background:
+    radial-gradient(ellipse 22% 18% at  4%  8%,  rgba(234, 88, 12, 0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 14% 12% at 19% 20%,  rgba(251,146, 60, 0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 20% 15% at  2% 36%,  rgba(234, 88, 12, 0.09) 0%, transparent 100%),
+    radial-gradient(ellipse 16% 20% at 22% 50%,  rgba(253,186,116, 0.06) 0%, transparent 100%),
+    radial-gradient(ellipse 18% 14% at  7% 65%,  rgba(234, 88, 12, 0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 12% 16% at 17% 78%,  rgba(251,146, 60, 0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 20% 13% at  3% 88%,  rgba(234, 88, 12, 0.09) 0%, transparent 100%),
+    radial-gradient(ellipse 10% 10% at 24% 95%,  rgba(253,186,116, 0.05) 0%, transparent 100%),
+    #ffffff;
   overflow: hidden;
   text-align: center;
 }
 
-/* 우측 상단 장식 원 */
-.lp-battle-hero::before {
-  content: '';
-  position: absolute;
-  top: -120px; right: -120px;
-  width: 400px; height: 400px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(234, 88, 12, 0.12) 0%, transparent 70%);
-  pointer-events: none;
-}
-/* 좌측 하단 장식 원 */
+/* 기존 장식 원 제거 */
+.lp-battle-hero::before,
 .lp-battle-hero::after {
-  content: '';
-  position: absolute;
-  bottom: -80px; left: -80px;
-  width: 300px; height: 300px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(234, 88, 12, 0.08) 0%, transparent 70%);
-  pointer-events: none;
+  content: none;
 }
 
 .lp-battle-hero-inner {
@@ -190,6 +180,11 @@
   color: rgba(194, 65, 12, 0.45);
   font-family: "Courier New", monospace;
   animation: lp-hint-pulse 2s ease-in-out infinite;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.lp-scroll-hint--hidden {
+  opacity: 0 !important;
 }
 @keyframes lp-hint-pulse {
   0%, 100% { opacity: 0.45; }
@@ -200,7 +195,19 @@
    CodeBattle Features (수직 배치)
 ════════════════════════════════════════ */
 .lp-battle-features {
-  background: linear-gradient(to bottom, #ffedd5 0%, #fff7ed 30%, #ffffff 100%);
+  /*
+   * 히어로와 같은 좌측 주황 패턴이 수직으로 이어지는 느낌
+   * y% 값을 히어로 하단과 자연스럽게 연결되도록 배치
+   */
+  background:
+    radial-gradient(ellipse 24% 22% at  6%  6%,  rgba(234, 88, 12, 0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 14% 18% at 21% 20%,  rgba(251,146, 60, 0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 22% 16% at  1% 38%,  rgba(234, 88, 12, 0.09) 0%, transparent 100%),
+    radial-gradient(ellipse 12% 20% at 24% 54%,  rgba(253,186,116, 0.06) 0%, transparent 100%),
+    radial-gradient(ellipse 20% 14% at  8% 70%,  rgba(234, 88, 12, 0.09) 0%, transparent 100%),
+    radial-gradient(ellipse 14% 16% at 19% 85%,  rgba(251,146, 60, 0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 10% 12% at  3% 96%,  rgba(234, 88, 12, 0.08) 0%, transparent 100%),
+    #ffffff;
   padding: 80px 32px;
 }
 
@@ -209,61 +216,30 @@
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 72px;
+  gap: 240px;
 }
 
 .lp-bf-row {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  gap: 48px;
-  align-items: start;
-}
-.lp-bf-row--reverse {
-  grid-template-columns: 1fr 160px;
-}
-.lp-bf-row--reverse .lp-bf-visual { order: 2; align-items: flex-end; }
-.lp-bf-row--reverse .lp-bf-content { order: 1; text-align: right; }
-.lp-bf-row--reverse .lp-bf-list { align-items: flex-end; }
-.lp-bf-row--reverse .lp-bf-list li::before { display: none; }
-.lp-bf-row--reverse .lp-bf-list li { padding-left: 0; padding-right: 1.4em; }
-.lp-bf-row--reverse .lp-bf-list li::after {
-  content: "‹";
-  position: absolute;
-  right: 0;
-  color: #ea580c;
-  font-weight: 900;
-  font-size: 1.1rem;
-  line-height: 1.5;
+  display: block;
 }
 
-.lp-bf-visual {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  padding-top: 4px;
+/* 두 번째 카드: 우측 정렬 */
+.lp-bf-row--reverse .lp-bf-content {
+  text-align: right;
+  align-items: flex-end;
 }
-
-.lp-bf-num {
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.22em;
-  color: rgba(234, 88, 12, 0.5);
-  font-family: "Courier New", monospace;
-}
-
-.lp-bf-icon { font-size: 3rem; line-height: 1; }
 
 .lp-bf-content { display: flex; flex-direction: column; gap: 12px; }
 
 .lp-bf-title {
-  font-size: 1.5rem;
+  font-size: 2.5rem;
   font-weight: 800;
   color: #111827;
   margin: 0;
   letter-spacing: -0.02em;
   border-left: 3px solid #ea580c;
   padding-left: 14px;
+  
 }
 .lp-bf-row--reverse .lp-bf-title {
   border-left: none;
@@ -276,7 +252,7 @@
   font-size: 0.95rem;
   color: #6b7280;
   margin: 0;
-  line-height: 1.8;
+  line-height: 2.8;
 }
 
 .lp-bf-list {
@@ -285,7 +261,7 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
 }
 .lp-bf-list li {
   font-size: 0.88rem;
@@ -304,14 +280,45 @@
   line-height: 1.4;
 }
 
+/* reverse 행: 화살표를 오른쪽으로 */
+.lp-bf-row--reverse .lp-bf-list li {
+  padding-left: 0;
+  padding-right: 1.4em;
+}
+.lp-bf-row--reverse .lp-bf-list li::before { display: none; }
+.lp-bf-row--reverse .lp-bf-list li::after {
+  content: "‹";
+  position: absolute;
+  right: 0;
+  color: #ea580c;
+  font-weight: 900;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
 /* ════════════════════════════════════════
-   Bridge — 배틀 · PS 자연스러운 전환
+   Bridge — 좌(주황) → 우(초록) 경계선
 ════════════════════════════════════════ */
 .lp-bridge {
-  padding: 56px 32px;
-  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 45%, #f0fdf4 100%);
-  border-top: 1px solid rgba(234, 88, 12, 0.1);
-  border-bottom: 1px solid rgba(22, 163, 74, 0.1);
+  padding: 44px 32px;
+  position: relative;
+  background: #ffffff;
+  border: none;
+}
+/* 수평 그라데이션 경계선: 좌측 주황 → 중앙 투명 → 우측 초록 */
+.lp-bridge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    rgba(234,  88, 12, 0.13)  0%,
+    rgba(234,  88, 12, 0.06) 20%,
+    transparent               40%,
+    transparent               60%,
+    rgba( 22, 163, 74, 0.06) 80%,
+    rgba( 22, 163, 74, 0.13) 100%
+  );
+  pointer-events: none;
 }
 
 .lp-bridge-inner {
@@ -363,7 +370,19 @@
 ════════════════════════════════════════ */
 .lp-ps-section {
   padding: 80px 32px 100px;
-  background: linear-gradient(160deg, #f0fdf4 0%, #dcfce7 40%, #ffffff 100%);
+  /*
+   * 우측 25~28% 영역에 불규칙한 초록빛 패턴
+   * center-x 72~100%, 반경-x 12~22% → 왼쪽 끝 최소 ~72%
+   */
+  background:
+    radial-gradient(ellipse 22% 18% at 96% 10%,  rgba( 22,163, 74, 0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 14% 14% at 81% 24%,  rgba( 34,197, 94, 0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 20% 16% at 98% 42%,  rgba( 22,163, 74, 0.09) 0%, transparent 100%),
+    radial-gradient(ellipse 16% 20% at 78% 58%,  rgba( 74,222,128, 0.06) 0%, transparent 100%),
+    radial-gradient(ellipse 18% 14% at 94% 73%,  rgba( 22,163, 74, 0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 12% 16% at 83% 86%,  rgba( 34,197, 94, 0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 20% 13% at 97% 95%,  rgba( 22,163, 74, 0.08) 0%, transparent 100%),
+    #ffffff;
 }
 
 .lp-ps-hero {
@@ -437,8 +456,6 @@
   transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(22, 163, 74, 0.12);
 }
-
-.lp-ps-card-icon { font-size: 1.8rem; line-height: 1; }
 
 .lp-ps-card-title {
   font-size: 1rem;

@@ -239,7 +239,9 @@ const BattleCreateContestPage: React.FC = () => {
 
       {/* Header */}
       <header className="home-header">
-        <span className="home-logo" onClick={() => navigate("landing")}>ASAP 캡스톤</span>
+        <span className="home-logo" onClick={() => navigate("landing")}>
+          <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
+        </span>
         <div className="cc-header-spacer" />
         <div className="home-auth-area">
           <button
