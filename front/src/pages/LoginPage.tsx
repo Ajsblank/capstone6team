@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { loginApi, getUserId, setUsername } from "../api/authApi";
-import { subscribeToResults } from "../api/sseApi";
 import "./LoginPage.css";
 
 const LoginPage: React.FC = () => {
@@ -23,7 +22,6 @@ const LoginPage: React.FC = () => {
     try {
       const tokenData = await loginApi({ email, password });
       const uid = getUserId() ?? tokenData.userId;
-      if (uid) subscribeToResults(uid, () => {});
       setUsername(email);
       login({ id: uid ?? email, username: email, email });
       const redirect = localStorage.getItem("loginRedirect");
