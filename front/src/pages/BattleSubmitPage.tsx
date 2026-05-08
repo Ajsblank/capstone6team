@@ -124,6 +124,8 @@ const SubmitPage: React.FC = () => {
           finalized: true,
         }, ...rest];
       });
+      // SSE 완료 후 서버에서 최신 제출 목록 재조회 (race condition 해소)
+      setSubmissionsRefreshKey(k => k + 1);
     });
 
     return () => {
@@ -196,7 +198,13 @@ const SubmitPage: React.FC = () => {
   return (
     <div className="submit-page home-page battle-home-page">
       {showSuccessModal && (
-        <SubmitSuccessModal message={responseMessage} onClose={() => setShowSuccessModal(false)} />
+        <SubmitSuccessModal
+          message={responseMessage}
+          onClose={() => {
+            setShowSuccessModal(false);
+            handleTabChange("my-submissions");
+          }}
+        />
       )}
 
       {/* 메인 헤더 — BattleHomePage와 동일 */}

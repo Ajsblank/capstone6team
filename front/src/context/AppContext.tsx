@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { logoutApi, getAccessToken, getUserId, getUsername } from "../api/authApi";
+import { subscribeToResults, unsubscribeFromResults } from "../api/sseApi";
 
 export type Page =
   | "landing"
@@ -64,6 +65,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.location.hash = page;
     setCurrentPage(page);
   }, []);
+
+  // 로그인/페이지 새로고침 시 SSE 재연결, 로그아웃 시 해제
+  useEffect(() => {
+    if (user?.id) {
+      console.log("[AppContext] SSE 구독 — userId:", user.id);
+      subscribeToResults(user.id, () => {});
+    } else {
+      unsubscribeFromResults();
+    }
+  }, [user?.id]);
 
   const login = useCallback((u: User) => setUser(u), []);
   const logout = useCallback(async () => {
