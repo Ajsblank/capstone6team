@@ -76,6 +76,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [user?.id]);
 
+  // 토큰 갱신 실패 시 강제 로그아웃
+  useEffect(() => {
+    const handleForceLogout = () => {
+      setUser(null);
+      window.location.hash = "login";
+      setCurrentPage("login");
+    };
+    window.addEventListener("auth:logout", handleForceLogout);
+    return () => window.removeEventListener("auth:logout", handleForceLogout);
+  }, []);
+
   const login = useCallback((u: User) => setUser(u), []);
   const logout = useCallback(async () => {
     await logoutApi();
