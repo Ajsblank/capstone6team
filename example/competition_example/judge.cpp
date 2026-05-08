@@ -24,7 +24,7 @@ Result p1Result = WIN, p2Result = WIN;
 // 특수타일 종류들을 나타내는 enum
 enum Tile
 {
-    NORMAL, POWER, HP_FLUX, MANA_FLUX, LINK, CHAOS, LOCK,
+    NORMAL, POWER, HP_FLUX, MANA_FLUX, LINK, LOCK,
 };
 
 // 가능한 캐릭터 종류들을 나타내는 enum
@@ -80,7 +80,6 @@ string EnumToString(Tile tile)
         case HP_FLUX: return "HP_FLUX";
         case MANA_FLUX: return "MANA_FLUX";
         case LINK: return "LINK";
-        case CHAOS: return "CHAOS";
         case LOCK: return "LOCK";
     }
     throw invalid_argument("Invalid Tile : " + tile);
@@ -144,7 +143,6 @@ T StringToEnum(const string& str)
         if (str == "HP_FLUX") return HP_FLUX;
         if (str == "MANA_FLUX") return MANA_FLUX;
         if (str == "LINK") return LINK;
-        if (str == "CHAOS") return CHAOS;
         if (str == "LOCK") return LOCK;
     }
     else if constexpr (is_same_v<T, Character>)
@@ -405,11 +403,6 @@ public:
             {
                 case POWER:
                     damage = damage * (100 + tile.n) / 100;
-                    break;
-                case CHAOS: // 현재 턴의 내카드 + 상대카드를 시드값으로 랜덤 카드 선택
-                    srand(myCard+oppCard);
-                    cardInfo = SkillCardMap.at(static_cast<Card>((rand() % 41) + 10));
-                    damage = cardInfo.damage;
                     break;
             }
 
@@ -726,7 +719,7 @@ int main(int argc, char* argv[]) {
 
         // 특수 타일 생성
         TileState newTile;
-        newTile.type = static_cast<Tile>((rand() % 6) + 1); // 1~6 (POWER~LOCK) 랜덤
+        newTile.type = static_cast<Tile>((rand() % 5) + 1); // 1~5 (POWER~LOCK) 랜덤
         newTile.r = rand() % 3;
         newTile.c = rand() % 4;
         newTile.remainTurn = (rand() % 3) + 3; // 기본 유지 턴수
@@ -745,7 +738,7 @@ int main(int argc, char* argv[]) {
             t1_msg += to_string(newTile.r1) + " " + to_string(newTile.c1) + " " + to_string(newTile.r2) + " " + to_string(newTile.c2) + " " + to_string(newTile.remainTurn);
             judge.board[newTile.r2][newTile.c2] = newTile; // 글로벌 보드에 연결점 저장
         } 
-        else { // CHAOS, LOCK
+        else { // LOCK
             t1_msg += to_string(newTile.r) + " " + to_string(newTile.c) + " " + to_string(newTile.remainTurn);
         }
 
@@ -758,10 +751,10 @@ int main(int argc, char* argv[]) {
         
         if (symTile.type == POWER || symTile.type == HP_FLUX || symTile.type == MANA_FLUX) {
             t2_msg += to_string(symTile.r) + " " + to_string(symTile.c) + " " + to_string(symTile.n) + " " + to_string(symTile.remainTurn);
-        } 
+        }
         else if (symTile.type == LINK) {
             t2_msg += to_string(symTile.r1) + " " + to_string(symTile.c1) + " " + to_string(symTile.r2) + " " + to_string(symTile.c2) + " " + to_string(symTile.remainTurn);
-        } 
+        }
         else {
             t2_msg += to_string(symTile.r) + " " + to_string(symTile.c) + " " + to_string(symTile.remainTurn);
         }
