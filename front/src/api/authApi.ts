@@ -90,7 +90,7 @@ export const applyAuthInterceptor = (instance: AxiosInstance): void => {
         return instance(original);
       } catch {
         clearTokens();
-        window.location.hash = "login";
+        window.dispatchEvent(new CustomEvent("auth:logout"));
         return Promise.reject(error);
       } finally {
         isRefreshing = false;
