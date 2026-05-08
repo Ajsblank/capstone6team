@@ -35,7 +35,7 @@
   display: flex;
   align-items: center;
   padding: 0 32px;
-  height: 60px;
+  height: 80px;
   background: rgba(255, 255, 255, 0.97);
   border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
@@ -45,24 +45,30 @@
 }
 
 .home-logo {
-  font-size: 1.2rem;
-  font-weight: 900;
-  color: #111827;
-  letter-spacing: 0.08em;
   cursor: pointer;
   white-space: nowrap;
   margin-right: 16px;
   user-select: none;
-  font-family: "Courier New", "Consolas", monospace;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-/* Tab nav */
+.home-logo-img {
+  height: 112px;
+  width: auto;
+  display: block;
+}
+
+/* Tab nav — 헤더 중앙 절대 배치 */
 .home-tab-nav {
   display: flex;
   align-items: stretch;
   height: 100%;
   gap: 2px;
-  flex: 1;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .home-tab-btn {
@@ -70,9 +76,9 @@
   border: none;
   border-bottom: 2px solid transparent;
   color: #6b7280;
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   font-family: "Segoe UI", sans-serif;
-  padding: 0 16px;
+  padding: 0 22px;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
@@ -85,12 +91,13 @@
   font-weight: 600;
 }
 
-/* Auth area */
+/* Auth area — 로고 다음에 오지만 우측으로 밀어냄 */
 .home-auth-area {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .home-username {
