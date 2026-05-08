@@ -30,6 +30,7 @@ function formatDate(d: Date | string): string {
 
 function serverSubmissionToLocal(s: ContestSubmissionResponse, userId: string): LocalSubmission {
   const { status, log } = s.result;
+  const isComplete = Boolean(log && log.trim().length > 0);
   const winner = status === "WIN" ? userId : status === "DRAW" ? "draw" : "ai";
   const match: BattleMatchResult = { matchId: s.submissionId, winner, log };
   return {
@@ -38,10 +39,10 @@ function serverSubmissionToLocal(s: ContestSubmissionResponse, userId: string): 
     language: "",
     success: true,
     message: "",
-    wins:   status === "WIN"  ? 1 : 0,
-    losses: status === "LOSE" ? 1 : 0,
-    matches: [match],
-    finalized: true,
+    wins:    isComplete ? (status === "WIN"  ? 1 : 0) : undefined,
+    losses:  isComplete ? (status === "LOSE" ? 1 : 0) : undefined,
+    matches: isComplete ? [match] : [],
+    finalized: isComplete,
   };
 }
 
@@ -85,7 +86,8 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
   const total  = sub.matches.length;
   const draws  = total - wins - losses;
 
-  const resultType = !sub.finalized ? "pending"
+  const resultType = sub.error ? "error"
+    : !sub.finalized ? "pending"
     : wins > losses ? "win"
     : losses > wins ? "loss"
     : "draw";
@@ -104,7 +106,9 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
         )}
 
         <span className="ms-item-record">
-          {total === 0 ? (
+          {sub.error ? (
+            <span className="ms-error-inline">채점 중 오류 발생</span>
+          ) : total === 0 ? (
             <span className="ms-pending">
               <span className="ms-spinner" aria-hidden="true" />
               채점 중...
@@ -123,7 +127,7 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
         </span>
 
         <span className={`ms-result-label ms-result-label--${resultType}`}>
-          {resultType === "win" ? "승" : resultType === "loss" ? "패" : resultType === "draw" ? "무" : "…"}
+          {resultType === "win" ? "승" : resultType === "loss" ? "패" : resultType === "draw" ? "무" : resultType === "error" ? "오류" : "…"}
         </span>
 
         <button
@@ -170,6 +174,21 @@ const MySubmissionsTab: React.FC<Props> = ({
     setStatusCallback(setSseStatus);
     return () => setStatusCallback(null);
   }, []);
+
+  // SSE가 재연결 한도 초과로 끊기면 채점 중인 제출을 오류 상태로 전환
+  const prevSseStatusRef = useRef<SseStatus>(getSseStatus());
+  useEffect(() => {
+    if (prevSseStatusRef.current !== "disconnected" && sseStatus === "disconnected") {
+      onLocalUpdate(prev =>
+        prev.map(s =>
+          s.finalized || s.error
+            ? s
+            : { ...s, error: "SSE 연결 오류로 채점 결과를 받지 못했습니다." }
+        )
+      );
+    }
+    prevSseStatusRef.current = sseStatus;
+  }, [sseStatus, onLocalUpdate]);
 
   const localSubmissionsRef = useRef(localSubmissions);
   useEffect(() => { localSubmissionsRef.current = localSubmissions; }, [localSubmissions]);
