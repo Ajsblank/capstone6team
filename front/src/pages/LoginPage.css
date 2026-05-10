@@ -41,14 +41,16 @@
 }
 
 .login-logo {
-  font-size: 1.4rem;
-  font-weight: 900;
-  color: #15803d;
-  letter-spacing: 0.1em;
   cursor: pointer;
   text-align: center;
   user-select: none;
-  font-family: "Courier New", "Consolas", monospace;
+  display: flex;
+  justify-content: center;
+}
+.login-logo-img {
+  height: 120px;
+  width: auto;
+  display: block;
 }
 
 .login-title {
@@ -118,20 +120,6 @@
 .login-btn--primary { background: #16a34a; color: #ffffff; margin-top: 4px; }
 .login-btn--primary:hover { background: #15803d; }
 
-.login-btn--dev {
-  background: #f9fafb;
-  color: #ea580c;
-  border: 1px dashed #fed7aa;
-  font-size: 0.85rem;
-}
-.login-btn--dev:hover { background: #fff7ed; }
-
-.login-divider {
-  display: flex; align-items: center; gap: 12px;
-  color: #9ca3af; font-size: 0.8rem;
-}
-.login-divider::before,
-.login-divider::after { content: ""; flex: 1; height: 1px; background: #e5e7eb; }
 
 .login-footer {
   display: flex; align-items: center; justify-content: center; gap: 8px;
