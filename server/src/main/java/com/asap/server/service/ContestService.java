@@ -10,7 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleContest.ContestStatus;
 import com.asap.server.domain.CodeBattleParticipant;
+import com.asap.server.domain.ContestSchedule;
 import com.asap.server.domain.Users;
+import com.asap.server.dto.request.ContestScheduleRequest;
 import com.asap.server.dto.request.CreateContestRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
 import com.asap.server.dto.response.ContestDetailResponse;
@@ -19,8 +21,10 @@ import com.asap.server.dto.response.ContestParticipantResponse;
 import com.asap.server.dto.response.ContestResponse;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
+import com.asap.server.repository.ContestScheduleRepository;
 import com.asap.server.repository.usersRepository;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -30,6 +34,8 @@ public class ContestService {
     private final CodeBattleContestRepository contestRepository;
     private final CodeBattleParticipantRepository participantRepository;
     private final usersRepository userRepository;
+    private final ContestScheduleRepository contestScheduleRepository;
+    private final CodeBattleContestSchedulerService contestSchedulerService;
 
     @Transactional
     public ContestResponse createContest(CreateContestRequest request) {
@@ -55,6 +61,7 @@ public class ContestService {
                 policy.endDate(),
                 request.getSoloPlayHtml(),
                 request.getVisualizationHtml());
+        // 최종 대회 예약 생성
 
         return ContestResponse.from(contestRepository.save(contest));
     }
@@ -248,5 +255,22 @@ public class ContestService {
     }
 
     private record DatePolicy(LocalDateTime startDate, LocalDateTime endDate) {
+    }
+
+    public ContestSchedule saveSchedule(Long contestId, ContestScheduleRequest request) {
+        CodeBattleContest contest = contestRepository.findById(contestId)
+                .orElseThrow(() -> new EntityNotFoundException("대회를 찾을 수 없습니다."));
+
+        LocalDateTime start = request.getStartDate();
+
+        ContestSchedule schedule = new ContestSchedule();
+        schedule.setContest(contest);
+        schedule.setScheduledAt(start);
+        ContestSchedule saved = contestScheduleRepository.save(schedule);
+
+        // contestSchedulerService.register(saved);
+
+        return saved;
+
     }
 }

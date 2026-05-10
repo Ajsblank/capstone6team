@@ -17,6 +17,7 @@ import com.asap.server.dto.request.WithdrawRequest;
 import com.asap.server.dto.response.LoginResponse;
 import com.asap.server.service.AuthService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -65,12 +66,14 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "SMS 인증번호 발송")
     @PostMapping("/sms/send")
     public ResponseEntity<String> sendSMS(@Valid @RequestBody SmsVerifyRequest request) {
         authService.sendSMS(request);
         return ResponseEntity.ok("SMS 인증번호를 발송하였습니다.");
     }
 
+    @Operation(summary = "SMS 인증 완료")
     @PostMapping("/sms/verify")
     public ResponseEntity<String> verifySMS(@Valid @RequestBody SmsCodeVerifyRequest request) {
         authService.verifySMS(request);

@@ -1,5 +1,15 @@
 package com.asap.server.service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.CodeBattleParticipant;
@@ -8,17 +18,8 @@ import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -29,14 +30,14 @@ public class SwissMatchMaker {
     private final CodeBattleMatchRepository matchRepository;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
-    
+
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
 
     public SwissMatchMaker(CodeBattleContestRepository contestRepository,
-                           CodeBattleParticipantRepository participantRepository,
-                           CodeBattleMatchRepository matchRepository,
-                           ObjectMapper objectMapper,
-                           StringRedisTemplate redisTemplate) {
+            CodeBattleParticipantRepository participantRepository,
+            CodeBattleMatchRepository matchRepository,
+            ObjectMapper objectMapper,
+            StringRedisTemplate redisTemplate) {
         this.contestRepository = contestRepository;
         this.participantRepository = participantRepository;
         this.matchRepository = matchRepository;
@@ -55,8 +56,7 @@ public class SwissMatchMaker {
         // 참가자들을 점수(score) 기준으로 내림차순 정렬
         List<CodeBattleParticipant> sortedParticipants = new ArrayList<>(participants);
         sortedParticipants.sort(Comparator.comparingInt(
-                (CodeBattleParticipant p) -> p.getScore() == null ? 0 : p.getScore()
-        ).reversed());
+                (CodeBattleParticipant p) -> p.getScore() == null ? 0 : p.getScore()).reversed());
 
         // 2명씩 짝지어서 매치 엔티티 생성
         for (int i = 0; i < sortedParticipants.size() - 1; i += 2) {
@@ -68,7 +68,7 @@ public class SwissMatchMaker {
                     p1.getUser(),
                     p2.getUser(),
                     null, // winner
-                    null  // log
+                    null // log
             );
             matches.add(match);
         }
@@ -97,11 +97,10 @@ public class SwissMatchMaker {
 
         // 점수순 정렬 (내림차순)
         participants.sort(Comparator.comparingInt(
-                (CodeBattleParticipant p) -> p.getScore() == null ? 0 : p.getScore()
-        ).reversed());
+                (CodeBattleParticipant p) -> p.getScore() == null ? 0 : p.getScore()).reversed());
 
         List<CodeBattleMatch> matches = new ArrayList<>();
-        
+
         // 2명씩 짝짓기 (엔티티 수정 안 함)
         for (int i = 0; i < participants.size() - 1; i += 2) {
             CodeBattleMatch match = new CodeBattleMatch(
@@ -109,7 +108,7 @@ public class SwissMatchMaker {
                     participants.get(i).getUser(),
                     participants.get(i + 1).getUser(),
                     null, // winner
-                    null  // log
+                    null // log
             );
             matches.add(match);
         }
@@ -141,10 +140,10 @@ public class SwissMatchMaker {
                 codesNode.put("player2", p2.getSubmission().getCode());
 
                 String jsonPayload = objectMapper.writeValueAsString(rootNode);
-                
+
                 // Redis에 왼쪽(Left)으로 Push (List 자료구조)
                 redisTemplate.opsForList().leftPush(CODE_BATTLE_GRADING_QUEUE_KEY, jsonPayload);
-                
+
             } catch (Exception e) {
                 // 특정 매치 JSON 생성/전송 실패 시 에러 로깅 (전체 루프가 중단되지 않도록 방지)
                 log.error("[SwissMatchMaker] Redis 전송 실패 - matchId: {}", match.getId(), e);
