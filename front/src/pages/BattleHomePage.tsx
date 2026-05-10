@@ -211,7 +211,15 @@ const BattlePage: React.FC = () => {
                       </div>
                       <div className="bp-problem-card-right">
                         {c.status && (
-                          <span className="bp-problem-difficulty">{c.status}</span>
+                          <span className={`bp-problem-difficulty${
+                            c.status === "TEST"    ? " bp-problem-difficulty--test"    :
+                            c.status === "PLANNED" ? " bp-problem-difficulty--planned" :
+                            c.status === "RUNNING" ? " bp-problem-difficulty--running" : ""
+                          }`}>
+                            {c.status === "PLANNED" ? "개최 예정" :
+                             c.status === "RUNNING" ? "개최 중" :
+                             c.status}
+                          </span>
                         )}
                         <span className="bp-problem-arrow">→</span>
                       </div>

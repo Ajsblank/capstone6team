@@ -123,6 +123,21 @@
   color: #ea580c;
   border: 1px solid #fed7aa;
 }
+.bp-problem-difficulty--test {
+  background: #fefce8;
+  color: #a16207;
+  border-color: #fde68a;
+}
+.bp-problem-difficulty--planned {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+.bp-problem-difficulty--running {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #15803d;
+}
 
 .bp-problem-arrow {
   font-size: 1.1rem;

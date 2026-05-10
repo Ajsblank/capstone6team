@@ -497,18 +497,15 @@ const BattleCreateContestPage: React.FC = () => {
 
             {/* 대회 상태 */}
             <section className="cc-section">
-              <h3 className="cc-section-title">대회 상태 <span className="cc-required">*</span></h3>
+              <h3 className="cc-section-title">대회 상태</h3>
               <div className="cc-cert-group">
-                {(["TEST", "PLANNED", "RUNNING"] as ContestStatus[]).map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className={`cc-cert-btn${status === s ? " cc-cert-btn--certified" : ""}`}
-                    onClick={() => setStatus(s)}
-                  >
-                    {s}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  className={`cc-cert-btn${status === "TEST" ? " cc-cert-btn--certified" : ""}`}
+                  onClick={() => setStatus(status === "TEST" ? "PLANNED" : "TEST")}
+                >
+                  TEST
+                </button>
               </div>
             </section>
 

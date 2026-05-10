@@ -39,26 +39,12 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleDevLogin = async () => {
-    setError("");
-    setSubmitting(true);
-    try {
-      await loginApi({ email: "dev@codebattle.kr", password: "devpassword1!" });
-      login({ id: "dev", username: "개발자", email: "dev@codebattle.kr" });
-      navigate("home");
-    } catch {
-      // API 실패 시 토큰 없이 UI만 로그인 (개발 편의용)
-      login({ id: "dev", username: "개발자", email: "dev@codebattle.kr" });
-      navigate("home");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-logo" onClick={() => navigate("landing")}>CodeBattle</div>
+        <div className="login-logo" onClick={() => navigate("landing")}>
+          <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="login-logo-img" />
+        </div>
         <h2 className="login-title">로그인</h2>
 
         <form className="login-form" onSubmit={handleLogin} noValidate>
@@ -94,15 +80,6 @@ const LoginPage: React.FC = () => {
             {submitting ? "로그인 중..." : "로그인"}
           </button>
         </form>
-
-        {process.env.NODE_ENV === "development" && (
-          <>
-            <div className="login-divider"><span>또는</span></div>
-            <button className="login-btn login-btn--dev" type="button" onClick={handleDevLogin}>
-              개발자 로그인 (Debug)
-            </button>
-          </>
-        )}
 
         <div className="login-footer">
           <span className="login-footer-text">계정이 없으신가요?</span>
