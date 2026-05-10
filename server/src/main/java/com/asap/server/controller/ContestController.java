@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleContest.ContestStatus;
+import com.asap.server.domain.ContestSchedule;
+import com.asap.server.dto.request.ContestScheduleRequest;
 import com.asap.server.dto.request.CreateContestRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
 import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
@@ -46,6 +49,7 @@ public class ContestController {
     private final ContestService contestService;
     private final CodeBattleSubmissionService submissionService;
 
+    @Operation(summary = "대회 생성")
     @PostMapping("/create")
     public ResponseEntity<ContestResponse> createContest(@Valid @RequestBody CreateContestRequest request) {
         ContestResponse response = contestService.createContest(request);
@@ -68,18 +72,29 @@ public class ContestController {
         return ResponseEntity.ok(responses);
     }
 
+    @Operation(summary = "대회 상세 조회")
     @GetMapping("/{contestId}")
     public ResponseEntity<ContestResponse> getContestDetail(@PathVariable Long contestId) {
         CodeBattleContest contest = contestService.getContestById(contestId);
         return ResponseEntity.ok(ContestResponse.from(contest));
     }
 
+    @Operation(summary = "대회 상세 조회(채점 코드 포함)")
     @GetMapping("/{contestId}/admin")
     public ResponseEntity<ContestDetailResponse> getContestDetailAdmin(@PathVariable Long contestId) {
         CodeBattleContest contest = contestService.getContestById(contestId);
         return ResponseEntity.ok(ContestDetailResponse.from(contest));
     }
 
+    @Operation(summary = "중간 대회 일정 추가")
+    @PostMapping("/{contestId}/admin")
+    public ResponseEntity<ContestSchedule> postSchedule(@PathVariable Long contestId,
+            @RequestBody ContestScheduleRequest request) {
+        ContestSchedule schedule = contestService.saveSchedule(contestId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(schedule);
+    }
+
+    @Operation(summary = "대회 수정")
     @PatchMapping("/{contestId}")
     public ResponseEntity<ContestDetailResponse> updateContest(
             @PathVariable Long contestId,

@@ -17,7 +17,7 @@ public class ContestRunService {
 
   public void RunContest(long contestId) {
     CodeBattleContest contest = contestRepository.findById(contestId)
-        .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다."));
+        .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. ID: " + contestId));
     if (contest.getStatus() != ContestStatus.PLANNED)
       return;
     long count = participantRepository.countByContestId(contestId);

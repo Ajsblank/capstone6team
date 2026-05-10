@@ -13,6 +13,7 @@ import com.asap.server.dto.request.UpdateProfileRequest;
 import com.asap.server.dto.response.ProfileResponse;
 import com.asap.server.service.ProfileService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -23,11 +24,13 @@ public class ProfileController {
 
     private final ProfileService profileService;
 
+    @Operation(summary = "자신의 프로필 조회")
     @GetMapping("/me")
     public ResponseEntity<ProfileResponse> getMyProfile(@AuthenticationPrincipal String email) {
         return ResponseEntity.ok(profileService.getMyProfile(email));
     }
 
+    @Operation(summary = "프로필 수정")
     @PatchMapping("/me")
     public ResponseEntity<ProfileResponse> patchMyProfile(
             @AuthenticationPrincipal String email,
@@ -36,6 +39,7 @@ public class ProfileController {
     }
 
     // 예시: /api/profile/chito-0001
+    @Operation(summary = "타인 프로필 조회")
     @GetMapping("/{nicknameTag}")
     public ResponseEntity<ProfileResponse> getOtherProfile(@PathVariable String nicknameTag) {
         return ResponseEntity.ok(profileService.getOtherProfile(nicknameTag));
