@@ -15,8 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleContest.ContestStatus;
 import com.asap.server.domain.CodeBattleParticipant;
+import com.asap.server.domain.CodeBattleSubmission;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
+import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.asap.server.repository.ContestScheduleRepository;
 
 import jakarta.annotation.PostConstruct;
@@ -30,8 +32,10 @@ public class ContestRunService {
   private final CodeBattleContestRepository contestRepository;
   private final ContestScheduleRepository contestScheduleRepository;
   private final CodeBattleParticipantRepository participantRepository;
+  private final CodeBattleSubmissionRepository submissionRepository;
   private final TaskScheduler taskScheduler;
   private final Map<Long, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
+  private final SwissMatchMaker swissMatchMaker;
 
   @PostConstruct
   public void initContestSchedules() {
@@ -65,12 +69,17 @@ public class ContestRunService {
 
   @Transactional
   private void processMatching(Long contestId) {
+    CodeBattleContest contest = contestRepository.findById(contestId)
+        .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
+    long count = participantRepository.countByContestId(contestId);
     if (count < 2) {
       // Cancled 상태를 End 로 사용중
+      log.info("참가자 수 부족으로 대회가 취소됩니다. contestId: {}", contestId);
       contest.setStatus(ContestStatus.END);
       return;
     }
-    log.info("[Scheduler] 대회 ID {} 의 매칭을 시작합니다.", contestId);
+    contest.setStatus(ContestStatus.RUNNING);
+    log.info("대회를 시작합니다. ID: {}", contestId);
 
     try {
       // 해당 대회의 참가자 목록 조회
@@ -81,16 +90,40 @@ public class ContestRunService {
         p.setScore(0);
       }
       participantRepository.saveAll(participants); // 초기화된 점수 DB 반영
-
-      // 스위스 매칭 다음 라운드 생성 로직 호출
+      // 스위스 매칭 예약 (미구현)
       // swissMatchMaker.generateNextRound(contestId);
       // swissMatchMaker.
+      Runnable task = () -> processEnd(contestId);
+      Instant endInstant = contest.getEndDate().atZone(ZoneId.of("Asia/Seoul")).toInstant();
+      log.info("대회 종료 시간: {}", contest.getEndDate());
+
+      taskScheduler.schedule(task, triggerContext -> {
+        if (triggerContext.lastCompletion() != null) {
+          return null; // 1회 실행 후 종료
+        }
+        return endInstant;
+      });
 
     } catch (Exception e) {
       log.error("[Scheduler] 에러 발생", e);
     } finally {
       scheduledTasks.remove(contestId);
     }
+  }
+
+  @Transactional
+  private void processEnd(Long contestId) {
+    CodeBattleContest contest = contestRepository.findById(contestId)
+        .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
+    // 일단 모든 제출을 가져옴 (테스트) 추후 최종 제출은 하나가 되도록 할 예정.
+    List<CodeBattleSubmission> submissions = submissionRepository.findByParticipant_Contest_Id(contestId);
+    // 채점 큐 넘김
+    if (submissions.isEmpty()) {
+      log.info("제출된 코드가 없습니다.");
+      contest.setStatus(ContestStatus.END);
+    }
+    swissMatchMaker.pullLeagueGrading(contestId);
+
   }
   // private void registerContest(CodeBattleContest contest) {
   // long count = participantRepository.countByContestId(contest.getId());
