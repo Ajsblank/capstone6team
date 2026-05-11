@@ -11,11 +11,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.asap.server.domain.CodeBattleContest;
+import com.asap.server.domain.CodeBattleExampleAI;
 import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.CodeBattleParticipant;
+import com.asap.server.domain.CodeBattleSubmission;
 import com.asap.server.repository.CodeBattleContestRepository;
+import com.asap.server.repository.CodeBattleExampleAIRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
+import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -30,6 +34,7 @@ public class SwissMatchMaker {
     private final CodeBattleMatchRepository matchRepository;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
+    private final CodeBattleSubmissionRepository submissionRepository;
 
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
 
@@ -43,6 +48,31 @@ public class SwissMatchMaker {
         this.matchRepository = matchRepository;
         this.objectMapper = objectMapper;
         this.redisTemplate = redisTemplate;
+    }
+
+    public void pullLeagueGrading(CodeBattleContest contest) {
+        CodeBattleSubmission submission = CodeBattlesubmissionRepository.findAll();
+        CodeBattleExampleAI ai = CodeBattleExampleAIRepository.findByContest_id();
+        try {
+            ObjectNode rootNode = objectMapper.createObjectNode();
+
+            rootNode.put("submissionId", submission.getId());
+            rootNode.put("aiOrder", ai.getExampleOrder());
+            rootNode.put("language", submission.getLanguage().name());
+            rootNode.put("timeLimitSec", contest.getTimeLimitSec());
+            rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
+
+            ObjectNode codesNode = rootNode.putObject("codes");
+            codesNode.put("judge", contest.getJudgeCode());
+            codesNode.put("player1", submission.getCode());
+            codesNode.put("player2", ai.getCode());
+
+            String jsonPayload = objectMapper.writeValueAsString(rootNode);
+            redisTemplate.opsForList().leftPush(CODE_BATTLE_GRADING_QUEUE_KEY, jsonPayload);
+
+        } catch (Exception e) {
+            log.error("[SwissMatchMaker] Redis 전송 실패 - submissionId: {}", submission.getId(), e);
+        }
     }
 
     public List<CodeBattleMatch> makeMatches(List<CodeBattleParticipant> participants, CodeBattleContest contest) {
