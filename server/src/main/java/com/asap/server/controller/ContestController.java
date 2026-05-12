@@ -2,6 +2,7 @@ package com.asap.server.controller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,9 +18,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
-import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleContest.ContestStatus;
 import com.asap.server.domain.ContestSchedule;
 import com.asap.server.dto.request.ContestScheduleRequest;
@@ -37,23 +39,61 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/contests")
 @RequiredArgsConstructor
+@Slf4j
 public class ContestController {
 
     private final ContestService contestService;
     private final CodeBattleSubmissionService submissionService;
 
-    @Operation(summary = "대회 생성")
-    @PostMapping("/create")
-    public ResponseEntity<ContestResponse> createContest(@Valid @RequestBody CreateContestRequest request) {
-        ContestResponse response = contestService.createContest(request);
-        return ResponseEntity.created(URI.create("/api/contests/" + response.getId())).body(response);
+    @Operation(summary = "대회 생성(메타데이터 + 4개 리소스 파일 업로드)", description = "POST /api/contests/create multipart/form-data\n"
+            + "- request: CreateContestRequest(JSON)\n"
+            + "- visualFile: 시각화 HTML(.html)\n"
+            + "- soloFile: 혼자하기 HTML(.html)\n"
+            + "- judgeCodeFile: 채점 코드 C++(.cpp)\n"
+            + "- exampleCodeFile: 예시 코드 C++(.cpp)")
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(
+                mediaType = "multipart/form-data",
+                encoding = {
+                    @Encoding(name = "request", contentType = "application/json"),
+                    @Encoding(name = "visualFile", contentType = "text/html"),
+                    @Encoding(name = "soloFile", contentType = "text/html"),
+                    @Encoding(name = "judgeCodeFile", contentType = "text/x-c++src"),
+                    @Encoding(name = "exampleCodeFile", contentType = "text/x-c++src")
+                }))
+    @PostMapping(value = "/create", consumes = "multipart/form-data")
+    public ResponseEntity<Map<String, String>> createContest(
+            @Valid @RequestPart("request") CreateContestRequest request,
+            @RequestPart("visualFile") MultipartFile visualFile,
+            @RequestPart("soloFile") MultipartFile soloFile,
+            @RequestPart("judgeCodeFile") MultipartFile judgeCodeFile,
+            @RequestPart("exampleCodeFile") MultipartFile exampleCodeFile) {
+        try {
+            ContestResponse response = contestService.createContest(
+                    request,
+                    visualFile,
+                    soloFile,
+                    judgeCodeFile,
+                    exampleCodeFile);
+            return ResponseEntity.created(URI.create("/api/contests/" + response.getId()))
+                    .body(Map.of("id", String.valueOf(response.getId())));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("대회 생성 실패", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "대회 생성 중 오류 발생"));
+        }
     }
 
     @GetMapping("/list")
@@ -75,15 +115,13 @@ public class ContestController {
     @Operation(summary = "대회 상세 조회")
     @GetMapping("/{contestId}")
     public ResponseEntity<ContestResponse> getContestDetail(@PathVariable Long contestId) {
-        CodeBattleContest contest = contestService.getContestById(contestId);
-        return ResponseEntity.ok(ContestResponse.from(contest));
+        return ResponseEntity.ok(contestService.getContestResponse(contestId));
     }
 
     @Operation(summary = "대회 상세 조회(채점 코드 포함)")
     @GetMapping("/{contestId}/admin")
     public ResponseEntity<ContestDetailResponse> getContestDetailAdmin(@PathVariable Long contestId) {
-        CodeBattleContest contest = contestService.getContestById(contestId);
-        return ResponseEntity.ok(ContestDetailResponse.from(contest));
+        return ResponseEntity.ok(contestService.getContestDetailResponse(contestId));
     }
 
     @Operation(summary = "중간 대회 일정 추가")
@@ -100,6 +138,32 @@ public class ContestController {
             @PathVariable Long contestId,
             @RequestBody UpdateContestRequest request) {
         return ResponseEntity.ok(contestService.updateContest(contestId, request));
+    }
+
+    @Operation(summary = "대회 리소스 수정", description = "PATCH /api/contests/{contestId} multipart/form-data로 4개 리소스(visual, solo, judge, example)를 선택적으로 덮어쓰기합니다. exampleCodeName으로 example 코드 파일명을 지정할 수 있습니다.")
+    @PatchMapping(value = "/{contestId}", consumes = "multipart/form-data")
+    public ResponseEntity<ContestDetailResponse> updateContestResources(
+            @PathVariable Long contestId,
+            @RequestParam(value = "visualFile", required = false) MultipartFile visualFile,
+            @RequestParam(value = "soloFile", required = false) MultipartFile soloFile,
+            @RequestParam(value = "judgeCodeFile", required = false) MultipartFile judgeCodeFile,
+            @RequestParam(value = "exampleCodeFile", required = false) MultipartFile exampleCodeFile,
+            @RequestParam(value = "exampleCodeName", required = false) String exampleCodeName) {
+        try {
+            ContestDetailResponse response = contestService.updateContestResources(
+                    contestId,
+                    visualFile,
+                    soloFile,
+                    judgeCodeFile,
+                    exampleCodeFile,
+                    exampleCodeName);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("대회 리소스 수정 실패 - contestId: {}", contestId, e);
+            return ResponseEntity.internalServerError().body(null);
+        }
     }
 
     @GetMapping("/{contestId}/mySubmission")

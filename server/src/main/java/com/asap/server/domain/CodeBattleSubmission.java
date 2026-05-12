@@ -2,10 +2,15 @@ package com.asap.server.domain;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import com.asap.server.global.type.Language;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -35,7 +40,9 @@ public class CodeBattleSubmission {
   @JoinColumn(name = "contest_id", foreignKey = @ForeignKey(name = "fk_submission_contest"))
   private CodeBattleContest contest;
 
-  @Column
+  @Enumerated(EnumType.STRING)
+  @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+  @Column(columnDefinition = "language")
   private Language language;
 
   @Column

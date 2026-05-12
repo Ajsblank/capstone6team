@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleContest.ContestStatus;
 import com.asap.server.domain.CodeBattleParticipant;
-import com.asap.server.domain.CodeBattleSubmission;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
@@ -53,7 +52,7 @@ public class ContestRunService {
     }
   }
 
-  private void registerContest(CodeBattleContest contest) {
+  public void registerContest(CodeBattleContest contest) {
     Runnable task = () -> processMatching(contest.getId());
 
     Instant startInstant = contest.getStartDate().atZone(ZoneId.of("Asia/Seoul")).toInstant();
@@ -115,29 +114,7 @@ public class ContestRunService {
   private void processEnd(Long contestId) {
     CodeBattleContest contest = contestRepository.findById(contestId)
         .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
-    // 일단 모든 제출을 가져옴 (테스트) 추후 최종 제출은 하나가 되도록 할 예정.
-    List<CodeBattleSubmission> submissions = submissionRepository.findByParticipant_Contest_Id(contestId);
-    // 채점 큐 넘김
-    if (submissions.isEmpty()) {
-      log.info("제출된 코드가 없습니다.");
-      contest.setStatus(ContestStatus.END);
-    }
+
     swissMatchMaker.pullLeagueGrading(contestId);
-
   }
-  // private void registerContest(CodeBattleContest contest) {
-  // long count = participantRepository.countByContestId(contest.getId());
-
-  // List<ContestSchedule> schedules =
-  // contestScheduleRepository.findByContest_Id(contest.getId());
-  // for (ContestSchedule schedule : schedules) {
-  // LocalDateTime startTime = schedule.getScheduledAt();
-  // Runnable task = () -> processMatching(contest.getId());
-
-  // taskScheduler.schedule(task,
-  // triggerContext -> startTime.atZone(ZoneId.of("Asia/Seoul")).toInstant());
-  // log.info("[Scheduler] contestId={} 스케줄이 등록되었습니다. 등록 시간={}", contest.getId(),
-  // startTime);
-  // }
-  // }
 }

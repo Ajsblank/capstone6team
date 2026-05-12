@@ -1,11 +1,13 @@
 package com.asap.server.service;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleContest.ContestStatus;
@@ -26,9 +28,11 @@ import com.asap.server.repository.usersRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ContestService {
 
     private final CodeBattleContestRepository contestRepository;
@@ -36,9 +40,16 @@ public class ContestService {
     private final usersRepository userRepository;
     private final ContestScheduleRepository contestScheduleRepository;
     private final CodeBattleContestSchedulerService contestSchedulerService;
+    private final ContestRunService contestRun;
+    private final S3Service s3Service;
 
-    @Transactional
-    public ContestResponse createContest(CreateContestRequest request) {
+    @Transactional(rollbackFor = Exception.class)
+    public ContestResponse createContest(
+            CreateContestRequest request,
+            MultipartFile visualFile,
+            MultipartFile soloFile,
+            MultipartFile judgeCodeFile,
+            MultipartFile exampleCodeFile) throws IOException {
         LocalDateTime now = LocalDateTime.now();
 
         DatePolicy policy = resolveDatePolicyForCreate(
@@ -54,16 +65,161 @@ public class ContestService {
                 request.getCertification(),
                 request.getTimeLimitSec(),
                 request.getMemoryLimitMb(),
-                request.getJudgeCode(),
-                request.getExampleCode(),
+                null,
+                null,
                 request.getMaxParticipants(),
                 policy.startDate(),
                 policy.endDate(),
-                request.getSoloPlayHtml(),
-                request.getVisualizationHtml());
+                null,
+                null);
         // 최종 대회 예약 생성
 
-        return ContestResponse.from(contestRepository.save(contest));
+        CodeBattleContest savedContest = contestRepository.save(contest);
+
+        if (visualFile == null || visualFile.isEmpty()
+                || soloFile == null || soloFile.isEmpty()
+                || judgeCodeFile == null || judgeCodeFile.isEmpty()
+                || exampleCodeFile == null || exampleCodeFile.isEmpty()) {
+            throw new IllegalArgumentException("대회 생성 시 visual/solo/judge/example 파일 4개가 모두 필요합니다.");
+        }
+
+        String resolvedExampleCodeName = trimToNull(request.getExampleCodeName()) != null
+                ? trimToNull(request.getExampleCodeName())
+                : exampleCodeFile.getOriginalFilename();
+
+        boolean visualUploaded = false;
+        boolean soloUploaded = false;
+        boolean judgeUploaded = false;
+        boolean exampleUploaded = false;
+
+        String visualUrl;
+        String soloUrl;
+        String judgeCodeUrl;
+        String exampleCodeUrl;
+
+        try {
+            visualUrl = s3Service.uploadContestResourceFile(
+                    savedContest.getId(),
+                    S3Service.ContestResourceType.VISUAL_HTML,
+                    visualFile);
+            visualUploaded = true;
+
+            soloUrl = s3Service.uploadContestResourceFile(
+                    savedContest.getId(),
+                    S3Service.ContestResourceType.SOLO_HTML,
+                    soloFile);
+            soloUploaded = true;
+
+            judgeCodeUrl = s3Service.uploadJudgeCodeFile(savedContest.getId(), judgeCodeFile);
+            judgeUploaded = true;
+
+            exampleCodeUrl = s3Service.uploadExampleCodeFile(
+                    savedContest.getId(),
+                    resolvedExampleCodeName,
+                    exampleCodeFile);
+            exampleUploaded = true;
+
+            savedContest.setVisualizationHtml(visualUrl);
+            savedContest.setSoloPlayHtml(soloUrl);
+            savedContest.setJudgeCode(judgeCodeUrl);
+            savedContest.setExampleCode(exampleCodeUrl);
+        } catch (Exception e) {
+            rollbackUploadedResources(savedContest.getId(), resolvedExampleCodeName,
+                    visualUploaded, soloUploaded, judgeUploaded, exampleUploaded);
+            throw new IllegalStateException("대회 생성 중 리소스 업로드 실패", e);
+        }
+
+        contestRun.registerContest(savedContest);
+        return ContestResponse.from(savedContest);
+    }
+
+    private void rollbackUploadedResources(
+            Long contestId,
+            String exampleCodeName,
+            boolean visualUploaded,
+            boolean soloUploaded,
+            boolean judgeUploaded,
+            boolean exampleUploaded) {
+        if (exampleUploaded) {
+            try {
+                s3Service.deleteExampleCodeFile(contestId, exampleCodeName);
+            } catch (Exception ex) {
+                log.warn("보상 삭제 실패 - exampleCode, contestId: {}", contestId, ex);
+            }
+        }
+        if (judgeUploaded) {
+            try {
+                s3Service.deleteJudgeCodeFile(contestId);
+            } catch (Exception ex) {
+                log.warn("보상 삭제 실패 - judgeCode, contestId: {}", contestId, ex);
+            }
+        }
+        if (soloUploaded) {
+            try {
+                s3Service.deleteContestResourceFile(contestId, S3Service.ContestResourceType.SOLO_HTML);
+            } catch (Exception ex) {
+                log.warn("보상 삭제 실패 - soloHtml, contestId: {}", contestId, ex);
+            }
+        }
+        if (visualUploaded) {
+            try {
+                s3Service.deleteContestResourceFile(contestId, S3Service.ContestResourceType.VISUAL_HTML);
+            } catch (Exception ex) {
+                log.warn("보상 삭제 실패 - visualHtml, contestId: {}", contestId, ex);
+            }
+        }
+    }
+
+    @Transactional
+    public ContestDetailResponse updateContestResources(
+            Long contestId,
+            MultipartFile visualFile,
+            MultipartFile soloFile,
+            MultipartFile judgeCodeFile,
+            MultipartFile exampleCodeFile,
+            String exampleCodeName) throws IOException {
+        CodeBattleContest contest = contestRepository.findById(contestId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 대회를 찾을 수 없습니다: " + contestId));
+
+        if (visualFile != null && !visualFile.isEmpty()) {
+            String visualUrl = s3Service.uploadContestResourceFile(contestId, S3Service.ContestResourceType.VISUAL_HTML,
+                    visualFile);
+            contest.setVisualizationHtml(visualUrl);
+        }
+
+        if (soloFile != null && !soloFile.isEmpty()) {
+            String soloUrl = s3Service.uploadContestResourceFile(contestId, S3Service.ContestResourceType.SOLO_HTML,
+                    soloFile);
+            contest.setSoloPlayHtml(soloUrl);
+        }
+
+        if (judgeCodeFile != null && !judgeCodeFile.isEmpty()) {
+            String judgeUrl = s3Service.uploadJudgeCodeFile(contestId, judgeCodeFile);
+            contest.setJudgeCode(judgeUrl);
+        }
+
+        if (exampleCodeFile != null && !exampleCodeFile.isEmpty()) {
+            String resolvedExampleCodeName = trimToNull(exampleCodeName) != null ? trimToNull(exampleCodeName)
+                    : exampleCodeFile.getOriginalFilename();
+            String exampleUrl = s3Service.uploadExampleCodeFile(contestId, resolvedExampleCodeName, exampleCodeFile);
+            contest.setExampleCode(exampleUrl);
+        }
+
+        return ContestDetailResponse.from(contest);
+    }
+
+    @Transactional(readOnly = true)
+    public ContestResponse getContestResponse(Long contestId) {
+        CodeBattleContest contest = getContestById(contestId);
+        applyResourceUrlsIfMissing(contest);
+        return ContestResponse.from(contest);
+    }
+
+    @Transactional(readOnly = true)
+    public ContestDetailResponse getContestDetailResponse(Long contestId) {
+        CodeBattleContest contest = getContestById(contestId);
+        applyResourceUrlsIfMissing(contest);
+        return ContestDetailResponse.from(contest);
     }
 
     @Transactional
@@ -214,6 +370,11 @@ public class ContestService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    // DB에 저장된 URL만 반환. 업로드 전이면 null 반환 (하드코딩 URL 반환 X)
+    private void applyResourceUrlsIfMissing(CodeBattleContest contest) {
+        // no-op: URL은 리소스 업로드 API에서 업로드 후에만 DB에 저장됨
     }
 
     private void validateDatePair(LocalDateTime startDate, LocalDateTime endDate) {

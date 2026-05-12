@@ -11,5 +11,8 @@ import com.asap.server.domain.CodeBattleSubmission;
 public interface CodeBattleSubmissionRepository extends JpaRepository<CodeBattleSubmission, Long> {
     List<CodeBattleSubmission> findByContestIdAndUserId(Long contestId, Long userId);
 
-    List<CodeBattleSubmission> findByParticipant_Contest_Id(Long contestId);
+    List<CodeBattleSubmission> findByContest_Id(Long contestId);
+
+    java.util.Optional<CodeBattleSubmission> findByIdAndContest_Id(Long submissionId, Long contestId);
+
 }

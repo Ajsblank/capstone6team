@@ -60,7 +60,6 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
      
-
       - name: add permission to execute
         run: chmod +x gradlew 
 
