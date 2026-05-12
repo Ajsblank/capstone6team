@@ -6,6 +6,9 @@ interface Props {
   detail: ContestDetail | null;
   loading: boolean;
   error: string | null;
+  onJoin?: () => Promise<void>;
+  joinStatus?: "idle" | "joining" | "joined" | "error";
+  joinError?: string;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -24,7 +27,7 @@ function formatDateTime(dt: string): string {
   });
 }
 
-const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error }) => {
+const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin, joinStatus = "idle", joinError }) => {
   if (loading) {
     return (
       <div className="prob" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -82,6 +85,24 @@ const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error }) => {
           </tbody>
         </table>
       </section>
+
+      {/* 대회 참가 */}
+      {onJoin && detail.status !== "END" && (
+        <section className="prob-section prob-join-section">
+          <button
+            className={`prob-join-btn${joinStatus === "joined" ? " prob-join-btn--done" : ""}`}
+            onClick={onJoin}
+            disabled={joinStatus === "joining" || joinStatus === "joined"}
+          >
+            {joinStatus === "joining" ? "참가 신청 중..." :
+             joinStatus === "joined"  ? "✓ 참가 완료" :
+             "대회 참가"}
+          </button>
+          {joinStatus === "error" && joinError && (
+            <p className="prob-join-error">{joinError}</p>
+          )}
+        </section>
+      )}
 
       {/* 문제 설명 */}
       {detail.description && (

@@ -146,6 +146,31 @@
   vertical-align: middle;
 }
 
+/* 대회 참가 */
+.prob-join-section {
+  padding-top: 4px;
+}
+.prob-join-btn {
+  background: #16a34a;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 11px 32px;
+  transition: background 0.15s, transform 0.1s;
+}
+.prob-join-btn:hover:not(:disabled) { background: #15803d; transform: translateY(-1px); }
+.prob-join-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.prob-join-btn--done { background: #15803d; }
+.prob-join-error {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: #dc2626;
+}
+
 .card-tag--move  { background: #dbeafe; color: #1d4ed8; }
 .card-tag--def   { background: #dcfce7; color: #15803d; }
 .card-tag--heal  { background: #fce7f3; color: #be185d; }
