@@ -85,6 +85,11 @@ export interface ContestSubmissionResponse {
   result: ContestMatchResult;
 }
 
+// ── 대회 참가 — POST /api/contests/{contestId}/join?email={email} ──
+export const joinContest = async (contestId: number, email: string): Promise<void> => {
+  await api.post(`/api/contests/${contestId}/join`, null, { params: { email } });
+};
+
 // ── 내 제출 목록 조회 — GET /api/contests/{contestId}/{targetUserId} ──
 export const getMyBattleSubmissions = async (
   contestId: number,

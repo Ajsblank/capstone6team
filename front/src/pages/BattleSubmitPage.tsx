@@ -4,7 +4,7 @@ import CodeEditor, { LANGUAGE_DEFAULTS } from "../components/CodeEditor";
 import SubmitBar from "../components/SubmitBar";
 import SubmitSuccessModal from "../components/SubmitSuccessModal";
 import MySubmissionsTab from "../components/MySubmissionsTab";
-import { submitCode, getContestDetail, ContestDetail } from "../api/codeBattleApi";
+import { submitCode, getContestDetail, joinContest, ContestDetail } from "../api/codeBattleApi";
 import { setMatchCallback, setSummaryCallback, BattleMatchResult, SubmissionSummary } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
 import { Language } from "../types";
@@ -75,18 +75,40 @@ const SubmitPage: React.FC = () => {
   const [contestDetailLoading, setContestDetailLoading] = useState(false);
   const [contestDetailError, setContestDetailError] = useState<string | null>(null);
 
+  const [joinStatus, setJoinStatus] = useState<"idle" | "joining" | "joined" | "error">("idle");
+  const [joinError, setJoinError] = useState("");
+
   // 대회 상세 조회
   useEffect(() => {
     let cancelled = false;
     setContestDetail(null);
     setContestDetailError(null);
     setContestDetailLoading(true);
+    setJoinStatus("idle");
+    setJoinError("");
     getContestDetail(problemId)
       .then(data => { if (!cancelled) setContestDetail(data); })
       .catch(() => { if (!cancelled) setContestDetailError("대회 정보를 불러오지 못했습니다."); })
       .finally(() => { if (!cancelled) setContestDetailLoading(false); });
     return () => { cancelled = true; };
   }, [problemId]);
+
+  const handleJoin = useCallback(async () => {
+    if (!user) {
+      setJoinStatus("error");
+      setJoinError("로그인이 필요합니다.");
+      return;
+    }
+    setJoinStatus("joining");
+    setJoinError("");
+    try {
+      await joinContest(problemId, user.email ?? user.id);
+      setJoinStatus("joined");
+    } catch (err: any) {
+      setJoinStatus("error");
+      setJoinError(err.response?.data?.message ?? "참가 신청에 실패했습니다.");
+    }
+  }, [problemId, user]);
 
   // 로그 분석 iframe ref + 전달할 로그
   const logIframeRef = useRef<HTMLIFrameElement>(null);
@@ -266,6 +288,9 @@ const SubmitPage: React.FC = () => {
               detail={contestDetail}
               loading={contestDetailLoading}
               error={contestDetailError}
+              onJoin={handleJoin}
+              joinStatus={joinStatus}
+              joinError={joinError}
             />
           </div>
         )}
