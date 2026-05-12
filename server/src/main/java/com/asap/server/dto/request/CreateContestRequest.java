@@ -9,7 +9,6 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Getter;
@@ -20,10 +19,10 @@ import lombok.Setter;
 @Schema(description = "대회 생성 요청")
 public class CreateContestRequest {
 
-  @NotBlank(message = "제목은 필수입니다.")
+  @jakarta.validation.constraints.NotBlank(message = "제목은 필수입니다.")
   private String title;
 
-  @NotBlank(message = "설명은 필수입니다.")
+  @jakarta.validation.constraints.NotBlank(message = "설명은 필수입니다.")
   private String description;
 
   @NotNull(message = "인증 여부는 필수입니다.")
@@ -37,17 +36,8 @@ public class CreateContestRequest {
   @Positive(message = "메모리 제한은 1 이상이어야 합니다.")
   private Integer memoryLimitMb;
 
-  @NotBlank(message = "judgeCode는 필수입니다.")
-  private String judgeCode;
-
-  @NotBlank(message = "ExampleCode는 필수입니다.")
-  private String exampleCode;
-
-  @NotBlank(message = "시각화 리소스")
-  private String visualizationHtml;
-
-  @NotBlank(message = "혼자하기")
-  private String soloPlayHtml;
+  @Schema(description = "example_code 파일명(.cpp 제외). 미지정 시 example_code 사용", example = "sample_solver")
+  private String exampleCodeName;
 
   @NotNull(message = "상태는 필수입니다.")
   @Schema(description = "대회 상태 (TEST, PLANNED, RUNNING, PAUSED, END)", example = "PLANNED")

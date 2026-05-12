@@ -106,6 +106,15 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 	//solapi
 	implementation 'com.solapi:sdk:1.0.3'
+
+	//S3 설정
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+  implementation 'software.amazon.awssdk:s3:2.25.0'
+  implementation 'software.amazon.awssdk:s3-transfer-manager:2.25.0'
+	implementation 'software.amazon.awssdk:sts:2.25.0'
+  compileOnly 'org.projectlombok:lombok'
+  annotationProcessor 'org.projectlombok:lombok'
+	implementation 'software.amazon.awssdk:s3'
 }
 
 // Junit6설정 

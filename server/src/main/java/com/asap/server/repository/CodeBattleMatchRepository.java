@@ -1,12 +1,13 @@
 package com.asap.server.repository;
 
-import com.asap.server.domain.CodeBattleMatch;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.asap.server.domain.CodeBattleMatch;
 
 @Repository
 public interface CodeBattleMatchRepository extends JpaRepository<CodeBattleMatch, Long> {
