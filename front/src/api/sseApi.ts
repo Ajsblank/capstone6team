@@ -1,5 +1,6 @@
 import { getAccessToken } from "./authApi";
 
+
 const BASE_URL = (process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
 
 // ── 단일 매치 결과 ──
@@ -23,17 +24,20 @@ export interface SubmissionSummary {
 
 export type SseStatus = "connected" | "connecting" | "disconnected";
 
-type MatchCallback   = (result: BattleMatchResult) => void;
-type SummaryCallback = (summary: SubmissionSummary) => void;
-type StatusCallback  = (status: SseStatus) => void;
+type MatchCallback     = (result: BattleMatchResult) => void;
+type SummaryCallback   = (summary: SubmissionSummary) => void;
+type StatusCallback    = (status: SseStatus) => void;
+type ReconnectCallback = () => void;   // SSE 재연결 완료 시 호출
 
 let emitter: EventSource | null = null;
-let matchCallback:   MatchCallback   | null = null;
-let summaryCallback: SummaryCallback | null = null;
-let statusCallback:  StatusCallback  | null = null;
+let matchCallback:     MatchCallback     | null = null;
+let summaryCallback:   SummaryCallback   | null = null;
+let statusCallback:    StatusCallback    | null = null;
+let reconnectCallback: ReconnectCallback | null = null;
 let lastUserId: string | null = null;
 let reconnectAttempts = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let isFirstConnect = true;   // 최초 연결인지 재연결인지 구분
 
 const MAX_RECONNECT    = 5;
 const RECONNECT_BASE_MS = 2000;
@@ -53,6 +57,10 @@ export const setStatusCallback = (cb: StatusCallback | null) => {
   statusCallback = cb;
 };
 
+export const setReconnectCallback = (cb: ReconnectCallback | null) => {
+  reconnectCallback = cb;
+};
+
 // ── 내부 연결 함수 (초기 연결 + 재연결 공유) ──
 function connectSSE(userId: string): void {
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
@@ -66,8 +74,14 @@ function connectSSE(userId: string): void {
 
   emitter.onopen = () => {
     reconnectAttempts = 0;
-    console.log("[SSE] 연결 성공 — readyState:", emitter?.readyState);
+    const wasReconnect = !isFirstConnect;
+    isFirstConnect = false;
+    console.log(`[SSE] 연결 성공 (${wasReconnect ? "재연결" : "최초"}) — readyState:`, emitter?.readyState);
     notifyStatus("connected");
+    if (wasReconnect) {
+      console.log("[SSE] 재연결 완료 — reconnectCallback 호출");
+      reconnectCallback?.();
+    }
   };
 
   // 단일 매치 결과
@@ -93,11 +107,21 @@ function connectSSE(userId: string): void {
   });
 
   // 이벤트 이름 없는 기본 메시지 (하위 호환)
+  // 서버가 named event 대신 일반 message로 보낼 경우 여기서 처리
   emitter.onmessage = (e) => {
-    console.log("[SSE] onmessage (unnamed event):", e.data);
+    console.log("[SSE] onmessage (unnamed) — raw:", e.data);
     try {
       const data = JSON.parse(e.data);
-      if ("matchId" in data) matchCallback?.(data as BattleMatchResult);
+      console.log("[SSE] onmessage parsed:", data);
+      if ("matchId" in data) {
+        console.log("[SSE] → matchCallback 호출 (onmessage 경로)");
+        matchCallback?.(data as BattleMatchResult);
+      } else if ("submissionId" in data && "wins" in data) {
+        console.log("[SSE] → summaryCallback 호출 (onmessage 경로)");
+        summaryCallback?.(data as SubmissionSummary);
+      } else {
+        console.log("[SSE] onmessage — 처리 불가 형식:", data);
+      }
     } catch (err) {
       console.warn("[SSE] onmessage parse 오류:", err);
     }
@@ -132,6 +156,7 @@ export const subscribeToResults = (userId: string, onMatch: MatchCallback) => {
   lastUserId = userId;
   matchCallback = onMatch;
   reconnectAttempts = 0;
+  isFirstConnect = true;
   connectSSE(userId);
 };
 
@@ -143,6 +168,31 @@ export const setMatchCallback = (onMatch: MatchCallback) => {
 export const setSummaryCallback = (onSummary: SummaryCallback) => {
   summaryCallback = onSummary;
 };
+
+// 현재 SSE 상태 콘솔 덤프 — 디버깅용
+export const debugSse = () => {
+  const stateLabel = !emitter ? "없음"
+    : emitter.readyState === EventSource.CONNECTING ? "CONNECTING(0)"
+    : emitter.readyState === EventSource.OPEN       ? "OPEN(1)"
+    : "CLOSED(2)";
+  const url = lastUserId
+    ? `${BASE_URL}/api/subscribe/${lastUserId}?token=***`
+    : "(미연결)";
+  console.group("[SSE] 현재 상태 덤프");
+  console.log("readyState          :", stateLabel);
+  console.log("접속 URL            :", url);
+  console.log("lastUserId          :", lastUserId);
+  console.log("matchCallback 등록  :", matchCallback !== null);
+  console.log("summaryCallback 등록:", summaryCallback !== null);
+  console.log("재연결 시도 횟수    :", reconnectAttempts, "/", MAX_RECONNECT);
+  console.log("BASE_URL            :", BASE_URL || "(비어 있음 — REACT_APP_API_BASE_URL 미설정)");
+  console.groupEnd();
+};
+
+// 개발 환경에서 브라우저 콘솔에서 window.__debugSse() 로 직접 호출 가능
+if (process.env.NODE_ENV === "development") {
+  (window as any).__debugSse = debugSse;
+}
 
 // 로그아웃 시 연결 해제
 export const unsubscribeFromResults = () => {

@@ -162,8 +162,8 @@ const BattleCreateContestPage: React.FC = () => {
     if (!judgeCode)             missing.push("채점 코드");
     if (!visualizationHtml)     missing.push("시각화 HTML 파일");
     if (!soloPlayHtml)          missing.push("혼자서 하기 HTML 파일");
-    if (!startDate)             missing.push("시작 일");
-    if (!endDate)               missing.push("종료 일");
+    if (!startDate)             missing.push("시작 일시");
+    if (!endDate)               missing.push("종료 일시");
     if (certification === null) missing.push("인증 여부");
     if (missing.length > 0) { setToastMessages(missing); return; }
 
@@ -459,22 +459,22 @@ const BattleCreateContestPage: React.FC = () => {
               <div className="cc-row">
                 <div className="cc-field">
                   <label className="cc-label">
-                    시작 일 <Req show={!startDate} />
+                    시작 일시 <Req show={!startDate} />
                   </label>
                   <input
                     className="cc-input cc-input--date"
-                    type="date"
+                    type="datetime-local"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                   />
                 </div>
                 <div className="cc-field">
                   <label className="cc-label">
-                    종료 일 <Req show={!endDate} />
+                    종료 일시 <Req show={!endDate} />
                   </label>
                   <input
                     className="cc-input cc-input--date"
-                    type="date"
+                    type="datetime-local"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                   />

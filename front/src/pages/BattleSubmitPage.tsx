@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import ContestProblemDetail from "../components/ContestProblemDetail";
+import EditContestModal from "../components/EditContestModal";
 import CodeEditor, { LANGUAGE_DEFAULTS } from "../components/CodeEditor";
 import SubmitBar from "../components/SubmitBar";
 import SubmitSuccessModal from "../components/SubmitSuccessModal";
 import MySubmissionsTab from "../components/MySubmissionsTab";
 import { submitCode, getContestDetail, joinContest, ContestDetail } from "../api/codeBattleApi";
-import { setMatchCallback, setSummaryCallback, BattleMatchResult, SubmissionSummary } from "../api/sseApi";
+import { setMatchCallback, setSummaryCallback, setReconnectCallback, BattleMatchResult, SubmissionSummary, debugSse } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
 import { Language } from "../types";
 import "./AppLayout.css";
@@ -78,6 +79,12 @@ const SubmitPage: React.FC = () => {
   const [joinStatus, setJoinStatus] = useState<"idle" | "joining" | "joined" | "error">("idle");
   const [joinError, setJoinError] = useState("");
 
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // TODO: 백엔드에서 contestDetail.creatorId 반환 구현 후 아래 주석 해제
+  // const isOwner = !!user && !!contestDetail && user.id === contestDetail.creatorId;
+  const isOwner = false;
+
   // 대회 상세 조회
   useEffect(() => {
     let cancelled = false;
@@ -123,27 +130,52 @@ const SubmitPage: React.FC = () => {
 
   // SSE 콜백 등록
   useEffect(() => {
+    console.log("[BattleSubmitPage] SSE 콜백 등록 (mount)");
+
+    setReconnectCallback(() => {
+      console.log("[BattleSubmitPage] SSE 재연결 감지 → 서버 재조회");
+      setSubmissionsRefreshKey(k => k + 1);
+    });
+
     // 단일 매치 결과 → 최신 제출에 실시간 누적
     setMatchCallback((result: BattleMatchResult) => {
+      console.log("[BattleSubmitPage] match-result 콜백 호출:", result);
       setLocalSubmissions(prev => {
-        if (prev.length === 0) return prev;
+        if (prev.length === 0) {
+          console.warn("[BattleSubmitPage] match-result 수신 — 로컬 제출 없음, 무시");
+          return prev;
+        }
         const [latest, ...rest] = prev;
-        if (latest.finalized) return prev; // 이미 확정된 제출은 무시
+        if (latest.finalized) {
+          console.warn("[BattleSubmitPage] match-result 수신 — 최신 제출 이미 확정됨, 무시");
+          return prev;
+        }
+        console.log("[BattleSubmitPage] matches 누적 →", latest.matches.length + 1, "건");
         return [{ ...latest, matches: [...latest.matches, result] }, ...rest];
       });
     });
 
     // 모든 매치 완료 후 종합 결과 → 최신 제출을 서버 확정값으로 교체
     setSummaryCallback((summary: SubmissionSummary) => {
+      console.log("[BattleSubmitPage] submission-summary 콜백 호출:", summary);
       setLocalSubmissions(prev => {
-        if (prev.length === 0) return prev;
+        if (prev.length === 0) {
+          console.warn("[BattleSubmitPage] summary 수신 — 로컬 제출 없음, 무시");
+          return prev;
+        }
         const [latest, ...rest] = prev;
+        // summary.matches가 없으면 기존 SSE match-result로 누적된 matches 유지
+        const finalMatches = Array.isArray(summary.matches) && summary.matches.length > 0
+          ? summary.matches
+          : latest.matches;
+        console.log("[BattleSubmitPage] 제출 확정 — submissionId:", summary.submissionId,
+          "wins:", summary.wins, "losses:", summary.losses, "matches:", finalMatches.length);
         return [{
           ...latest,
           submissionId: summary.submissionId,
           wins:    summary.wins,
           losses:  summary.losses,
-          matches: summary.matches,
+          matches: finalMatches,
           finalized: true,
         }, ...rest];
       });
@@ -152,8 +184,10 @@ const SubmitPage: React.FC = () => {
     });
 
     return () => {
+      console.log("[BattleSubmitPage] SSE 콜백 해제 (unmount)");
       setMatchCallback(() => {});
       setSummaryCallback(() => {});
+      setReconnectCallback(null);
     };
   }, []);
 
@@ -188,9 +222,14 @@ const SubmitPage: React.FC = () => {
     setSubmitStatus("submitting");
     setErrorMessage("");
 
+    // SSE 구독 userId vs 제출 userId 비교 로그
+    const submitUserId = user?.id ?? "";
+    debugSse();
+    console.log("[BattleSubmitPage] 제출 userId:", submitUserId, "/ contestId(problemId):", problemId);
+
     try {
       const result = await submitCode({
-        userId: user?.id ?? "",
+        userId: submitUserId,
         problemId: String(problemId),
         language: language.toUpperCase(),
         sourceCode: code,
@@ -227,6 +266,15 @@ const SubmitPage: React.FC = () => {
             setShowSuccessModal(false);
             handleTabChange("my-submissions");
           }}
+        />
+      )}
+
+      {showEditModal && contestDetail && (
+        <EditContestModal
+          contestId={problemId}
+          initial={contestDetail}
+          onClose={() => setShowEditModal(false)}
+          onSaved={updated => setContestDetail(prev => prev ? { ...prev, ...updated } : prev)}
         />
       )}
 
@@ -291,6 +339,7 @@ const SubmitPage: React.FC = () => {
               onJoin={handleJoin}
               joinStatus={joinStatus}
               joinError={joinError}
+              onEdit={isOwner ? () => setShowEditModal(true) : undefined}
             />
           </div>
         )}

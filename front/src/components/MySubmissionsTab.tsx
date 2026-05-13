@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { LocalSubmission } from "../pages/BattleSubmitPage";
-import { BattleMatchResult, SseStatus, getSseStatus, setStatusCallback } from "../api/sseApi";
+import { BattleMatchResult, SseStatus, getSseStatus, setStatusCallback, debugSse } from "../api/sseApi";
 import { getMyBattleSubmissions, ContestSubmissionResponse } from "../api/codeBattleApi";
 import "./MySubmissionsTab.css";
 
@@ -251,7 +251,12 @@ const MySubmissionsTab: React.FC<Props> = ({
     <div className="ms-container">
       <div className="ms-header-row">
         <h2 className="ms-title">내 제출 이력</h2>
-        <span className={`ms-sse-badge ms-sse-badge--${sseStatus}`}>
+        <span
+          className={`ms-sse-badge ms-sse-badge--${sseStatus}`}
+          title="클릭 시 SSE 상태를 콘솔에 출력"
+          onClick={debugSse}
+          style={{ cursor: "pointer" }}
+        >
           {sseStatus === "connected" ? "● SSE 연결됨" : sseStatus === "connecting" ? "◌ SSE 연결 중" : "○ SSE 끊김"}
         </span>
         <div className="ms-sort-group">

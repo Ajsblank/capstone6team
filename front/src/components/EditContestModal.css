@@ -1,0 +1,181 @@
+.ecm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 16px 24px;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.ecm-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 680px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 헤더 ── */
+.ecm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e8e8f4;
+}
+
+.ecm-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1e1e3a;
+  margin: 0;
+}
+
+.ecm-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #9090aa;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.12s, color 0.12s;
+}
+.ecm-close-btn:hover {
+  background: #f0f0f8;
+  color: #333355;
+}
+
+/* ── 본문 폼 ── */
+.ecm-body {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ecm-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ecm-row .ecm-field {
+  flex: 1;
+  min-width: 140px;
+}
+
+.ecm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.ecm-field--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.ecm-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #444466;
+}
+.ecm-label--inline {
+  font-weight: 500;
+  color: #333355;
+  cursor: pointer;
+}
+.ecm-label--hint {
+  font-weight: 400;
+  color: #9090aa;
+}
+
+.ecm-input,
+.ecm-select {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #c8c8e0;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: #1e1e3a;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.ecm-input:focus,
+.ecm-select:focus {
+  border-color: #7755cc;
+  box-shadow: 0 0 0 2px rgba(119, 85, 204, 0.12);
+}
+.ecm-select {
+  cursor: pointer;
+}
+
+.ecm-textarea {
+  padding: 8px 10px;
+  border: 1px solid #c8c8e0;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: #1e1e3a;
+  background: #fff;
+  outline: none;
+  resize: vertical;
+  transition: border-color 0.15s;
+  line-height: 1.5;
+}
+.ecm-textarea:focus {
+  border-color: #7755cc;
+  box-shadow: 0 0 0 2px rgba(119, 85, 204, 0.12);
+}
+.ecm-textarea--md   { min-height: 100px; }
+.ecm-textarea--code {
+  min-height: 140px;
+  font-family: "Fira Code", "Consolas", monospace;
+  font-size: 0.82rem;
+  background: #fafafe;
+}
+
+.ecm-error {
+  font-size: 0.85rem;
+  color: #cc2244;
+  background: #fff0f3;
+  border: 1px solid #f0b8c8;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 0;
+}
+
+/* ── 푸터 ── */
+.ecm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.ecm-btn {
+  padding: 8px 20px;
+  border-radius: 7px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, opacity 0.15s;
+}
+.ecm-btn--cancel {
+  background: #f0f0f8;
+  color: #555577;
+  border: 1px solid #c8c8e0;
+}
+.ecm-btn--cancel:hover { background: #e4e4f4; }
+.ecm-btn--save {
+  background: #6644cc;
+  color: #fff;
+}
+.ecm-btn--save:hover:not(:disabled) { background: #5533bb; }
+.ecm-btn--save:disabled { opacity: 0.5; cursor: not-allowed; }
