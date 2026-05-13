@@ -25,6 +25,8 @@ export interface ContestDetail {
   endDate: string;
   maxParticipants: number;
   createdAt: string;
+  // TODO: 백엔드 creatorId 반환 구현 후 활성화
+  // creatorId: string;
 }
 
 export interface ContestListResponse {

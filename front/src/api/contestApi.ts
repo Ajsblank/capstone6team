@@ -37,6 +37,25 @@ export interface ContestResponse {
   // updatedAt: string      // 백엔드 응답에 있으나 현재 미사용
 }
 
+// PATCH /api/contests/{contestId} 요청 바디 — 모든 필드 선택적
+export interface PatchContestData {
+  title?: string;
+  description?: string;
+  certification?: boolean;
+  timeLimitSec?: number;
+  memoryLimitMb?: number;
+  judgeCode?: string;
+  exampleCode?: string;
+  status?: ContestStatus;
+  startDate?: string;    // "YYYY-MM-DD HH:MM"
+  endDate?: string;      // "YYYY-MM-DD HH:MM"
+  maxParticipants?: number;
+}
+
+export const patchContest = async (contestId: number, data: PatchContestData): Promise<void> => {
+  await api.patch(`/api/contests/${contestId}`, data);
+};
+
 export const createContest = async (data: CreateContestData): Promise<ContestResponse> => {
   const [exampleCode, judgeCode, visualizationHtml, soloPlayHtml] =
     await Promise.all([
@@ -53,8 +72,8 @@ export const createContest = async (data: CreateContestData): Promise<ContestRes
     timeLimitSec:     data.timeLimitSec,
     memoryLimitMb:    data.memoryLimitMb,
     status:           data.status,
-    startDate:        data.startDate ? `${data.startDate} 00:00` : undefined,
-    endDate:          data.endDate   ? `${data.endDate} 00:00`   : undefined,
+    startDate:        data.startDate ? data.startDate.replace("T", " ") : undefined,
+    endDate:          data.endDate   ? data.endDate.replace("T", " ")   : undefined,
     maxParticipants:  data.maxParticipants,
     exampleCode,
     judgeCode,

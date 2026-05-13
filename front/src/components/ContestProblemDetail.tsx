@@ -9,6 +9,7 @@ interface Props {
   onJoin?: () => Promise<void>;
   joinStatus?: "idle" | "joining" | "joined" | "error";
   joinError?: string;
+  onEdit?: () => void;  // 개최자 본인일 때만 전달됨
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -27,7 +28,7 @@ function formatDateTime(dt: string): string {
   });
 }
 
-const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin, joinStatus = "idle", joinError }) => {
+const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin, joinStatus = "idle", joinError, onEdit }) => {
   if (loading) {
     return (
       <div className="prob" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -45,8 +46,26 @@ const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin,
 
   return (
     <div className="prob">
-      <div className="prob-header">
-        <h1 className="prob-title">{detail.title}</h1>
+      <div className="prob-header" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <h1 className="prob-title" style={{ flex: 1 }}>{detail.title}</h1>
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            style={{
+              padding: "6px 16px",
+              background: "#6644cc",
+              color: "#fff",
+              border: "none",
+              borderRadius: 7,
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            수정
+          </button>
+        )}
       </div>
 
       {/* 대회 정보 */}
