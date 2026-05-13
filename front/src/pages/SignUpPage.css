@@ -42,14 +42,15 @@
 }
 
 .signup-logo {
-  font-size: 1.4rem;
-  font-weight: 900;
-  color: #15803d;
-  letter-spacing: 0.1em;
   cursor: pointer;
   text-align: center;
   user-select: none;
-  font-family: "Courier New", "Consolas", monospace;
+}
+.signup-logo-img {
+  height: 100px;
+  width: auto;
+  display: block;
+  margin: 0 auto;
 }
 
 .signup-title {
