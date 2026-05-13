@@ -5,7 +5,7 @@ run-name: "CD actor : ${{github.actor}}"
 # Controls when the workflow will run
 on:
   push:
-    branches: ["dev/server","develop"]
+    branches: ["dev/server"]
     paths:
       - 'server/**'
       - '.github/workflows/*'
