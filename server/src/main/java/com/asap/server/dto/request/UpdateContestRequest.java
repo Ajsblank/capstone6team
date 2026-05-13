@@ -14,7 +14,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@Schema(description = "대회 수정 요청")
+@Schema(description = "대회 수정 요청(PATCH). 모든 필드는 선택이며, 요청에 포함된 필드만 수정됩니다.")
 public class UpdateContestRequest {
 
   private String title;

@@ -1,6 +1,7 @@
 package com.asap.server.service;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
@@ -8,11 +9,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.asap.server.global.type.Language;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
@@ -21,6 +27,9 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 @Service
 @RequiredArgsConstructor
 public class S3Service {
+
+  public record SubmissionUploadResult(String key, String url) {
+  }
 
   public enum ContestResourceType {
     VISUAL_HTML("visual-html"),
@@ -86,7 +95,7 @@ public class S3Service {
 
   /**
    * 채점 코드 업로드
-    * backend-deploy/contest-resource/{contestId}/judge-code/judge_code.cpp
+   * backend-deploy/contest-resource/{contestId}/judge-code/judge_code.cpp
    */
   public String uploadJudgeCodeContent(Long contestId, String judgeCode) {
     if (judgeCode == null || judgeCode.isBlank()) {
@@ -108,7 +117,7 @@ public class S3Service {
 
   /**
    * 예제 코드 업로드
-    * backend-deploy/contest-resource/{contestId}/example-code/{name}.cpp
+   * backend-deploy/contest-resource/{contestId}/example-code/{name}.cpp
    */
   public String uploadExampleCodeContent(Long contestId, String exampleCode, String exampleCodeName) {
     if (exampleCode == null || exampleCode.isBlank()) {
@@ -170,6 +179,91 @@ public class S3Service {
 
   public void deleteExampleCodeFile(Long contestId, String exampleCodeName) {
     deleteObject(buildExampleCodeKey(contestId, exampleCodeName));
+  }
+
+  /**
+   * 코드 배틀 제출 코드 업로드
+   * backend-deploy/contest-resource/{contestId}/submissions/sub_{submissionId}_{userId}.{ext}
+   */
+  public SubmissionUploadResult uploadContestSubmissionFile(
+      Long contestId,
+      Long submissionId,
+      Long userId,
+      Language language,
+      MultipartFile file) throws IOException {
+    if (file == null || file.isEmpty()) {
+      throw new IllegalArgumentException("제출 파일은 필수입니다.");
+    }
+
+    String extension = extensionByLanguage(language);
+    String key = buildSubmissionCodeKey(contestId, submissionId, userId, extension);
+
+    PutObjectRequest putRequest = PutObjectRequest.builder()
+        .bucket(bucket)
+        .key(key)
+        .contentType("text/plain; charset=UTF-8")
+        .build();
+
+    s3Client.putObject(putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+    log.info("코드 배틀 제출 파일 업로드 완료 - contestId: {}, submissionId: {}, key: {}", contestId, submissionId, key);
+    return new SubmissionUploadResult(key, buildPublicUrl(key));
+  }
+
+  public SubmissionUploadResult uploadContestSubmissionContent(
+      Long contestId,
+      Long submissionId,
+      Long userId,
+      Language language,
+      String sourceCode) {
+    if (sourceCode == null || sourceCode.isBlank()) {
+      throw new IllegalArgumentException("sourceCode는 비어 있을 수 없습니다.");
+    }
+
+    String extension = extensionByLanguage(language);
+    String key = buildSubmissionCodeKey(contestId, submissionId, userId, extension);
+
+    PutObjectRequest putRequest = PutObjectRequest.builder()
+        .bucket(bucket)
+        .key(key)
+        .contentType("text/plain; charset=UTF-8")
+        .build();
+
+    s3Client.putObject(putRequest, RequestBody.fromBytes(sourceCode.getBytes(StandardCharsets.UTF_8)));
+    log.info("코드 배틀 제출 문자열 업로드 완료 - contestId: {}, submissionId: {}, key: {}", contestId, submissionId, key);
+    return new SubmissionUploadResult(key, buildPublicUrl(key));
+  }
+
+  public void deleteObjectByKey(String key) {
+    deleteObject(key);
+  }
+
+  /**
+   * S3 객체를 문자열(UTF-8)로 읽는다.
+   * 입력은 S3 key 또는 public URL 모두 허용한다.
+   */
+  public String readFileAsString(String keyOrUrl) {
+    if (keyOrUrl == null || keyOrUrl.isBlank()) {
+      throw new IllegalArgumentException("S3 key/url이 비어 있습니다.");
+    }
+    String key = keyOrUrl;
+
+    if (keyOrUrl.startsWith("http")) {
+      // "https://bucket.s3.region.amazonaws.com/key/path" → "key/path"
+      // "http://bucket.s3-website-region.amazonaws.com/key/path" → "key/path"
+      URI uri = URI.create(keyOrUrl);
+      key = uri.getPath().replaceFirst("^/", ""); // 앞 슬래시 제거
+    }
+
+    GetObjectRequest request = GetObjectRequest.builder()
+        .bucket(bucket)
+        .key(key)
+        .build();
+
+    try (ResponseInputStream<GetObjectResponse> response = s3Client.getObject(request)) {
+      return new String(response.readAllBytes(), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new IllegalStateException("S3 파일 읽기 실패 - key: " + key, e);
+    }
   }
 
   /**
@@ -236,6 +330,24 @@ public class S3Service {
   private String buildExampleCodeKey(Long contestId, String exampleCodeName) {
     String baseName = sanitizeCppBaseName(exampleCodeName);
     return String.format("%s/%d/example-code/%s.cpp", normalizeContestCodePrefix(), contestId, baseName);
+  }
+
+  private String buildSubmissionCodeKey(Long contestId, Long submissionId, Long userId, String extension) {
+    return String.format("%s/%d/submissions/sub_%d_%d.%s",
+        normalizeContestCodePrefix(),
+        contestId,
+        submissionId,
+        userId,
+        extension);
+  }
+
+  private String extensionByLanguage(Language language) {
+    return switch (language) {
+      case CPP -> "cpp";
+      case JAVA -> "java";
+      case PYTHON -> "py";
+      case C -> "c";
+    };
   }
 
   private String sanitizeCppBaseName(String fileName) {

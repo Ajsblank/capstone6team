@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS code_battle_submission (
     user_id BIGINT NULL,
     contest_id BIGINT NULL,
     language VARCHAR(255) NULL,
-    code TEXT NULL,
+    code_url TEXT NULL,
     result VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_submission_user FOREIGN KEY (user_id) REFERENCES users(id),

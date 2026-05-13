@@ -25,6 +25,10 @@ import com.asap.server.repository.CodeBattleParticipantRepository;
 @Transactional
 public class RedisResultWorker implements CommandLineRunner {
 
+    private static final long RESULT_QUEUE_POLL_TIMEOUT_SECONDS = 5L;
+    private static final String RESULT_QUEUE_KEY = "code_battle_result_queue";
+    private static final String AI_RESULT_QUEUE_KEY = "code_battle_ai_result_queue";
+
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final SseService sseService;
@@ -45,8 +49,17 @@ public class RedisResultWorker implements CommandLineRunner {
         while (!Thread.currentThread().isInterrupted()) {
             String rawData = null;
             try {
-                // Redis에서 데이터 Pop
-                rawData = redisTemplate.opsForList().rightPop("code_battle_result_queue", 60, TimeUnit.SECONDS);
+                // Redis에서 일반 결과 우선 소비, 없으면 AI 결과 소비
+                rawData = redisTemplate.opsForList().rightPop(
+                    RESULT_QUEUE_KEY,
+                    RESULT_QUEUE_POLL_TIMEOUT_SECONDS,
+                    TimeUnit.SECONDS);
+                if (rawData == null) {
+                    rawData = redisTemplate.opsForList().rightPop(
+                        AI_RESULT_QUEUE_KEY,
+                        1,
+                        TimeUnit.SECONDS);
+                }
                 if (rawData == null) continue;
 
                 // 비즈니스 로직 처리
