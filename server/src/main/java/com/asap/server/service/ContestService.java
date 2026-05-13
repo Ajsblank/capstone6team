@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -129,7 +131,16 @@ public class ContestService {
             throw new IllegalStateException("대회 생성 중 리소스 업로드 실패", e);
         }
 
-        contestRun.registerContest(savedContest);
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    contestRun.registerContest(savedContest);
+                }
+            });
+        } else {
+            contestRun.registerContest(savedContest);
+        }
         return ContestResponse.from(savedContest);
     }
 
@@ -228,7 +239,13 @@ public class ContestService {
                 .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다."));
 
         LocalDateTime now = LocalDateTime.now();
-        DatePolicy policy = resolveDatePolicyForUpdate(contest, request, now);
+        boolean hasStatusOrSchedulePatch = request.getStatus() != null
+            || request.getStartDate() != null
+            || request.getEndDate() != null;
+
+        DatePolicy policy = hasStatusOrSchedulePatch
+            ? resolveDatePolicyForUpdate(contest, request, now)
+            : new DatePolicy(contest.getStartDate(), contest.getEndDate());
 
         validatePatchValues(request);
 
@@ -242,8 +259,31 @@ public class ContestService {
                 trimToNull(request.getExampleCode()),
                 request.getMaxParticipants());
 
-        ContestStatus targetStatus = request.getStatus() != null ? request.getStatus() : contest.getStatus();
-        contest.updateStatusAndSchedule(targetStatus, policy.startDate(), policy.endDate());
+        if (hasStatusOrSchedulePatch) {
+            ContestStatus targetStatus = request.getStatus() != null ? request.getStatus() : contest.getStatus();
+            contest.updateStatusAndSchedule(targetStatus, policy.startDate(), policy.endDate());
+        }
+
+        if (hasStatusOrSchedulePatch) {
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        if (contest.getStatus() == ContestStatus.PLANNED
+                                && contest.getStartDate() != null
+                                && contest.getEndDate() != null) {
+                            contestRun.upsertContestSchedule(contest);
+                        }
+                    }
+                });
+            } else {
+                if (contest.getStatus() == ContestStatus.PLANNED
+                        && contest.getStartDate() != null
+                        && contest.getEndDate() != null) {
+                    contestRun.upsertContestSchedule(contest);
+                }
+            }
+        }
 
         return ContestDetailResponse.from(contest);
     }
@@ -348,6 +388,18 @@ public class ContestService {
         }
 
         validateDatePair(startDate, endDate);
+
+        // 수정 시 명세: 시작 시간은 현재보다 이전, 종료 시간은 현재보다 이후
+        if (request.getStartDate() != null || request.getEndDate() != null) {
+            if (!startDate.isBefore(now)) {
+                throw new IllegalArgumentException("시작 시간은 현재 시간보다 이전이어야 합니다.");
+            }
+            if (!endDate.isAfter(now)) {
+                throw new IllegalArgumentException("종료 시간은 현재 시간보다 이후여야 합니다.");
+            }
+            return new DatePolicy(startDate, endDate);
+        }
+
         validateStatusByPeriod(target, startDate, endDate, now);
         return new DatePolicy(startDate, endDate);
     }

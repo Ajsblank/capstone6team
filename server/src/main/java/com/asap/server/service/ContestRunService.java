@@ -57,13 +57,30 @@ public class ContestRunService {
 
     Instant startInstant = contest.getStartDate().atZone(ZoneId.of("Asia/Seoul")).toInstant();
 
-    taskScheduler.schedule(task, triggerContext -> {
+    ScheduledFuture<?> scheduled = taskScheduler.schedule(task, triggerContext -> {
       if (triggerContext.lastCompletion() != null) {
         return null; // 1회 실행 후 종료
       }
       return startInstant;
     });
+
+    if (scheduled != null) {
+      scheduledTasks.put(contest.getId(), scheduled);
+    }
     log.info("[Scheduler] contestId={} 대회의 시작 시간이 등록되었습니다. 등록 시간={}", contest.getId(), contest.getStartDate());
+  }
+
+  public void upsertContestSchedule(CodeBattleContest contest) {
+    cancelContestSchedule(contest.getId());
+    registerContest(contest);
+  }
+
+  public void cancelContestSchedule(Long contestId) {
+    ScheduledFuture<?> future = scheduledTasks.remove(contestId);
+    if (future != null) {
+      future.cancel(false);
+      log.info("[Scheduler] contestId={} 기존 스케줄을 취소했습니다.", contestId);
+    }
   }
 
   @Transactional

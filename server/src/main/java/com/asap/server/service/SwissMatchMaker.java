@@ -14,10 +14,12 @@ import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.CodeBattleParticipant;
 import com.asap.server.domain.CodeBattleSubmission;
+import com.asap.server.domain.ContestFinalSubmission;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
+import com.asap.server.repository.FinalSubmissionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -35,6 +37,8 @@ public class SwissMatchMaker {
     private final CodeBattleSubmissionRepository submissionRepository;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
+    private final FinalSubmissionRepository finalSubmissionRepository;
+    private final S3Service s3Service;
 
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
     private static final String PULL_LEAGUE_MATCH_DEDUP_KEY_PREFIX = "code_battle:pull_league:dedup:";
@@ -66,13 +70,21 @@ public class SwissMatchMaker {
             long rightId = Math.max(newSubmission.getId(), opponent.getId());
             String dedupMember = leftId + ":" + rightId;
 
-            Long inserted = redisTemplate.opsForSet().add(dedupSetKey, dedupMember);
-            if (inserted == null || inserted == 0L) {
+            if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(dedupSetKey, dedupMember))) {
                 continue;
             }
 
             try {
-                enqueuePullLeagueMatch(contest, newSubmission, opponent);
+                CodeBattleMatch match = new CodeBattleMatch(
+                        contest,
+                        newSubmission.getUser(),
+                        opponent.getUser(),
+                        null,
+                        null);
+                match = matchRepository.save(match);
+
+                enqueueMatchToGradingQueue(match.getId(), contest, newSubmission, opponent, 0);
+                redisTemplate.opsForSet().add(dedupSetKey, dedupMember);
                 enqueued++;
             } catch (Exception e) {
                 log.error("[SwissMatchMaker] Redis 전송 실패 - submissionId1: {}, submissionId2: {}",
@@ -89,14 +101,21 @@ public class SwissMatchMaker {
         CodeBattleContest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. ID: " + contestId));
 
-        List<CodeBattleSubmission> submissions = submissionRepository.findByContest_Id(contestId);
-
+        List<ContestFinalSubmission> finalSubmissions = finalSubmissionRepository.findByContestId(contestId);
+        List<CodeBattleSubmission> submissions = finalSubmissions.stream()
+                .map(ContestFinalSubmission::getSubmission) // FinalSubmission 엔티티 내의 getSubmission() 호출
+                .collect(Collectors.toList());
         if (submissions == null || submissions.size() < 2) {
             log.warn("[SwissMatchMaker] 풀리그 대회 ID {} 제출 코드 부족으로 매칭을 생성하지 못했습니다.", contestId);
             return;
         }
 
         log.info("[SwissMatchMaker] 풀리그 대회 ID: {}, {}개의 제출 코드로 매칭을 생성합니다.", contestId, submissions.size());
+
+        int expectedMatches = (submissions.size() * (submissions.size() - 1)) / 2;
+        int dedupSkipped = 0;
+        int enqueued = 0;
+        int enqueueFailed = 0;
 
         // 2. 풀리그 방식 매칭 생성 (모든 submission이 서로 1회 대전)
         // i < j 조건으로 같은 매칭이 2번 생성되지 않도록 함
@@ -114,47 +133,80 @@ public class SwissMatchMaker {
                 String dedupSetKey = PULL_LEAGUE_MATCH_DEDUP_KEY_PREFIX + contestId;
                 String dedupMember = leftId + ":" + rightId;
 
-                Long inserted = redisTemplate.opsForSet().add(dedupSetKey, dedupMember);
-                if (inserted == null || inserted == 0L) {
+                if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(dedupSetKey, dedupMember))) {
+                    dedupSkipped++;
                     continue;
                 }
 
                 // 3. Redis Queue에 매칭 정보 추가 (player1 vs player2)
                 try {
-                    enqueuePullLeagueMatch(contest, submission1, submission2);
+                    // 기존 매칭이 있는지 확인
+                    CodeBattleMatch existingMatch = matchRepository.findExistingMatch(
+                            contestId,
+                            submission1.getUser().getId(),
+                            submission2.getUser().getId());
+
+                    if (existingMatch != null) {
+                        // 기존 매칭이 있으면: 이미 grading된 경우 skip, 아직 pending인 경우도 skip (중복 enqueue 방지)
+                        log.debug("[SwissMatchMaker] 기존 매칭 발견. matchId={}, user1={}, user2={}",
+                                existingMatch.getId(), submission1.getUser().getId(), submission2.getUser().getId());
+                        dedupSkipped++;
+                        redisTemplate.opsForSet().add(dedupSetKey, dedupMember);
+                        continue;
+                    }
+
+                    CodeBattleMatch match = new CodeBattleMatch(
+                            contest,
+                            submission1.getUser(),
+                            submission2.getUser(),
+                            null,
+                            null);
+                    match = matchRepository.save(match);
+
+                    enqueueMatchToGradingQueue(match.getId(), contest, submission1, submission2, 0);
+                    redisTemplate.opsForSet().add(dedupSetKey, dedupMember);
+                    enqueued++;
 
                 } catch (Exception e) {
+                    enqueueFailed++;
                     log.error("[SwissMatchMaker] Redis 전송 실패 - submissionId1: {}, submissionId2: {}",
                             submission1.getId(), submission2.getId(), e);
                 }
             }
         }
 
-        log.info("[SwissMatchMaker] 풀리그 대회 ID {} 매칭 완료. 총 {}개의 경기가 Redis Queue에 추가되었습니다.",
-                contestId, (submissions.size() * (submissions.size() - 1)) / 2);
+        log.info("[SwissMatchMaker] 풀리그 대회 ID {} 매칭 완료. expected={}, enqueued={}, dedupSkipped={}, enqueueFailed={}",
+                contestId, expectedMatches, enqueued, dedupSkipped, enqueueFailed);
     }
 
-    private void enqueuePullLeagueMatch(
+    private void enqueueMatchToGradingQueue(
+            Long queueSubmissionId,
             CodeBattleContest contest,
             CodeBattleSubmission submission1,
-            CodeBattleSubmission submission2) throws Exception {
+            CodeBattleSubmission submission2,
+            int aiOrder) throws Exception {
         ObjectNode rootNode = objectMapper.createObjectNode();
 
-        rootNode.put("submissionId1", submission1.getId());
-        rootNode.put("submissionId2", submission2.getId());
+        rootNode.put("submissionId", queueSubmissionId);
         rootNode.put("language1", submission1.getLanguage().name());
         rootNode.put("language2", submission2.getLanguage().name());
-        rootNode.put("aiOrder", 0);
+        rootNode.put("aiOrder", aiOrder);
         rootNode.put("timeLimitSec", contest.getTimeLimitSec());
         rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
 
+        String judgeCode = s3Service.readFileAsString(contest.getJudgeCode());
+        String player1Code = s3Service.readFileAsString(submission1.getCodeUrl());
+        String player2Code = s3Service.readFileAsString(submission2.getCodeUrl());
+
         ObjectNode codesNode = rootNode.putObject("codes");
-        codesNode.put("judge", contest.getJudgeCode());
-        codesNode.put("player1", submission1.getCode());
-        codesNode.put("player2", submission2.getCode());
+        codesNode.put("judge", judgeCode);
+        codesNode.put("player1", player1Code);
+        codesNode.put("player2", player2Code);
 
         String jsonPayload = objectMapper.writeValueAsString(rootNode);
-        redisTemplate.opsForList().leftPush(CODE_BATTLE_GRADING_QUEUE_KEY, jsonPayload);
+        Long queueSize = redisTemplate.opsForList().leftPush(CODE_BATTLE_GRADING_QUEUE_KEY, jsonPayload);
+        log.info("[SwissMatchMaker] grading queue push success. submissionId={}, queueSize={}",
+                queueSubmissionId, queueSize);
     }
 
     public List<CodeBattleMatch> makeMatches(List<CodeBattleParticipant> participants, CodeBattleContest contest) {
@@ -242,19 +294,28 @@ public class SwissMatchMaker {
 
                 // JSON 페이로드 구성
                 ObjectNode rootNode = objectMapper.createObjectNode();
-                rootNode.put("matchId", match.getId());
+                rootNode.put("submissionId", match.getId());
+                rootNode.put("language1", p1.getSubmission().getLanguage().name());
+                rootNode.put("language2", p2.getSubmission().getLanguage().name());
+                rootNode.put("aiOrder", match.getAiOrder());
                 rootNode.put("timeLimitSec", contest.getTimeLimitSec());
                 rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
 
+                String judgeCode = s3Service.readFileAsString(contest.getJudgeCode());
+                String player1Code = s3Service.readFileAsString(p1.getSubmission().getCodeUrl());
+                String player2Code = s3Service.readFileAsString(p2.getSubmission().getCodeUrl());
+
                 ObjectNode codesNode = rootNode.putObject("codes");
-                codesNode.put("judge", contest.getJudgeCode());
-                codesNode.put("player1", p1.getSubmission().getCode());
-                codesNode.put("player2", p2.getSubmission().getCode());
+                codesNode.put("judge", judgeCode);
+                codesNode.put("player1", player1Code);
+                codesNode.put("player2", player2Code);
 
                 String jsonPayload = objectMapper.writeValueAsString(rootNode);
 
                 // Redis에 왼쪽(Left)으로 Push (List 자료구조)
-                redisTemplate.opsForList().leftPush(CODE_BATTLE_GRADING_QUEUE_KEY, jsonPayload);
+                Long queueSize = redisTemplate.opsForList().leftPush(CODE_BATTLE_GRADING_QUEUE_KEY, jsonPayload);
+                log.info("[SwissMatchMaker] grading queue push success. submissionId={}, queueSize={}",
+                        match.getId(), queueSize);
 
             } catch (Exception e) {
                 // 특정 매치 JSON 생성/전송 실패 시 에러 로깅 (전체 루프가 중단되지 않도록 방지)

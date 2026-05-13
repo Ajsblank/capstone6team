@@ -45,8 +45,8 @@ public class CodeBattleSubmission {
   @Column(columnDefinition = "language")
   private Language language;
 
-  @Column
-  private String code;
+  @Column(name = "code_url", columnDefinition = "TEXT")
+  private String codeUrl;
 
   @Column
   private String result;
@@ -54,13 +54,17 @@ public class CodeBattleSubmission {
   @Column(nullable = false)
   private LocalDateTime created_at;
 
-  public CodeBattleSubmission(Users user, CodeBattleContest contest, Language language, String code,
+  public CodeBattleSubmission(Users user, CodeBattleContest contest, Language language, String codeUrl,
       String result) {
     this.user = user;
     this.contest = contest;
     this.language = language;
-    this.code = code;
+    this.codeUrl = codeUrl;
     this.result = result;
+  }
+
+  public void changeCodeUrl(String codeUrl) {
+    this.codeUrl = codeUrl;
   }
 
   @PrePersist
