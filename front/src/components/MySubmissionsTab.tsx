@@ -87,7 +87,7 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
   const draws  = total - wins - losses;
 
   const resultType = sub.error ? "error"
-    : !sub.finalized ? "pending"
+    : total === 0 ? "pending"
     : wins > losses ? "win"
     : losses > wins ? "loss"
     : "draw";
@@ -115,13 +115,11 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
             </span>
           ) : (
             <>
-              {!sub.finalized && <span className="ms-spinner" aria-hidden="true" />}
               <span className="ms-win">{wins}승</span>
               {" "}
               {draws > 0 && <><span className="ms-draw">{draws}무</span>{" "}</>}
               <span className="ms-loss">{losses}패</span>
               <span className="ms-total"> / {total}전</span>
-              {!sub.finalized && <span className="ms-pending"> (채점 중)</span>}
             </>
           )}
         </span>
