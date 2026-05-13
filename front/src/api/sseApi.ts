@@ -84,27 +84,31 @@ function connectSSE(userId: string): void {
     }
   };
 
-  // 단일 매치 결과
-  emitter.addEventListener("match-result", (e) => {
-    console.log("[SSE] match-result 수신:", (e as MessageEvent).data);
+  // 단일 매치 결과 (백엔드 이름: match_result)
+  const handleMatchResult = (e: Event) => {
+    console.log("[SSE] match_result 수신:", (e as MessageEvent).data);
     try {
       const result: BattleMatchResult = JSON.parse((e as MessageEvent).data);
       matchCallback?.(result);
     } catch (err) {
-      console.warn("[SSE] match-result parse 오류:", err);
+      console.warn("[SSE] match_result parse 오류:", err);
     }
-  });
+  };
+  emitter.addEventListener("match_result", handleMatchResult);
+  emitter.addEventListener("match-result", handleMatchResult); // 하이픈 버전 호환
 
   // 제출 종합 결과
-  emitter.addEventListener("submission-summary", (e) => {
-    console.log("[SSE] submission-summary 수신:", (e as MessageEvent).data);
+  const handleSummary = (e: Event) => {
+    console.log("[SSE] submission_summary 수신:", (e as MessageEvent).data);
     try {
       const summary: SubmissionSummary = JSON.parse((e as MessageEvent).data);
       summaryCallback?.(summary);
     } catch (err) {
-      console.warn("[SSE] submission-summary parse 오류:", err);
+      console.warn("[SSE] submission_summary parse 오류:", err);
     }
-  });
+  };
+  emitter.addEventListener("submission_summary", handleSummary);
+  emitter.addEventListener("submission-summary", handleSummary); // 하이픈 버전 호환
 
   // 이벤트 이름 없는 기본 메시지 (하위 호환)
   // 서버가 named event 대신 일반 message로 보낼 경우 여기서 처리
