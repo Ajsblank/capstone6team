@@ -3,6 +3,47 @@
    AppLayout.css의 green 삼각형을 orange로 override
    ══════════════════════════════════════════ */
 
+/* ── 접근 차단 팝업 ── */
+.bp-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.bp-popup {
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px 36px 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  min-width: 260px;
+}
+.bp-popup-msg {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e1e3a;
+  margin: 0;
+  text-align: center;
+}
+.bp-popup-btn {
+  padding: 8px 28px;
+  background: #f97316;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bp-popup-btn:hover { background: #ea6c0a; }
+
 /* 배틀 홈 전용 — .battle-home-page 스코프로 제한하여 알고리즘 페이지에 영향 없음 */
 
 /* 직삼각형 배경 color override → 주황 */

@@ -106,7 +106,7 @@ const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin,
       </section>
 
       {/* 대회 참가 */}
-      {onJoin && detail.status !== "END" && (
+      {onJoin && detail.status === "RUNNING" && (
         <section className="prob-section prob-join-section">
           <button
             className={`prob-join-btn${joinStatus === "joined" ? " prob-join-btn--done" : ""}`}

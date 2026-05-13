@@ -71,6 +71,8 @@ const SubmitPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [localSubmissions, setLocalSubmissions] = useState<LocalSubmission[]>([]);
   const [submissionsRefreshKey, setSubmissionsRefreshKey] = useState(0);
+  const userIdRef = useRef(user?.id ?? "");
+  useEffect(() => { userIdRef.current = user?.id ?? ""; }, [user?.id]);
 
   const [contestDetail, setContestDetail] = useState<ContestDetail | null>(null);
   const [contestDetailLoading, setContestDetailLoading] = useState(false);
@@ -138,8 +140,19 @@ const SubmitPage: React.FC = () => {
     });
 
     // 단일 매치 결과 → 최신 제출에 실시간 누적
-    setMatchCallback((result: BattleMatchResult) => {
-      console.log("[BattleSubmitPage] match-result 콜백 호출:", result);
+    setMatchCallback((raw: BattleMatchResult) => {
+      console.log("[BattleSubmitPage] match-result 콜백 호출:", raw);
+      // 백엔드 포맷 { aiId, status, log } → 프론트 포맷 { matchId, winner, log } 정규화
+      const r = raw as any;
+      const result: BattleMatchResult = ("status" in r)
+        ? {
+            matchId: r.aiId ?? r.matchId ?? 0,
+            winner:  r.status === "WIN"  ? userIdRef.current
+                   : r.status === "DRAW" ? "draw"
+                   : "ai",
+            log: r.log ?? "",
+          }
+        : raw;
       setLocalSubmissions(prev => {
         if (prev.length === 0) {
           console.warn("[BattleSubmitPage] match-result 수신 — 로컬 제출 없음, 무시");

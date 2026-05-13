@@ -25,6 +25,7 @@ const BattlePage: React.FC = () => {
   const [contestTotalPages, setContestTotalPages] = useState(0);
   const [contestLoading, setContestLoading] = useState(false);
   const [contestError, setContestError] = useState<string | null>(null);
+  const [blockedPopup, setBlockedPopup] = useState(false);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -65,6 +66,14 @@ const BattlePage: React.FC = () => {
 
   return (
     <div className="home-page battle-home-page">
+      {blockedPopup && (
+        <div className="bp-popup-overlay" onClick={() => setBlockedPopup(false)}>
+          <div className="bp-popup" onClick={e => e.stopPropagation()}>
+            <p className="bp-popup-msg">아직 대회 참가할 수 없습니다.</p>
+            <button className="bp-popup-btn" onClick={() => setBlockedPopup(false)}>확인</button>
+          </div>
+        </div>
+      )}
       <header className="home-header">
         <span className="home-logo" onClick={() => navigate("landing")}>
           <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
@@ -198,7 +207,10 @@ const BattlePage: React.FC = () => {
                     <div
                       key={c.id}
                       className="bp-problem-card"
-                      onClick={() => { window.location.hash = `submit/${c.id}`; }}
+                      onClick={() => {
+                        if (c.status === "PLANNED") { setBlockedPopup(true); return; }
+                        window.location.hash = `submit/${c.id}`;
+                      }}
                     >
                       <div className="bp-problem-card-left">
                         <span className="bp-problem-num">#{c.id}</span>
