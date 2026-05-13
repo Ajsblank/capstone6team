@@ -4,8 +4,6 @@ name: ci-server
 run-name: "CI actor : ${{github.actor}}"
 # Controls when the workflow will run
 on:
-  push: 
-    branches: ["main"]
   pull_request:
     paths:
       - 'server/**'
