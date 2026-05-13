@@ -29,6 +29,7 @@ public class SseService {
         if (emitter != null) {
             try {
                 emitter.send(SseEmitter.event().name("match_result").data(data));
+                log.info("[SSE] : success");
             } catch (IOException e) {
                 emitters.remove(userId);
             }
