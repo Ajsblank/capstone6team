@@ -1,0 +1,238 @@
+/* ══════════════════════════════════════════
+   BattleHomePage — White / Orange Theme
+   AppLayout.css의 green 삼각형을 orange로 override
+   ══════════════════════════════════════════ */
+
+/* 배틀 홈 전용 — .battle-home-page 스코프로 제한하여 알고리즘 페이지에 영향 없음 */
+
+/* 직삼각형 배경 color override → 주황 */
+.battle-home-page.home-page::before {
+  background: radial-gradient(ellipse at 100% 0%,
+    rgba(234, 88, 12, 0.18) 0%,
+    rgba(234, 88, 12, 0.06) 45%,
+    transparent 68%);
+}
+
+/* Header tab active: 주황 */
+.battle-home-page .home-tab-btn--active {
+  color: #ea580c;
+  border-bottom-color: #ea580c;
+}
+
+/* Username: 주황 */
+.battle-home-page .home-username { color: #c2410c; }
+.battle-home-page .home-username:hover { background: #fff7ed; }
+
+/* Buttons: 주황 primary */
+.battle-home-page .home-auth-btn--primary {
+  background: #ea580c;
+  border: none;
+}
+.battle-home-page .home-auth-btn--primary:hover { background: #c2410c; }
+
+/* Hero title: 주황 */
+.battle-home-page .home-hero-title { color: #c2410c; }
+
+/* site-desc strong */
+.battle-home-page .home-site-desc strong { color: #c2410c; }
+
+/* ── 배틀 문제 목록 ── */
+.bp-problems {
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.bp-problems-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+.bp-problem-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bp-problem-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+}
+.bp-problem-card:hover {
+  border-color: #fed7aa;
+  box-shadow: 0 4px 16px rgba(234, 88, 12, 0.1);
+  transform: translateY(-1px);
+}
+
+.bp-problem-card-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.bp-problem-num {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #9ca3af;
+  font-family: "Courier New", monospace;
+  min-width: 28px;
+  padding-top: 2px;
+}
+
+.bp-problem-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #c2410c;
+  margin: 0 0 4px;
+}
+
+.bp-problem-desc {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.bp-problem-card-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.bp-problem-difficulty {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+.bp-problem-difficulty--test {
+  background: #fefce8;
+  color: #a16207;
+  border-color: #fde68a;
+}
+.bp-problem-difficulty--planned {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+.bp-problem-difficulty--running {
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #15803d;
+}
+
+.bp-problem-arrow {
+  font-size: 1.1rem;
+  color: #9ca3af;
+  transition: color 0.15s, transform 0.15s;
+}
+.bp-problem-card:hover .bp-problem-arrow {
+  color: #ea580c;
+  transform: translateX(3px);
+}
+
+/* ── 대회 탭 ── */
+.bp-contest {
+  padding: 40px 48px;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.bp-contest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bp-contest-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+.bp-create-contest-btn {
+  background: #ea580c;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 9px 20px;
+  transition: background 0.15s;
+}
+.bp-create-contest-btn:hover { background: #c2410c; }
+
+.bp-contest-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+}
+.bp-contest-empty-text { font-size: 0.95rem; color: #9ca3af; }
+
+/* ── 페이지네이션 ── */
+.bp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 0 4px;
+}
+
+.bp-page-btn {
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  color: #374151;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 7px 18px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.bp-page-btn:hover:not(:disabled) {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #ea580c;
+}
+.bp-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.bp-page-info {
+  font-size: 0.85rem;
+  color: #6b7280;
+  min-width: 60px;
+  text-align: center;
+}

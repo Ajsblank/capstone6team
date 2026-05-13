@@ -1,0 +1,499 @@
+/* ── Base ── */
+.lp-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #ffffff;
+  color: #111827;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ── Header ── */
+.lp-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 32px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.97);
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  backdrop-filter: blur(6px);
+}
+
+.lp-logo {
+  cursor: pointer;
+  margin-right: 20px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.lp-logo-img {
+  height: 112px;
+  width: auto;
+  display: block;
+}
+
+.lp-nav { display: flex; gap: 2px; flex: 1; }
+
+.lp-nav-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 1.05rem;
+  padding: 8px 20px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+.lp-nav-btn:hover { background: #f3f4f6; color: #111827; }
+
+.lp-auth { display: flex; align-items: center; gap: 8px; }
+
+.lp-username {
+  font-size: 0.9rem;
+  color: #111827;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 0.15s;
+  user-select: none;
+}
+.lp-username:hover { background: #f3f4f6; }
+
+.lp-auth-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #374151;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 7px 16px;
+  transition: all 0.15s;
+}
+.lp-auth-btn--ghost:hover { background: #f3f4f6; border-color: #9ca3af; color: #111827; }
+.lp-auth-btn--primary { background: #16a34a; border-color: #16a34a; color: #ffffff; }
+.lp-auth-btn--primary:hover { background: #15803d; border-color: #15803d; }
+
+
+/* ════════════════════════════════════════
+   CodeBattle Hero
+════════════════════════════════════════ */
+.lp-battle-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+  padding: 80px 32px 100px;
+  /*
+   * 좌측 25~28% 영역에 불규칙한 주황빛 패턴
+   * 각 blob: center-x 0~22%, 반경-x 12~22% → 오른쪽 끝 최대 ~28%
+   */
+  background:
+    radial-gradient(ellipse 22% 18% at  4%  8%,  rgba(234, 88, 12, 0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 14% 12% at 19% 20%,  rgba(251,146, 60, 0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 20% 15% at  2% 36%,  rgba(234, 88, 12, 0.09) 0%, transparent 100%),
+    radial-gradient(ellipse 16% 20% at 22% 50%,  rgba(253,186,116, 0.06) 0%, transparent 100%),
+    radial-gradient(ellipse 18% 14% at  7% 65%,  rgba(234, 88, 12, 0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 12% 16% at 17% 78%,  rgba(251,146, 60, 0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 20% 13% at  3% 88%,  rgba(234, 88, 12, 0.09) 0%, transparent 100%),
+    radial-gradient(ellipse 10% 10% at 24% 95%,  rgba(253,186,116, 0.05) 0%, transparent 100%),
+    #ffffff;
+  overflow: hidden;
+  text-align: center;
+}
+
+/* 기존 장식 원 제거 */
+.lp-battle-hero::before,
+.lp-battle-hero::after {
+  content: none;
+}
+
+.lp-battle-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.lp-battle-title {
+  font-size: 4rem;
+  font-weight: 900;
+  color: #c2410c;
+  margin: 0;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  text-shadow: 0 2px 24px rgba(234, 88, 12, 0.18);
+}
+
+.lp-battle-subtitle {
+  font-size: 1.1rem;
+  color: #78350f;
+  margin: 0;
+  font-weight: 300;
+  opacity: 0.75;
+  max-width: 520px;
+  line-height: 1.7;
+}
+
+.lp-battle-cta {
+  margin-top: 8px;
+  padding: 14px 40px;
+  background: linear-gradient(90deg, #ea580c, #f97316);
+  border: none;
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 20px rgba(234, 88, 12, 0.35);
+  letter-spacing: 0.02em;
+}
+.lp-battle-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(234, 88, 12, 0.5);
+}
+.lp-battle-cta:active { transform: translateY(0); }
+
+.lp-scroll-hint {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(194, 65, 12, 0.45);
+  font-family: "Courier New", monospace;
+  animation: lp-hint-pulse 2s ease-in-out infinite;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.lp-scroll-hint--hidden {
+  opacity: 0 !important;
+}
+@keyframes lp-hint-pulse {
+  0%, 100% { opacity: 0.45; }
+  50%       { opacity: 0.9; }
+}
+
+/* ════════════════════════════════════════
+   CodeBattle Features (수직 배치)
+════════════════════════════════════════ */
+.lp-battle-features {
+  /*
+   * 히어로와 같은 좌측 주황 패턴이 수직으로 이어지는 느낌
+   * y% 값을 히어로 하단과 자연스럽게 연결되도록 배치
+   */
+  background:
+    radial-gradient(ellipse 24% 22% at  6%  6%,  rgba(234, 88, 12, 0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 14% 18% at 21% 20%,  rgba(251,146, 60, 0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 22% 16% at  1% 38%,  rgba(234, 88, 12, 0.09) 0%, transparent 100%),
+    radial-gradient(ellipse 12% 20% at 24% 54%,  rgba(253,186,116, 0.06) 0%, transparent 100%),
+    radial-gradient(ellipse 20% 14% at  8% 70%,  rgba(234, 88, 12, 0.09) 0%, transparent 100%),
+    radial-gradient(ellipse 14% 16% at 19% 85%,  rgba(251,146, 60, 0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 10% 12% at  3% 96%,  rgba(234, 88, 12, 0.08) 0%, transparent 100%),
+    #ffffff;
+  padding: 80px 32px;
+}
+
+.lp-features-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 240px;
+}
+
+.lp-bf-row {
+  display: block;
+}
+
+/* 두 번째 카드: 우측 정렬 */
+.lp-bf-row--reverse .lp-bf-content {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.lp-bf-content { display: flex; flex-direction: column; gap: 12px; }
+
+.lp-bf-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.02em;
+  border-left: 3px solid #ea580c;
+  padding-left: 14px;
+  
+}
+.lp-bf-row--reverse .lp-bf-title {
+  border-left: none;
+  border-right: 3px solid #ea580c;
+  padding-left: 0;
+  padding-right: 14px;
+}
+
+.lp-bf-desc {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 2.8;
+}
+
+.lp-bf-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.lp-bf-list li {
+  font-size: 0.88rem;
+  color: #374151;
+  padding-left: 1.4em;
+  position: relative;
+  line-height: 1.6;
+}
+.lp-bf-list li::before {
+  content: "›";
+  position: absolute;
+  left: 0;
+  color: #ea580c;
+  font-weight: 900;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+/* reverse 행: 화살표를 오른쪽으로 */
+.lp-bf-row--reverse .lp-bf-list li {
+  padding-left: 0;
+  padding-right: 1.4em;
+}
+.lp-bf-row--reverse .lp-bf-list li::before { display: none; }
+.lp-bf-row--reverse .lp-bf-list li::after {
+  content: "‹";
+  position: absolute;
+  right: 0;
+  color: #ea580c;
+  font-weight: 900;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+/* ════════════════════════════════════════
+   Bridge — 좌(주황) → 우(초록) 경계선
+════════════════════════════════════════ */
+.lp-bridge {
+  padding: 44px 32px;
+  position: relative;
+  background: #ffffff;
+  border: none;
+}
+/* 수평 그라데이션 경계선: 좌측 주황 → 중앙 투명 → 우측 초록 */
+.lp-bridge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    rgba(234,  88, 12, 0.13)  0%,
+    rgba(234,  88, 12, 0.06) 20%,
+    transparent               40%,
+    transparent               60%,
+    rgba( 22, 163, 74, 0.06) 80%,
+    rgba( 22, 163, 74, 0.13) 100%
+  );
+  pointer-events: none;
+}
+
+.lp-bridge-inner {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  justify-content: center;
+}
+
+.lp-bridge-tag {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 20px;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+.lp-bridge-tag--battle {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1.5px solid #fed7aa;
+}
+.lp-bridge-tag--algo {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1.5px solid #bbf7d0;
+}
+
+.lp-bridge-divider {
+  flex: 1;
+  height: 1.5px;
+  background: linear-gradient(90deg, rgba(234,88,12,0.3), rgba(22,163,74,0.3));
+  border-radius: 1px;
+}
+
+.lp-bridge-copy {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin: 0;
+  white-space: nowrap;
+  font-style: italic;
+}
+
+/* ════════════════════════════════════════
+   PS Section
+════════════════════════════════════════ */
+.lp-ps-section {
+  padding: 80px 32px 100px;
+  /*
+   * 우측 25~28% 영역에 불규칙한 초록빛 패턴
+   * center-x 72~100%, 반경-x 12~22% → 왼쪽 끝 최소 ~72%
+   */
+  background:
+    radial-gradient(ellipse 22% 18% at 96% 10%,  rgba( 22,163, 74, 0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 14% 14% at 81% 24%,  rgba( 34,197, 94, 0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 20% 16% at 98% 42%,  rgba( 22,163, 74, 0.09) 0%, transparent 100%),
+    radial-gradient(ellipse 16% 20% at 78% 58%,  rgba( 74,222,128, 0.06) 0%, transparent 100%),
+    radial-gradient(ellipse 18% 14% at 94% 73%,  rgba( 22,163, 74, 0.10) 0%, transparent 100%),
+    radial-gradient(ellipse 12% 16% at 83% 86%,  rgba( 34,197, 94, 0.07) 0%, transparent 100%),
+    radial-gradient(ellipse 20% 13% at 97% 95%,  rgba( 22,163, 74, 0.08) 0%, transparent 100%),
+    #ffffff;
+}
+
+.lp-ps-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  margin-bottom: 64px;
+}
+
+.lp-ps-title {
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: #15803d;
+  margin: 0;
+  letter-spacing: -0.03em;
+  text-shadow: 0 2px 20px rgba(22, 163, 74, 0.15);
+}
+
+.lp-ps-subtitle {
+  font-size: 1rem;
+  color: #166534;
+  opacity: 0.7;
+  margin: 0;
+  font-weight: 300;
+  max-width: 480px;
+  line-height: 1.7;
+}
+
+.lp-ps-cta {
+  margin-top: 4px;
+  padding: 12px 36px;
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+  border: none;
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 20px rgba(22, 163, 74, 0.3);
+  letter-spacing: 0.02em;
+}
+.lp-ps-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(22, 163, 74, 0.45);
+}
+.lp-ps-cta:active { transform: translateY(0); }
+
+/* PS 피처 카드 그리드 */
+.lp-ps-features {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.lp-ps-card {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.lp-ps-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(22, 163, 74, 0.12);
+}
+
+.lp-ps-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  border-left: 3px solid #16a34a;
+  padding-left: 10px;
+}
+
+.lp-ps-card-desc {
+  font-size: 0.87rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.7;
+}
+
+.lp-ps-card-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lp-ps-card-list li {
+  font-size: 0.83rem;
+  color: #374151;
+  padding-left: 1.3em;
+  position: relative;
+  line-height: 1.6;
+}
+.lp-ps-card-list li::before {
+  content: "›";
+  position: absolute;
+  left: 0;
+  color: #16a34a;
+  font-weight: 900;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
