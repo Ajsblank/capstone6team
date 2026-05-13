@@ -23,8 +23,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   return (
     <header className="home-header">
-      <span className="home-logo" onClick={() => navigate("landing")}>
-        <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
+      <span className="home-logo" onClick={() => { onHomeClick?.(); navigate("home"); }}>
+        ASAP 캡스톤
       </span>
       <nav className="home-tab-nav">
         <button
@@ -55,10 +55,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
       <div className="home-auth-area">
         <button
-          className="home-auth-btn home-auth-btn--ghost"
-          onClick={() => navigate("landing")}
+          className="home-auth-btn home-auth-btn--battle"
+          onClick={() => navigate("battle")}
         >
-          메인
+          ⚔️ 코드 배틀
         </button>
         {user ? (
           <>

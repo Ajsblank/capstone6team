@@ -66,33 +66,6 @@ export interface AlgorithmPageResponse {
   size: number;
 }
 
-// ── 알고리즘 코드 제출 ──────────────────────────────────────────────
-export interface AlgoSubmitResponse {
-  success: boolean;
-  message: string;
-  submissionId?: number;
-  verdict?: string;   // ACCEPTED | WRONG_ANSWER | COMPILE_ERROR | RUNTIME_ERROR | TLE | MLE
-  memoryMb?: number;
-  cpuMs?: number;
-}
-
-export interface AlgoSubmission {
-  submittedAt: Date;
-  language: string;
-  success: boolean;
-  message: string;
-}
-
-export const submitAlgoCode = async (payload: {
-  user_id: string;
-  problem_id: string;
-  language: string;
-  source_code: string;
-}): Promise<AlgoSubmitResponse> => {
-  const { data } = await api.post<AlgoSubmitResponse>("/api/code/submit", payload);
-  return data;
-};
-
 export const getAlgorithmList = async (
   page: number = 0,
   size: number = 20

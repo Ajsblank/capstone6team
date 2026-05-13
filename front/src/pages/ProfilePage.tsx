@@ -24,9 +24,9 @@ const ProfilePage: React.FC = () => {
             color: "#a6adc8", borderRadius: 6, padding: "8px 20px",
             fontFamily: "Segoe UI, sans-serif", cursor: "pointer", fontSize: "0.9rem"
           }}
-          onClick={() => window.history.back()}
+          onClick={() => navigate("home")}
         >
-          ← 이전으로
+          ← 홈으로
         </button>
       </div>
     </div>

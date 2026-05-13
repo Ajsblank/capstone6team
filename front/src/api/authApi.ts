@@ -1,23 +1,20 @@
-import axios, { AxiosInstance } from "axios";
+import axios from "axios";
 
 const BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
 
 const api = axios.create({ baseURL: BASE_URL });
 
 // ──────────────────────────────────────────
-// 토큰 / 사용자 정보 관리
+// 토큰 관리
 // ──────────────────────────────────────────
 let accessToken: string | null = localStorage.getItem("accessToken");
-let userId:      string | null = localStorage.getItem("userId");
-let username:    string | null = localStorage.getItem("username");
 
+// 앱 시작 시 저장된 토큰을 axios 헤더에 복원
 if (accessToken) {
   api.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
 }
 
 export const getAccessToken = () => accessToken;
-export const getUserId      = () => userId;
-export const getUsername    = () => username;
 
 export const setAccessToken = (token: string | null) => {
   accessToken = token;
@@ -30,18 +27,6 @@ export const setAccessToken = (token: string | null) => {
   }
 };
 
-export const setUserId = (id: string | null) => {
-  userId = id;
-  if (id) localStorage.setItem("userId", id);
-  else    localStorage.removeItem("userId");
-};
-
-export const setUsername = (name: string | null) => {
-  username = name;
-  if (name) localStorage.setItem("username", name);
-  else      localStorage.removeItem("username");
-};
-
 export const saveRefreshToken = (token: string) =>
   localStorage.setItem("refreshToken", token);
 
@@ -50,53 +35,7 @@ export const getRefreshToken = () =>
 
 export const clearTokens = () => {
   setAccessToken(null);
-  setUserId(null);
-  setUsername(null);
   localStorage.removeItem("refreshToken");
-};
-
-// ──────────────────────────────────────────
-// 401 자동 토큰 갱신 인터셉터
-// 모든 인증이 필요한 axios 인스턴스에 적용
-// ──────────────────────────────────────────
-let isRefreshing = false;
-let pendingQueue: Array<(token: string) => void> = [];
-
-export const applyAuthInterceptor = (instance: AxiosInstance): void => {
-  instance.interceptors.response.use(
-    res => res,
-    async (error) => {
-      const original = error.config;
-      if (error.response?.status !== 401 || original._retry) {
-        return Promise.reject(error);
-      }
-      original._retry = true;
-
-      if (isRefreshing) {
-        return new Promise(resolve => {
-          pendingQueue.push(token => {
-            original.headers["Authorization"] = `Bearer ${token}`;
-            resolve(instance(original));
-          });
-        });
-      }
-
-      isRefreshing = true;
-      try {
-        const newToken = await refreshTokenApi();
-        pendingQueue.forEach(cb => cb(newToken));
-        pendingQueue = [];
-        original.headers["Authorization"] = `Bearer ${newToken}`;
-        return instance(original);
-      } catch {
-        clearTokens();
-        window.dispatchEvent(new CustomEvent("auth:logout"));
-        return Promise.reject(error);
-      } finally {
-        isRefreshing = false;
-      }
-    }
-  );
 };
 
 // ──────────────────────────────────────────
@@ -116,33 +55,41 @@ export interface LoginRequest {
 export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
-  userId: string;
 }
 
 // ──────────────────────────────────────────
 // API
 // ──────────────────────────────────────────
 
+// 회원가입
 export const signUp = async (body: SignUpRequest): Promise<void> => {
   await api.post("/api/auth/signup", body);
 };
 
+// 이메일 인증번호 재발송 (TODO: 백엔드 재발송 전용 엔드포인트 확인 후 수정)
 export const resendVerificationEmail = async (email: string): Promise<void> => {
   await api.post("/api/auth/mail/send", { email });
 };
 
+// 이메일 인증번호 확인
 export const verifyEmailCode = async (email: string, code: string): Promise<void> => {
   await api.post("/api/auth/mail", { email, code });
 };
 
+// 로그인 → JWT 토큰 저장
 export const loginApi = async (body: LoginRequest): Promise<TokenResponse> => {
-  const { data } = await api.post<TokenResponse>("/api/auth/login", body);
+  const { data } = await api.post<TokenResponse | string>("/api/auth/login", body);
+  // 백엔드가 raw 문자열로 토큰을 반환하는 경우 처리
+  if (typeof data === "string") {
+    setAccessToken(data);
+    return { accessToken: data, refreshToken: "" };
+  }
   setAccessToken(data.accessToken);
   saveRefreshToken(data.refreshToken);
-  setUserId(data.userId);
   return data;
 };
 
+// 로그아웃
 export const logoutApi = async (): Promise<void> => {
   const refreshToken = getRefreshToken();
   if (refreshToken) {
@@ -151,6 +98,7 @@ export const logoutApi = async (): Promise<void> => {
   clearTokens();
 };
 
+// 토큰 갱신
 export const refreshTokenApi = async (): Promise<string> => {
   const refreshToken = getRefreshToken();
   const { data } = await api.post<TokenResponse>("/api/auth/refresh", { refreshToken });
@@ -159,6 +107,7 @@ export const refreshTokenApi = async (): Promise<string> => {
   return data.accessToken;
 };
 
+// 회원탈퇴
 export const signOutApi = async (password: string): Promise<void> => {
   await api.patch("/api/auth/signout", { password });
   clearTokens();

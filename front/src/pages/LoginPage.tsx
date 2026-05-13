@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
-import { loginApi, getUserId, setUsername } from "../api/authApi";
+import { loginApi } from "../api/authApi";
 import "./LoginPage.css";
 
 const LoginPage: React.FC = () => {
@@ -20,17 +20,10 @@ const LoginPage: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const tokenData = await loginApi({ email, password });
-      const uid = getUserId() ?? tokenData.userId;
-      setUsername(email);
-      login({ id: uid ?? email, username: email, email });
-      const redirect = localStorage.getItem("loginRedirect");
-      localStorage.removeItem("loginRedirect");
-      if (redirect) {
-        window.location.hash = redirect.replace("#", "");
-      } else {
-        navigate("home");
-      }
+      await loginApi({ email, password });
+      // JWT 토큰은 authApi 내부에서 저장됨
+      login({ id: email, username: email, email });
+      navigate("home");
     } catch (err: any) {
       const msg = err.response?.data?.message ?? "이메일 또는 비밀번호가 올바르지 않습니다.";
       setError(msg);
@@ -39,12 +32,26 @@ const LoginPage: React.FC = () => {
     }
   };
 
+  const handleDevLogin = async () => {
+    setError("");
+    setSubmitting(true);
+    try {
+      await loginApi({ email: "dev@codebattle.kr", password: "devpassword1!" });
+      login({ id: "dev", username: "개발자", email: "dev@codebattle.kr" });
+      navigate("home");
+    } catch {
+      // API 실패 시 토큰 없이 UI만 로그인 (개발 편의용)
+      login({ id: "dev", username: "개발자", email: "dev@codebattle.kr" });
+      navigate("home");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-logo" onClick={() => navigate("landing")}>
-          <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="login-logo-img" />
-        </div>
+        <div className="login-logo" onClick={() => navigate("home")}>CodeBattle</div>
         <h2 className="login-title">로그인</h2>
 
         <form className="login-form" onSubmit={handleLogin} noValidate>
@@ -81,6 +88,15 @@ const LoginPage: React.FC = () => {
           </button>
         </form>
 
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <div className="login-divider"><span>또는</span></div>
+            <button className="login-btn login-btn--dev" type="button" onClick={handleDevLogin}>
+              개발자 로그인 (Debug)
+            </button>
+          </>
+        )}
+
         <div className="login-footer">
           <span className="login-footer-text">계정이 없으신가요?</span>
           <button className="login-link-btn" onClick={() => navigate("signup")}>
@@ -88,8 +104,8 @@ const LoginPage: React.FC = () => {
           </button>
         </div>
 
-        <button className="login-back-btn" onClick={() => window.history.back()}>
-          ← 이전으로
+        <button className="login-back-btn" onClick={() => navigate("home")}>
+          ← 홈으로 돌아가기
         </button>
       </div>
     </div>

@@ -6,8 +6,6 @@ import "./AppLayout.css";
 
 const PAGE_SIZE = 20;
 
-type SortKey = "id-asc" | "id-desc" | "title-asc" | "title-desc";
-
 const ProblemsPage: React.FC = () => {
   const { navigate } = useApp();
   const [problems, setProblems] = useState<AlgorithmProblemListItem[]>([]);
@@ -15,8 +13,6 @@ const ProblemsPage: React.FC = () => {
   const [error, setError] = useState("");
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [sortKey, setSortKey] = useState<SortKey>("id-asc");
-  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchPage = useCallback(async (p: number) => {
     setLoading(true);
@@ -35,17 +31,6 @@ const ProblemsPage: React.FC = () => {
 
   useEffect(() => { fetchPage(0); }, [fetchPage]);
 
-  // 정렬 + 검색 적용
-  let displayProblems = [...problems];
-  const q = searchQuery.trim().toLowerCase();
-  if (q) displayProblems = displayProblems.filter(p => p.title.toLowerCase().includes(q));
-  switch (sortKey) {
-    case "id-asc":    displayProblems.sort((a, b) => a.id - b.id); break;
-    case "id-desc":   displayProblems.sort((a, b) => b.id - a.id); break;
-    case "title-asc": displayProblems.sort((a, b) => a.title.localeCompare(b.title, "ko")); break;
-    case "title-desc":displayProblems.sort((a, b) => b.title.localeCompare(a.title, "ko")); break;
-  }
-
   return (
     <div className="home-page">
       <AppHeader activePage="problems" />
@@ -54,31 +39,12 @@ const ProblemsPage: React.FC = () => {
         <div className="problems-content">
           <div className="problems-toolbar">
             <h2 className="problems-title">문제 목록</h2>
-            <div className="problems-controls">
-              <select
-                className="problems-filter"
-                value={sortKey}
-                onChange={(e) => setSortKey(e.target.value as SortKey)}
-              >
-                <option value="id-asc">번호 오름차순</option>
-                <option value="id-desc">번호 내림차순</option>
-                <option value="title-asc">제목 오름차순</option>
-                <option value="title-desc">제목 내림차순</option>
-              </select>
-              <input
-                className="problems-search"
-                type="text"
-                placeholder="제목 검색"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <button
-                className="home-auth-btn home-auth-btn--primary"
-                onClick={() => navigate("create-problem")}
-              >
-                + 문제 만들기
-              </button>
-            </div>
+            <button
+              className="home-auth-btn home-auth-btn--primary"
+              onClick={() => navigate("create-problem")}
+            >
+              + 문제 만들기
+            </button>
           </div>
 
           {loading && (
@@ -93,11 +59,7 @@ const ProblemsPage: React.FC = () => {
             <div className="problems-status">등록된 문제가 없습니다.</div>
           )}
 
-          {!loading && !error && problems.length > 0 && displayProblems.length === 0 && (
-            <div className="problems-status">검색 결과가 없습니다.</div>
-          )}
-
-          {!loading && !error && displayProblems.length > 0 && (
+          {!loading && !error && problems.length > 0 && (
             <table className="problems-table">
               <thead>
                 <tr>
@@ -106,7 +68,7 @@ const ProblemsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {displayProblems.map((p) => (
+                {problems.map((p) => (
                   <tr
                     key={p.id}
                     className="problems-row"

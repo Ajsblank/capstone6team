@@ -6,13 +6,11 @@
   color: #cdd6f4;
 }
 
-/* ── 헤더 행 ── */
 .ms-header-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 20px;
-  flex-wrap: wrap;
 }
 
 .ms-title {
@@ -20,73 +18,29 @@
   font-weight: 700;
   color: #cba6f7;
   margin: 0;
-  margin-right: 4px;
 }
 
-/* ── SSE 상태 배지 ── */
-.ms-sse-badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 2px 9px;
-  border-radius: 10px;
-  white-space: nowrap;
-}
-.ms-sse-badge--connected    { color: #a6e3a1; background: rgba(166,227,161,0.12); }
-.ms-sse-badge--connecting   { color: #f9e2af; background: rgba(249,226,175,0.12); }
-.ms-sse-badge--disconnected { color: #f38ba8; background: rgba(243,139,168,0.12); }
-
-/* ── 정렬 버튼 그룹 ── */
-.ms-sort-group {
-  display: flex;
-  gap: 4px;
-  margin-left: auto;
-}
-
-.ms-sort-btn {
-  background: #f5f5ff;
-  border: 1px solid #c8c8e0;
-  color: #555577;
-  font-size: 0.82rem;
-  padding: 4px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-.ms-sort-btn:hover:not(.ms-sort-btn--active) {
-  background: #eaeaff;
-  border-color: #a0a0cc;
-  color: #333355;
-}
-.ms-sort-btn--active {
-  background: #e0d8ff;
-  color: #5533aa;
-  border-color: #9977dd;
-  font-weight: 600;
-}
-
-/* ── 새로고침 버튼 ── */
 .ms-refresh-btn {
-  background: #f5f5ff;
-  border: 1px solid #c8c8e0;
-  color: #555577;
+  background: none;
+  border: 1px solid #45475a;
+  color: #a6adc8;
   font-size: 0.82rem;
   padding: 4px 12px;
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
 }
+
 .ms-refresh-btn:hover:not(:disabled) {
-  background: #eaeaff;
-  border-color: #a0a0cc;
-  color: #333355;
+  background: #313244;
+  color: #cdd6f4;
 }
+
 .ms-refresh-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* ── 오류 / 빈 상태 ── */
 .ms-error {
   background: #3c1f1f;
   border: 1px solid #f38ba8;
@@ -99,196 +53,220 @@
 
 .ms-empty-state {
   text-align: center;
-  color: #585b70;
+  color: #45475a;
   font-size: 0.95rem;
   padding: 48px 0;
 }
 
-/* ── 목록 ── */
+/* ── List ── */
 .ms-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-/* ── 제출 아이템 ── */
+/* ── Submission Item ── */
 .ms-item {
-  background: #ffffff;
-  border: 1px solid #d8d8e8;
-  border-left-width: 4px;
-  border-left-color: #b0b0c8;
+  background: #181825;
+  border: 1px solid #313244;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
-  transition: box-shadow 0.15s;
 }
-.ms-item:hover {
-  box-shadow: 0 3px 10px rgba(0,0,0,0.13);
-}
-
-/* 좌측 결과 라인 색상 */
-.ms-item--win     { border-left-color: #40a870; }
-.ms-item--loss    { border-left-color: #e05475; }
-.ms-item--draw    { border-left-color: #e8883a; }
-.ms-item--pending { border-left-color: #b0b0c8; }
-.ms-item--error   { border-left-color: #e05475; }
 
 .ms-item-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 12px 16px;
+  cursor: pointer;
   user-select: none;
-  background: #ffffff;
   transition: background 0.12s;
 }
-.ms-item-header:hover {
-  background: #f5f5ff;
-}
 
-/* 제출 번호 */
-.ms-item-seq {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #9090aa;
-  min-width: 30px;
-  flex-shrink: 0;
+.ms-item-header:hover {
+  background: #1e1e2e;
 }
 
 .ms-item-date {
   font-size: 0.83rem;
-  color: #555577;
+  color: #6c7086;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .ms-item-lang {
   font-size: 0.78rem;
   font-weight: 700;
-  background: #eeeeff;
-  color: #5577dd;
+  background: #313244;
+  color: #89b4fa;
   padding: 2px 8px;
   border-radius: 4px;
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .ms-item-record {
   flex: 1;
   font-size: 0.9rem;
-  color: #222240;
 }
 
-.ms-win   { color: #28925a; font-weight: 700; }
-.ms-loss  { color: #cc3355; font-weight: 700; }
-.ms-draw  { color: #c06010; font-weight: 700; }
-.ms-total { color: #8888aa; }
-
-/* 결과 요약 레이블 */
-.ms-result-label {
-  font-size: 0.8rem;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 12px;
-  flex-shrink: 0;
-}
-.ms-result-label--win     { background: #d6f5e3; color: #1a7a40; border: 1px solid #a8dfc0; }
-.ms-result-label--loss    { background: #fde8ee; color: #b82244; border: 1px solid #f0b8c8; }
-.ms-result-label--draw    { background: #fef0e0; color: #a05010; border: 1px solid #f0c888; }
-.ms-result-label--pending { background: #f0f0f8; color: #8888aa; border: 1px solid #d0d0e0; }
-.ms-result-label--error   { background: #fde8ee; color: #b82244; border: 1px solid #f0b8c8; }
+.ms-win   { color: #a6e3a1; }
+.ms-loss  { color: #f38ba8; }
+.ms-draw  { color: #fab387; }
+.ms-total { color: #6c7086; }
 
 .ms-expand-btn {
   background: none;
   border: none;
-  color: #9090aa;
+  color: #6c7086;
   font-size: 0.8rem;
   cursor: pointer;
   padding: 0;
   line-height: 1;
-  flex-shrink: 0;
-}
-.ms-expand-btn:disabled {
-  opacity: 0.3;
-  cursor: default;
 }
 
-/* ── 아이템 바디 ── */
+/* ── Item Body ── */
 .ms-item-body {
-  border-top: 1px solid #e8e8f4;
+  border-top: 1px solid #313244;
   padding: 12px 16px;
-  background: #fafafe;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-/* ── 매치 상세 테이블 ── */
-.ms-match-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
+/* ── Match ── */
+.ms-match {
+  background: #1e1e2e;
+  border: 1px solid #45475a;
+  border-radius: 6px;
+  overflow: hidden;
 }
-.ms-match-table th {
-  padding: 6px 12px;
-  text-align: left;
-  color: #8888aa;
-  font-weight: 600;
-  border-bottom: 1px solid #e0e0f0;
-}
-.ms-match-row td {
+
+.ms-match-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f8;
-  color: #333355;
-}
-.ms-match-num {
-  color: #9090aa;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.ms-winner--me   { color: #1a8a45; font-weight: 700; }
-.ms-winner--ai   { color: #c02040; font-weight: 700; }
-.ms-winner--draw { color: #b06010; font-weight: 700; }
-
-.ms-log-btn {
-  background: none;
-  border: 1px solid #c0c0dc;
-  border-radius: 4px;
-  color: #5577cc;
   cursor: pointer;
-  font-size: 0.8rem;
-  padding: 3px 10px;
-  transition: background 0.15s, border-color 0.15s;
+  user-select: none;
+  transition: background 0.12s;
+}
+
+.ms-match-header:hover {
+  background: #252537;
+}
+
+.ms-match-opp {
+  flex: 1;
+  font-size: 0.88rem;
+  color: #cdd6f4;
+}
+
+.ms-match-toggle {
+  color: #6c7086;
+  font-size: 0.75rem;
+}
+
+/* ── Badges ── */
+.ms-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
   white-space: nowrap;
 }
-.ms-log-btn:hover {
-  background: #eeeeff;
-  border-color: #8899dd;
+
+.ms-badge--win  { background: #1e3a2f; color: #a6e3a1; border: 1px solid #a6e3a1; }
+.ms-badge--loss { background: #3a1e1e; color: #f38ba8; border: 1px solid #f38ba8; }
+.ms-badge--draw { background: #3a2e1e; color: #fab387; border: 1px solid #fab387; }
+
+/* ── Match Logs ── */
+.ms-match-logs {
+  border-top: 1px solid #45475a;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-/* ── 채점 중 ── */
-.ms-pending {
-  color: #9090aa;
+.ms-log-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  padding: 4px 0;
+  border-bottom: 1px solid #313244;
+}
+
+.ms-log-row:last-child {
+  border-bottom: none;
+}
+
+.ms-log-round {
+  font-weight: 700;
+  color: #89b4fa;
+  min-width: 28px;
+}
+
+.ms-log-cards {
+  flex: 1;
+  color: #a6adc8;
+  font-size: 0.78rem;
+}
+
+.ms-log-result {
+  font-weight: 700;
+  font-size: 0.78rem;
+  min-width: 20px;
+  text-align: center;
+}
+
+.ms-log-result--p1   { color: #a6e3a1; }
+.ms-log-result--p2   { color: #f38ba8; }
+.ms-log-result--draw { color: #fab387; }
+
+.ms-log-hp {
+  color: #6c7086;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+/* ── Empty ── */
+.ms-empty {
+  color: #45475a;
+  font-size: 0.82rem;
+  padding: 4px 0;
+}
+
+/* ── Pagination ── */
+.ms-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.ms-page-btn {
+  background: none;
+  border: 1px solid #45475a;
+  color: #a6adc8;
   font-size: 0.85rem;
-  font-style: italic;
+  padding: 5px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
 
-/* ── 채점 오류 인라인 ── */
-.ms-error-inline {
-  color: #e05475;
+.ms-page-btn:hover:not(:disabled) {
+  background: #313244;
+  color: #cdd6f4;
+}
+
+.ms-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.ms-page-info {
   font-size: 0.85rem;
-  font-weight: 600;
-}
-
-/* ── 로딩 스피너 ── */
-@keyframes ms-spin {
-  to { transform: rotate(360deg); }
-}
-.ms-spinner {
-  display: inline-block;
-  width: 13px;
-  height: 13px;
-  border: 2px solid rgba(100,80,200,0.15);
-  border-top-color: #7755cc;
-  border-radius: 50%;
-  animation: ms-spin 0.7s linear infinite;
-  vertical-align: middle;
-  margin-right: 5px;
+  color: #6c7086;
 }
