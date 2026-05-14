@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-
+	 // TODO: pendingSignupStore TTL 적용 필요 (Redis/Caffeine)
     private record PendingSignup(String nickname, String encodedPassword) {
     }
 
