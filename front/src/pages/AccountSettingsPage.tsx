@@ -22,9 +22,9 @@ const AccountSettingsPage: React.FC = () => {
             color: "#a6adc8", borderRadius: 6, padding: "8px 20px",
             fontFamily: "Segoe UI, sans-serif", cursor: "pointer", fontSize: "0.9rem"
           }}
-          onClick={() => navigate("home")}
+          onClick={() => window.history.back()}
         >
-          ← 홈으로
+          ← 이전으로
         </button>
       </div>
     </div>

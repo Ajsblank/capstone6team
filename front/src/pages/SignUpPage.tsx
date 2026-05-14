@@ -202,7 +202,9 @@ const SignUpPage: React.FC = () => {
     return (
       <div className="signup-page">
         <div className="signup-card">
-          <div className="signup-logo" onClick={() => navigate("home")}>CodeBattle</div>
+          <div className="signup-logo" onClick={() => navigate("landing")}>
+            <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="signup-logo-img" />
+          </div>
           <div className="signup-success">
             <div className="signup-success-icon">✓</div>
             <h2 className="signup-success-title">회원가입 완료</h2>
@@ -228,7 +230,9 @@ const SignUpPage: React.FC = () => {
 
       <div className="signup-page">
         <div className="signup-card">
-          <div className="signup-logo" onClick={() => navigate("home")}>CodeBattle</div>
+          <div className="signup-logo" onClick={() => navigate("landing")}>
+            <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="signup-logo-img" />
+          </div>
           <h2 className="signup-title">회원가입</h2>
 
           <form className="signup-form" onSubmit={handleSubmit} noValidate>
@@ -302,8 +306,8 @@ const SignUpPage: React.FC = () => {
             </button>
           </div>
 
-          <button className="signup-back-btn" onClick={() => navigate("home")}>
-            ← 홈으로 돌아가기
+          <button className="signup-back-btn" onClick={() => window.history.back()}>
+            ← 이전으로
           </button>
         </div>
       </div>

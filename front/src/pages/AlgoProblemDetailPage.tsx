@@ -6,13 +6,19 @@ import AppHeader from "../components/AppHeader";
 import CodeEditor, { LANGUAGE_DEFAULTS } from "../components/CodeEditor";
 import SubmitBar from "../components/SubmitBar";
 import SubmitSuccessModal from "../components/SubmitSuccessModal";
-import { getAlgorithm, AlgorithmProblemResponse } from "../api/algorithmApi";
-import { submitCode } from "../api/submissionApi";
+import { getAlgorithm, AlgorithmProblemResponse, submitAlgoCode, AlgoSubmission } from "../api/algorithmApi";
 import { Language } from "../types";
 import "./AppLayout.css";
 import "./AlgoProblemDetailPage.css";
 
-type Tab = "problem" | "submit";
+type Tab = "problem" | "submit" | "my-submissions";
+
+const LANGUAGE_LABELS: Record<string, string> = { cpp: "C++", java: "Java", python: "Python" };
+
+function formatDate(d: Date): string {
+  return d.toLocaleString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
 type SubmitStatus = "idle" | "submitting" | "success" | "error";
 
 function getProblemIdFromHash(): number | null {
@@ -34,6 +40,15 @@ const AlgoProblemDetailPage: React.FC = () => {
 
   // ── 탭 ──
   const [activeTab, setActiveTab] = useState<Tab>("problem");
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const handleTabClick = (tab: Tab) => {
+    if ((tab === "submit" || tab === "my-submissions") && !user) {
+      setShowLoginModal(true);
+      return;
+    }
+    setActiveTab(tab);
+  };
 
   // ── 제출 ──
   const [language, setLanguage] = useState<Language>("cpp");
@@ -42,6 +57,7 @@ const AlgoProblemDetailPage: React.FC = () => {
   const [submitError, setSubmitError] = useState("");
   const [responseMessage, setResponseMessage] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [submissions, setSubmissions] = useState<AlgoSubmission[]>([]);
 
   useEffect(() => {
     const id = getProblemIdFromHash();
@@ -58,15 +74,22 @@ const AlgoProblemDetailPage: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!code.trim()) return;
+    const submittedAt = new Date();
     setSubmitStatus("submitting");
     setSubmitError("");
     try {
-      const result = await submitCode({
-        userId: user?.id ?? "guest",
-        problemId: String(problem!.id),
-        language,
-        sourceCode: code,
+      const result = await submitAlgoCode({
+        user_id: user?.id ?? "",
+        problem_id: String(problem!.id),
+        language: language.toUpperCase(),
+        source_code: code,
       });
+      setSubmissions(prev => [{
+        submittedAt,
+        language,
+        success: result.success,
+        message: result.message,
+      }, ...prev]);
       setResponseMessage(result.message);
       setSubmitStatus("success");
       setShowSuccessModal(true);
@@ -113,11 +136,37 @@ const AlgoProblemDetailPage: React.FC = () => {
       {showSuccessModal && (
         <SubmitSuccessModal
           message={responseMessage}
-          onClose={() => { setShowSuccessModal(false); setSubmitStatus("idle"); }}
+          onClose={() => { setShowSuccessModal(false); setSubmitStatus("idle"); setActiveTab("my-submissions"); }}
         />
       )}
 
       <AppHeader activePage="problems" />
+
+      {/* 로그인 필요 모달 */}
+      {showLoginModal && (
+        <div className="pd-login-modal-overlay">
+          <div className="pd-login-modal">
+            <p className="pd-login-modal-msg">로그인이 필요한 기능입니다.<br />로그인 페이지로 이동하시겠습니까?</p>
+            <div className="pd-login-modal-btns">
+              <button
+                className="pd-login-modal-btn pd-login-modal-btn--primary"
+                onClick={() => {
+                  localStorage.setItem("loginRedirect", window.location.hash);
+                  navigate("login");
+                }}
+              >
+                이동
+              </button>
+              <button
+                className="pd-login-modal-btn"
+                onClick={() => setShowLoginModal(false)}
+              >
+                뒤로
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 탭 바 */}
       <div className="pd-tab-bar">
@@ -129,9 +178,15 @@ const AlgoProblemDetailPage: React.FC = () => {
         </button>
         <button
           className={`pd-tab-btn${activeTab === "submit" ? " pd-tab-btn--active" : ""}`}
-          onClick={() => setActiveTab("submit")}
+          onClick={() => handleTabClick("submit")}
         >
           제출
+        </button>
+        <button
+          className={`pd-tab-btn${activeTab === "my-submissions" ? " pd-tab-btn--active" : ""}`}
+          onClick={() => handleTabClick("my-submissions")}
+        >
+          내 제출
         </button>
         <div className="pd-tab-bar-meta">
           <span className="pd-tab-bar-title">#{problem.id} {problem.title}</span>
@@ -216,6 +271,40 @@ const AlgoProblemDetailPage: React.FC = () => {
               onSubmit={handleSubmit}
             />
           </div>
+        </main>
+      )}
+
+      {/* 내 제출 탭 */}
+      {activeTab === "my-submissions" && (
+        <main className="home-body pd-my-submissions-panel">
+          {submissions.length === 0 ? (
+            <div className="pd-submissions-empty">아직 제출 이력이 없습니다.</div>
+          ) : (
+            <table className="pd-submissions-table">
+              <thead>
+                <tr>
+                  <th>제출 일시</th>
+                  <th>언어</th>
+                  <th>결과</th>
+                  <th>메시지</th>
+                </tr>
+              </thead>
+              <tbody>
+                {submissions.map((sub, i) => (
+                  <tr key={i}>
+                    <td>{formatDate(sub.submittedAt)}</td>
+                    <td>{LANGUAGE_LABELS[sub.language] ?? sub.language}</td>
+                    <td>
+                      <span className={`pd-verdict ${sub.success ? "pd-verdict--accepted" : "pd-verdict--wrong"}`}>
+                        {sub.success ? "성공" : "실패"}
+                      </span>
+                    </td>
+                    <td style={{ color: "#a6adc8" }}>{sub.message}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </main>
       )}
     </div>

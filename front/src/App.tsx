@@ -1,5 +1,6 @@
 import React from "react";
 import { AppProvider, useApp } from "./context/AppContext";
+import LandingPage from "./pages/LandingPage";
 import AlgoHomePage from "./pages/AlgoHomePage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
@@ -10,6 +11,7 @@ import AlgoCreateProblemPage from "./pages/AlgoCreateProblemPage";
 import AlgoProblemDetailPage from "./pages/AlgoProblemDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import AccountSettingsPage from "./pages/AccountSettingsPage";
+import BattleCreateContestPage from "./pages/BattleCreateContestPage";
 
 const DevApiBadge: React.FC = () => (
   <div style={{
@@ -27,6 +29,7 @@ const PageRouter: React.FC = () => {
   const { currentPage } = useApp();
 
   switch (currentPage) {
+    case "landing":          return <LandingPage />;
     case "home":             return <AlgoHomePage />;
     case "login":            return <LoginPage />;
     case "signup":           return <SignUpPage />;
@@ -37,6 +40,7 @@ const PageRouter: React.FC = () => {
     case "problem-detail":   return <AlgoProblemDetailPage />;
     case "profile":          return <ProfilePage />;
     case "account-settings": return <AccountSettingsPage />;
+    case "create-contest":   return <BattleCreateContestPage />;
     default:                 return <AlgoHomePage />;
   }
 };
