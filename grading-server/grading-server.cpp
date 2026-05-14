@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <sw/redis++/redis++.h> // redis-plus-plus
 #include <nlohmann/json.hpp>    // json
+#include <regex>					  // matchId 검증용 regax
 
 using json = nlohmann::json;
 using namespace sw::redis;
@@ -56,6 +57,10 @@ int main() {
             json data = json::parse(json_str);
 
             std::string match_id = data["matchId"];
+				std::regex safe_id("^[0-9]+$"); 
+				if (!std::regex_match(match_id, safe_id)) { 
+					throw std::runtime_error("Invalid match id"); 
+				}
             int time_limit_sec = data["timeLimitSec"];
             std::string work_dir = "./" + match_id;
 
