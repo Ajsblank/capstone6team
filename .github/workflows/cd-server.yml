@@ -5,7 +5,7 @@ run-name: "CD actor : ${{github.actor}}"
 # Controls when the workflow will run
 on:
   push:
-    branches: ["dev/server","develop"]
+    branches: ["dev/server"]
     paths:
       - 'server/**'
       - '.github/workflows/*'
@@ -52,6 +52,7 @@ jobs:
       SOL_API_KEY: ${{secrets.SOL_API_KEY}}
       SOL_API_SECRET: ${{secrets.SOL_API_SECRET}}
       SOL_SENDER_NUMBER: ${{secrets.SOL_SENDER_NUMBER}}
+      
     steps:
       - uses: actions/checkout@v4
       - name: set up jdk
