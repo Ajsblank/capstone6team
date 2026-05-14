@@ -1,23 +1,26 @@
 package com.asap.server.global;
 
-import com.asap.server.dto.response.CodeBattleMatchResult;
-import org.springframework.transaction.annotation.Transactional;
-import com.asap.server.repository.CodeBattleMatchRepository;
-import com.asap.server.domain.CodeBattleMatch;
-import com.asap.server.service.SseService;
-import com.asap.server.service.SwissMatchMaker;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
-import java.util.concurrent.TimeUnit;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.CodeBattleParticipant;
-import java.util.List;
+import com.asap.server.dto.response.CodeBattleMatchResult;
+import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
+import com.asap.server.service.SseService;
+import com.asap.server.service.SwissMatchMaker;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @RequiredArgsConstructor
@@ -45,22 +48,23 @@ public class RedisResultWorker implements CommandLineRunner {
 
     private void pollRedisQueue() {
         log.info("🚀 Redis 결과 워커가 가동되었습니다.");
-        
+
         while (!Thread.currentThread().isInterrupted()) {
             String rawData = null;
             try {
                 // Redis에서 일반 결과 우선 소비, 없으면 AI 결과 소비
                 rawData = redisTemplate.opsForList().rightPop(
-                    RESULT_QUEUE_KEY,
-                    RESULT_QUEUE_POLL_TIMEOUT_SECONDS,
-                    TimeUnit.SECONDS);
+                        RESULT_QUEUE_KEY,
+                        RESULT_QUEUE_POLL_TIMEOUT_SECONDS,
+                        TimeUnit.SECONDS);
                 if (rawData == null) {
                     rawData = redisTemplate.opsForList().rightPop(
-                        AI_RESULT_QUEUE_KEY,
-                        1,
-                        TimeUnit.SECONDS);
+                            AI_RESULT_QUEUE_KEY,
+                            1,
+                            TimeUnit.SECONDS);
                 }
-                if (rawData == null) continue;
+                if (rawData == null)
+                    continue;
 
                 // 비즈니스 로직 처리
                 processResult(rawData);
@@ -73,10 +77,17 @@ public class RedisResultWorker implements CommandLineRunner {
                 }
 
                 log.error("❌ 결과 처리 중 에러 발생: {}", e.getMessage());
-                
+
                 // 데이터 유실 방지
                 if (rawData != null) {
                     handleFailure(rawData, e);
+                }
+                // timeout 에러 시 잠깐 대기 후 재시도
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
         }
@@ -86,7 +97,7 @@ public class RedisResultWorker implements CommandLineRunner {
         try {
             // JSON 파싱 및 매치 조회
             CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
-            
+
             CodeBattleMatch match = matchRepository.findById(result.getMatchId())
                     .orElseThrow(() -> new RuntimeException("Match not found (ID: " + result.getMatchId() + ")"));
 
@@ -94,14 +105,17 @@ public class RedisResultWorker implements CommandLineRunner {
             boolean isAIBattle = (match.getUser2().getId() == 1L);
 
             // 승패 판별 및 로그 기록
-            int comp = Integer.parseInt(result.getWinner());
-            if (comp == 1) match.setWinner(match.getUser1());
-            else if (comp == 2) match.setWinner(match.getUser2());
-            else match.setWinner(null);
+            int comp = result.getWinner();
+            if (comp == 1)
+                match.setWinner(match.getUser1());
+            else if (comp == 2)
+                match.setWinner(match.getUser2());
+            else
+                match.setWinner(null);
 
             match.setLog(result.getLog());
             matchRepository.save(match);
-
+            log.info("[Worker] match 저장 완료. matchId={}, winner={}", match.getId(), comp);
             // 공통 처리: SSE 알림 전송
             sseService.sendToUser(match.getUser1().getId(), result);
             if (!isAIBattle) {
@@ -115,8 +129,10 @@ public class RedisResultWorker implements CommandLineRunner {
             Long contestId = match.getContest().getId();
 
             // 참가자 점수 업데이트
-            CodeBattleParticipant p1 = participantRepository.findByContestIdAndUserId(contestId, match.getUser1().getId());
-            CodeBattleParticipant p2 = participantRepository.findByContestIdAndUserId(contestId, match.getUser2().getId());
+            CodeBattleParticipant p1 = participantRepository.findByContestIdAndUserId(contestId,
+                    match.getUser1().getId());
+            CodeBattleParticipant p2 = participantRepository.findByContestIdAndUserId(contestId,
+                    match.getUser2().getId());
 
             if (comp == 1) {
                 p1.setScore(p1.getScore() + 1);
@@ -125,7 +141,7 @@ public class RedisResultWorker implements CommandLineRunner {
                 p2.setScore(p2.getScore() + 1);
                 p1.setScore(p1.getScore() - 1);
             }
-            
+
             participantRepository.save(p1);
             participantRepository.save(p2);
 

@@ -1,6 +1,7 @@
 package com.asap.server.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -17,4 +18,12 @@ public interface CodeBattleMatchRepository extends JpaRepository<CodeBattleMatch
     long countByContestId(Long contestId);
 
     CodeBattleMatch findByIdAndUser2Id(Long submissionId, Long user2Id);
+
+    Optional<CodeBattleMatch> findByContestIdAndUser1IdAndUser2Id(
+            Long contestId,
+            Long user1Id,
+            Long user2Id);
+
+    long countFinishedMatchesByContestId(Long contestId);
+
 }

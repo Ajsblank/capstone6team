@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CodeBattleMatchResult {
     private Long matchId;
-    private String winner;
+    private int winner;
     private String log;
 }
