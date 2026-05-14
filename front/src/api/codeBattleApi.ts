@@ -1,0 +1,104 @@
+import axios from "axios";
+import { SubmitRequest, SubmitResponse } from "../types";
+import { getAccessToken, applyAuthInterceptor } from "./authApi";
+
+export interface ContestItem {
+  id: number;
+  title: string;
+  description?: string;
+  status?: string;
+  startTime?: string;
+  endTime?: string;
+  problemTitle?: string;
+}
+
+export interface ContestDetail {
+  id: number;
+  title: string;
+  description: string;
+  certification: boolean;
+  timeLimitSec: number;
+  memoryLimitMb: number;
+  exampleCode: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  maxParticipants: number;
+  createdAt: string;
+  // TODO: 백엔드 creatorId 반환 구현 후 활성화
+  // creatorId: string;
+}
+
+export interface ContestListResponse {
+  content: ContestItem[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+}
+
+
+// 끝 슬래시 제거로 BASE_URL + "/path" 조합 시 // 방지
+const BASE_URL = (process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
+
+const api = axios.create({ baseURL: BASE_URL });
+
+api.interceptors.request.use((config) => {
+  const token = getAccessToken();
+  if (token) config.headers["Authorization"] = `Bearer ${token}`;
+  return config;
+});
+applyAuthInterceptor(api);
+
+export const submitCode = async (payload: SubmitRequest): Promise<SubmitResponse> => {
+  const response = await api.post<SubmitResponse>("/api/code/submit/codebattle", payload);
+  return response.data;
+};
+
+// ── 대회 목록 조회 — GET /api/contests/list ──
+export const getContestList = async (
+  page: number,
+  size: number,
+  sort: string[] = []
+): Promise<ContestListResponse> => {
+  const params = new URLSearchParams();
+  params.append("page", String(page));
+  params.append("size", String(size));
+  sort.forEach((s) => params.append("sort", s));
+  const response = await api.get<ContestListResponse>(`/api/contests/list?${params.toString()}`);
+  return response.data;
+};
+
+// ── 대회 상세 조회 — GET /api/contests/{contestId} ──
+export const getContestDetail = async (contestId: number): Promise<ContestDetail> => {
+  const { data } = await api.get<ContestDetail>(`/api/contests/${contestId}`);
+  return data;
+};
+
+export interface ContestMatchResult {
+  aiId: number;
+  status: "WIN" | "LOSE" | "DRAW";
+  log: string;
+}
+
+export interface ContestSubmissionResponse {
+  submissionId: number;
+  createdAt: string;
+  result: ContestMatchResult;
+}
+
+// ── 대회 참가 — POST /api/contests/{contestId}/join?email={email} ──
+export const joinContest = async (contestId: number, email: string): Promise<void> => {
+  await api.post(`/api/contests/${contestId}/join`, null, { params: { email } });
+};
+
+// ── 내 제출 목록 조회 — GET /api/contests/{contestId}/{targetUserId} ──
+export const getMyBattleSubmissions = async (
+  contestId: number,
+  targetUserId: string
+): Promise<ContestSubmissionResponse[]> => {
+  const response = await api.get<ContestSubmissionResponse[]>(
+    `/api/contests/${contestId}/${targetUserId}`
+  );
+  return response.data;
+};
