@@ -137,6 +137,18 @@ public class SwissMatchMaker {
                 rootNode.put("timeLimitSec", contest.getTimeLimitSec());
                 rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
 
+					 // submission의 채점 코드 확인
+					 if (p1.getSubmission() == null || p2.getSubmission() == null) {
+						log.error(
+							"Submission missing during swiss matching. p1Id={}, p2Id={}",
+							p1.getId(),
+							p2.getId()
+						);
+
+						throw new IllegalStateException(
+							"Cannot create swiss match without submissions"
+						);
+					 }
                 ObjectNode codesNode = rootNode.putObject("codes");
                 codesNode.put("judge", contest.getJudgeCode());
                 codesNode.put("player1", p1.getSubmission().getCode());
