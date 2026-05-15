@@ -1,6 +1,7 @@
 package com.asap.server.domain;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -42,7 +43,7 @@ public class CodeBattleSubmission {
 
   @Enumerated(EnumType.STRING)
   @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-  @Column(columnDefinition = "language")
+  @Column(columnDefinition = "language", nullable = false)
   private Language language;
 
   @Column(name = "code_url", columnDefinition = "TEXT")
@@ -58,7 +59,7 @@ public class CodeBattleSubmission {
       String result) {
     this.user = user;
     this.contest = contest;
-    this.language = language;
+    this.language = Objects.requireNonNull(language, "language는 null일 수 없습니다.");
     this.codeUrl = codeUrl;
     this.result = result;
   }
