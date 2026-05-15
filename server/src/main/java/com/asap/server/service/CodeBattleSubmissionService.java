@@ -10,16 +10,16 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleMatch;
+import com.asap.server.domain.CodeBattleParticipant;
 import com.asap.server.domain.CodeBattleSubmission;
-import com.asap.server.domain.ContestFinalSubmission;
 import com.asap.server.domain.Users;
 import com.asap.server.dto.response.CodeBattleAiMatchResult;
 import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.global.type.Language;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
+import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
-import com.asap.server.repository.FinalSubmissionRepository;
 import com.asap.server.repository.usersRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -31,8 +31,8 @@ public class CodeBattleSubmissionService {
     private final CodeBattleSubmissionRepository submissionRepository;
     private final CodeBattleMatchRepository matchRepository;
     private final CodeBattleContestRepository contestRepository;
+    private final CodeBattleParticipantRepository participantRepository;
     private final usersRepository userRepository;
-    private final FinalSubmissionRepository finalSubmissionRepository;
     private final S3Service s3Service;
 
     @Transactional
@@ -120,27 +120,19 @@ public class CodeBattleSubmissionService {
         Long userId = submission.getUser().getId();
         Long contestId = submission.getContest().getId();
 
-        ContestFinalSubmission finalSubmission = finalSubmissionRepository
-                .findByUserIdAndContestId(userId, contestId)
+        CodeBattleParticipant participant = participantRepository
+            .findByUserIdAndContestId(userId, contestId)
                 .orElse(null);
 
-        // 최초 생성
-        if (finalSubmission == null) {
-
-            finalSubmission = new ContestFinalSubmission(
-                    submission.getUser(),
-                    submission.getContest(),
-                    submission,
-                    false // AUTO 모드
-            );
-
-            finalSubmissionRepository.save(finalSubmission);
+        // 참가 신청 이력이 없으면 최종 제출을 기록할 수 없다.
+        if (participant == null) {
             return;
         }
 
-        // AUTO 모드면 최신 제출로 갱신
-        if (!finalSubmission.isManual()) {
-            finalSubmission.changeSubmission(submission);
+        // AUTO 모드면 최신 제출로 갱신, MANUAL 모드는 사용자 선택 유지
+        if (!participant.isManual()) {
+            participant.setSubmission(submission);
+            participantRepository.save(participant);
         }
     }
 

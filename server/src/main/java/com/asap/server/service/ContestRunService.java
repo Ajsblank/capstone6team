@@ -17,8 +17,6 @@ import com.asap.server.domain.CodeBattleContest.ContestStatus;
 import com.asap.server.domain.CodeBattleParticipant;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
-import com.asap.server.repository.CodeBattleSubmissionRepository;
-import com.asap.server.repository.ContestScheduleRepository;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ContestRunService {
   private final CodeBattleContestRepository contestRepository;
-  private final ContestScheduleRepository contestScheduleRepository;
   private final CodeBattleParticipantRepository participantRepository;
-  private final CodeBattleSubmissionRepository submissionRepository;
   private final TaskScheduler taskScheduler;
   private final Map<Long, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
   private final SwissMatchMaker swissMatchMaker;
@@ -129,7 +125,7 @@ public class ContestRunService {
 
   @Transactional
   private void processEnd(Long contestId) {
-    CodeBattleContest contest = contestRepository.findById(contestId)
+    contestRepository.findById(contestId)
         .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
 
     swissMatchMaker.pullLeagueGrading(contestId);

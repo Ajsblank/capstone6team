@@ -14,12 +14,10 @@ import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.CodeBattleParticipant;
 import com.asap.server.domain.CodeBattleSubmission;
-import com.asap.server.domain.ContestFinalSubmission;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
-import com.asap.server.repository.FinalSubmissionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -37,7 +35,6 @@ public class SwissMatchMaker {
     private final CodeBattleSubmissionRepository submissionRepository;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
-    private final FinalSubmissionRepository finalSubmissionRepository;
     private final S3Service s3Service;
 
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
@@ -101,10 +98,10 @@ public class SwissMatchMaker {
         CodeBattleContest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. ID: " + contestId));
 
-        // 2. FinalSubmission 기준으로 제출 코드 1인 1개 조회
-        List<CodeBattleSubmission> submissions = finalSubmissionRepository.findByContestId(contestId)
+        // 2. Participant 기준으로 제출 코드 1인 1개 조회
+        List<CodeBattleSubmission> submissions = participantRepository.findByContestIdAndSubmissionIsNotNull(contestId)
                 .stream()
-                .map(ContestFinalSubmission::getSubmission)
+                .map(CodeBattleParticipant::getSubmission)
                 .filter(s -> {
                     // null 필드 있으면 해당 제출 스킵 + 로그
                     if (s.getLanguage() == null) {

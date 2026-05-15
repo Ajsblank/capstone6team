@@ -21,5 +21,7 @@ public interface CodeBattleParticipantRepository extends JpaRepository<CodeBattl
 
     List<CodeBattleParticipant> findByContestId(Long contestId);
 
+    List<CodeBattleParticipant> findByContestIdAndSubmissionIsNotNull(Long contestId);
+
     CodeBattleParticipant findByContestIdAndUserId(Long contestId, Long userId);
 }
