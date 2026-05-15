@@ -31,7 +31,7 @@ jacocoTestReport {
 }
 jacocoTestCoverageVerification {
     violationRules {
-        rule {
+        rule {  
             element = 'CLASS'
             limit {
                 counter = 'LINE'
@@ -80,6 +80,11 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.projectlombok:lombok'
+
+  // flyway DB 스키마 관리 도구 추가
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-database-postgresql' // Spring Boot 3.x 이상 필수
+  runtimeOnly 'org.postgresql:postgresql'
 
 // Junit6로 변경, 에러 로그 기능별로 명확
 	testImplementation 'org.junit.jupiter:junit-jupiter:6.0.3'
