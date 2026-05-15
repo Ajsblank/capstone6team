@@ -56,6 +56,36 @@ export const patchContest = async (contestId: number, data: PatchContestData): P
   await api.patch(`/api/contests/${contestId}`, data);
 };
 
+export const createCertifiedContest = async (
+  data: CreateContestData,
+  reviewerEmails: string[]
+): Promise<ContestResponse> => {
+  const [exampleCode, judgeCode, visualizationHtml, soloPlayHtml] =
+    await Promise.all([
+      data.exampleCode.text(),
+      data.judgeCode.text(),
+      data.visualizationHtml.text(),
+      data.soloPlayHtml.text(),
+    ]);
+  const { data: res } = await api.post<ContestResponse>("/api/contests/create/certified", {
+    title:           data.title,
+    description:     data.description,
+    certification:   data.certification,
+    timeLimitSec:    data.timeLimitSec,
+    memoryLimitMb:   data.memoryLimitMb,
+    status:          data.status,
+    startDate:       data.startDate ? data.startDate.replace("T", " ").slice(0, 16) : undefined,
+    endDate:         data.endDate   ? data.endDate.replace("T", " ").slice(0, 16)   : undefined,
+    maxParticipants: data.maxParticipants,
+    exampleCode,
+    judgeCode,
+    visualizationHtml,
+    soloPlayHtml,
+    reviewerEmails,
+  });
+  return res;
+};
+
 export const createContest = async (data: CreateContestData): Promise<ContestResponse> => {
   const [exampleCode, judgeCode, visualizationHtml, soloPlayHtml] =
     await Promise.all([

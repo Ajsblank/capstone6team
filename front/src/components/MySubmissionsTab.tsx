@@ -28,21 +28,37 @@ function formatDate(d: Date | string): string {
   });
 }
 
-function serverSubmissionToLocal(s: ContestSubmissionResponse, userId: string): LocalSubmission {
-  const { status, log } = s.result;
-  const isComplete = Boolean(log && log.trim().length > 0);
-  const winner = status === "WIN" ? userId : status === "DRAW" ? "draw" : "ai";
-  const match: BattleMatchResult = { matchId: s.submissionId, winner, log };
+// 동일 submissionId를 가진 항목 그룹을 하나의 LocalSubmission으로 변환
+function serverGroupToLocal(group: ContestSubmissionResponse[], userId: string): LocalSubmission {
+  // 가장 오래된 항목의 시간을 제출 시간으로 사용
+  const sorted = [...group].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const first = sorted[0];
+
+  const matchMap = new Map<number, BattleMatchResult>();
+  for (const item of group) {
+    const { aiId, status, log } = item.result;
+    if (!log || !log.trim()) continue;
+    if (matchMap.has(aiId)) continue; // 같은 aiId 중복 제거
+    const winner = status === "WIN" ? userId : status === "DRAW" ? "draw" : "ai";
+    matchMap.set(aiId, { matchId: aiId, winner, log });
+  }
+  const matches: BattleMatchResult[] = Array.from(matchMap.values());
+
+  const uniqueAiCount = new Set(group.map(item => item.result.aiId)).size;
+  const allComplete = matchMap.size === uniqueAiCount && uniqueAiCount > 0;
+  const wins   = matches.filter(m => m.winner === userId).length;
+  const losses = matches.filter(m => m.winner !== userId && m.winner !== "draw").length;
+
   return {
-    submissionId: s.submissionId,
-    submittedAt: new Date(s.createdAt),
+    submissionId: first.submissionId,
+    submittedAt:  new Date(first.createdAt),
     language: "",
-    success: true,
-    message: "",
-    wins:    isComplete ? (status === "WIN"  ? 1 : 0) : undefined,
-    losses:  isComplete ? (status === "LOSE" ? 1 : 0) : undefined,
-    matches: isComplete ? [match] : [],
-    finalized: isComplete,
+    success:  true,
+    message:  "",
+    wins:    allComplete ? wins   : undefined,
+    losses:  allComplete ? losses : undefined,
+    matches,
+    finalized: allComplete,
   };
 }
 
@@ -149,7 +165,7 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
             </thead>
             <tbody>
               {sub.matches.map((m, i) => (
-                <MatchRow key={m.matchId} match={m} index={i} userId={userId} onLogClick={onLogClick} />
+                <MatchRow key={`${m.matchId}-${i}`} match={m} index={i} userId={userId} onLogClick={onLogClick} />
               ))}
             </tbody>
           </table>
@@ -199,30 +215,53 @@ const MySubmissionsTab: React.FC<Props> = ({
       const data = await getMyBattleSubmissions(contestId, userId);
       console.log("[MySubmissionsTab] 서버 응답:", data.length, "건", data);
       onLocalUpdate(prev => {
-        const inProgress = prev.filter(s => !s.finalized);
-
-        // 서버 항목을 최신순 정렬
-        const serverItems = data
-          .map(s => serverSubmissionToLocal(s, userId))
+        // 서버 항목을 submissionId로 그룹화 → 각 그룹을 하나의 LocalSubmission으로 변환
+        const grouped = new Map<number, ContestSubmissionResponse[]>();
+        for (const item of data) {
+          const id = item.submissionId;
+          if (!grouped.has(id)) grouped.set(id, []);
+          grouped.get(id)!.push(item);
+        }
+        const serverItems = Array.from(grouped.values())
+          .map(group => serverGroupToLocal(group, userId))
           .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
 
-        // submissionId가 없는(SSE 미완료) in-progress 항목 수만큼
-        // 서버 응답의 최신 항목을 스킵 → 타임존과 무관한 중복 제거
-        const pendingCount = inProgress.filter(s => s.submissionId == null).length;
-        const serverToShow = serverItems.slice(pendingCount);
+        const inProgress  = prev.filter(s => !s.finalized);
+        const withId      = inProgress.filter(s => s.submissionId != null);
+        const withoutId   = inProgress.filter(s => s.submissionId == null);
 
-        // SSE로 이미 ID를 받은 in-progress 항목도 서버 항목과 중복 제거
-        const inProgressIds = new Set(inProgress.map(s => s.submissionId).filter(Boolean));
-        const filtered = serverToShow.filter(s => !s.submissionId || !inProgressIds.has(s.submissionId));
+        // SSE 단절로 submissionId를 받지 못한 로컬 대기 항목을
+        // 서버 확정 결과로 교체 (제출 시각 2분 이내 항목을 동일 제출로 간주)
+        const MATCH_MS = 120_000;
+        const usedServerIds = new Set<number>();
+        const resolvedPending: LocalSubmission[] = withoutId.map(local => {
+          const match = serverItems.find(s =>
+            s.submissionId != null &&
+            s.finalized &&
+            Math.abs(s.submittedAt.getTime() - local.submittedAt.getTime()) < MATCH_MS
+          );
+          if (match?.submissionId != null) {
+            usedServerIds.add(match.submissionId);
+            return match;
+          }
+          return local;
+        });
+
+        // SSE로 이미 ID를 받은 in-progress 항목 및 교체된 서버 항목 중복 제거
+        const withIdIds = new Set(withId.map(s => s.submissionId).filter(Boolean));
+        const serverExtra = serverItems.filter(s =>
+          s.submissionId != null &&
+          !withIdIds.has(s.submissionId) &&
+          !usedServerIds.has(s.submissionId)
+        );
 
         console.log(
-          "[MySubmissionsTab] 병합 — inProgress:", inProgress.length,
-          "/ pendingCount:", pendingCount,
-          "/ server:", serverItems.length,
-          "/ serverToShow:", serverToShow.length,
-          "/ filtered:", filtered.length,
+          "[MySubmissionsTab] 병합 — withId:", withId.length,
+          "/ withoutId:", withoutId.length,
+          "/ resolved:", resolvedPending.filter(s => s.submissionId != null).length,
+          "/ serverExtra:", serverExtra.length,
         );
-        return [...inProgress, ...filtered]
+        return [...resolvedPending, ...withId, ...serverExtra]
           .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
       });
     } catch (e: any) {

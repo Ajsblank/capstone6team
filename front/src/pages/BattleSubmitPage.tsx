@@ -163,6 +163,10 @@ const SubmitPage: React.FC = () => {
           console.warn("[BattleSubmitPage] match-result 수신 — 최신 제출 이미 확정됨, 무시");
           return prev;
         }
+        if (latest.matches.some(m => m.matchId === result.matchId)) {
+          console.warn("[BattleSubmitPage] 중복 match-result 무시 — matchId:", result.matchId);
+          return prev;
+        }
         console.log("[BattleSubmitPage] matches 누적 →", latest.matches.length + 1, "건");
         return [{ ...latest, matches: [...latest.matches, result] }, ...rest];
       });

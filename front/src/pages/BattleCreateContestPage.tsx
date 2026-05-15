@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useApp } from "../context/AppContext";
 import { createContest, ContestResponse, ContestStatus } from "../api/contestApi";
+import { setContestDraft } from "../contestDraft";
 import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
@@ -541,23 +542,51 @@ const BattleCreateContestPage: React.FC = () => {
               >
                 미리보기
               </button>
-              {certification === true && (
+              {certification === true ? (
                 <button
                   type="button"
                   className="cc-next-btn"
-                  onClick={() => { /* TODO: 인증 대회 다음 단계 */ }}
+                  onClick={() => {
+                    const missing: string[] = [];
+                    if (!title.trim())       missing.push("대회 이름");
+                    if (!description.trim()) missing.push("문제 설명");
+                    if (!exampleCode)        missing.push("샘플 코드");
+                    if (!judgeCode)          missing.push("채점 코드");
+                    if (!visualizationHtml)  missing.push("시각화 HTML 파일");
+                    if (!soloPlayHtml)       missing.push("혼자서 하기 HTML 파일");
+                    if (!startDate)          missing.push("시작 일시");
+                    if (!endDate)            missing.push("종료 일시");
+                    if (missing.length > 0)  { setToastMessages(missing); return; }
+                    setContestDraft({
+                      title: title.trim(),
+                      description: description.trim(),
+                      certification: true,
+                      timeLimitSec,
+                      memoryLimitMb,
+                      exampleCode: exampleCode!,
+                      judgeCode: judgeCode!,
+                      visualizationHtml: visualizationHtml!,
+                      soloPlayHtml: soloPlayHtml!,
+                      status,
+                      startDate,
+                      endDate,
+                      maxParticipants,
+                    });
+                    navigate("create-certified-contest");
+                  }}
                 >
-                  다음 단계로
+                  다음 단계로 →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="cc-submit-btn"
+                  onClick={handleSubmit}
+                  disabled={submitStatus === "submitting"}
+                >
+                  {submitStatus === "submitting" ? "등록 중..." : "대회 생성"}
                 </button>
               )}
-              <button
-                type="button"
-                className="cc-submit-btn"
-                onClick={handleSubmit}
-                disabled={submitStatus === "submitting"}
-              >
-                {submitStatus === "submitting" ? "등록 중..." : "대회 생성"}
-              </button>
               <button
                 type="button"
                 className="cc-cancel-btn"

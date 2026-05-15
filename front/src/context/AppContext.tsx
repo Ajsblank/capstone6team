@@ -13,6 +13,7 @@ export type Page =
   | "problem-detail"
   | "create-problem"
   | "create-contest"
+  | "create-certified-contest"
   | "profile"
   | "account-settings";
 
@@ -31,7 +32,7 @@ interface AppContextValue {
   logout: () => void;
 }
 
-const VALID_PAGES: Page[] = ["landing", "home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "create-contest", "profile", "account-settings"];
+const VALID_PAGES: Page[] = ["landing", "home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "create-contest", "create-certified-contest", "profile", "account-settings"];
 
 function getPageFromHash(): Page {
   const hash = window.location.hash.replace("#", "").split("/")[0] as Page;

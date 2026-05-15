@@ -12,6 +12,7 @@ import AlgoProblemDetailPage from "./pages/AlgoProblemDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import AccountSettingsPage from "./pages/AccountSettingsPage";
 import BattleCreateContestPage from "./pages/BattleCreateContestPage";
+import BattleCreateCertifiedPage from "./pages/BattleCreateCertifiedPage";
 
 const DevApiBadge: React.FC = () => (
   <div style={{
@@ -40,7 +41,8 @@ const PageRouter: React.FC = () => {
     case "problem-detail":   return <AlgoProblemDetailPage />;
     case "profile":          return <ProfilePage />;
     case "account-settings": return <AccountSettingsPage />;
-    case "create-contest":   return <BattleCreateContestPage />;
+    case "create-contest":            return <BattleCreateContestPage />;
+    case "create-certified-contest":  return <BattleCreateCertifiedPage />;
     default:                 return <AlgoHomePage />;
   }
 };
