@@ -13,6 +13,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,22 +30,22 @@ public class CodeBattleContest {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(length = 255)
+  @Column(length = 255, nullable = false)
   private String title;
 
-  @Column
+  @Column(columnDefinition = "TEXT", nullable = false)
   private String description;
 
-  @Column(name = "time_limit_sec")
+  @Column(name = "time_limit_sec", nullable = false)
   private int timeLimitSec;
 
-  @Column(name = "memory_limit_mb")
+  @Column(name = "memory_limit_mb", nullable = false)
   private int memoryLimitMB;
 
-  @Column(name = "visualization_html_url")
+  @Column(name = "visualization_html_url", columnDefinition = "TEXT")
   private String visualizationHtml;
 
-  @Column(name = "solo_play_html_url")
+  @Column(name = "solo_play_html_url", columnDefinition = "TEXT")
   private String soloPlayHtml;
 
   // PostgreSQL enum(status)와 Java enum 간 바인딩 타입을 명시한다.
@@ -53,16 +54,16 @@ public class CodeBattleContest {
   @Column(nullable = false, name = "status", columnDefinition = "status")
   private ContestStatus status;
 
-  @Column
+  @Column(nullable = false)
   private Boolean certification; // True for certification contest
 
   @Column(columnDefinition = "TEXT", name = "judge_code")
   private String judgeCode;
 
-  @Column(columnDefinition = "TEXT", name = "example_code")
-  private String exampleCode;
+  @Column(columnDefinition = "TEXT", name = "sample_code")
+  private String sampleCode;
 
-  @Column(name = "max_participants")
+  @Column(name = "max_participants", nullable = false)
   private int maxParticipants;
 
   @Column(name = "start_date")
@@ -74,11 +75,14 @@ public class CodeBattleContest {
   @Column(nullable = false, name = "created_at")
   private LocalDateTime createdAt;
 
+  @Column(nullable = false, name = "updated_at")
+  private LocalDateTime updatedAt;
+
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
 
   public static CodeBattleContest create(String title, String description, ContestStatus status, Boolean certification,
-      Integer timeLimitSec, Integer memoryLimitMB, String judgeCode, String exampleCode,
+      Integer timeLimitSec, Integer memoryLimitMB, String judgeCode, String sampleCode,
       Integer maxParticipants, LocalDateTime startDate, LocalDateTime endDate,
       String visualizationHtml, String soloPlayHtml) {
     CodeBattleContest contest = new CodeBattleContest();
@@ -89,7 +93,7 @@ public class CodeBattleContest {
     contest.timeLimitSec = timeLimitSec;
     contest.memoryLimitMB = memoryLimitMB;
     contest.judgeCode = judgeCode;
-    contest.exampleCode = exampleCode;
+    contest.sampleCode = sampleCode;
     contest.maxParticipants = maxParticipants;
     contest.startDate = startDate;
     contest.endDate = endDate;
@@ -111,7 +115,7 @@ public class CodeBattleContest {
       Integer timeLimitSec,
       Integer memoryLimitMB,
       String judgeCode,
-      String exampleCode,
+      String sampleCode,
       Integer maxParticipants) {
     if (title != null) {
       this.title = title;
@@ -131,8 +135,8 @@ public class CodeBattleContest {
     if (judgeCode != null) {
       this.judgeCode = judgeCode;
     }
-    if (exampleCode != null) {
-      this.exampleCode = exampleCode;
+    if (sampleCode != null) {
+      this.sampleCode = sampleCode;
     }
     if (maxParticipants != null) {
       this.maxParticipants = maxParticipants;
@@ -142,9 +146,15 @@ public class CodeBattleContest {
   @PrePersist
   protected void onCreate() {
     createdAt = LocalDateTime.now();
+    updatedAt = createdAt;
+  }
+
+  @PreUpdate
+  protected void onUpdate() {
+    updatedAt = LocalDateTime.now();
   }
 
   public enum ContestStatus {
-    TEST, RUNNING, END, PLANNED, PAUSED
+    TEST, RUNNING, END, PLANNED, PAUSED, CANCELED
   }
 }

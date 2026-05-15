@@ -60,10 +60,10 @@ public class AlgorithmProblem {
     private List<TestCase> hiddenTestcases;
 
     @Column(name = "time_limit_sec")
-    private int timeLimitSec;
+    private Integer timeLimitSec;
 
     @Column(name = "memory_limit_mb")
-    private int memoryLimitMb;
+    private Integer memoryLimitMb;
 
     @Getter
     @Setter

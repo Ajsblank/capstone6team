@@ -50,17 +50,17 @@ public class AlgorithmSubmission {
     @Column(columnDefinition = "language")
     private Language language;
 
-    @Column
+    @Column(columnDefinition = "TEXT")
     private String code;
 
-    @Column
+    @Column(columnDefinition = "TEXT")
     private String result;
 
     @Column(name = "execution_time_sec")
-    private int executionTimeSec;
+    private Integer executionTimeSec;
 
     @Column(name = "memory_usage_mb")
-    private int memoryUsageMb;
+    private Integer memoryUsageMb;
 
     @Column
     private LocalDateTime created_at;

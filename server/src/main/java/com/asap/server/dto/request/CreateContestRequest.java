@@ -36,11 +36,11 @@ public class CreateContestRequest {
   @Positive(message = "메모리 제한은 1 이상이어야 합니다.")
   private Integer memoryLimitMb;
 
-  @Schema(description = "example_code 파일명(.cpp 제외). 미지정 시 example_code 사용", example = "sample_solver")
-  private String exampleCodeName;
+  @Schema(description = "sample_code 파일명(.cpp 제외). 미지정 시 sample_code 사용", example = "sample_solver")
+  private String sampleCodeName;
 
   @NotNull(message = "상태는 필수입니다.")
-  @Schema(description = "대회 상태 (TEST, PLANNED, RUNNING, PAUSED, END)", example = "PLANNED")
+  @Schema(description = "대회 상태 (TEST, PLANNED, RUNNING, PAUSED, END, CANCELED)", example = "PLANNED")
   private ContestStatus status;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm")

@@ -20,7 +20,7 @@ public class ContestResponse {
   private Integer timeLimitSec;
   private Integer memoryLimitMb;
   // 보안 조치 private String judgeCode;
-  private String exampleCode;
+  private String sampleCode;
   private ContestStatus status;
 
   private String visualizationHtml;
@@ -44,7 +44,7 @@ public class ContestResponse {
         .timeLimitSec(contest.getTimeLimitSec())
         .memoryLimitMb(contest.getMemoryLimitMB())
         // .judgeCode(contest.getJudgeCode())
-        .exampleCode(contest.getExampleCode())
+        .sampleCode(contest.getSampleCode())
         .status(contest.getStatus())
         .startDate(contest.getStartDate())
         .endDate(contest.getEndDate())
