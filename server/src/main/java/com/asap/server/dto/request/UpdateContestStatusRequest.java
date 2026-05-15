@@ -2,7 +2,7 @@ package com.asap.server.dto.request;
 
 import java.time.LocalDateTime;
 
-import com.asap.server.domain.CodeBattleContest.ContestStatus;
+import com.asap.server.global.type.ContestStatus;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;

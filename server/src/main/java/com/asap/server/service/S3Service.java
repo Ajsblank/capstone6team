@@ -116,23 +116,23 @@ public class S3Service {
   }
 
   /**
-   * 예제 코드 업로드
-   * backend-deploy/contest-resource/{contestId}/example-code/{name}.cpp
+   * 샘플 코드 업로드
+   * backend-deploy/contest-resource/{contestId}/sample-code/{name}.cpp
    */
-  public String uploadExampleCodeContent(Long contestId, String exampleCode, String exampleCodeName) {
-    if (exampleCode == null || exampleCode.isBlank()) {
-      throw new IllegalArgumentException("exampleCode는 비어 있을 수 없습니다.");
+  public String uploadSampleCodeContent(Long contestId, String sampleCode, String sampleCodeName) {
+    if (sampleCode == null || sampleCode.isBlank()) {
+      throw new IllegalArgumentException("sampleCode는 비어 있을 수 없습니다.");
     }
 
-    String key = buildExampleCodeKey(contestId, exampleCodeName);
+    String key = buildSampleCodeKey(contestId, sampleCodeName);
     PutObjectRequest putRequest = PutObjectRequest.builder()
         .bucket(bucket)
         .key(key)
         .contentType("text/x-c++src; charset=UTF-8")
         .build();
 
-    s3Client.putObject(putRequest, RequestBody.fromBytes(exampleCode.getBytes(StandardCharsets.UTF_8)));
-    log.info("예제 코드 업로드 완료 - contestId: {}, key: {}", contestId, key);
+    s3Client.putObject(putRequest, RequestBody.fromBytes(sampleCode.getBytes(StandardCharsets.UTF_8)));
+    log.info("샘플 코드 업로드 완료 - contestId: {}, key: {}", contestId, key);
 
     return buildPublicUrl(key);
   }
@@ -153,9 +153,9 @@ public class S3Service {
     return buildPublicUrl(key);
   }
 
-  public String uploadExampleCodeFile(Long contestId, String exampleCodeName, MultipartFile file) throws IOException {
-    validateCppFile(file, "exampleCodeFile");
-    String key = buildExampleCodeKey(contestId, exampleCodeName);
+  public String uploadSampleCodeFile(Long contestId, String sampleCodeName, MultipartFile file) throws IOException {
+    validateCppFile(file, "sampleCodeFile");
+    String key = buildSampleCodeKey(contestId, sampleCodeName);
 
     PutObjectRequest putRequest = PutObjectRequest.builder()
         .bucket(bucket)
@@ -164,7 +164,23 @@ public class S3Service {
         .build();
 
     s3Client.putObject(putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-    log.info("예제 코드 파일 업로드 완료 - contestId: {}, key: {}", contestId, key);
+    log.info("샘플 코드 파일 업로드 완료 - contestId: {}, key: {}", contestId, key);
+
+    return buildPublicUrl(key);
+  }
+
+  public String uploadExampleAiCodeFile(Long contestId, String exampleAiCodeName, MultipartFile file) throws IOException {
+    validateCppFile(file, "exampleAiFiles");
+    String key = buildExampleAiCodeKey(contestId, exampleAiCodeName);
+
+    PutObjectRequest putRequest = PutObjectRequest.builder()
+        .bucket(bucket)
+        .key(key)
+        .contentType("text/x-c++src; charset=UTF-8")
+        .build();
+
+    s3Client.putObject(putRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+    log.info("예제 AI 코드 파일 업로드 완료 - contestId: {}, key: {}", contestId, key);
 
     return buildPublicUrl(key);
   }
@@ -177,8 +193,12 @@ public class S3Service {
     deleteObject(buildJudgeCodeKey(contestId));
   }
 
-  public void deleteExampleCodeFile(Long contestId, String exampleCodeName) {
-    deleteObject(buildExampleCodeKey(contestId, exampleCodeName));
+  public void deleteSampleCodeFile(Long contestId, String sampleCodeName) {
+    deleteObject(buildSampleCodeKey(contestId, sampleCodeName));
+  }
+
+  public void deleteExampleAiCodeFile(Long contestId, String exampleAiCodeName) {
+    deleteObject(buildExampleAiCodeKey(contestId, exampleAiCodeName));
   }
 
   /**
@@ -327,8 +347,13 @@ public class S3Service {
     return String.format("%s/%d/judge-code/judge_code.cpp", normalizeContestCodePrefix(), contestId);
   }
 
-  private String buildExampleCodeKey(Long contestId, String exampleCodeName) {
-    String baseName = sanitizeCppBaseName(exampleCodeName);
+  private String buildSampleCodeKey(Long contestId, String sampleCodeName) {
+    String baseName = sanitizeCppBaseName(sampleCodeName, "sample_code");
+    return String.format("%s/%d/sample-code/%s.cpp", normalizeContestCodePrefix(), contestId, baseName);
+  }
+
+  private String buildExampleAiCodeKey(Long contestId, String exampleAiCodeName) {
+    String baseName = sanitizeCppBaseName(exampleAiCodeName, "example_ai");
     return String.format("%s/%d/example-code/%s.cpp", normalizeContestCodePrefix(), contestId, baseName);
   }
 
@@ -350,8 +375,7 @@ public class S3Service {
     };
   }
 
-  private String sanitizeCppBaseName(String fileName) {
-    String defaultName = "example_code";
+  private String sanitizeCppBaseName(String fileName, String defaultName) {
     if (fileName == null || fileName.isBlank()) {
       return defaultName;
     }
