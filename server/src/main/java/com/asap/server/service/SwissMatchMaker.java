@@ -99,68 +99,76 @@ public class SwissMatchMaker {
                 .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. ID: " + contestId));
 
         // 2. Participant 기준으로 제출 코드 1인 1개 조회
-        List<CodeBattleSubmission> submissions = participantRepository.findByContestIdAndSubmissionIsNotNull(contestId)
-                .stream()
-                .map(CodeBattleParticipant::getSubmission)
-                .filter(s -> {
-                    // null 필드 있으면 해당 제출 스킵 + 로그
-                    if (s.getLanguage() == null) {
-                        log.warn("[SwissMatchMaker] submission ID {}의 language가 null, 스킵", s.getId());
-                        return false;
-                    }
-                    if (s.getCodeUrl() == null) {
-                        log.warn("[SwissMatchMaker] submission ID {}의 codeUrl이 null, 스킵", s.getId());
-                        return false;
-                    }
-                    return true;
-                })
-                .collect(Collectors.toList());
-        if (submissions == null || submissions.size() < 2) {
-            log.warn("[SwissMatchMaker] 풀리그 대회 ID {} 제출 코드 부족으로 매칭을 생성하지 못했습니다. {}", contestId);
-            return;
-        }
-
-        log.info("[SwissMatchMaker] 풀리그 대회 ID: {}, {}개의 제출 코드로 매칭을 생성합니다.", contestId, submissions.size());
-
         String dedupSetKey = PULL_LEAGUE_MATCH_DEDUP_KEY_PREFIX + contestId;
-        int expected = (submissions.size() * (submissions.size() - 1)) / 2;
-        int enqueued = 0, dedupSkipped = 0, enqueueFailed = 0;
+        try {
+            List<CodeBattleSubmission> submissions = participantRepository
+                    .findByContestIdAndSubmissionIsNotNull(contestId)
+                    .stream()
+                    .map(CodeBattleParticipant::getSubmission)
+                    .filter(s -> {
+                        // null 필드 있으면 해당 제출 스킵 + 로그
+                        if (s.getLanguage() == null) {
+                            log.warn("[SwissMatchMaker] submission ID {}의 language가 null, 스킵", s.getId());
+                            return false;
+                        }
+                        if (s.getCodeUrl() == null) {
+                            log.warn("[SwissMatchMaker] submission ID {}의 codeUrl가 null, 스킵", s.getId());
+                            return false;
+                        }
+                        return true;
+                    })
+                    .collect(Collectors.toList());
+            if (submissions == null || submissions.size() < 2) {
+                log.warn("[SwissMatchMaker] 풀리그 대회 ID {} 제출 코드 부족으로 매칭을 생성하지 못했습니다. {}", contestId);
+                return;
+            }
 
-        // 3. 풀리그 매칭 (i < j 로 중복 방지)
-        for (int i = 0; i < submissions.size(); i++) {
-            for (int j = i + 1; j < submissions.size(); j++) {
-                CodeBattleSubmission s1 = submissions.get(i);
-                CodeBattleSubmission s2 = submissions.get(j);
+            log.info("[SwissMatchMaker] 풀리그 대회 ID: {}, {}개의 제출 코드로 매칭을 생성합니다.", contestId, submissions.size());
 
-                // Redis dedup 체크
-                String dedupMember = Math.min(s1.getId(), s2.getId()) + ":" + Math.max(s1.getId(), s2.getId());
-                if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(dedupSetKey, dedupMember))) {
-                    dedupSkipped++;
-                    continue;
-                }
+            int expected = (submissions.size() * (submissions.size() - 1)) / 2;
+            int enqueued = 0, dedupSkipped = 0, enqueueFailed = 0;
 
-                try {
-                    // 매치 저장 (이미 있으면 재사용)
-                    CodeBattleMatch match = matchRepository
-                            .findByContestIdAndUser1IdAndUser2Id(contestId, s1.getUser().getId(), s2.getUser().getId())
-                            .orElseGet(() -> matchRepository.save(
-                                    new CodeBattleMatch(contest, s1.getUser(), s2.getUser(), null, null)));
+            // 3. 풀리그 매칭 (i < j 로 중복 방지)
+            for (int i = 0; i < submissions.size(); i++) {
+                for (int j = i + 1; j < submissions.size(); j++) {
+                    CodeBattleSubmission s1 = submissions.get(i);
+                    CodeBattleSubmission s2 = submissions.get(j);
 
-                    // 큐에 적재
-                    enqueueMatchToGradingQueue(match.getId(), contest, s1, s2, 0);
-                    redisTemplate.opsForSet().add(dedupSetKey, dedupMember);
-                    enqueued++;
+                    // Redis dedup 체크
+                    String dedupMember = Math.min(s1.getId(), s2.getId()) + ":" + Math.max(s1.getId(), s2.getId());
+                    if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(dedupSetKey, dedupMember))) {
+                        dedupSkipped++;
+                        continue;
+                    }
 
-                } catch (Exception e) {
-                    enqueueFailed++;
-                    log.error("[SwissMatchMaker] 큐 적재 실패. s1={}, s2={}, 원인={}",
-                            s1.getId(), s2.getId(), e.getMessage());
+                    try {
+                        // 매치 저장 (이미 있으면 재사용)
+                        CodeBattleMatch match = matchRepository
+                                .findByContestIdAndUser1IdAndUser2Id(contestId, s1.getUser().getId(),
+                                        s2.getUser().getId())
+                                .orElseGet(() -> matchRepository.save(
+                                        new CodeBattleMatch(contest, s1.getUser(), s2.getUser(), null, null)));
+
+                        // 큐에 적재
+                        enqueueMatchToGradingQueue(match.getId(), contest, s1, s2, 0);
+                        redisTemplate.opsForSet().add(dedupSetKey, dedupMember);
+                        enqueued++;
+
+                    } catch (Exception e) {
+                        enqueueFailed++;
+                        log.error("[SwissMatchMaker] 큐 적재 실패. s1={}, s2={}, 원인={}",
+                                s1.getId(), s2.getId(), e.getMessage());
+                    }
                 }
             }
-        }
 
-        log.info("[SwissMatchMaker] 풀리그 대회 ID {} 매칭 완료. expected={}, enqueued={}, dedupSkipped={}, enqueueFailed={}",
-                contestId, expected, enqueued, dedupSkipped, enqueueFailed);
+            log.info(
+                    "[SwissMatchMaker] 풀리그 대회 ID {} 매칭 완료. expected={}, enqueued={}, dedupSkipped={}, enqueueFailed={}",
+                    contestId, expected, enqueued, dedupSkipped, enqueueFailed);
+        } finally {
+            redisTemplate.delete(dedupSetKey);
+            log.info("[SwissMatchMaker] 풀리그 대회 ID {} dedup 키를 정리했습니다.", contestId);
+        }
     }
 
     private void enqueueMatchToGradingQueue(
