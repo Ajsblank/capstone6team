@@ -110,6 +110,8 @@ public class RedisResultWorker implements CommandLineRunner {
                 match.setWinner(match.getUser1());
             else if (comp == 2)
                 match.setWinner(match.getUser2());
+            else if (comp == 0)
+                match.setWinner(match.getUser2());
             else
                 match.setWinner(null);
 
