@@ -6,6 +6,7 @@ import java.util.List;
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.global.type.ContestStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -15,6 +16,8 @@ import lombok.Getter;
 public class ContestResponse {
 
   private Long id;
+  @JsonProperty("creator_id")
+  private Long creatorId;
   private String title;
   private String description;
   private Boolean certification;
@@ -44,6 +47,7 @@ public class ContestResponse {
   public static ContestResponse from(CodeBattleContest contest, List<String> exampleAiCodes) {
     return ContestResponse.builder()
         .id(contest.getId())
+        .creatorId(contest.getCreator() != null ? contest.getCreator().getId() : null)
         .title(contest.getTitle())
         .description(contest.getDescription())
         .certification(contest.getCertification())

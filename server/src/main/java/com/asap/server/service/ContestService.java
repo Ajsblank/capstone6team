@@ -54,12 +54,18 @@ public class ContestService {
 
     @Transactional(rollbackFor = Exception.class)
     public ContestResponse createContest(
+            Long userId,
             CreateContestRequest request,
             MultipartFile visualFile,
             MultipartFile soloFile,
             MultipartFile judgeCodeFile,
             MultipartFile sampleCodeFile,
             List<MultipartFile> exampleAiFiles) throws IOException {
+
+        // 사용자 조회
+        Users creator = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
         LocalDateTime now = LocalDateTime.now();
 
         DatePolicy policy = resolveDatePolicyForCreate(
@@ -81,7 +87,8 @@ public class ContestService {
                 policy.startDate(),
                 policy.endDate(),
                 null,
-                null);
+                null,
+                creator);
         // 최종 대회 예약 생성
 
         CodeBattleContest savedContest = contestRepository.save(contest);

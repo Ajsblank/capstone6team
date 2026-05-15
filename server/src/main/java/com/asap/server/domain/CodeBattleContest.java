@@ -11,9 +11,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -83,10 +86,14 @@ public class CodeBattleContest {
   @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
 
+  @ManyToOne
+  @JoinColumn(name = "creator_id", foreignKey = @ForeignKey(name = "fk_contest_user"))
+  private Users creator;
+
   public static CodeBattleContest create(String title, String description, ContestStatus status, Boolean certification,
       Integer timeLimitSec, Integer memoryLimitMB, String judgeCode, String sampleCode,
       Integer maxParticipants, LocalDateTime startDate, LocalDateTime endDate,
-      String visualizationHtml, String soloPlayHtml) {
+      String visualizationHtml, String soloPlayHtml, Users creator) {
     CodeBattleContest contest = new CodeBattleContest();
     contest.title = title;
     contest.description = description;
@@ -101,6 +108,7 @@ public class CodeBattleContest {
     contest.endDate = endDate;
     contest.visualizationHtml = visualizationHtml;
     contest.soloPlayHtml = soloPlayHtml;
+    contest.creator = creator;
     return contest;
   }
 

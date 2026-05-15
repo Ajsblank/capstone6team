@@ -72,14 +72,21 @@ public class ContestController {
     }))
     @PostMapping(value = "/create", consumes = "multipart/form-data")
     public ResponseEntity<?> createContest(
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestPart("request") CreateContestRequest request,
             @RequestPart("visualFile") MultipartFile visualFile,
             @RequestPart("soloFile") MultipartFile soloFile,
             @RequestPart("judgeCodeFile") MultipartFile judgeCodeFile,
             @RequestPart("sampleCodeFile") MultipartFile sampleCodeFile,
             @RequestPart("exampleAiFiles") List<MultipartFile> exampleAiFiles) {
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "로그인이 필요합니다."));
+        }
+
         try {
             ContestResponse response = contestService.createContest(
+                    userId,
                     request,
                     visualFile,
                     soloFile,
