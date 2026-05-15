@@ -1,6 +1,5 @@
 package com.asap.server.global;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.boot.CommandLineRunner;
@@ -147,28 +146,32 @@ public class RedisResultWorker implements CommandLineRunner {
             participantRepository.save(p1);
             participantRepository.save(p2);
 
-            // 라운드 종료 여부 체크 및 다음 라운드 트리거
-            List<CodeBattleParticipant> allParticipants = participantRepository.findByContestId(contestId);
-            int matchesPerRound = allParticipants.size() / 2;
+            // 사용 안함, 추후 swiss 매치에 코드만 재사용
+            // // 라운드 종료 여부 체크 및 다음 라운드 트리거
+            // List<CodeBattleParticipant> allParticipants =
+            // participantRepository.findByContestId(contestId);
+            // int matchesPerRound = allParticipants.size() / 2;
 
-            long totalCreatedMatches = matchRepository.countByContestId(contestId);
-            long totalFinishedMatches = matchRepository.countFinishedMatchesByContestId(contestId);
+            // long totalCreatedMatches = matchRepository.countByContestId(contestId);
+            // long totalFinishedMatches =
+            // matchRepository.countFinishedMatchesByContestId(contestId);
 
-            // 현재 라운드의 모든 경기가 끝났는지 확인
-            if (totalCreatedMatches > 0 && totalCreatedMatches == totalFinishedMatches) {
-                int currentCompletedRound = (int) (totalFinishedMatches / matchesPerRound);
-                log.info("[Worker] 대회 ID: {}, {}라운드 모든 경기 종료!", contestId, currentCompletedRound);
+            // // 현재 라운드의 모든 경기가 끝났는지 확인
+            // if (totalCreatedMatches > 0 && totalCreatedMatches == totalFinishedMatches) {
+            // int currentCompletedRound = (int) (totalFinishedMatches / matchesPerRound);
+            // log.info("[Worker] 대회 ID: {}, {}라운드 모든 경기 종료!", contestId,
+            // currentCompletedRound);
 
-                int MAX_ROUND = 10;
-                if (currentCompletedRound < MAX_ROUND) {
-                    log.info("[Worker] 다음 라운드를 준비합니다...");
-                    swissMatchMaker.generateNextRound(contestId);
-                } else {
-                    log.info("[Worker] 대회 ID: {} 의 10라운드가 모두 종료되었습니다. 대회 완료!", contestId);
-                    // TODO: 대회 상태를 FINISHED로 변경
-                    // match.getContest().updateStatus(ContestStatus.FINISHED);
-                }
-            }
+            // int MAX_ROUND = 10;
+            // if (currentCompletedRound < MAX_ROUND) {
+            // log.info("[Worker] 다음 라운드를 준비합니다...");
+            // swissMatchMaker.generateNextRound(contestId);
+            // } else {
+            // log.info("[Worker] 대회 ID: {} 의 10라운드가 모두 종료되었습니다. 대회 완료!", contestId);
+            // // TODO: 대회 상태를 FINISHED로 변경
+            // // match.getContest().updateStatus(ContestStatus.FINISHED);
+            // }
+            // }
 
         } catch (Exception e) {
             log.error("[Worker] 채점 결과 처리 중 오류 발생: {}", e.getMessage(), e);
