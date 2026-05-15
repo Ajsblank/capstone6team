@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.asap.server.domain.CodeBattleContest.ContestStatus;
 import com.asap.server.domain.ContestSchedule;
 import com.asap.server.dto.request.ContestScheduleRequest;
 import com.asap.server.dto.request.CreateContestRequest;
@@ -31,6 +30,7 @@ import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestResponse;
+import com.asap.server.global.type.ContestStatus;
 import com.asap.server.service.CodeBattleSubmissionService;
 import com.asap.server.service.ContestService;
 
@@ -55,39 +55,39 @@ public class ContestController {
     private final ContestService contestService;
     private final CodeBattleSubmissionService submissionService;
 
-    @Operation(summary = "대회 생성(메타데이터 + 4개 리소스 파일 업로드)", description = "POST /api/contests/create multipart/form-data\n"
+    @Operation(summary = "대회 생성(메타데이터 + 리소스 업로드)", description = "POST /api/contests/create multipart/form-data\n"
             + "- request: CreateContestRequest(JSON)\n"
             + "- visualFile: 시각화 HTML(.html)\n"
             + "- soloFile: 혼자하기 HTML(.html)\n"
             + "- judgeCodeFile: 채점 코드 C++(.cpp)\n"
-            + "- exampleCodeFile: 예시 코드 C++(.cpp)")
-        @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            required = true,
-            content = @Content(
-                mediaType = "multipart/form-data",
-                encoding = {
-                    @Encoding(name = "request", contentType = "application/json"),
-                    @Encoding(name = "visualFile", contentType = "text/html"),
-                    @Encoding(name = "soloFile", contentType = "text/html"),
-                    @Encoding(name = "judgeCodeFile", contentType = "text/x-c++src"),
-                    @Encoding(name = "exampleCodeFile", contentType = "text/x-c++src")
-                }))
+            + "- sampleCodeFile: 샘플 코드 C++(.cpp)\n"
+            + "- exampleAiFiles: 예제 AI 코드 C++(.cpp), 1개 이상")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = "multipart/form-data", encoding = {
+            @Encoding(name = "request", contentType = "application/json"),
+            @Encoding(name = "visualFile", contentType = "text/html"),
+            @Encoding(name = "soloFile", contentType = "text/html"),
+            @Encoding(name = "judgeCodeFile", contentType = "text/x-c++src"),
+            @Encoding(name = "sampleCodeFile", contentType = "text/x-c++src"),
+            @Encoding(name = "exampleAiFiles", contentType = "text/x-c++src")
+    }))
     @PostMapping(value = "/create", consumes = "multipart/form-data")
-    public ResponseEntity<Map<String, String>> createContest(
+    public ResponseEntity<?> createContest(
             @Valid @RequestPart("request") CreateContestRequest request,
             @RequestPart("visualFile") MultipartFile visualFile,
             @RequestPart("soloFile") MultipartFile soloFile,
             @RequestPart("judgeCodeFile") MultipartFile judgeCodeFile,
-            @RequestPart("exampleCodeFile") MultipartFile exampleCodeFile) {
+            @RequestPart("sampleCodeFile") MultipartFile sampleCodeFile,
+            @RequestPart("exampleAiFiles") List<MultipartFile> exampleAiFiles) {
         try {
             ContestResponse response = contestService.createContest(
                     request,
                     visualFile,
                     soloFile,
                     judgeCodeFile,
-                    exampleCodeFile);
+                    sampleCodeFile,
+                    exampleAiFiles);
             return ResponseEntity.created(URI.create("/api/contests/" + response.getId()))
-                    .body(Map.of("id", String.valueOf(response.getId())));
+                    .body(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
@@ -132,31 +132,46 @@ public class ContestController {
         return ResponseEntity.status(HttpStatus.CREATED).body(schedule);
     }
 
-    @Operation(summary = "대회 수정")
+    @Operation(summary = "대회 수정", description = "PATCH /api/contests/{contestId}는 대회 메타데이터만 수정합니다. 리소스(visual/solo/judge/sample)는 /api/contests/{contestId}/resource를 사용하세요.")
     @PatchMapping("/{contestId}")
     public ResponseEntity<ContestDetailResponse> updateContest(
             @PathVariable Long contestId,
             @RequestBody UpdateContestRequest request) {
-        return ResponseEntity.ok(contestService.updateContest(contestId, request));
+        try {
+            ContestDetailResponse response = contestService.updateContest(contestId, request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("대회 수정 실패 - contestId: {}", contestId, e);
+            return ResponseEntity.internalServerError().body(null);
+        }
     }
 
-    @Operation(summary = "대회 리소스 수정", description = "PATCH /api/contests/{contestId} multipart/form-data로 4개 리소스(visual, solo, judge, example)를 선택적으로 덮어쓰기합니다. exampleCodeName으로 example 코드 파일명을 지정할 수 있습니다.")
-    @PatchMapping(value = "/{contestId}", consumes = "multipart/form-data")
+    @Operation(summary = "대회 리소스 수정", description = "PATCH /api/contests/{contestId}/resource multipart/form-data로 리소스를 선택적으로 덮어씁니다. 업로드한 파트만 수정됩니다.")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = "multipart/form-data", encoding = {
+            @Encoding(name = "visualFile", contentType = "text/html"),
+            @Encoding(name = "soloFile", contentType = "text/html"),
+            @Encoding(name = "judgeCodeFile", contentType = "text/x-c++src"),
+            @Encoding(name = "sampleCodeFile", contentType = "text/x-c++src"),
+            @Encoding(name = "exampleAiFiles", contentType = "text/x-c++src")
+    }))
+    @PatchMapping(value = "/{contestId}/resource", consumes = "multipart/form-data")
     public ResponseEntity<ContestDetailResponse> updateContestResources(
             @PathVariable Long contestId,
-            @RequestParam(value = "visualFile", required = false) MultipartFile visualFile,
-            @RequestParam(value = "soloFile", required = false) MultipartFile soloFile,
-            @RequestParam(value = "judgeCodeFile", required = false) MultipartFile judgeCodeFile,
-            @RequestParam(value = "exampleCodeFile", required = false) MultipartFile exampleCodeFile,
-            @RequestParam(value = "exampleCodeName", required = false) String exampleCodeName) {
+            @RequestPart(value = "visualFile", required = false) MultipartFile visualFile,
+            @RequestPart(value = "soloFile", required = false) MultipartFile soloFile,
+            @RequestPart(value = "judgeCodeFile", required = false) MultipartFile judgeCodeFile,
+            @RequestPart(value = "sampleCodeFile", required = false) MultipartFile sampleCodeFile,
+            @RequestPart(value = "exampleAiFiles", required = false) List<MultipartFile> exampleAiFiles) {
         try {
             ContestDetailResponse response = contestService.updateContestResources(
                     contestId,
                     visualFile,
                     soloFile,
                     judgeCodeFile,
-                    exampleCodeFile,
-                    exampleCodeName);
+                    sampleCodeFile,
+                    exampleAiFiles);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(null);

@@ -2,8 +2,8 @@ package com.asap.server.dto.request;
 
 import java.time.LocalDateTime;
 
-import com.asap.server.domain.CodeBattleContest.ContestStatus;
 import com.asap.server.global.json.FlexibleMinuteLocalDateTimeDeserializer;
+import com.asap.server.global.type.ContestStatus;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -22,10 +22,6 @@ public class UpdateContestRequest {
   private Boolean certification;
   private Integer timeLimitSec;
   private Integer memoryLimitMb;
-  private String judgeCode;
-  private String sampleCode;
-  private String visualizationHtml;
-  private String soloPlayHtml;
   @Schema(description = "대회 상태 (TEST, PLANNED, RUNNING, PAUSED, END, CANCELED)", example = "PLANNED")
   private ContestStatus status;
 

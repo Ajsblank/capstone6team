@@ -12,4 +12,6 @@ public interface CodeBattleExampleAIRepository extends JpaRepository<CodeBattleE
     List<CodeBattleExampleAI> findByContestIdOrderByExampleOrderAsc(Long contestId);
 
     List<CodeBattleExampleAI> findByContest_id(Long contestId);
+
+    void deleteByContest_Id(Long contestId);
 }

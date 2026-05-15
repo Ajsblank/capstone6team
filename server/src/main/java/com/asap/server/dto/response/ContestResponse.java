@@ -1,9 +1,10 @@
 package com.asap.server.dto.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.asap.server.domain.CodeBattleContest;
-import com.asap.server.domain.CodeBattleContest.ContestStatus;
+import com.asap.server.global.type.ContestStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import lombok.Builder;
@@ -34,8 +35,13 @@ public class ContestResponse {
 
   private Integer maxParticipants;
   private LocalDateTime createdAt;
+  private List<String> exampleAiCodes;
 
   public static ContestResponse from(CodeBattleContest contest) {
+    return from(contest, List.of());
+  }
+
+  public static ContestResponse from(CodeBattleContest contest, List<String> exampleAiCodes) {
     return ContestResponse.builder()
         .id(contest.getId())
         .title(contest.getTitle())
@@ -52,6 +58,7 @@ public class ContestResponse {
         .createdAt(contest.getCreatedAt())
         .visualizationHtml(contest.getVisualizationHtml())
         .soloPlayHtml(contest.getSoloPlayHtml())
+        .exampleAiCodes(exampleAiCodes)
         .build();
   }
 }

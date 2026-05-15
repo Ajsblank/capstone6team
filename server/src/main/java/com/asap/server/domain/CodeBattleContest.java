@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.asap.server.global.type.ContestStatus;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -154,7 +156,4 @@ public class CodeBattleContest {
     updatedAt = LocalDateTime.now();
   }
 
-  public enum ContestStatus {
-    TEST, RUNNING, END, PLANNED, PAUSED, CANCELED
-  }
 }
