@@ -35,7 +35,7 @@ public class CodeBattleSubmissionService {
     private final usersRepository userRepository;
     private final S3Service s3Service;
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public CodeBattleSubmission submitAndQueuePullLeague(
             Long contestId, Long userId, Language language, MultipartFile sourceFile) throws IOException {
         CodeBattleContest contest = contestRepository.findById(contestId)
@@ -73,7 +73,7 @@ public class CodeBattleSubmissionService {
         }
     }
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public CodeBattleSubmission submitAndQueuePullLeague(
             Long contestId, Long userId, Language language, String sourceCode) {
         CodeBattleContest contest = contestRepository.findById(contestId)
@@ -121,7 +121,7 @@ public class CodeBattleSubmissionService {
         Long contestId = submission.getContest().getId();
 
         CodeBattleParticipant participant = participantRepository
-            .findByUserIdAndContestId(userId, contestId)
+                .findByUserIdAndContestId(userId, contestId)
                 .orElse(null);
 
         // 참가 신청 이력이 없으면 최종 제출을 기록할 수 없다.
