@@ -7,9 +7,7 @@ import lombok.Getter;
 @Getter
 @Builder
 @AllArgsConstructor
-public class LoginResponse {
-    private Long userId;
+public class TokenRefreshResponse {
     private String accessToken;
     private String refreshToken;
-    private String sessionId;
 }
