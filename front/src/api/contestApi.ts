@@ -14,14 +14,15 @@ applyAuthInterceptor(api);
 
 export interface CreateContestData {
   title: string;
-  description: string;   // problemMd 통합 — 텍스트 직접 입력 또는 파일 불러오기
+  description: string;
   certification: boolean;
   timeLimitSec: number;
   memoryLimitMb: number;
-  exampleCode: File;
+  sampleCode: File;           // 참가자 예시 코드 (구 exampleCode)
   judgeCode: File;
-  visualizationHtml: File;
-  soloPlayHtml: File;
+  exampleAICodes: File[];     // 참가자 코드가 대결할 예시 AI 코드 목록
+  visualizationHtml: File | null;  // 비인증 시 선택, 인증 시 필수
+  soloPlayHtml: File | null;       // 비인증 시 선택, 인증 시 필수
   status: ContestStatus;
   startDate: string;
   endDate: string;
@@ -33,11 +34,9 @@ export type ContestStatus = "TEST" | "PLANNED" | "RUNNING" | "PAUSED" | "END";
 export interface ContestResponse {
   id: number;
   status: ContestStatus;
-  createdAt: string;        // ISO 8601
-  // updatedAt: string      // 백엔드 응답에 있으나 현재 미사용
+  createdAt: string;
 }
 
-// PATCH /api/contests/{contestId} 요청 바디 — 모든 필드 선택적
 export interface PatchContestData {
   title?: string;
   description?: string;
@@ -47,8 +46,8 @@ export interface PatchContestData {
   judgeCode?: string;
   exampleCode?: string;
   status?: ContestStatus;
-  startDate?: string;    // "YYYY-MM-DD HH:MM"
-  endDate?: string;      // "YYYY-MM-DD HH:MM"
+  startDate?: string;
+  endDate?: string;
   maxParticipants?: number;
 }
 
@@ -56,17 +55,48 @@ export const patchContest = async (contestId: number, data: PatchContestData): P
   await api.patch(`/api/contests/${contestId}`, data);
 };
 
+// ── 비인증 대회 생성 — POST /api/contests/create/uncertified ──
+export const createContest = async (data: CreateContestData): Promise<ContestResponse> => {
+  const [sampleCode, judgeCode] = await Promise.all([
+    data.sampleCode.text(),
+    data.judgeCode.text(),
+  ]);
+  const exampleAICodes = await Promise.all(data.exampleAICodes.map(f => f.text()));
+  const visualizationHtml = data.visualizationHtml ? await data.visualizationHtml.text() : undefined;
+  const soloPlayHtml      = data.soloPlayHtml      ? await data.soloPlayHtml.text()      : undefined;
+
+  const { data: res } = await api.post<ContestResponse>("/api/contests/create/uncertified", {
+    title:           data.title,
+    description:     data.description,
+    certification:   data.certification,
+    timeLimitSec:    data.timeLimitSec,
+    memoryLimitMb:   data.memoryLimitMb,
+    status:          data.status,
+    startDate:       data.startDate ? data.startDate.replace("T", " ").slice(0, 16) : undefined,
+    endDate:         data.endDate   ? data.endDate.replace("T", " ").slice(0, 16)   : undefined,
+    maxParticipants: data.maxParticipants,
+    sampleCode,
+    judgeCode,
+    exampleAICodes,
+    visualizationHtml,
+    soloPlayHtml,
+  });
+  return res;
+};
+
+// ── 인증 대회 생성 — POST /api/contests/create/certified ──
 export const createCertifiedContest = async (
   data: CreateContestData,
   reviewerEmails: string[]
 ): Promise<ContestResponse> => {
-  const [exampleCode, judgeCode, visualizationHtml, soloPlayHtml] =
-    await Promise.all([
-      data.exampleCode.text(),
-      data.judgeCode.text(),
-      data.visualizationHtml.text(),
-      data.soloPlayHtml.text(),
-    ]);
+  const [sampleCode, judgeCode] = await Promise.all([
+    data.sampleCode.text(),
+    data.judgeCode.text(),
+  ]);
+  const exampleAICodes    = await Promise.all(data.exampleAICodes.map(f => f.text()));
+  const visualizationHtml = data.visualizationHtml ? await data.visualizationHtml.text() : undefined;
+  const soloPlayHtml      = data.soloPlayHtml      ? await data.soloPlayHtml.text()      : undefined;
+
   const { data: res } = await api.post<ContestResponse>("/api/contests/create/certified", {
     title:           data.title,
     description:     data.description,
@@ -77,38 +107,12 @@ export const createCertifiedContest = async (
     startDate:       data.startDate ? data.startDate.replace("T", " ").slice(0, 16) : undefined,
     endDate:         data.endDate   ? data.endDate.replace("T", " ").slice(0, 16)   : undefined,
     maxParticipants: data.maxParticipants,
-    exampleCode,
+    sampleCode,
     judgeCode,
+    exampleAICodes,
     visualizationHtml,
     soloPlayHtml,
     reviewerEmails,
-  });
-  return res;
-};
-
-export const createContest = async (data: CreateContestData): Promise<ContestResponse> => {
-  const [exampleCode, judgeCode, visualizationHtml, soloPlayHtml] =
-    await Promise.all([
-      data.exampleCode.text(),
-      data.judgeCode.text(),
-      data.visualizationHtml.text(),
-      data.soloPlayHtml.text(),
-    ]);
-
-  const { data: res } = await api.post<ContestResponse>("/api/contests/create", {
-    title:            data.title,
-    description:      data.description,
-    certification:    data.certification,
-    timeLimitSec:     data.timeLimitSec,
-    memoryLimitMb:    data.memoryLimitMb,
-    status:           data.status,
-    startDate:        data.startDate ? data.startDate.replace("T", " ").slice(0, 16) : undefined,
-    endDate:          data.endDate   ? data.endDate.replace("T", " ").slice(0, 16)   : undefined,
-    maxParticipants:  data.maxParticipants,
-    exampleCode,
-    judgeCode,
-    visualizationHtml,
-    soloPlayHtml,
   });
   return res;
 };

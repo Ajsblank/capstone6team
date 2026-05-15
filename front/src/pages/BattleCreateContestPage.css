@@ -522,3 +522,156 @@
   padding-bottom: 10px; border-bottom: 1px solid #f3f4f6;
   margin-bottom: 8px;
 }
+
+/* ── Two-column layout ── */
+.cc-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 32px;
+  width: 100%;
+  max-width: 1080px;
+}
+
+.cc-form-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.cc-checklist-col {
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 24px;
+}
+
+.cc-checklist-panel {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cc-checklist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cc-checklist-title {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.cc-checklist-ready {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  border-radius: 12px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.cc-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cc-checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #9ca3af;
+}
+
+.cc-checklist-item--done { color: #374151; }
+.cc-checklist-item--optional { color: #b0b7c3; }
+.cc-checklist-item--next { color: #ea580c; font-weight: 600; }
+
+.cc-checklist-icon {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  width: 14px;
+  text-align: center;
+  margin-top: 1px;
+}
+
+.cc-checklist-item--done .cc-checklist-icon { color: #16a34a; }
+.cc-checklist-item--next .cc-checklist-icon { color: #ea580c; }
+
+.cc-checklist-label { flex: 1; line-height: 1.4; }
+
+.cc-checklist-opt {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+/* ── Title row (name + cert toggle inline) ── */
+.cc-title-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cc-field--grow { flex: 1; min-width: 200px; }
+
+.cc-field--cert-inline { flex-shrink: 0; }
+
+/* ── AI code multi-file list ── */
+.cc-ai-code-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.cc-ai-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.cc-ai-code-name {
+  flex: 1;
+  font-size: 0.83rem;
+  color: #374151;
+  font-family: "Consolas", monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Field hints ── */
+.cc-field-hint {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+.cc-optional-hint {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-weight: 400;
+  margin-left: 2px;
+}
