@@ -6,9 +6,9 @@ import java.time.LocalDateTime;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.asap.server.domain.CodeBattleContest;
@@ -41,7 +41,6 @@ public class ContestService {
     private final CodeBattleParticipantRepository participantRepository;
     private final usersRepository userRepository;
     private final ContestScheduleRepository contestScheduleRepository;
-    private final CodeBattleContestSchedulerService contestSchedulerService;
     private final ContestRunService contestRun;
     private final S3Service s3Service;
 
@@ -85,8 +84,8 @@ public class ContestService {
             throw new IllegalArgumentException("대회 생성 시 visual/solo/judge/example 파일 4개가 모두 필요합니다.");
         }
 
-        String resolvedExampleCodeName = trimToNull(request.getExampleCodeName()) != null
-                ? trimToNull(request.getExampleCodeName())
+        String resolvedExampleCodeName = trimToNull(request.getSampleCodeName()) != null
+                ? trimToNull(request.getSampleCodeName())
                 : exampleCodeFile.getOriginalFilename();
 
         boolean visualUploaded = false;
@@ -124,7 +123,7 @@ public class ContestService {
             savedContest.setVisualizationHtml(visualUrl);
             savedContest.setSoloPlayHtml(soloUrl);
             savedContest.setJudgeCode(judgeCodeUrl);
-            savedContest.setExampleCode(exampleCodeUrl);
+            savedContest.setSampleCode(exampleCodeUrl);
         } catch (Exception e) {
             rollbackUploadedResources(savedContest.getId(), resolvedExampleCodeName,
                     visualUploaded, soloUploaded, judgeUploaded, exampleUploaded);
@@ -213,7 +212,7 @@ public class ContestService {
             String resolvedExampleCodeName = trimToNull(exampleCodeName) != null ? trimToNull(exampleCodeName)
                     : exampleCodeFile.getOriginalFilename();
             String exampleUrl = s3Service.uploadExampleCodeFile(contestId, resolvedExampleCodeName, exampleCodeFile);
-            contest.setExampleCode(exampleUrl);
+            contest.setSampleCode(exampleUrl);
         }
 
         return ContestDetailResponse.from(contest);
@@ -240,12 +239,12 @@ public class ContestService {
 
         LocalDateTime now = LocalDateTime.now();
         boolean hasStatusOrSchedulePatch = request.getStatus() != null
-            || request.getStartDate() != null
-            || request.getEndDate() != null;
+                || request.getStartDate() != null
+                || request.getEndDate() != null;
 
         DatePolicy policy = hasStatusOrSchedulePatch
-            ? resolveDatePolicyForUpdate(contest, request, now)
-            : new DatePolicy(contest.getStartDate(), contest.getEndDate());
+                ? resolveDatePolicyForUpdate(contest, request, now)
+                : new DatePolicy(contest.getStartDate(), contest.getEndDate());
 
         validatePatchValues(request);
 
@@ -256,7 +255,7 @@ public class ContestService {
                 request.getTimeLimitSec(),
                 request.getMemoryLimitMb(),
                 trimToNull(request.getJudgeCode()),
-                trimToNull(request.getExampleCode()),
+                trimToNull(request.getSampleCode()),
                 request.getMaxParticipants());
 
         if (hasStatusOrSchedulePatch) {
@@ -461,6 +460,9 @@ public class ContestService {
                     throw new IllegalArgumentException("END는 대회 종료 후일 때만 가능합니다.");
                 }
             }
+            case CANCELED -> {
+                // 취소 상태는 기간 제약 없이 허용한다.
+            }
             case TEST -> {
                 // handled before
             }
@@ -480,8 +482,6 @@ public class ContestService {
         schedule.setContest(contest);
         schedule.setScheduledAt(start);
         ContestSchedule saved = contestScheduleRepository.save(schedule);
-
-        // contestSchedulerService.register(saved);
 
         return saved;
 

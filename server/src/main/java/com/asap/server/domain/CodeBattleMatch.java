@@ -43,6 +43,10 @@ public class CodeBattleMatch {
   @JoinColumn(name = "winner_id", foreignKey = @ForeignKey(name = "fk_match_winner"))
   private Users winner;
 
+  @ManyToOne
+  @JoinColumn(name = "submission_id", foreignKey = @ForeignKey(name = "fk_match_submission"))
+  private CodeBattleSubmission submission;
+
   @Column(columnDefinition = "TEXT")
   private String log;
 
@@ -53,10 +57,16 @@ public class CodeBattleMatch {
   private int aiOrder;
 
   public CodeBattleMatch(CodeBattleContest contest, Users user1, Users user2, Users winner, String log) {
+    this(contest, user1, user2, winner, null, log);
+  }
+
+  public CodeBattleMatch(CodeBattleContest contest, Users user1, Users user2, Users winner,
+      CodeBattleSubmission submission, String log) {
     this.contest = contest;
     this.user1 = user1;
     this.user2 = user2;
     this.winner = winner;
+    this.submission = submission;
     this.log = log;
   }
 

@@ -23,10 +23,10 @@ public class UpdateContestRequest {
   private Integer timeLimitSec;
   private Integer memoryLimitMb;
   private String judgeCode;
-  private String exampleCode;
+  private String sampleCode;
   private String visualizationHtml;
   private String soloPlayHtml;
-  @Schema(description = "대회 상태 (TEST, PLANNED, RUNNING, PAUSED, END)", example = "PLANNED")
+  @Schema(description = "대회 상태 (TEST, PLANNED, RUNNING, PAUSED, END, CANCELED)", example = "PLANNED")
   private ContestStatus status;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm")

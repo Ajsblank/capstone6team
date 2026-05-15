@@ -20,7 +20,7 @@ public class ContestDetailResponse {
   private Integer timeLimitSec;
   private Integer memoryLimitMb;
   private String judgeCode;
-  private String exampleCode;
+  private String sampleCode;
   private ContestStatus status;
   private String visualizationHtml;
   private String soloPlayHtml;
@@ -43,7 +43,7 @@ public class ContestDetailResponse {
         .timeLimitSec(contest.getTimeLimitSec())
         .memoryLimitMb(contest.getMemoryLimitMB())
         .judgeCode(contest.getJudgeCode())
-        .exampleCode(contest.getExampleCode())
+        .sampleCode(contest.getSampleCode())
         .status(contest.getStatus())
         .startDate(contest.getStartDate())
         .endDate(contest.getEndDate())
