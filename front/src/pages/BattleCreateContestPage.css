@@ -310,6 +310,67 @@
 .cc-cancel-btn:hover { background: #f3f4f6; color: #374151; }
 .cc-error-msg { font-size: 0.85rem; color: #dc2626; }
 
+/* ── 검수자 이메일 (BattleCreateCertifiedPage) ── */
+.cc-reviewer-desc {
+  font-size: 0.88rem;
+  color: #6b7280;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.cc-reviewer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.cc-reviewer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cc-reviewer-row .cc-input {
+  flex: 1;
+}
+
+.cc-reviewer-remove {
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.cc-reviewer-remove:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+.cc-reviewer-add {
+  background: none;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 8px;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 9px 20px;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  width: 100%;
+}
+.cc-reviewer-add:hover {
+  border-color: #fb923c;
+  color: #ea580c;
+  background: #fff7ed;
+}
+
 .cc-preview-btn {
   background: #fff7ed;
   border: 1.5px solid #fed7aa;
