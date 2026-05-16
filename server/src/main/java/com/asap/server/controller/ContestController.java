@@ -58,8 +58,8 @@ public class ContestController {
 
     @Operation(summary = "비인증 대회 생성(메타데이터 + 리소스 업로드)", description = "POST /api/contests/create multipart/form-data\n"
             + "- request: CreateUncertifiedContestRequest(JSON)\n"
-            + "- visualFile: 시각화 HTML(.html)\n"
-            + "- soloFile: 혼자하기 HTML(.html)\n"
+            + "- visualFile: 시각화 HTML(.html), 선택\n"
+            + "- soloFile: 혼자하기 HTML(.html), 선택\n"
             + "- judgeCodeFile: 채점 코드 C++(.cpp)\n"
             + "- sampleCodeFile: 샘플 코드 C++(.cpp)\n"
             + "- exampleAiFiles: 예제 AI 코드 C++(.cpp), 1개 이상")
@@ -71,12 +71,12 @@ public class ContestController {
             @Encoding(name = "sampleCodeFile", contentType = "text/x-c++src"),
             @Encoding(name = "exampleAiFiles", contentType = "text/x-c++src")
     }))
-    @PostMapping(value = "/create", consumes = "multipart/form-data")
+    @PostMapping(value = "/create/uncertified", consumes = "multipart/form-data")
     public ResponseEntity<?> createContest(
             @AuthenticationPrincipal Long userId,
             @Valid @RequestPart("request") CreateUncertifiedContestRequest request,
-            @RequestPart("visualFile") MultipartFile visualFile,
-            @RequestPart("soloFile") MultipartFile soloFile,
+            @RequestPart(value = "visualFile", required = false) MultipartFile visualFile,
+            @RequestPart(value = "soloFile", required = false) MultipartFile soloFile,
             @RequestPart("judgeCodeFile") MultipartFile judgeCodeFile,
             @RequestPart("sampleCodeFile") MultipartFile sampleCodeFile,
             @RequestPart("exampleAiFiles") List<MultipartFile> exampleAiFiles) {

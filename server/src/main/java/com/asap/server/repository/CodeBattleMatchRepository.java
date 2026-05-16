@@ -24,6 +24,6 @@ public interface CodeBattleMatchRepository extends JpaRepository<CodeBattleMatch
             Long user1Id,
             Long user2Id);
 
-    long countFinishedMatchesByContestId(Long contestId);
+    long countByContestIdAndLogIsNotNull(Long contestId);
 
 }

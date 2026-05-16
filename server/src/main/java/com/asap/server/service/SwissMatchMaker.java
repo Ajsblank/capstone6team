@@ -98,6 +98,11 @@ public class SwissMatchMaker {
         CodeBattleContest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. ID: " + contestId));
 
+        if (contest.getStatus() == com.asap.server.global.type.ContestStatus.CANCELED) {
+            log.info("[SwissMatchMaker] 대회 ID {} 는 취소 상태(CANCELED)라 pullLeagueGrading을 스킵합니다.", contestId);
+            return;
+        }
+
         // 2. Participant 기준으로 제출 코드 1인 1개 조회
         String dedupSetKey = PULL_LEAGUE_MATCH_DEDUP_KEY_PREFIX + contestId;
         try {
