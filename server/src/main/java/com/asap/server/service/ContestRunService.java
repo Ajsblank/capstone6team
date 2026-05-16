@@ -35,17 +35,21 @@ public class ContestRunService {
   @PostConstruct
   public void initContestSchedules() {
     List<CodeBattleContest> contests = contestRepository.findAll();
+    log.info("[Scheduler] 전체 대회 개수: {}", contests.size());
 
     for (CodeBattleContest contest : contests) {
 
-      if (contest.getStatus() != ContestStatus.PLANNED)
-        continue;
-
       if (!contest.getStartDate().isAfter(LocalDateTime.now())) {
+        log.debug("[Scheduler] contestId={} 시작 시간이 이미 지났으므로 스킵합니다. 시작 시간: {}", contest.getId(), contest.getStartDate());
+        continue;
+      }
+      if (contest.getStatus() != ContestStatus.PLANNED) {
+        log.debug("[Scheduler] contestId={} PLANNED 상태가 아니므로 스킵합니다. 현재 상태: {}", contest.getId(), contest.getStatus());
         continue;
       }
       registerContest(contest);
     }
+    log.info("[Scheduler] 초기화 완료. 스케줄된 대회 개수: {}", scheduledTasks.size());
   }
 
   public void registerContest(CodeBattleContest contest) {
@@ -67,8 +71,10 @@ public class ContestRunService {
   }
 
   public void upsertContestSchedule(CodeBattleContest contest) {
+    log.info("[Scheduler] contestId={} 스케줄 업데이트 시작", contest.getId());
     cancelContestSchedule(contest.getId());
     registerContest(contest);
+    log.info("[Scheduler] contestId={} 스케줄 업데이트 완료", contest.getId());
   }
 
   public void cancelContestSchedule(Long contestId) {
@@ -76,6 +82,8 @@ public class ContestRunService {
     if (future != null) {
       future.cancel(false);
       log.info("[Scheduler] contestId={} 기존 스케줄을 취소했습니다.", contestId);
+    } else {
+      log.debug("[Scheduler] contestId={} 취소할 스케줄이 없습니다.", contestId);
     }
   }
 
@@ -83,15 +91,10 @@ public class ContestRunService {
   private void processMatching(Long contestId) {
     CodeBattleContest contest = contestRepository.findById(contestId)
         .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
-    long count = participantRepository.countByContestId(contestId);
-    if (count < 2) {
-      // Cancled 상태를 End 로 사용중
-      log.info("참가자 수 부족으로 대회가 취소됩니다. contestId: {}", contestId);
-      contest.setStatus(ContestStatus.END);
-      return;
-    }
+
     contest.setStatus(ContestStatus.RUNNING);
-    log.info("대회를 시작합니다. ID: {}", contestId);
+    contestRepository.save(contest);
+    log.info("[Scheduler] contestId={} 대회를 RUNNING 상태로 시작합니다.", contestId);
 
     try {
       // 해당 대회의 참가자 목록 조회
@@ -109,29 +112,51 @@ public class ContestRunService {
       Instant endInstant = contest.getEndDate().atZone(ZoneId.of("Asia/Seoul")).toInstant();
       log.info("대회 종료 시간: {}", contest.getEndDate());
 
-      taskScheduler.schedule(task, triggerContext -> {
+      ScheduledFuture<?> endScheduled = taskScheduler.schedule(task, triggerContext -> {
         if (triggerContext.lastCompletion() != null) {
           return null; // 1회 실행 후 종료
         }
         return endInstant;
       });
 
+      if (endScheduled != null) {
+        scheduledTasks.put(contestId, endScheduled);
+        log.info("[Scheduler] contestId={} 대회의 종료 시간이 등록되었습니다. 등록 시간={}", contestId, contest.getEndDate());
+      }
+
     } catch (Exception e) {
-      log.error("[Scheduler] 에러 발생", e);
-    } finally {
-      scheduledTasks.remove(contestId);
+      log.error("[Scheduler] contestId={} processMatching 실행 중 에러 발생", contestId, e);
     }
   }
 
   @Transactional
   private void processEnd(Long contestId) {
-    CodeBattleContest contest = contestRepository.findById(contestId)
-        .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
+    try {
+      CodeBattleContest contest = contestRepository.findById(contestId)
+          .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
 
-    contest.setStatus(ContestStatus.END);
-    contestRepository.save(contest);
-    log.info("대회 종료 시간 도달로 상태를 END로 변경했습니다. contestId: {}", contestId);
+      // 제출 전에 참가자/제출 수 검사
+      long participantCount = participantRepository.countByContestId(contestId);
+      long submissionCount = participantRepository.findByContestIdAndSubmissionIsNotNull(contestId).size();
 
-    swissMatchMaker.pullLeagueGrading(contestId);
+      log.info("대회 종료 검사. contestId: {}, participantCount: {}, submissionCount: {}", contestId, participantCount,
+          submissionCount);
+
+      contest.setStatus(ContestStatus.END);
+      contestRepository.save(contest);
+      log.info("대회 종료 시간 도달로 상태를 END로 변경했습니다. contestId: {}", contestId);
+
+      // 참가자 2명 이상 && 제출 2개 이상이면 grading 실행
+      if (participantCount >= 2 && submissionCount >= 2) {
+        swissMatchMaker.pullLeagueGrading(contestId);
+        log.info("Grading을 실행합니다. contestId: {}", contestId);
+      } else {
+        log.warn("참가자/제출 부족으로 grading을 스킵합니다. participantCount: {}, submissionCount: {}", participantCount,
+            submissionCount);
+      }
+    } finally {
+      scheduledTasks.remove(contestId);
+      log.debug("[Scheduler] contestId={} 종료 스케줄을 제거했습니다.", contestId);
+    }
   }
 }

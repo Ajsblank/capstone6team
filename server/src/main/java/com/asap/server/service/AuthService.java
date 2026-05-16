@@ -1,5 +1,6 @@
 package com.asap.server.service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,6 +19,8 @@ import com.asap.server.dto.request.SmsCodeVerifyRequest;
 import com.asap.server.dto.request.SmsVerifyRequest;
 import com.asap.server.dto.request.WithdrawRequest;
 import com.asap.server.dto.response.LoginResponse;
+import com.asap.server.repository.CodeBattleParticipantRepository;
+import com.asap.server.repository.ContestReviewerRepository;
 import com.asap.server.repository.usersRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -38,6 +41,8 @@ public class AuthService {
     private final MailService mailService;
     private final SmsService smsService;
     private final ProfileService profileService;
+    private final CodeBattleParticipantRepository participantRepository;
+    private final ContestReviewerRepository contestReviewerRepository;
     private final Map<String, PendingSignup> pendingSignupStore = new ConcurrentHashMap<>();
 
     @Transactional
@@ -112,12 +117,26 @@ public class AuthService {
         String accessToken = tokenService.issueAccessToken(user.getId(), user.getEmail());
         String refreshToken = tokenService.issueRefreshToken(user.getId(), user.getEmail(), sessionId, "", "");
 
-        return LoginResponse.builder()
+        List<Long> joinedContests = participantRepository.findContestIdsByUserId(user.getId());
+        log.info("참가 대회 조회 - userId: {}, joinedContests: {}", user.getId(), joinedContests);
+
+        List<Long> hostedContests = contestReviewerRepository.findContestIdsByReviewerEmail(user.getEmail());
+        log.info("개최 대회 조회(reviewer_email 기준) - userId: {}, email: {}, hostedContests: {}", user.getId(),
+                user.getEmail(), hostedContests);
+
+        LoginResponse response = LoginResponse.builder()
                 .userId(user.getId())
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .sessionId(sessionId)
+                .joinedContests(joinedContests)
+                .hostedContests(hostedContests)
                 .build();
+        log.info(
+                "로그인 응답 - userId: {}, accessToken: {}, refreshToken: {}, sessionId: {}, joinedContests: {}, hostedContests: {}",
+                response.getUserId(), response.getAccessToken(), response.getRefreshToken(),
+                response.getSessionId(), response.getJoinedContests(), response.getHostedContests());
+        return response;
     }
 
     public void logout(String accessToken, String sessionId) {
