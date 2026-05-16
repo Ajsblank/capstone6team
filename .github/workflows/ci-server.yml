@@ -21,6 +21,8 @@ jobs:
       SOL_API_KEY: ${{secrets.SOL_API_KEY}}
       SOL_API_SECRET: ${{secrets.SOL_API_SECRET}}
       SOL_SENDER_NUMBER: ${{secrets.SOL_SENDER_NUMBER}}
+      AWS_REGION: ${{secrets.AWS_REGION}}
+      AWS_BUCKET_TEST: ${{secrets.AWS_BUCKET_TEST}}
     runs-on: ubuntu-latest
     defaults:
       run:
