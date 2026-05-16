@@ -73,7 +73,7 @@ const BattleCreateContestPage: React.FC = () => {
   const [memoryLimitMb, setMemoryLimitMb]   = useState<number>(256);
   const [sampleCode, setSampleCode]         = useState<File | null>(null);
   const [judgeCode, setJudgeCode]           = useState<File | null>(null);
-  const [exampleAICodes, setExampleAICodes] = useState<File[]>([]);
+  const [exampleAiCodes, setExampleAICodes] = useState<File[]>([]);
   const [visualizationHtml, setVisualizationHtml] = useState<File | null>(null);
   const [soloPlayHtml, setSoloPlayHtml]     = useState<File | null>(null);
   const [startDate, setStartDate]           = useState("");
@@ -107,7 +107,7 @@ const BattleCreateContestPage: React.FC = () => {
     if (!description.trim())     missing.push("문제 설명");
     if (!sampleCode)             missing.push("샘플 코드");
     if (!judgeCode)              missing.push("채점 코드");
-    if (exampleAICodes.length === 0) missing.push("예시 AI 코드");
+    if (exampleAiCodes.length === 0) missing.push("예시 AI 코드");
     if (!startDate)              missing.push("시작 일시");
     if (!endDate)                missing.push("종료 일시");
     if (missing.length > 0)      { setToastMessages(missing); return; }
@@ -119,9 +119,9 @@ const BattleCreateContestPage: React.FC = () => {
         title: title.trim(), description: description.trim(),
         certification, timeLimitSec, memoryLimitMb,
         sampleCode: sampleCode!, judgeCode: judgeCode!,
-        exampleAICodes, visualizationHtml, soloPlayHtml,
+        exampleAiCodes, visualizationHtml, soloPlayHtml,
         status, startDate, endDate, maxParticipants,
-        creatorId: user?.id ?? "",
+        creatorId: Number(user?.id ?? 0),
       });
       setSubmitStatus("idle");
       setCreatedContest(result);
@@ -145,7 +145,7 @@ const BattleCreateContestPage: React.FC = () => {
     if (!description.trim())     missing.push("문제 설명");
     if (!sampleCode)             missing.push("샘플 코드");
     if (!judgeCode)              missing.push("채점 코드");
-    if (exampleAICodes.length === 0) missing.push("예시 AI 코드");
+    if (exampleAiCodes.length === 0) missing.push("예시 AI 코드");
     if (!visualizationHtml)      missing.push("시각화 HTML 파일");
     if (!soloPlayHtml)           missing.push("혼자서 하기 HTML 파일");
     if (!startDate)              missing.push("시작 일시");
@@ -156,9 +156,9 @@ const BattleCreateContestPage: React.FC = () => {
       title: title.trim(), description: description.trim(),
       certification: true, timeLimitSec, memoryLimitMb,
       sampleCode: sampleCode!, judgeCode: judgeCode!,
-      exampleAICodes, visualizationHtml, soloPlayHtml,
+      exampleAiCodes, visualizationHtml, soloPlayHtml,
       status, startDate, endDate, maxParticipants,
-      creatorId: user?.id ?? "",
+      creatorId: Number(user?.id ?? 0),
     });
     navigate("create-certified-contest");
   };
@@ -169,7 +169,7 @@ const BattleCreateContestPage: React.FC = () => {
     { label: "문제 설명",               done: !!description.trim(),       optional: false },
     { label: "채점 코드",               done: !!judgeCode,                optional: false },
     { label: "샘플 코드",               done: !!sampleCode,               optional: false },
-    { label: "예시 AI 코드 (1개 이상)", done: exampleAICodes.length > 0,  optional: false },
+    { label: "예시 AI 코드 (1개 이상)", done: exampleAiCodes.length > 0,  optional: false },
     { label: "시각화 HTML",             done: !!visualizationHtml,        optional: !certification },
     { label: "혼자서 하기 HTML",        done: !!soloPlayHtml,             optional: !certification },
     { label: "시작 일시",               done: !!startDate,                optional: false },
@@ -233,8 +233,7 @@ const BattleCreateContestPage: React.FC = () => {
         </span>
         <div className="cc-header-spacer" />
         <div className="home-auth-area">
-          <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("home")}>📝 알고리즘 문제</button>
-          {user ? (
+{user ? (
             <>
               <span className="home-username" onClick={() => navigate("profile")}>{user.username}</span>
               <button className="home-auth-btn home-auth-btn--secondary" onClick={() => navigate("account-settings")}>설정</button>
@@ -313,11 +312,11 @@ const BattleCreateContestPage: React.FC = () => {
 
                   {/* 예시 AI 코드 (다중) */}
                   <div className="cc-field">
-                    <label className="cc-label">예시 AI 코드 <Req show={exampleAICodes.length === 0} /></label>
+                    <label className="cc-label">예시 AI 코드 <Req show={exampleAiCodes.length === 0} /></label>
                     <p className="cc-field-hint">참가자의 코드가 대결할 예시 AI 코드를 추가하세요.</p>
-                    {exampleAICodes.length > 0 && (
+                    {exampleAiCodes.length > 0 && (
                       <div className="cc-ai-code-list">
-                        {exampleAICodes.map((f, i) => (
+                        {exampleAiCodes.map((f, i) => (
                           <div key={i} className="cc-ai-code-row">
                             <span className="cc-ai-code-name">{f.name}</span>
                             <button type="button" className="cc-reviewer-remove" onClick={() => handleAICodeRemove(i)} aria-label="삭제">✕</button>

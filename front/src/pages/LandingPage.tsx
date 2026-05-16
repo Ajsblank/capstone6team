@@ -20,23 +20,6 @@ const BATTLE_FEATURES = [
   },
 ];
 
-const PS_FEATURES = [
-  {
-    icon: "🎯", title: "다양한 난이도",
-    desc: "입문자부터 전문가까지 — 모든 실력에 맞는 문제가 준비되어 있습니다.",
-    bullets: ["Bronze · Silver · Gold · Platinum 티어", "오답 원인 힌트 및 예외 케이스 안내", "Best Solution 코드 분석 기능"],
-  },
-  {
-    icon: "⚡", title: "즉시 자동 채점",
-    desc: "코드를 제출하는 순간, 강력한 채점 엔진이 작동합니다.",
-    bullets: ["케이스별 실행 시간 / 메모리 사용량 분석", "전체 제출 기록 열람 및 비교", "Python · Java · C++ 지원"],
-  },
-  {
-    icon: "📈", title: "실력 추적 & 통계",
-    desc: "풀었던 모든 문제가 자동으로 기록되고 성장 곡선이 시각화됩니다.",
-    bullets: ["문제 카테고리별 정복률 시각화", "주간 / 월간 활동 히트맵", "레이팅 변화 그래프"],
-  },
-];
 
 const LandingPage: React.FC = () => {
   const { user, logout, navigate } = useApp();
@@ -58,7 +41,6 @@ const LandingPage: React.FC = () => {
         </span>
         <nav className="lp-nav">
           <button className="lp-nav-btn" onClick={() => navigate("battle")}>코드 배틀</button>
-          <button className="lp-nav-btn" onClick={() => navigate("home")}>알고리즘 문제</button>
           <button className="lp-nav-btn">도움말</button>
           <button className="lp-nav-btn">문의</button>
         </nav>
@@ -102,40 +84,6 @@ const LandingPage: React.FC = () => {
                   {bullets.map(b => <li key={b}>{b}</li>)}
                 </ul>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── 섹션 브릿지 (배틀 → PS 자연스러운 전환) ── */}
-      <div className="lp-bridge">
-        <div className="lp-bridge-inner">
-          <span className="lp-bridge-tag lp-bridge-tag--battle">⚔️ 코드 배틀</span>
-          <div className="lp-bridge-divider" />
-          <p className="lp-bridge-copy">실전 감각은 배틀로, 기초 실력은 PS로</p>
-          <div className="lp-bridge-divider" />
-          <span className="lp-bridge-tag lp-bridge-tag--algo">📝 알고리즘 문제</span>
-        </div>
-      </div>
-
-      {/* ── PS Section ── */}
-      <section className="lp-ps-section">
-        <div className="lp-ps-hero">
-          <h2 className="lp-ps-title">알고리즘 문제 풀기</h2>
-          <p className="lp-ps-subtitle">코딩 실력을 키우는 PS 서비스 — 탄탄한 기초가 배틀의 무기가 됩니다</p>
-          <button className="lp-ps-cta" onClick={() => navigate("home")}>
-            문제 풀러 가기 →
-          </button>
-        </div>
-
-        <div className="lp-ps-features">
-          {PS_FEATURES.map(({ title, desc, bullets }) => (
-            <div key={title} className="lp-ps-card">
-              <h3 className="lp-ps-card-title">{title}</h3>
-              <p className="lp-ps-card-desc">{desc}</p>
-              <ul className="lp-ps-card-list">
-                {bullets.map(b => <li key={b}>{b}</li>)}
-              </ul>
             </div>
           ))}
         </div>

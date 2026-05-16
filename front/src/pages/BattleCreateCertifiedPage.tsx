@@ -95,10 +95,7 @@ const BattleCreateCertifiedPage: React.FC = () => {
         </span>
         <div className="cc-header-spacer" />
         <div className="home-auth-area">
-          <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("home")}>
-            📝 알고리즘 문제
-          </button>
-          {user ? (
+{user ? (
             <>
               <span className="home-username" onClick={() => navigate("profile")}>{user.username}</span>
               <button className="home-auth-btn home-auth-btn--secondary" onClick={() => navigate("account-settings")}>설정</button>

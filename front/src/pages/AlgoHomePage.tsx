@@ -21,16 +21,7 @@ const [activeTab, setActiveTab] = useState<HomeTab>("home");
           <div className="home-content">
             <div className="home-hero">
               <h1 className="home-hero-title">알고리즘 문제</h1>
-              <p className="home-hero-sub">
-                백준의 정신을 이어받아, 알고리즘 문제를 풀 수 있는 사이트
-              </p>
-              <p className="home-hero-desc">
-                백바오야 가지마...<br />
-              </p>
             </div>
-            <p className="home-site-desc">
-              알고리즘 문제를 <strong>자유롭게</strong> 올리고 풀어보세요~
-            </p>
           </div>
         )}
 

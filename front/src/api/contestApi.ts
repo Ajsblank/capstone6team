@@ -20,14 +20,14 @@ export interface CreateContestData {
   memoryLimitMb: number;
   sampleCode: File;           // 참가자 예시 코드 (구 exampleCode)
   judgeCode: File;
-  exampleAICodes: File[];     // 참가자 코드가 대결할 예시 AI 코드 목록
+  exampleAiCodes: File[];     // 참가자 코드가 대결할 예시 AI 코드 목록
   visualizationHtml: File | null;  // 비인증 시 선택, 인증 시 필수
   soloPlayHtml: File | null;       // 비인증 시 선택, 인증 시 필수
   status: ContestStatus;
   startDate: string;
   endDate: string;
   maxParticipants: number;
-  creatorId: string;
+  creatorId: number;
 }
 
 export type ContestStatus = "TEST" | "PLANNED" | "RUNNING" | "PAUSED" | "END";
@@ -62,7 +62,7 @@ export const createContest = async (data: CreateContestData): Promise<ContestRes
     data.sampleCode.text(),
     data.judgeCode.text(),
   ]);
-  const exampleAICodes = await Promise.all(data.exampleAICodes.map(f => f.text()));
+  const exampleAiCodes = await Promise.all(data.exampleAiCodes.map(f => f.text()));
   const visualizationHtml = data.visualizationHtml ? await data.visualizationHtml.text() : undefined;
   const soloPlayHtml      = data.soloPlayHtml      ? await data.soloPlayHtml.text()      : undefined;
 
@@ -79,7 +79,7 @@ export const createContest = async (data: CreateContestData): Promise<ContestRes
     creatorId:       data.creatorId,
     sampleCode,
     judgeCode,
-    exampleAICodes,
+    exampleAiCodes,
     visualizationHtml,
     soloPlayHtml,
   });
@@ -95,7 +95,7 @@ export const createCertifiedContest = async (
     data.sampleCode.text(),
     data.judgeCode.text(),
   ]);
-  const exampleAICodes    = await Promise.all(data.exampleAICodes.map(f => f.text()));
+  const exampleAiCodes    = await Promise.all(data.exampleAiCodes.map(f => f.text()));
   const visualizationHtml = data.visualizationHtml ? await data.visualizationHtml.text() : undefined;
   const soloPlayHtml      = data.soloPlayHtml      ? await data.soloPlayHtml.text()      : undefined;
 
@@ -112,7 +112,7 @@ export const createCertifiedContest = async (
     creatorId:       data.creatorId,
     sampleCode,
     judgeCode,
-    exampleAICodes,
+    exampleAiCodes,
     visualizationHtml,
     soloPlayHtml,
     reviewerEmails,
