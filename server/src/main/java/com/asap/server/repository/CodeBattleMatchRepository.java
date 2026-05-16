@@ -19,6 +19,8 @@ public interface CodeBattleMatchRepository extends JpaRepository<CodeBattleMatch
 
     CodeBattleMatch findByIdAndUser2Id(Long submissionId, Long user2Id);
 
+    Optional<CodeBattleMatch> findBySubmissionIdAndUser2Id(Long submissionId, Long user2Id);
+
     Optional<CodeBattleMatch> findByContestIdAndUser1IdAndUser2Id(
             Long contestId,
             Long user1Id,

@@ -143,7 +143,8 @@ public class CodeBattleSubmissionService {
 
         return submissions.stream().map(sub -> {
             // 제출물 ID와 AI ID(1L)로 매치 결과 조회
-            CodeBattleMatch aiMatch = matchRepository.findByIdAndUser2Id(sub.getId(), 1L);
+            CodeBattleMatch aiMatch = matchRepository.findBySubmissionIdAndUser2Id(sub.getId(), 1L)
+                    .orElse(null);
 
             // 정적 팩토리 메서드를 사용하여 변환
             CodeBattleAiMatchResult aiResult = CodeBattleAiMatchResult.from(aiMatch, userId);
