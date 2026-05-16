@@ -132,6 +132,7 @@ jobs:
               "export SOL_API_KEY=${{secrets.SOL_API_KEY}}",
               "export SOL_API_SECRET=${{secrets.SOL_API_SECRET}}",
               "export SOL_SENDER_NUMBER=${{secrets.SOL_SENDER_NUMBER}}",
+              "export AWS_REGION=${{ vars.AWS_REGION }}",
               "nohup java -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
               
               "echo deploy_success > /home/ubuntu/app/test.txt"
