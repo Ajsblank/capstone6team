@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { logoutApi, getAccessToken, getUserId, getUsername } from "../api/authApi";
-import { subscribeToResults, unsubscribeFromResults, setUserContestInfoCallback } from "../api/sseApi";
+import { subscribeToResults, unsubscribeFromResults } from "../api/sseApi";
 
 export type Page =
   | "landing"
@@ -28,7 +28,7 @@ interface AppContextValue {
   currentPage: Page;
   navigate: (page: Page) => void;
   user: User | null;
-  login: (user: User) => void;
+  login: (user: User, joinedContests?: number[], hostedContests?: number[]) => void;
   logout: () => void;
   joinedContestIds: number[];
   hostedContestIds: number[];
@@ -45,8 +45,12 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentPage, setCurrentPage] = useState<Page>(getPageFromHash);
-  const [joinedContestIds, setJoinedContestIds] = useState<number[]>([]);
-  const [hostedContestIds, setHostedContestIds] = useState<number[]>([]);
+  const [joinedContestIds, setJoinedContestIds] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem("joinedContests") ?? "[]"); } catch { return []; }
+  });
+  const [hostedContestIds, setHostedContestIds] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem("hostedContests") ?? "[]"); } catch { return []; }
+  });
 
   const [user, setUser] = useState<User | null>(() => {
     const token = getAccessToken();
@@ -76,14 +80,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (user?.id) {
       console.log("[AppContext] SSE 구독 — userId:", user.id);
-      setUserContestInfoCallback((info) => {
-        setJoinedContestIds(info.joinedContests);
-        setHostedContestIds(info.hostedContests);
-      });
       subscribeToResults(user.id, () => {});
     } else {
       setJoinedContestIds([]);
       setHostedContestIds([]);
+      localStorage.removeItem("joinedContests");
+      localStorage.removeItem("hostedContests");
       unsubscribeFromResults();
     }
   }, [user?.id]);
@@ -99,10 +101,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener("auth:logout", handleForceLogout);
   }, []);
 
-  const login = useCallback((u: User) => setUser(u), []);
+  const login = useCallback((u: User, joinedContests: number[] = [], hostedContests: number[] = []) => {
+    setUser(u);
+    setJoinedContestIds(joinedContests);
+    setHostedContestIds(hostedContests);
+    localStorage.setItem("joinedContests", JSON.stringify(joinedContests));
+    localStorage.setItem("hostedContests", JSON.stringify(hostedContests));
+  }, []);
+
   const logout = useCallback(async () => {
     await logoutApi();
     setUser(null);
+    setJoinedContestIds([]);
+    setHostedContestIds([]);
+    localStorage.removeItem("joinedContests");
+    localStorage.removeItem("hostedContests");
     window.location.hash = "landing";
     setCurrentPage("landing");
   }, []);

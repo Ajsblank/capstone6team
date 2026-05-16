@@ -224,10 +224,10 @@ const BattlePage: React.FC = () => {
                           <p className="bp-problem-title">
                             {c.title}
                             {joinedContestIds.includes(c.id) && (
-                              <span className="bp-contest-badge bp-contest-badge--joined">참여 중</span>
+                              <span className="bp-contest-badge bp-contest-badge--joined">참가중</span>
                             )}
                             {hostedContestIds.includes(c.id) && (
-                              <span className="bp-contest-badge bp-contest-badge--hosted">검수 중</span>
+                              <span className="bp-contest-badge bp-contest-badge--hosted">검수중</span>
                             )}
                           </p>
                           {c.description && (

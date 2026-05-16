@@ -117,6 +117,8 @@ export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
   userId: string;
+  joinedContests?: number[];
+  hostedContests?: number[];
 }
 
 // ──────────────────────────────────────────
@@ -137,6 +139,7 @@ export const verifyEmailCode = async (email: string, code: string): Promise<void
 
 export const loginApi = async (body: LoginRequest): Promise<TokenResponse> => {
   const { data } = await api.post<TokenResponse>("/api/auth/login", body);
+  console.log("[loginApi] 백엔드 응답 원본:", data);
   setAccessToken(data.accessToken);
   saveRefreshToken(data.refreshToken);
   setUserId(data.userId);

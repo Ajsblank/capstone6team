@@ -23,7 +23,11 @@ const LoginPage: React.FC = () => {
       const tokenData = await loginApi({ email, password });
       const uid = getUserId() ?? tokenData.userId;
       setUsername(email);
-      login({ id: uid ?? email, username: email, email });
+      login(
+        { id: uid ?? email, username: email, email },
+        tokenData.joinedContests ?? [],
+        tokenData.hostedContests ?? []
+      );
       const redirect = localStorage.getItem("loginRedirect");
       localStorage.removeItem("loginRedirect");
       if (redirect) {
