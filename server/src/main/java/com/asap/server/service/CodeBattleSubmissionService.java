@@ -23,7 +23,9 @@ import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.asap.server.repository.usersRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CodeBattleSubmissionService {
@@ -76,6 +78,7 @@ public class CodeBattleSubmissionService {
     @Transactional(rollbackFor = Exception.class)
     public CodeBattleSubmission submitAndQueuePullLeague(
             Long contestId, Long userId, Language language, String sourceCode) {
+        log.info("제출됨");
         CodeBattleContest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대회입니다."));
         Users user = userRepository.findById(userId)
@@ -85,34 +88,38 @@ public class CodeBattleSubmissionService {
             throw new IllegalArgumentException("sourceCode는 비어 있을 수 없습니다.");
         }
 
-        CodeBattleSubmission submission = new CodeBattleSubmission(user, contest, language, null, "PENDING");
+        CodeBattleSubmission submission = new CodeBattleSubmission(user, contest, language, sourceCode, "PENDING");
+        // CodeBattleSubmission submission = new CodeBattleSubmission(user, contest,
+        // language, null, "PENDING");
         submissionRepository.save(submission);
 
-        String uploadedKey = null;
-        try {
-            S3Service.SubmissionUploadResult uploadResult = s3Service.uploadContestSubmissionContent(
-                    contestId,
-                    submission.getId(),
-                    userId,
-                    language,
-                    sourceCode);
-            uploadedKey = uploadResult.key();
+        // S3 업로드는 주석 처리
+        // String uploadedKey = null;
+        // try {
+        // S3Service.SubmissionUploadResult uploadResult =
+        // s3Service.uploadContestSubmissionContent(
+        // contestId,
+        // submission.getId(),
+        // userId,
+        // language,
+        // sourceCode);
+        // uploadedKey = uploadResult.key();
 
-            submission.changeCodeUrl(uploadResult.url());
-            submission = submissionRepository.saveAndFlush(submission);
+        // submission.changeCodeUrl(uploadResult.url());
+        // submission = submissionRepository.saveAndFlush(submission);
 
-            saveFinalSubmit(submission);
-            return submission;
-        } catch (Exception e) {
-            if (uploadedKey != null) {
-                try {
-                    s3Service.deleteObjectByKey(uploadedKey);
-                } catch (Exception deleteError) {
-                    // 보상 삭제 실패는 원인 예외를 가리지 않도록 로그만 남김
-                }
-            }
-            throw e;
-        }
+        // saveFinalSubmit(submission);
+        // return submission;
+        // } catch (Exception e) {
+        // if (uploadedKey != null) {
+        // try {
+        // s3Service.deleteObjectByKey(uploadedKey);
+        // } catch (Exception deleteError) {
+        // // 보상 삭제 실패는 원인 예외를 가리지 않도록 로그만 남김
+        // }
+        // }
+        // throw e;
+        // }
     }
 
     private void saveFinalSubmit(CodeBattleSubmission submission) {
