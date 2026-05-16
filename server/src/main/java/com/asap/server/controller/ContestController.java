@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,8 +23,11 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.asap.server.config.CustomUserDetails;
+import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.ContestSchedule;
 import com.asap.server.dto.request.ContestScheduleRequest;
+import com.asap.server.dto.request.ContestVerifierRequest;
 import com.asap.server.dto.request.CreateCertifiedContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
@@ -31,7 +35,11 @@ import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestResponse;
+import com.asap.server.dto.response.ContestVerifierResponse;
 import com.asap.server.global.type.ContestStatus;
+import com.asap.server.repository.CodeBattleContestRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.asap.server.service.CodeBattleSubmissionService;
 import com.asap.server.service.ContestService;
 
@@ -55,6 +63,11 @@ public class ContestController {
 
     private final ContestService contestService;
     private final CodeBattleSubmissionService submissionService;
+    private final CodeBattleContestRepository contestRepository;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper;
+
+    private static final String CODE_BATTLE_TESTING_QUEUE_KEY = "code_battle_testing_queue";
 
     @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
     @PostMapping(value = "/create/uncertified", consumes = "application/json")
@@ -205,13 +218,52 @@ public class ContestController {
         }
     }
 
-    @GetMapping("/{contestId}/mySubmission")
+    @GetMapping("/{contestId}/{targetUserId}")
     @Operation(summary = "내 제출 및 AI 결과 조회", description = "내가 해당 대회에 제출한 코드와 샘플 AI와의 대결 결과를 조회합니다.")
     public ResponseEntity<List<CodeBattleMySubmissionResponse>> getMySubmissions(
             @PathVariable Long contestId,
-            @AuthenticationPrincipal Long userId) {
-
-        List<CodeBattleMySubmissionResponse> responses = submissionService.getMySubmissionsWithAi(contestId, userId);
+            @PathVariable Long targetUserId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        log.info("조회 시도: {} / {}", contestId, targetUserId);
+        List<CodeBattleMySubmissionResponse> responses = submissionService.getMySubmissionsWithAi(contestId,
+                targetUserId);
+        log.info("조회: {}", responses);
         return ResponseEntity.ok(responses);
+    }
+
+    @Operation(summary = "대회 검수 API", description = "두 개의 코드를 비교하여 검증합니다.")
+    @PostMapping("/{contestId}/review")
+    public ResponseEntity<ContestVerifierResponse> contestVerifier(
+            @PathVariable Long contestId,
+            @Valid @RequestBody ContestVerifierRequest request) {
+        try {
+            CodeBattleContest contest = contestRepository.findById(contestId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대회입니다."));
+
+            // Redis 검수 요청 JSON Payload 구성
+            ObjectNode rootNode = objectMapper.createObjectNode();
+            rootNode.put("contestId", contestId);
+            rootNode.put("language1", request.getLanguage1().name());
+            rootNode.put("language2", request.getLanguage2().name());
+            rootNode.put("timeLimitSec", contest.getTimeLimitSec());
+            rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
+
+            ObjectNode codesNode = rootNode.putObject("codes");
+            codesNode.put("judge", contest.getJudgeCode());
+            codesNode.put("player1", request.getCode1());
+            codesNode.put("player2", request.getCode2());
+
+            String jsonPayload = objectMapper.writeValueAsString(rootNode);
+            redisTemplate.opsForList().leftPush(CODE_BATTLE_TESTING_QUEUE_KEY, jsonPayload);
+
+            log.info("대회 검수 요청 큐 등록 성공 - contestId: {}", contestId);
+            return ResponseEntity.ok(new ContestVerifierResponse("검수 요청이 접수되었습니다."));
+        } catch (IllegalArgumentException e) {
+            log.warn("대회 검수 요청 실패 - contestId: {}, message: {}", contestId, e.getMessage());
+            return ResponseEntity.badRequest().body(new ContestVerifierResponse(e.getMessage()));
+        } catch (Exception e) {
+            log.error("대회 검수 요청 큐 등록 실패 - contestId: {}", contestId, e);
+            return ResponseEntity.internalServerError().body(new ContestVerifierResponse("검수 요청 처리 중 오류가 발생했습니다."));
+        }
     }
 }

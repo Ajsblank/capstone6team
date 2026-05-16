@@ -489,8 +489,13 @@ public class ContestService {
     private void saveExampleAiCodes(CodeBattleContest contest, List<String> exampleAiCodes) {
         List<CodeBattleExampleAI> entities = new ArrayList<>();
         int order = 1;
+<<<<<<< HEAD
         for (String exampleAiCode : exampleAiCodes) {
             entities.add(new CodeBattleExampleAI(contest, order, exampleAiCode));
+=======
+        for (String exampleAiUrl : exampleAiUrls) {
+            entities.add(new CodeBattleExampleAI(contest, order, "", exampleAiUrl));
+>>>>>>> origin/dev/mid
             order++;
         }
         exampleAIRepository.saveAll(entities);

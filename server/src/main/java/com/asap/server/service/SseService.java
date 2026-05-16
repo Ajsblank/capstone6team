@@ -24,11 +24,15 @@ public class SseService {
     }
 
     public void sendToUser(Long userId, Object data) {
+        sendToUser(userId, data, "match_result");
+    }
+
+    public void sendToUser(Long userId, Object data, String eventName) {
         SseEmitter emitter = emitters.get(userId);
         log.info("[SSE] : {}", emitters.toString());
         if (emitter != null) {
             try {
-                emitter.send(SseEmitter.event().name("match_result").data(data));
+                emitter.send(SseEmitter.event().name(eventName).data(data));
                 log.info("[SSE] : success");
             } catch (IOException e) {
                 emitters.remove(userId);

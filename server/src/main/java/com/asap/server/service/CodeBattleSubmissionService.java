@@ -21,6 +21,7 @@ import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.asap.server.repository.usersRepository;
+import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -146,17 +147,17 @@ public class CodeBattleSubmissionService {
 
     @Transactional(readOnly = true)
     public List<CodeBattleMySubmissionResponse> getMySubmissionsWithAi(Long contestId, Long userId) {
-        // 해당 대회에서 내가 제출한 목록 조회
-        List<CodeBattleSubmission> submissions = submissionRepository.findByContestIdAndUserId(contestId, userId);
 
-        return submissions.stream().map(sub -> {
-            // 제출물 ID와 AI ID(1L)로 매치 결과 조회
-            CodeBattleMatch aiMatch = matchRepository.findBySubmissionIdAndUser2Id(sub.getId(), 1L)
-                    .orElse(null);
+        // 해당 유저가 AI와 진행한 모든 매치 기록 조회
+        List<CodeBattleMatch> matches = matchRepository.findByContestIdAndUser1Id(contestId, userId);
+        System.out.println("조회 시도 - contestId: " + contestId + ", userId: " + userId);
 
-            // 정적 팩토리 메서드를 사용하여 변환
-            CodeBattleAiMatchResult aiResult = CodeBattleAiMatchResult.from(aiMatch, userId);
-            return CodeBattleMySubmissionResponse.of(sub, aiResult);
-        }).collect(Collectors.toList());
+        return matches.stream()
+                .map(match -> {
+                    CodeBattleAiMatchResult aiResult = CodeBattleAiMatchResult.from(match, userId);
+
+                    return CodeBattleMySubmissionResponse.of(match.getSubmission(), aiResult);
+                })
+                .collect(Collectors.toList());
     }
 }
