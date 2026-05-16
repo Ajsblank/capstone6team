@@ -40,6 +40,7 @@ import com.asap.server.repository.usersRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @Service
 @RequiredArgsConstructor
@@ -162,7 +163,7 @@ public class ContestService {
         } catch (Exception e) {
             rollbackUploadedResources(savedContest.getId(), resolvedSampleCodeName, uploadedExampleAiNames,
                     visualUploaded, soloUploaded, judgeUploaded, sampleUploaded);
-            throw new IllegalStateException("대회 생성 중 리소스 업로드 실패", e);
+            throw convertUploadException("대회 생성", e);
         }
 
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -286,7 +287,7 @@ public class ContestService {
         } catch (Exception e) {
             rollbackUploadedResources(savedContest.getId(), resolvedSampleCodeName, uploadedExampleAiNames,
                     visualUploaded, soloUploaded, judgeUploaded, sampleUploaded);
-            throw new IllegalStateException("비인증 대회 생성 중 리소스 업로드 실패", e);
+            throw convertUploadException("비인증 대회 생성", e);
         }
 
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -425,7 +426,7 @@ public class ContestService {
         } catch (Exception e) {
             rollbackUploadedResources(savedContest.getId(), resolvedSampleCodeName, uploadedExampleAiNames,
                     visualUploaded, soloUploaded, judgeUploaded, sampleUploaded);
-            throw new IllegalStateException("인증 대회 생성 중 리소스 업로드 실패", e);
+            throw convertUploadException("인증 대회 생성", e);
         }
 
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -604,6 +605,29 @@ public class ContestService {
             return URI.create(keyOrUrl).getPath().replaceFirst("^/", "");
         }
         return keyOrUrl;
+    }
+
+    private IllegalStateException convertUploadException(String operation, Exception e) {
+        Throwable root = rootCause(e);
+
+        if (root instanceof S3Exception s3Exception) {
+            if (s3Exception.statusCode() == 403) {
+                return new IllegalStateException(
+                        operation + " 중 S3 인증 오류(403)가 발생했습니다. AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY 및 버킷 권한을 확인하세요.",
+                        e);
+            }
+            return new IllegalStateException(operation + " 중 S3 오류가 발생했습니다. status=" + s3Exception.statusCode(), e);
+        }
+
+        return new IllegalStateException(operation + " 중 리소스 업로드 실패", e);
+    }
+
+    private Throwable rootCause(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null && current.getCause() != current) {
+            current = current.getCause();
+        }
+        return current;
     }
 
     @Transactional(readOnly = true)
