@@ -2,8 +2,8 @@ package com.asap.server.dto.request;
 
 import java.time.LocalDateTime;
 
-import com.asap.server.domain.CodeBattleContest.ContestStatus;
 import com.asap.server.global.json.FlexibleMinuteLocalDateTimeDeserializer;
+import com.asap.server.global.type.ContestStatus;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -14,7 +14,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@Schema(description = "대회 수정 요청")
+@Schema(description = "대회 수정 요청(PATCH). 모든 필드는 선택이며, 요청에 포함된 필드만 수정됩니다.")
 public class UpdateContestRequest {
 
   private String title;
@@ -22,11 +22,7 @@ public class UpdateContestRequest {
   private Boolean certification;
   private Integer timeLimitSec;
   private Integer memoryLimitMb;
-  private String judgeCode;
-  private String exampleCode;
-  private String visualizationHtml;
-  private String soloPlayHtml;
-  @Schema(description = "대회 상태 (TEST, PLANNED, RUNNING, PAUSED, END)", example = "PLANNED")
+  @Schema(description = "대회 상태 (TEST, PLANNED, RUNNING, PAUSED, END, CANCELED)", example = "PLANNED")
   private ContestStatus status;
 
   @JsonFormat(pattern = "yyyy-MM-dd HH:mm")

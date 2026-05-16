@@ -1,13 +1,12 @@
 package com.asap.server.repository;
 
-import com.asap.server.domain.CodeBattleMatch;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import java.util.List;
 import java.util.Optional;
 
-import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.asap.server.domain.CodeBattleMatch;
 
 @Repository
 public interface CodeBattleMatchRepository extends JpaRepository<CodeBattleMatch, Long> {
@@ -16,15 +15,17 @@ public interface CodeBattleMatchRepository extends JpaRepository<CodeBattleMatch
 
     List<CodeBattleMatch> findByUser1IdOrUser2Id(Long user1Id, Long user2Id);
 
-    List<CodeBattleMatch> findByContestIdAndUser1IdAndUser2Id(Long contestId, Long userId, Long aiId);
-
     long countByContestId(Long contestId);
-
-    @Query("SELECT COUNT(m) FROM CodeBattleMatch m WHERE m.contest.id = :contestId AND m.log IS NOT NULL")
-
-    long countFinishedMatchesByContestId(@Param("contestId") Long contestId);
 
     CodeBattleMatch findByIdAndUser2Id(Long submissionId, Long user2Id);
 
-    Optional<CodeBattleMatch> findBySubmissionIdAndAiOrder(Long submissionId, Integer aiOrder);
+    Optional<CodeBattleMatch> findBySubmissionIdAndUser2Id(Long submissionId, Long user2Id);
+
+    Optional<CodeBattleMatch> findByContestIdAndUser1IdAndUser2Id(
+            Long contestId,
+            Long user1Id,
+            Long user2Id);
+
+    long countByContestIdAndLogIsNotNull(Long contestId);
+
 }

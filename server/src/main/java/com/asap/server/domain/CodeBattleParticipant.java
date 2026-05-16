@@ -42,6 +42,9 @@ public class CodeBattleParticipant {
   @JoinColumn(name = "submission_id", foreignKey = @ForeignKey(name = "fk_participant_submission"))
   private CodeBattleSubmission submission;
 
+  @Column(name = "is_manual", nullable = false)
+  private boolean isManual = false;
+
   @Column
   private Integer score;
 
@@ -53,6 +56,7 @@ public class CodeBattleParticipant {
     this.contest = contest;
     this.score = score;
     this.submission = submission;
+    this.isManual = false;
   }
 
   @PrePersist

@@ -44,14 +44,15 @@ jobs:
           - 6379:6379
     env: 
       DB_USER: ${{ secrets.DB_USER }}
-      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_NAME: ${{ secrets.DB_NAME_STAGING }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_URL: ${{ secrets.DB_URL }}
+      DB_URL: ${{ secrets.DB_URL_STAGING }}
       JWT_TOKEN: ${{secrets.JWT_TOKEN}}
       GMAIL_PASSWORD: ${{secrets.GMAIL_PASSWORD}}
       SOL_API_KEY: ${{secrets.SOL_API_KEY}}
       SOL_API_SECRET: ${{secrets.SOL_API_SECRET}}
       SOL_SENDER_NUMBER: ${{secrets.SOL_SENDER_NUMBER}}
+      
     steps:
       - uses: actions/checkout@v4
       - name: set up jdk
@@ -60,7 +61,6 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
      
-
       - name: add permission to execute
         run: chmod +x gradlew 
 

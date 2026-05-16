@@ -34,6 +34,7 @@ public class AuthService {
     private final usersRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenService tokenService;
     private final MailService mailService;
     private final SmsService smsService;
     private final ProfileService profileService;
@@ -103,16 +104,36 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 일치하지 않습니다.");
         }
+
         Profile profile = user.getProfile();
         log.info("로그인 성공 - 닉네임: {}", profile.getNickname());
-        String accessToken = jwtTokenProvider.createToken(user.getEmail());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail());
-        return new LoginResponse(user.getId(), accessToken, refreshToken);
+
+        String sessionId = java.util.UUID.randomUUID().toString();
+        String accessToken = tokenService.issueAccessToken(user.getId(), user.getEmail());
+        String refreshToken = tokenService.issueRefreshToken(user.getId(), user.getEmail(), sessionId, "", "");
+
+        return LoginResponse.builder()
+                .userId(user.getId())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .sessionId(sessionId)
+                .build();
+    }
+
+    public void logout(String accessToken, String sessionId) {
+        tokenService.blacklistAccessToken(accessToken);
+        // sessionId에서 userId 추출 필요하면 토큰에서 추출
+        log.info("로그아웃 완료 - sessionId: {}", sessionId);
+    }
+
+    public void logoutAll(Long userId) {
+        tokenService.revokeAllUserSessions(userId);
+        log.info("모든 세션 로그아웃 - userId: {}", userId);
     }
 
     @Transactional
-    public void withdraw(String email, WithdrawRequest request) {
-        Users user = userRepository.findByEmail(email)
+    public void withdraw(Long userId, WithdrawRequest request) {
+        Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
@@ -120,7 +141,7 @@ public class AuthService {
         }
 
         userRepository.delete(user);
-        log.info("회원탈퇴 완료 - 이메일: {}", email);
+        log.info("회원탈퇴 완료 - userId: {}", userId);
     }
 
     private void sendVerificationCodeWithLog(String email, String nickname, boolean resent) {

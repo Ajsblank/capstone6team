@@ -3,7 +3,7 @@ package com.asap.server.dto.response;
 import java.time.LocalDateTime;
 
 import com.asap.server.domain.CodeBattleContest;
-import com.asap.server.domain.CodeBattleContest.ContestStatus;
+import com.asap.server.global.type.ContestStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import lombok.AllArgsConstructor;
