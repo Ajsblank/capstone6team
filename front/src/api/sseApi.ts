@@ -10,6 +10,12 @@ export interface BattleMatchResult {
   log: string;
 }
 
+// ── 유저 소속 대회 정보 (로그인 시 수신) ──
+export interface UserContestInfo {
+  joinedContests: number[]; // 참여 중인 대회 ID 목록
+  hostedContests: number[]; // 검수자로 속한 대회 ID 목록
+}
+
 // ── 제출 종합 결과 (모든 매치 완료 후 수신) — 정규 타입 ──
 export interface SubmissionSummary {
   submissionId: number;
@@ -24,16 +30,18 @@ export interface SubmissionSummary {
 
 export type SseStatus = "connected" | "connecting" | "disconnected";
 
-type MatchCallback     = (result: BattleMatchResult) => void;
-type SummaryCallback   = (summary: SubmissionSummary) => void;
-type StatusCallback    = (status: SseStatus) => void;
-type ReconnectCallback = () => void;   // SSE 재연결 완료 시 호출
+type MatchCallback           = (result: BattleMatchResult) => void;
+type SummaryCallback         = (summary: SubmissionSummary) => void;
+type StatusCallback          = (status: SseStatus) => void;
+type ReconnectCallback       = () => void;
+type UserContestInfoCallback = (info: UserContestInfo) => void;
 
 let emitter: EventSource | null = null;
-let matchCallback:     MatchCallback     | null = null;
-let summaryCallback:   SummaryCallback   | null = null;
-let statusCallback:    StatusCallback    | null = null;
-let reconnectCallback: ReconnectCallback | null = null;
+let matchCallback:           MatchCallback           | null = null;
+let summaryCallback:         SummaryCallback         | null = null;
+let statusCallback:          StatusCallback          | null = null;
+let reconnectCallback:       ReconnectCallback       | null = null;
+let userContestInfoCallback: UserContestInfoCallback | null = null;
 let lastUserId: string | null = null;
 let reconnectAttempts = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -59,6 +67,10 @@ export const setStatusCallback = (cb: StatusCallback | null) => {
 
 export const setReconnectCallback = (cb: ReconnectCallback | null) => {
   reconnectCallback = cb;
+};
+
+export const setUserContestInfoCallback = (cb: UserContestInfoCallback | null) => {
+  userContestInfoCallback = cb;
 };
 
 // ── 내부 연결 함수 (초기 연결 + 재연결 공유) ──
@@ -110,8 +122,20 @@ function connectSSE(userId: string): void {
   emitter.addEventListener("submission_summary", handleSummary);
   emitter.addEventListener("submission-summary", handleSummary); // 하이픈 버전 호환
 
+  // 유저 소속 대회 정보 (로그인 직후 수신)
+  const handleUserContestInfo = (e: Event) => {
+    console.log("[SSE] user_contest_info 수신:", (e as MessageEvent).data);
+    try {
+      const info: UserContestInfo = JSON.parse((e as MessageEvent).data);
+      userContestInfoCallback?.(info);
+    } catch (err) {
+      console.warn("[SSE] user_contest_info parse 오류:", err);
+    }
+  };
+  emitter.addEventListener("user_contest_info", handleUserContestInfo);
+  emitter.addEventListener("user-contest-info", handleUserContestInfo);
+
   // 이벤트 이름 없는 기본 메시지 (하위 호환)
-  // 서버가 named event 대신 일반 message로 보낼 경우 여기서 처리
   emitter.onmessage = (e) => {
     console.log("[SSE] onmessage (unnamed) — raw:", e.data);
     try {
@@ -123,6 +147,9 @@ function connectSSE(userId: string): void {
       } else if ("submissionId" in data && "wins" in data) {
         console.log("[SSE] → summaryCallback 호출 (onmessage 경로)");
         summaryCallback?.(data as SubmissionSummary);
+      } else if ("joinedContests" in data) {
+        console.log("[SSE] → userContestInfoCallback 호출 (onmessage 경로)");
+        userContestInfoCallback?.(data as UserContestInfo);
       } else {
         console.log("[SSE] onmessage — 처리 불가 형식:", data);
       }
@@ -203,9 +230,10 @@ export const unsubscribeFromResults = () => {
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   emitter?.close();
   emitter = null;
-  matchCallback    = null;
-  summaryCallback  = null;
-  lastUserId       = null;
-  reconnectAttempts = 0;
+  matchCallback            = null;
+  summaryCallback          = null;
+  userContestInfoCallback  = null;
+  lastUserId               = null;
+  reconnectAttempts        = 0;
   notifyStatus("disconnected");
 };
