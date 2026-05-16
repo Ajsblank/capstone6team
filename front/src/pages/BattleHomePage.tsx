@@ -16,7 +16,7 @@ function getTabFromHash(): BattleTab {
 }
 
 const BattlePage: React.FC = () => {
-  const { user, logout, navigate } = useApp();
+  const { user, logout, navigate, joinedContestIds, hostedContestIds } = useApp();
   const [activeTab, setActiveTab] = useState<BattleTab>(getTabFromHash);
 
   // 대회 목록 상태
@@ -203,7 +203,13 @@ const BattlePage: React.FC = () => {
             {!contestLoading && !contestError && contests.length > 0 && (
               <>
                 <div className="bp-problem-list">
-                  {contests.map((c) => (
+                  {[...contests]
+                    .sort((a, b) => {
+                      const aPriority = joinedContestIds.includes(a.id) || hostedContestIds.includes(a.id) ? 0 : 1;
+                      const bPriority = joinedContestIds.includes(b.id) || hostedContestIds.includes(b.id) ? 0 : 1;
+                      return aPriority - bPriority;
+                    })
+                    .map((c) => (
                     <div
                       key={c.id}
                       className="bp-problem-card"
@@ -215,7 +221,15 @@ const BattlePage: React.FC = () => {
                       <div className="bp-problem-card-left">
                         <span className="bp-problem-num">#{c.id}</span>
                         <div>
-                          <p className="bp-problem-title">{c.title}</p>
+                          <p className="bp-problem-title">
+                            {c.title}
+                            {joinedContestIds.includes(c.id) && (
+                              <span className="bp-contest-badge bp-contest-badge--joined">참여 중</span>
+                            )}
+                            {hostedContestIds.includes(c.id) && (
+                              <span className="bp-contest-badge bp-contest-badge--hosted">검수 중</span>
+                            )}
+                          </p>
                           {c.description && (
                             <p className="bp-problem-desc">{c.description}</p>
                           )}

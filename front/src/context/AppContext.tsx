@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { logoutApi, getAccessToken, getUserId, getUsername } from "../api/authApi";
-import { subscribeToResults, unsubscribeFromResults } from "../api/sseApi";
+import { subscribeToResults, unsubscribeFromResults, setUserContestInfoCallback } from "../api/sseApi";
 
 export type Page =
   | "landing"
@@ -30,6 +30,8 @@ interface AppContextValue {
   user: User | null;
   login: (user: User) => void;
   logout: () => void;
+  joinedContestIds: number[];
+  hostedContestIds: number[];
 }
 
 const VALID_PAGES: Page[] = ["landing", "home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "create-contest", "create-certified-contest", "profile", "account-settings"];
@@ -43,6 +45,9 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentPage, setCurrentPage] = useState<Page>(getPageFromHash);
+  const [joinedContestIds, setJoinedContestIds] = useState<number[]>([]);
+  const [hostedContestIds, setHostedContestIds] = useState<number[]>([]);
+
   const [user, setUser] = useState<User | null>(() => {
     const token = getAccessToken();
     const uid   = getUserId();
@@ -71,8 +76,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (user?.id) {
       console.log("[AppContext] SSE 구독 — userId:", user.id);
+      setUserContestInfoCallback((info) => {
+        setJoinedContestIds(info.joinedContests);
+        setHostedContestIds(info.hostedContests);
+      });
       subscribeToResults(user.id, () => {});
     } else {
+      setJoinedContestIds([]);
+      setHostedContestIds([]);
       unsubscribeFromResults();
     }
   }, [user?.id]);
@@ -97,8 +108,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const value = useMemo(
-    () => ({ currentPage, navigate, user, login, logout }),
-    [currentPage, user, navigate, login, logout]
+    () => ({ currentPage, navigate, user, login, logout, joinedContestIds, hostedContestIds }),
+    [currentPage, user, navigate, login, logout, joinedContestIds, hostedContestIds]
   );
 
   return (
