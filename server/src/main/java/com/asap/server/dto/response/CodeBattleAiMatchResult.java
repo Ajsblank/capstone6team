@@ -24,7 +24,7 @@ public class CodeBattleAiMatchResult {
         }
 
         return CodeBattleAiMatchResult.builder()
-                .aiId(1L)
+                .aiId(match.getAiOrder())
                 .status(status)
                 .log(match.getLog())
                 .build();

@@ -56,44 +56,26 @@ public class ContestController {
     private final ContestService contestService;
     private final CodeBattleSubmissionService submissionService;
 
-    @Operation(summary = "비인증 대회 생성(메타데이터 + 리소스 업로드)", description = "POST /api/contests/create multipart/form-data\n"
-            + "- request: CreateUncertifiedContestRequest(JSON)\n"
-            + "- visualFile: 시각화 HTML(.html), 선택\n"
-            + "- soloFile: 혼자하기 HTML(.html), 선택\n"
-            + "- judgeCodeFile: 채점 코드 C++(.cpp)\n"
-            + "- sampleCodeFile: 샘플 코드 C++(.cpp)\n"
-            + "- exampleAiFiles: 예제 AI 코드 C++(.cpp), 1개 이상")
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = "multipart/form-data", encoding = {
-            @Encoding(name = "request", contentType = "application/json"),
-            @Encoding(name = "visualFile", contentType = "text/html"),
-            @Encoding(name = "soloFile", contentType = "text/html"),
-            @Encoding(name = "judgeCodeFile", contentType = "text/x-c++src"),
-            @Encoding(name = "sampleCodeFile", contentType = "text/x-c++src"),
-            @Encoding(name = "exampleAiFiles", contentType = "text/x-c++src")
-    }))
-    @PostMapping(value = "/create/uncertified", consumes = "multipart/form-data")
+    @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
+    @PostMapping(value = "/create/uncertified", consumes = "application/json")
     public ResponseEntity<?> createContest(
-            @AuthenticationPrincipal Long userId,
-            @Valid @RequestPart("request") CreateUncertifiedContestRequest request,
-            @RequestPart(value = "visualFile", required = false) MultipartFile visualFile,
-            @RequestPart(value = "soloFile", required = false) MultipartFile soloFile,
-            @RequestPart("judgeCodeFile") MultipartFile judgeCodeFile,
-            @RequestPart("sampleCodeFile") MultipartFile sampleCodeFile,
-            @RequestPart("exampleAiFiles") List<MultipartFile> exampleAiFiles) {
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "로그인이 필요합니다."));
-        }
+            @Valid @RequestBody CreateUncertifiedContestRequest request) {
+        log.info("비인증 대회 경로");
+
+        // Legacy multipart version kept for reference during the temporary DTO
+        // migration.
+        // @PostMapping(value = "/create/uncertified", consumes = "multipart/form-data")
+        // public ResponseEntity<?> createContest(
+        // @RequestPart("request") CreateUncertifiedContestRequest request,
+        // @RequestPart(value = "visualFile", required = false) MultipartFile
+        // visualFile,
+        // @RequestPart(value = "soloFile", required = false) MultipartFile soloFile,
+        // @RequestPart("judgeCodeFile") MultipartFile judgeCodeFile,
+        // @RequestPart("sampleCodeFile") MultipartFile sampleCodeFile,
+        // @RequestPart("exampleAiFiles") List<MultipartFile> exampleAiFiles) {
 
         try {
-            ContestResponse response = contestService.createUncertifiedContest(
-                    userId,
-                    request,
-                    visualFile,
-                    soloFile,
-                    judgeCodeFile,
-                    sampleCodeFile,
-                    exampleAiFiles);
+            ContestResponse response = contestService.createUncertifiedContest(request.getCreatorId(), request);
             return ResponseEntity.created(URI.create("/api/contests/" + response.getId()))
                     .body(response);
         } catch (IllegalArgumentException e) {
@@ -107,44 +89,24 @@ public class ContestController {
         }
     }
 
-    @Operation(summary = "인증 대회 생성(메타데이터 + 리소스 업로드)", description = "POST /api/contests/create/certified multipart/form-data\n"
-            + "- request: CreateCertifiedContestRequest(JSON) - reviewerEmails 필수\n"
-            + "- visualFile: 시각화 HTML(.html) - 필수\n"
-            + "- soloFile: 혼자하기 HTML(.html) - 필수\n"
-            + "- judgeCodeFile: 채점 코드 C++(.cpp)\n"
-            + "- sampleCodeFile: 샘플 코드 C++(.cpp)\n"
-            + "- exampleAiFiles: 예제 AI 코드 C++(.cpp), 1개 이상")
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = "multipart/form-data", encoding = {
-            @Encoding(name = "request", contentType = "application/json"),
-            @Encoding(name = "visualFile", contentType = "text/html"),
-            @Encoding(name = "soloFile", contentType = "text/html"),
-            @Encoding(name = "judgeCodeFile", contentType = "text/x-c++src"),
-            @Encoding(name = "sampleCodeFile", contentType = "text/x-c++src"),
-            @Encoding(name = "exampleAiFiles", contentType = "text/x-c++src")
-    }))
-    @PostMapping(value = "/create/certified", consumes = "multipart/form-data")
+    @Operation(summary = "인증 대회 생성(JSON)", description = "POST /api/contests/create/certified application/json")
+    @PostMapping(value = "/create/certified", consumes = "application/json")
     public ResponseEntity<?> createCertifiedContest(
-            @AuthenticationPrincipal Long userId,
-            @Valid @RequestPart("request") CreateCertifiedContestRequest request,
-            @RequestPart("visualFile") MultipartFile visualFile,
-            @RequestPart("soloFile") MultipartFile soloFile,
-            @RequestPart("judgeCodeFile") MultipartFile judgeCodeFile,
-            @RequestPart("sampleCodeFile") MultipartFile sampleCodeFile,
-            @RequestPart("exampleAiFiles") List<MultipartFile> exampleAiFiles) {
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "로그인이 필요합니다."));
-        }
+            @Valid @RequestBody CreateCertifiedContestRequest request) {
+        log.info("인증 대회 경로");
 
+        // Legacy multipart version kept for reference during the temporary DTO
+        // migration.
+        // @PostMapping(value = "/create/certified", consumes = "multipart/form-data")
+        // public ResponseEntity<?> createCertifiedContest(
+        // @RequestPart("request") CreateCertifiedContestRequest request,
+        // @RequestPart("visualFile") MultipartFile visualFile,
+        // @RequestPart("soloFile") MultipartFile soloFile,
+        // @RequestPart("judgeCodeFile") MultipartFile judgeCodeFile,
+        // @RequestPart("sampleCodeFile") MultipartFile sampleCodeFile,
+        // @RequestPart("exampleAiFiles") List<MultipartFile> exampleAiFiles) {
         try {
-            ContestResponse response = contestService.createCertifiedContest(
-                    userId,
-                    request,
-                    visualFile,
-                    soloFile,
-                    judgeCodeFile,
-                    sampleCodeFile,
-                    exampleAiFiles);
+            ContestResponse response = contestService.createCertifiedContest(request.getCreatorId(), request);
             return ResponseEntity.created(URI.create("/api/contests/" + response.getId()))
                     .body(response);
         } catch (IllegalArgumentException e) {
@@ -252,5 +214,4 @@ public class ContestController {
         List<CodeBattleMySubmissionResponse> responses = submissionService.getMySubmissionsWithAi(contestId, userId);
         return ResponseEntity.ok(responses);
     }
-
 }

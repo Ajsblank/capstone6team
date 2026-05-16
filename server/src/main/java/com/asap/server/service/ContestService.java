@@ -192,16 +192,11 @@ public class ContestService {
      */
     @Transactional(rollbackFor = Exception.class)
     public ContestResponse createUncertifiedContest(
-            Long userId,
-            CreateUncertifiedContestRequest request,
-            MultipartFile visualFile,
-            MultipartFile soloFile,
-            MultipartFile judgeCodeFile,
-            MultipartFile sampleCodeFile,
-            List<MultipartFile> exampleAiFiles) throws IOException {
+            Long creatorId,
+            CreateUncertifiedContestRequest request) throws IOException {
 
         // 사용자 조회
-        Users creator = userRepository.findById(userId)
+        Users creator = userRepository.findById(creatorId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         LocalDateTime now = LocalDateTime.now();
@@ -212,6 +207,17 @@ public class ContestService {
                 request.getEndDate(),
                 now);
 
+        if (!Boolean.FALSE.equals(request.getCertification())) {
+            throw new IllegalArgumentException("비인증 대회는 certification=false 여야 합니다.");
+        }
+
+        if (request.getSampleCode() == null || request.getSampleCode().isBlank()
+                || request.getJudgeCode() == null || request.getJudgeCode().isBlank()
+                || request.getExampleAiCodes() == null || request.getExampleAiCodes().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "비인증 대회 생성 시 sampleCode, judgeCode, exampleAiCodes(1개 이상)가 필요합니다. visualizationHtml과 soloPlayHtml은 선택 사항입니다.");
+        }
+
         CodeBattleContest contest = CodeBattleContest.create(
                 request.getTitle(),
                 request.getDescription(),
@@ -219,90 +225,33 @@ public class ContestService {
                 false, // certification = false for uncertified contest
                 request.getTimeLimitSec(),
                 request.getMemoryLimitMb(),
-                null,
-                null,
+                request.getJudgeCode(),
+                request.getSampleCode(),
                 request.getMaxParticipants(),
                 policy.startDate(),
                 policy.endDate(),
-                null,
-                null,
+                request.getVisualizationHtml(),
+                request.getSoloPlayHtml(),
                 creator);
 
         CodeBattleContest savedContest = contestRepository.save(contest);
 
-        List<MultipartFile> nonEmptyExampleAiFiles = filterNonEmptyFiles(exampleAiFiles);
+        // Legacy multipart upload flow kept for reference during the DTO migration.
+        // if (visualFile != null && !visualFile.isEmpty()) {
+        // visualUrl = s3Service.uploadContestResourceFile(savedContest.getId(),
+        // S3Service.ContestResourceType.VISUAL_HTML, visualFile);
+        // }
+        // if (soloFile != null && !soloFile.isEmpty()) {
+        // soloUrl = s3Service.uploadContestResourceFile(savedContest.getId(),
+        // S3Service.ContestResourceType.SOLO_HTML, soloFile);
+        // }
+        // judgeCodeUrl = s3Service.uploadJudgeCodeFile(savedContest.getId(),
+        // judgeCodeFile);
+        // sampleCodeUrl = s3Service.uploadSampleCodeFile(savedContest.getId(),
+        // resolvedSampleCodeName, sampleCodeFile);
+        // saveExampleAiCodes(savedContest, uploadedExampleAiUrls);
 
-        if (judgeCodeFile == null || judgeCodeFile.isEmpty()
-                || sampleCodeFile == null || sampleCodeFile.isEmpty()
-                || nonEmptyExampleAiFiles.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "대회 생성 시 judge/sample 파일과 exampleAiFiles(1개 이상)가 필요합니다. visual/solo 파일은 선택 사항입니다.");
-        }
-
-        String resolvedSampleCodeName = FIXED_SAMPLE_CODE_NAME;
-
-        boolean visualUploaded = false;
-        boolean soloUploaded = false;
-        boolean judgeUploaded = false;
-        boolean sampleUploaded = false;
-        List<String> uploadedExampleAiNames = new ArrayList<>();
-        List<String> uploadedExampleAiUrls = new ArrayList<>();
-
-        String visualUrl = null;
-        String soloUrl = null;
-        String judgeCodeUrl;
-        String sampleCodeUrl;
-
-        try {
-            if (visualFile != null && !visualFile.isEmpty()) {
-                visualUrl = s3Service.uploadContestResourceFile(
-                        savedContest.getId(),
-                        S3Service.ContestResourceType.VISUAL_HTML,
-                        visualFile);
-                visualUploaded = true;
-            }
-
-            if (soloFile != null && !soloFile.isEmpty()) {
-                soloUrl = s3Service.uploadContestResourceFile(
-                        savedContest.getId(),
-                        S3Service.ContestResourceType.SOLO_HTML,
-                        soloFile);
-                soloUploaded = true;
-            }
-
-            judgeCodeUrl = s3Service.uploadJudgeCodeFile(savedContest.getId(), judgeCodeFile);
-            judgeUploaded = true;
-
-            sampleCodeUrl = s3Service.uploadSampleCodeFile(
-                    savedContest.getId(),
-                    resolvedSampleCodeName,
-                    sampleCodeFile);
-            sampleUploaded = true;
-
-            int exampleOrder = 1;
-            for (MultipartFile exampleAiFile : nonEmptyExampleAiFiles) {
-                String exampleAiName = resolveExampleAiCodeName(exampleOrder);
-                String exampleAiUrl = s3Service.uploadExampleAiCodeFile(savedContest.getId(), exampleAiName,
-                        exampleAiFile);
-                uploadedExampleAiNames.add(exampleAiName);
-                uploadedExampleAiUrls.add(exampleAiUrl);
-                exampleOrder++;
-            }
-
-            if (visualUrl != null) {
-                savedContest.setVisualizationHtml(visualUrl);
-            }
-            if (soloUrl != null) {
-                savedContest.setSoloPlayHtml(soloUrl);
-            }
-            savedContest.setJudgeCode(judgeCodeUrl);
-            savedContest.setSampleCode(sampleCodeUrl);
-            saveExampleAiCodes(savedContest, uploadedExampleAiUrls);
-        } catch (Exception e) {
-            rollbackUploadedResources(savedContest.getId(), resolvedSampleCodeName, uploadedExampleAiNames,
-                    visualUploaded, soloUploaded, judgeUploaded, sampleUploaded);
-            throw convertUploadException("비인증 대회 생성", e);
-        }
+        saveExampleAiCodes(savedContest, request.getExampleAiCodes());
 
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -314,7 +263,7 @@ public class ContestService {
         } else {
             contestRun.registerContest(savedContest);
         }
-        return ContestResponse.from(savedContest, uploadedExampleAiUrls);
+        return ContestResponse.from(savedContest, request.getExampleAiCodes());
     }
 
     /**
@@ -323,22 +272,27 @@ public class ContestService {
      */
     @Transactional(rollbackFor = Exception.class)
     public ContestResponse createCertifiedContest(
-            Long userId,
-            CreateCertifiedContestRequest request,
-            MultipartFile visualFile,
-            MultipartFile soloFile,
-            MultipartFile judgeCodeFile,
-            MultipartFile sampleCodeFile,
-            List<MultipartFile> exampleAiFiles) throws IOException {
+            Long creatorId,
+            CreateCertifiedContestRequest request) throws IOException {
 
         // 사용자 조회
-        Users creator = userRepository.findById(userId)
+        Users creator = userRepository.findById(creatorId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // 인증 대회 - visualizationHtml과 soloPlayHtml은 필수
-        if (visualFile == null || visualFile.isEmpty()
-                || soloFile == null || soloFile.isEmpty()) {
-            throw new IllegalArgumentException("인증 대회는 visualization HTML과 soloPlay HTML 파일이 필수입니다.");
+        if (!Boolean.TRUE.equals(request.getCertification())) {
+            throw new IllegalArgumentException("인증 대회는 certification=true 여야 합니다.");
+        }
+
+        if (request.getVisualizationHtml() == null || request.getVisualizationHtml().isBlank()
+                || request.getSoloPlayHtml() == null || request.getSoloPlayHtml().isBlank()) {
+            throw new IllegalArgumentException("인증 대회는 visualizationHtml과 soloPlayHtml이 필수입니다.");
+        }
+
+        if (request.getSampleCode() == null || request.getSampleCode().isBlank()
+                || request.getJudgeCode() == null || request.getJudgeCode().isBlank()
+                || request.getExampleAiCodes() == null || request.getExampleAiCodes().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "인증 대회 생성 시 sampleCode, judgeCode, exampleAiCodes(1개 이상)가 모두 필요합니다.");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -356,13 +310,13 @@ public class ContestService {
                 true, // certification = true for certified contest
                 request.getTimeLimitSec(),
                 request.getMemoryLimitMb(),
-                null,
-                null,
+                request.getJudgeCode(),
+                request.getSampleCode(),
                 request.getMaxParticipants(),
                 policy.startDate(),
                 policy.endDate(),
-                null,
-                null,
+                request.getVisualizationHtml(),
+                request.getSoloPlayHtml(),
                 creator);
 
         CodeBattleContest savedContest = contestRepository.save(contest);
@@ -378,70 +332,18 @@ public class ContestService {
             }
         }
 
-        List<MultipartFile> nonEmptyExampleAiFiles = filterNonEmptyFiles(exampleAiFiles);
+        // Legacy multipart upload flow kept for reference during the DTO migration.
+        // visualUrl = s3Service.uploadContestResourceFile(savedContest.getId(),
+        // S3Service.ContestResourceType.VISUAL_HTML, visualFile);
+        // soloUrl = s3Service.uploadContestResourceFile(savedContest.getId(),
+        // S3Service.ContestResourceType.SOLO_HTML, soloFile);
+        // judgeCodeUrl = s3Service.uploadJudgeCodeFile(savedContest.getId(),
+        // judgeCodeFile);
+        // sampleCodeUrl = s3Service.uploadSampleCodeFile(savedContest.getId(),
+        // resolvedSampleCodeName, sampleCodeFile);
+        // saveExampleAiCodes(savedContest, uploadedExampleAiUrls);
 
-        if (judgeCodeFile == null || judgeCodeFile.isEmpty()
-                || sampleCodeFile == null || sampleCodeFile.isEmpty()
-                || nonEmptyExampleAiFiles.isEmpty()) {
-            throw new IllegalArgumentException("인증 대회 생성 시 judge/sample 파일과 exampleAiFiles(1개 이상)가 모두 필요합니다.");
-        }
-
-        String resolvedSampleCodeName = FIXED_SAMPLE_CODE_NAME;
-
-        boolean visualUploaded = false;
-        boolean soloUploaded = false;
-        boolean judgeUploaded = false;
-        boolean sampleUploaded = false;
-        List<String> uploadedExampleAiNames = new ArrayList<>();
-        List<String> uploadedExampleAiUrls = new ArrayList<>();
-
-        String visualUrl;
-        String soloUrl;
-        String judgeCodeUrl;
-        String sampleCodeUrl;
-
-        try {
-            visualUrl = s3Service.uploadContestResourceFile(
-                    savedContest.getId(),
-                    S3Service.ContestResourceType.VISUAL_HTML,
-                    visualFile);
-            visualUploaded = true;
-
-            soloUrl = s3Service.uploadContestResourceFile(
-                    savedContest.getId(),
-                    S3Service.ContestResourceType.SOLO_HTML,
-                    soloFile);
-            soloUploaded = true;
-
-            judgeCodeUrl = s3Service.uploadJudgeCodeFile(savedContest.getId(), judgeCodeFile);
-            judgeUploaded = true;
-
-            sampleCodeUrl = s3Service.uploadSampleCodeFile(
-                    savedContest.getId(),
-                    resolvedSampleCodeName,
-                    sampleCodeFile);
-            sampleUploaded = true;
-
-            int exampleOrder = 1;
-            for (MultipartFile exampleAiFile : nonEmptyExampleAiFiles) {
-                String exampleAiName = resolveExampleAiCodeName(exampleOrder);
-                String exampleAiUrl = s3Service.uploadExampleAiCodeFile(savedContest.getId(), exampleAiName,
-                        exampleAiFile);
-                uploadedExampleAiNames.add(exampleAiName);
-                uploadedExampleAiUrls.add(exampleAiUrl);
-                exampleOrder++;
-            }
-
-            savedContest.setVisualizationHtml(visualUrl);
-            savedContest.setSoloPlayHtml(soloUrl);
-            savedContest.setJudgeCode(judgeCodeUrl);
-            savedContest.setSampleCode(sampleCodeUrl);
-            saveExampleAiCodes(savedContest, uploadedExampleAiUrls);
-        } catch (Exception e) {
-            rollbackUploadedResources(savedContest.getId(), resolvedSampleCodeName, uploadedExampleAiNames,
-                    visualUploaded, soloUploaded, judgeUploaded, sampleUploaded);
-            throw convertUploadException("인증 대회 생성", e);
-        }
+        saveExampleAiCodes(savedContest, request.getExampleAiCodes());
 
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -453,7 +355,7 @@ public class ContestService {
         } else {
             contestRun.registerContest(savedContest);
         }
-        return ContestResponse.from(savedContest, uploadedExampleAiUrls);
+        return ContestResponse.from(savedContest, request.getExampleAiCodes());
     }
 
     private void rollbackUploadedResources(
@@ -584,11 +486,11 @@ public class ContestService {
         saveExampleAiCodes(contest, uploadedUrls);
     }
 
-    private void saveExampleAiCodes(CodeBattleContest contest, List<String> exampleAiUrls) {
+    private void saveExampleAiCodes(CodeBattleContest contest, List<String> exampleAiCodes) {
         List<CodeBattleExampleAI> entities = new ArrayList<>();
         int order = 1;
-        for (String exampleAiUrl : exampleAiUrls) {
-            entities.add(new CodeBattleExampleAI(contest, order, exampleAiUrl));
+        for (String exampleAiCode : exampleAiCodes) {
+            entities.add(new CodeBattleExampleAI(contest, order, exampleAiCode));
             order++;
         }
         exampleAIRepository.saveAll(entities);
@@ -777,8 +679,8 @@ public class ContestService {
     }
 
     private void validateJoinableContestStatus(ContestStatus status) {
-        if (status == ContestStatus.END) {
-            throw new IllegalArgumentException("종료된 대회에는 참가할 수 없습니다.");
+        if (status == ContestStatus.END || status == ContestStatus.CANCELED) {
+            throw new IllegalArgumentException("종료되거나 취소된 대회에는 참가할 수 없습니다.");
         }
     }
 

@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS code_battle_match (
     user2_id BIGINT NULL,
     winner_id BIGINT NULL,
     log TEXT NULL,
-    ai_order INTEGER NULL,
+    ai_order BIGINT NULL,
     submission_id BIGINT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_match_contest FOREIGN KEY (contest_id) REFERENCES code_battle_contest (id),
