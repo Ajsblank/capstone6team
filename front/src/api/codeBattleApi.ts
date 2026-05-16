@@ -102,3 +102,24 @@ export const getMyBattleSubmissions = async (
   );
   return response.data;
 };
+
+// ── 검수 코드 대결 — POST /api/contests/{contestId}/review ──
+export interface ReviewResponse {
+  log: string;
+}
+
+export const reviewContest = async (
+  contestId: number,
+  code1: string,
+  language1: string,
+  code2: string,
+  language2: string,
+  signal?: AbortSignal
+): Promise<ReviewResponse> => {
+  const { data } = await api.post<ReviewResponse>(
+    `/api/contests/${contestId}/review`,
+    { code1, language1, code2, language2 },
+    { signal }
+  );
+  return data;
+};
