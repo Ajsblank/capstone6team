@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -command \"Get-Content 'C:\\\\Users\\\\pc\\\\Desktop\\\\버섯사과\\\\log-Drvq3L4f.js' | Select-Object -Last 5\")",
+      "Bash(powershell -command \"Get-Content 'C:\\\\Users\\\\pc\\\\Desktop\\\\버섯사과\\\\index-BqwROSE2.js' | Select-Object -Last 10\")"
+    ]
+  }
+}

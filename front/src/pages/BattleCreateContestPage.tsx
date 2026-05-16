@@ -120,6 +120,7 @@ const BattleCreateContestPage: React.FC = () => {
         sampleCode: sampleCode!, judgeCode: judgeCode!,
         exampleAICodes, visualizationHtml, soloPlayHtml,
         status, startDate, endDate, maxParticipants,
+        creatorId: user?.id ?? "",
       });
       setSubmitStatus("idle");
       setCreatedContest(result);
@@ -156,6 +157,7 @@ const BattleCreateContestPage: React.FC = () => {
       sampleCode: sampleCode!, judgeCode: judgeCode!,
       exampleAICodes, visualizationHtml, soloPlayHtml,
       status, startDate, endDate, maxParticipants,
+      creatorId: user?.id ?? "",
     });
     navigate("create-certified-contest");
   };
