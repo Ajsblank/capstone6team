@@ -13,9 +13,9 @@ jobs:
   server:
     env: 
       DB_USER: ${{ secrets.DB_USER }}
-      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_NAME: ${{ secrets.DB_NAME_STAGING }}
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_URL: ${{ secrets.DB_URL }}
+      DB_URL: ${{ secrets.DB_URL_STAGING }}
       JWT_TOKEN: ${{secrets.JWT_TOKEN}}
       GMAIL_PASSWORD: ${{secrets.GMAIL_PASSWORD}}
       SOL_API_KEY: ${{secrets.SOL_API_KEY}}
