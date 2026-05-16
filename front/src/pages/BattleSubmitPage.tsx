@@ -5,6 +5,7 @@ import CodeEditor, { LANGUAGE_DEFAULTS } from "../components/CodeEditor";
 import SubmitBar from "../components/SubmitBar";
 import SubmitSuccessModal from "../components/SubmitSuccessModal";
 import MySubmissionsTab from "../components/MySubmissionsTab";
+import ReviewTab from "../components/ReviewTab";
 import { submitCode, getContestDetail, joinContest, ContestDetail } from "../api/codeBattleApi";
 import { setMatchCallback, setSummaryCallback, setReconnectCallback, BattleMatchResult, SubmissionSummary, debugSse } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
@@ -13,7 +14,7 @@ import "./AppLayout.css";
 import "./BattleHomePage.css";
 import "./BattleSubmitPage.css";
 
-type Tab = "problem" | "submit" | "my-submissions" | "viz1" | "viz2" | "leaderboard" | "battle-results";
+type Tab = "problem" | "submit" | "my-submissions" | "viz1" | "viz2" | "leaderboard" | "battle-results" | "review";
 type SubmitStatus = "idle" | "submitting" | "success" | "error";
 
 export interface LocalSubmission {
@@ -29,7 +30,7 @@ export interface LocalSubmission {
   error?: string;               // 채점 오류 메시지
 }
 
-const TAB_LIST: { id: Tab; label: string }[] = [
+const BASE_TAB_LIST: { id: Tab; label: string }[] = [
   { id: "problem",        label: "문제" },
   { id: "submit",         label: "제출" },
   { id: "my-submissions", label: "내 제출" },
@@ -39,7 +40,7 @@ const TAB_LIST: { id: Tab; label: string }[] = [
   { id: "battle-results", label: "대결 결과" },
 ];
 
-const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2", "leaderboard", "battle-results"];
+const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2", "leaderboard", "battle-results", "review"];
 
 /**
  * 해시 파싱
@@ -59,9 +60,14 @@ function parseHash(): { problemId: number; tab: Tab } {
 }
 
 const SubmitPage: React.FC = () => {
-  const { navigate, user, logout } = useApp();
+  const { navigate, user, logout, hostedContestIds } = useApp();
 
   const [{ problemId, tab: activeTab }, setHashState] = useState(parseHash);
+
+  const isReviewer = hostedContestIds.includes(problemId);
+  const TAB_LIST = isReviewer
+    ? [...BASE_TAB_LIST, { id: "review" as Tab, label: "검수" }]
+    : BASE_TAB_LIST;
 
   const [language, setLanguage] = useState<Language>("cpp");
   const [code, setCode] = useState<string>(LANGUAGE_DEFAULTS["cpp"]);
@@ -420,6 +426,12 @@ const SubmitPage: React.FC = () => {
             <span className="placeholder-text">
               {TAB_LIST.find((t) => t.id === activeTab)?.label} — 준비 중입니다.
             </span>
+          </div>
+        )}
+
+        {activeTab === "review" && isReviewer && (
+          <div className="full-panel" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <ReviewTab contestId={problemId} />
           </div>
         )}
       </div>
