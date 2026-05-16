@@ -1,6 +1,7 @@
 package com.asap.server.service;
 
 import java.util.Map;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +19,8 @@ import com.asap.server.dto.request.SmsCodeVerifyRequest;
 import com.asap.server.dto.request.SmsVerifyRequest;
 import com.asap.server.dto.request.WithdrawRequest;
 import com.asap.server.dto.response.LoginResponse;
+import com.asap.server.repository.CodeBattleContestRepository;
+import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.usersRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -38,6 +41,8 @@ public class AuthService {
     private final MailService mailService;
     private final SmsService smsService;
     private final ProfileService profileService;
+    private final CodeBattleParticipantRepository participantRepository;
+    private final CodeBattleContestRepository contestRepository;
     private final Map<String, PendingSignup> pendingSignupStore = new ConcurrentHashMap<>();
 
     @Transactional
@@ -111,12 +116,16 @@ public class AuthService {
         String sessionId = java.util.UUID.randomUUID().toString();
         String accessToken = tokenService.issueAccessToken(user.getId(), user.getEmail());
         String refreshToken = tokenService.issueRefreshToken(user.getId(), user.getEmail(), sessionId, "", "");
+        List<Long> joinedContests = participantRepository.findContestIdsByUserId(user.getId());
+        List<Long> hostedContests = contestRepository.findContestIdsByCreatorId(user.getId());
 
         return LoginResponse.builder()
                 .userId(user.getId())
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .sessionId(sessionId)
+            .joinedContests(joinedContests)
+            .hostedContests(hostedContests)
                 .build();
     }
 
