@@ -101,12 +101,11 @@ public class ContestService {
 
         List<MultipartFile> nonEmptyExampleAiFiles = filterNonEmptyFiles(exampleAiFiles);
 
-        if (visualFile == null || visualFile.isEmpty()
-                || soloFile == null || soloFile.isEmpty()
-                || judgeCodeFile == null || judgeCodeFile.isEmpty()
+        if (judgeCodeFile == null || judgeCodeFile.isEmpty()
                 || sampleCodeFile == null || sampleCodeFile.isEmpty()
                 || nonEmptyExampleAiFiles.isEmpty()) {
-            throw new IllegalArgumentException("대회 생성 시 visual/solo/judge/sample 파일과 exampleAiFiles(1개 이상)가 모두 필요합니다.");
+            throw new IllegalArgumentException(
+                    "대회 생성 시 judge/sample 파일과 exampleAiFiles(1개 이상)가 필요합니다. visual/solo 파일은 선택 사항입니다.");
         }
 
         String resolvedSampleCodeName = FIXED_SAMPLE_CODE_NAME;
@@ -118,23 +117,27 @@ public class ContestService {
         List<String> uploadedExampleAiNames = new ArrayList<>();
         List<String> uploadedExampleAiUrls = new ArrayList<>();
 
-        String visualUrl;
-        String soloUrl;
+        String visualUrl = null;
+        String soloUrl = null;
         String judgeCodeUrl;
         String sampleCodeUrl;
 
         try {
-            visualUrl = s3Service.uploadContestResourceFile(
-                    savedContest.getId(),
-                    S3Service.ContestResourceType.VISUAL_HTML,
-                    visualFile);
-            visualUploaded = true;
+            if (visualFile != null && !visualFile.isEmpty()) {
+                visualUrl = s3Service.uploadContestResourceFile(
+                        savedContest.getId(),
+                        S3Service.ContestResourceType.VISUAL_HTML,
+                        visualFile);
+                visualUploaded = true;
+            }
 
-            soloUrl = s3Service.uploadContestResourceFile(
-                    savedContest.getId(),
-                    S3Service.ContestResourceType.SOLO_HTML,
-                    soloFile);
-            soloUploaded = true;
+            if (soloFile != null && !soloFile.isEmpty()) {
+                soloUrl = s3Service.uploadContestResourceFile(
+                        savedContest.getId(),
+                        S3Service.ContestResourceType.SOLO_HTML,
+                        soloFile);
+                soloUploaded = true;
+            }
 
             judgeCodeUrl = s3Service.uploadJudgeCodeFile(savedContest.getId(), judgeCodeFile);
             judgeUploaded = true;
@@ -155,8 +158,12 @@ public class ContestService {
                 exampleOrder++;
             }
 
-            savedContest.setVisualizationHtml(visualUrl);
-            savedContest.setSoloPlayHtml(soloUrl);
+            if (visualUrl != null) {
+                savedContest.setVisualizationHtml(visualUrl);
+            }
+            if (soloUrl != null) {
+                savedContest.setSoloPlayHtml(soloUrl);
+            }
             savedContest.setJudgeCode(judgeCodeUrl);
             savedContest.setSampleCode(sampleCodeUrl);
             saveExampleAiCodes(savedContest, uploadedExampleAiUrls);
@@ -225,12 +232,11 @@ public class ContestService {
 
         List<MultipartFile> nonEmptyExampleAiFiles = filterNonEmptyFiles(exampleAiFiles);
 
-        if (visualFile == null || visualFile.isEmpty()
-                || soloFile == null || soloFile.isEmpty()
-                || judgeCodeFile == null || judgeCodeFile.isEmpty()
+        if (judgeCodeFile == null || judgeCodeFile.isEmpty()
                 || sampleCodeFile == null || sampleCodeFile.isEmpty()
                 || nonEmptyExampleAiFiles.isEmpty()) {
-            throw new IllegalArgumentException("대회 생성 시 visual/solo/judge/sample 파일과 exampleAiFiles(1개 이상)가 모두 필요합니다.");
+            throw new IllegalArgumentException(
+                    "대회 생성 시 judge/sample 파일과 exampleAiFiles(1개 이상)가 필요합니다. visual/solo 파일은 선택 사항입니다.");
         }
 
         String resolvedSampleCodeName = FIXED_SAMPLE_CODE_NAME;
@@ -242,23 +248,27 @@ public class ContestService {
         List<String> uploadedExampleAiNames = new ArrayList<>();
         List<String> uploadedExampleAiUrls = new ArrayList<>();
 
-        String visualUrl;
-        String soloUrl;
+        String visualUrl = null;
+        String soloUrl = null;
         String judgeCodeUrl;
         String sampleCodeUrl;
 
         try {
-            visualUrl = s3Service.uploadContestResourceFile(
-                    savedContest.getId(),
-                    S3Service.ContestResourceType.VISUAL_HTML,
-                    visualFile);
-            visualUploaded = true;
+            if (visualFile != null && !visualFile.isEmpty()) {
+                visualUrl = s3Service.uploadContestResourceFile(
+                        savedContest.getId(),
+                        S3Service.ContestResourceType.VISUAL_HTML,
+                        visualFile);
+                visualUploaded = true;
+            }
 
-            soloUrl = s3Service.uploadContestResourceFile(
-                    savedContest.getId(),
-                    S3Service.ContestResourceType.SOLO_HTML,
-                    soloFile);
-            soloUploaded = true;
+            if (soloFile != null && !soloFile.isEmpty()) {
+                soloUrl = s3Service.uploadContestResourceFile(
+                        savedContest.getId(),
+                        S3Service.ContestResourceType.SOLO_HTML,
+                        soloFile);
+                soloUploaded = true;
+            }
 
             judgeCodeUrl = s3Service.uploadJudgeCodeFile(savedContest.getId(), judgeCodeFile);
             judgeUploaded = true;
@@ -279,8 +289,12 @@ public class ContestService {
                 exampleOrder++;
             }
 
-            savedContest.setVisualizationHtml(visualUrl);
-            savedContest.setSoloPlayHtml(soloUrl);
+            if (visualUrl != null) {
+                savedContest.setVisualizationHtml(visualUrl);
+            }
+            if (soloUrl != null) {
+                savedContest.setSoloPlayHtml(soloUrl);
+            }
             savedContest.setJudgeCode(judgeCodeUrl);
             savedContest.setSampleCode(sampleCodeUrl);
             saveExampleAiCodes(savedContest, uploadedExampleAiUrls);

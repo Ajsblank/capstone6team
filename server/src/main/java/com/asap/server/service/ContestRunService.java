@@ -125,8 +125,12 @@ public class ContestRunService {
 
   @Transactional
   private void processEnd(Long contestId) {
-    contestRepository.findById(contestId)
+    CodeBattleContest contest = contestRepository.findById(contestId)
         .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
+
+    contest.setStatus(ContestStatus.END);
+    contestRepository.save(contest);
+    log.info("대회 종료 시간 도달로 상태를 END로 변경했습니다. contestId: {}", contestId);
 
     swissMatchMaker.pullLeagueGrading(contestId);
   }
