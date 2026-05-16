@@ -2,11 +2,13 @@ package com.asap.server.controller;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,47 +18,151 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
-import com.asap.server.config.CustomUserDetails;
-import com.asap.server.domain.CodeBattleContest;
-import com.asap.server.domain.CodeBattleContest.ContestStatus;
-import com.asap.server.dto.request.CreateContestRequest;
+import com.asap.server.domain.ContestSchedule;
+import com.asap.server.dto.request.ContestScheduleRequest;
+import com.asap.server.dto.request.CreateCertifiedContestRequest;
+import com.asap.server.dto.request.CreateUncertifiedContestRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
+import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestResponse;
-import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
-import com.asap.server.service.ContestService;
+import com.asap.server.global.type.ContestStatus;
 import com.asap.server.service.CodeBattleSubmissionService;
+import com.asap.server.service.ContestService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/contests")
 @RequiredArgsConstructor
+@Slf4j
 public class ContestController {
 
     private final ContestService contestService;
     private final CodeBattleSubmissionService submissionService;
 
-    @PostMapping("/create")
-    public ResponseEntity<ContestResponse> createContest(@Valid @RequestBody CreateContestRequest request) {
-        ContestResponse response = contestService.createContest(request);
-        return ResponseEntity.created(URI.create("/api/contests/" + response.getId())).body(response);
+    @Operation(summary = "비인증 대회 생성(메타데이터 + 리소스 업로드)", description = "POST /api/contests/create multipart/form-data\n"
+            + "- request: CreateUncertifiedContestRequest(JSON)\n"
+            + "- visualFile: 시각화 HTML(.html), 선택\n"
+            + "- soloFile: 혼자하기 HTML(.html), 선택\n"
+            + "- judgeCodeFile: 채점 코드 C++(.cpp)\n"
+            + "- sampleCodeFile: 샘플 코드 C++(.cpp)\n"
+            + "- exampleAiFiles: 예제 AI 코드 C++(.cpp), 1개 이상")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = "multipart/form-data", encoding = {
+            @Encoding(name = "request", contentType = "application/json"),
+            @Encoding(name = "visualFile", contentType = "text/html"),
+            @Encoding(name = "soloFile", contentType = "text/html"),
+            @Encoding(name = "judgeCodeFile", contentType = "text/x-c++src"),
+            @Encoding(name = "sampleCodeFile", contentType = "text/x-c++src"),
+            @Encoding(name = "exampleAiFiles", contentType = "text/x-c++src")
+    }))
+    @PostMapping(value = "/create/uncertified", consumes = "multipart/form-data")
+    public ResponseEntity<?> createContest(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestPart("request") CreateUncertifiedContestRequest request,
+            @RequestPart(value = "visualFile", required = false) MultipartFile visualFile,
+            @RequestPart(value = "soloFile", required = false) MultipartFile soloFile,
+            @RequestPart("judgeCodeFile") MultipartFile judgeCodeFile,
+            @RequestPart("sampleCodeFile") MultipartFile sampleCodeFile,
+            @RequestPart("exampleAiFiles") List<MultipartFile> exampleAiFiles) {
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "로그인이 필요합니다."));
+        }
+
+        try {
+            ContestResponse response = contestService.createUncertifiedContest(
+                    userId,
+                    request,
+                    visualFile,
+                    soloFile,
+                    judgeCodeFile,
+                    sampleCodeFile,
+                    exampleAiFiles);
+            return ResponseEntity.created(URI.create("/api/contests/" + response.getId()))
+                    .body(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            log.error("비인증 대회 생성 실패", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("비인증 대회 생성 실패", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "비인증 대회 생성 중 오류 발생"));
+        }
+    }
+
+    @Operation(summary = "인증 대회 생성(메타데이터 + 리소스 업로드)", description = "POST /api/contests/create/certified multipart/form-data\n"
+            + "- request: CreateCertifiedContestRequest(JSON) - reviewerEmails 필수\n"
+            + "- visualFile: 시각화 HTML(.html) - 필수\n"
+            + "- soloFile: 혼자하기 HTML(.html) - 필수\n"
+            + "- judgeCodeFile: 채점 코드 C++(.cpp)\n"
+            + "- sampleCodeFile: 샘플 코드 C++(.cpp)\n"
+            + "- exampleAiFiles: 예제 AI 코드 C++(.cpp), 1개 이상")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = "multipart/form-data", encoding = {
+            @Encoding(name = "request", contentType = "application/json"),
+            @Encoding(name = "visualFile", contentType = "text/html"),
+            @Encoding(name = "soloFile", contentType = "text/html"),
+            @Encoding(name = "judgeCodeFile", contentType = "text/x-c++src"),
+            @Encoding(name = "sampleCodeFile", contentType = "text/x-c++src"),
+            @Encoding(name = "exampleAiFiles", contentType = "text/x-c++src")
+    }))
+    @PostMapping(value = "/create/certified", consumes = "multipart/form-data")
+    public ResponseEntity<?> createCertifiedContest(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestPart("request") CreateCertifiedContestRequest request,
+            @RequestPart("visualFile") MultipartFile visualFile,
+            @RequestPart("soloFile") MultipartFile soloFile,
+            @RequestPart("judgeCodeFile") MultipartFile judgeCodeFile,
+            @RequestPart("sampleCodeFile") MultipartFile sampleCodeFile,
+            @RequestPart("exampleAiFiles") List<MultipartFile> exampleAiFiles) {
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "로그인이 필요합니다."));
+        }
+
+        try {
+            ContestResponse response = contestService.createCertifiedContest(
+                    userId,
+                    request,
+                    visualFile,
+                    soloFile,
+                    judgeCodeFile,
+                    sampleCodeFile,
+                    exampleAiFiles);
+            return ResponseEntity.created(URI.create("/api/contests/" + response.getId()))
+                    .body(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            log.error("인증 대회 생성 실패", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("인증 대회 생성 실패", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "인증 대회 생성 중 오류 발생"));
+        }
     }
 
     @GetMapping("/list")
     @Operation(summary = "대회 목록 조회", description = "status로 필터링하고 page, size, sort로 페이징/정렬 조회합니다. status를 지정하지 않으면 전체 조회합니다.")
     @Parameters({
-            @Parameter(in = ParameterIn.QUERY, name = "status", description = "대회 상태 필터 (선택). 허용값: TEST, PLANNED, RUNNING, PAUSED, END", schema = @Schema(type = "string", allowableValues = {"TEST", "PLANNED", "RUNNING", "PAUSED", "END"}, example = "RUNNING")),
+            @Parameter(in = ParameterIn.QUERY, name = "status", description = "대회 상태 필터 (선택). 허용값: TEST, PLANNED, RUNNING, PAUSED, END", schema = @Schema(type = "string", allowableValues = {
+                    "TEST", "PLANNED", "RUNNING", "PAUSED", "END" }, example = "RUNNING")),
             @Parameter(in = ParameterIn.QUERY, name = "page", description = "페이지 번호 (0부터 시작)", schema = @Schema(type = "integer", defaultValue = "0", example = "0")),
             @Parameter(in = ParameterIn.QUERY, name = "size", description = "페이지 크기", schema = @Schema(type = "integer", defaultValue = "20", example = "20")),
             @Parameter(in = ParameterIn.QUERY, name = "sort", description = "정렬 기준 (사용법: 컬럼명,asc|desc)", array = @ArraySchema(schema = @Schema(type = "string", example = "id,desc")))
@@ -68,33 +174,82 @@ public class ContestController {
         return ResponseEntity.ok(responses);
     }
 
+    @Operation(summary = "대회 상세 조회")
     @GetMapping("/{contestId}")
     public ResponseEntity<ContestResponse> getContestDetail(@PathVariable Long contestId) {
-        CodeBattleContest contest = contestService.getContestById(contestId);
-        return ResponseEntity.ok(ContestResponse.from(contest));
+        return ResponseEntity.ok(contestService.getContestResponse(contestId));
     }
 
+    @Operation(summary = "대회 상세 조회(채점 코드 포함)")
     @GetMapping("/{contestId}/admin")
     public ResponseEntity<ContestDetailResponse> getContestDetailAdmin(@PathVariable Long contestId) {
-        CodeBattleContest contest = contestService.getContestById(contestId);
-        return ResponseEntity.ok(ContestDetailResponse.from(contest));
+        return ResponseEntity.ok(contestService.getContestDetailResponse(contestId));
     }
 
+    @Operation(summary = "중간 대회 일정 추가")
+    @PostMapping("/{contestId}/admin")
+    public ResponseEntity<ContestSchedule> postSchedule(@PathVariable Long contestId,
+            @RequestBody ContestScheduleRequest request) {
+        ContestSchedule schedule = contestService.saveSchedule(contestId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(schedule);
+    }
+
+    @Operation(summary = "대회 수정", description = "PATCH /api/contests/{contestId}는 대회 메타데이터만 수정합니다. 리소스(visual/solo/judge/sample)는 /api/contests/{contestId}/resource를 사용하세요.")
     @PatchMapping("/{contestId}")
     public ResponseEntity<ContestDetailResponse> updateContest(
             @PathVariable Long contestId,
             @RequestBody UpdateContestRequest request) {
-        return ResponseEntity.ok(contestService.updateContest(contestId, request));
+        try {
+            ContestDetailResponse response = contestService.updateContest(contestId, request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("대회 수정 실패 - contestId: {}", contestId, e);
+            return ResponseEntity.internalServerError().body(null);
+        }
     }
 
-    @GetMapping("/{contestId}/{targetUserId}")
+    @Operation(summary = "대회 리소스 수정", description = "PATCH /api/contests/{contestId}/resource multipart/form-data로 리소스를 선택적으로 덮어씁니다. 업로드한 파트만 수정됩니다.")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = "multipart/form-data", encoding = {
+            @Encoding(name = "visualFile", contentType = "text/html"),
+            @Encoding(name = "soloFile", contentType = "text/html"),
+            @Encoding(name = "judgeCodeFile", contentType = "text/x-c++src"),
+            @Encoding(name = "sampleCodeFile", contentType = "text/x-c++src"),
+            @Encoding(name = "exampleAiFiles", contentType = "text/x-c++src")
+    }))
+    @PatchMapping(value = "/{contestId}/resource", consumes = "multipart/form-data")
+    public ResponseEntity<ContestDetailResponse> updateContestResources(
+            @PathVariable Long contestId,
+            @RequestPart(value = "visualFile", required = false) MultipartFile visualFile,
+            @RequestPart(value = "soloFile", required = false) MultipartFile soloFile,
+            @RequestPart(value = "judgeCodeFile", required = false) MultipartFile judgeCodeFile,
+            @RequestPart(value = "sampleCodeFile", required = false) MultipartFile sampleCodeFile,
+            @RequestPart(value = "exampleAiFiles", required = false) List<MultipartFile> exampleAiFiles) {
+        try {
+            ContestDetailResponse response = contestService.updateContestResources(
+                    contestId,
+                    visualFile,
+                    soloFile,
+                    judgeCodeFile,
+                    sampleCodeFile,
+                    exampleAiFiles);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("대회 리소스 수정 실패 - contestId: {}", contestId, e);
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
+
+    @GetMapping("/{contestId}/mySubmission")
     @Operation(summary = "내 제출 및 AI 결과 조회", description = "내가 해당 대회에 제출한 코드와 샘플 AI와의 대결 결과를 조회합니다.")
     public ResponseEntity<List<CodeBattleMySubmissionResponse>> getMySubmissions(
             @PathVariable Long contestId,
-            @PathVariable Long targetUserId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal Long userId) {
 
-        List<CodeBattleMySubmissionResponse> responses = submissionService.getMySubmissionsWithAi(contestId, targetUserId);
+        List<CodeBattleMySubmissionResponse> responses = submissionService.getMySubmissionsWithAi(contestId, userId);
         return ResponseEntity.ok(responses);
     }
 

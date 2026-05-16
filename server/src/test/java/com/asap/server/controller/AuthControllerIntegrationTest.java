@@ -85,7 +85,7 @@ class AuthControllerIntegrationTest {
     WithdrawRequest request = new WithdrawRequest();
     request.setPassword("password123");
 
-    authController.withdraw(loginUser.getEmail(), request);
+    authController.withdraw(loginUser.getId(), request);
     assertThat(userRepository.findByEmail("auth@test.com")).isEmpty();
   }
 }

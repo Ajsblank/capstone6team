@@ -1,11 +1,17 @@
 package com.asap.server.domain;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
+
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import com.asap.server.global.type.Language;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -35,11 +41,13 @@ public class CodeBattleSubmission {
   @JoinColumn(name = "contest_id", foreignKey = @ForeignKey(name = "fk_submission_contest"))
   private CodeBattleContest contest;
 
-  @Column
+  @Enumerated(EnumType.STRING)
+  @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+  @Column(columnDefinition = "language", nullable = false)
   private Language language;
 
-  @Column
-  private String code;
+  @Column(name = "code_url", columnDefinition = "TEXT")
+  private String codeUrl;
 
   @Column
   private String result;
@@ -47,13 +55,17 @@ public class CodeBattleSubmission {
   @Column(nullable = false)
   private LocalDateTime created_at;
 
-  public CodeBattleSubmission(Users user, CodeBattleContest contest, Language language, String code,
+  public CodeBattleSubmission(Users user, CodeBattleContest contest, Language language, String codeUrl,
       String result) {
     this.user = user;
     this.contest = contest;
-    this.language = language;
-    this.code = code;
+    this.language = Objects.requireNonNull(language, "language는 null일 수 없습니다.");
+    this.codeUrl = codeUrl;
     this.result = result;
+  }
+
+  public void changeCodeUrl(String codeUrl) {
+    this.codeUrl = codeUrl;
   }
 
   @PrePersist
