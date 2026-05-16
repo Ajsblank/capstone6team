@@ -27,6 +27,7 @@ export interface CreateContestData {
   startDate: string;
   endDate: string;
   maxParticipants: number;
+  creatorId: string;
 }
 
 export type ContestStatus = "TEST" | "PLANNED" | "RUNNING" | "PAUSED" | "END";
@@ -75,6 +76,7 @@ export const createContest = async (data: CreateContestData): Promise<ContestRes
     startDate:       data.startDate ? data.startDate.replace("T", " ").slice(0, 16) : undefined,
     endDate:         data.endDate   ? data.endDate.replace("T", " ").slice(0, 16)   : undefined,
     maxParticipants: data.maxParticipants,
+    creatorId:       data.creatorId,
     sampleCode,
     judgeCode,
     exampleAICodes,
@@ -107,6 +109,7 @@ export const createCertifiedContest = async (
     startDate:       data.startDate ? data.startDate.replace("T", " ").slice(0, 16) : undefined,
     endDate:         data.endDate   ? data.endDate.replace("T", " ").slice(0, 16)   : undefined,
     maxParticipants: data.maxParticipants,
+    creatorId:       data.creatorId,
     sampleCode,
     judgeCode,
     exampleAICodes,
