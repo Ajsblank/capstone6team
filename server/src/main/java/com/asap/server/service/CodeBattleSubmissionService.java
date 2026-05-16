@@ -108,7 +108,7 @@ public class CodeBattleSubmissionService {
         // submission.changeCodeUrl(uploadResult.url());
         // submission = submissionRepository.saveAndFlush(submission);
 
-        // saveFinalSubmit(submission);
+        saveFinalSubmit(submission);
         // return submission;
         // } catch (Exception e) {
         // if (uploadedKey != null) {
