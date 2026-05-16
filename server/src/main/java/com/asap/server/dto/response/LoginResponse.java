@@ -1,5 +1,7 @@
 package com.asap.server.dto.response;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -12,4 +14,6 @@ public class LoginResponse {
     private String accessToken;
     private String refreshToken;
     private String sessionId;
+    private List<Long> joinedContests;
+    private List<Long> hostedContests;
 }
