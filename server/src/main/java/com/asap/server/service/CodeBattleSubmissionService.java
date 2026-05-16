@@ -120,6 +120,7 @@ public class CodeBattleSubmissionService {
         // }
         // throw e;
         // }
+        return submission;
     }
 
     private void saveFinalSubmit(CodeBattleSubmission submission) {

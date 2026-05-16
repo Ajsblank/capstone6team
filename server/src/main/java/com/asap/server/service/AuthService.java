@@ -1,7 +1,7 @@
 package com.asap.server.service;
 
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -121,7 +121,8 @@ public class AuthService {
         log.info("참가 대회 조회 - userId: {}, joinedContests: {}", user.getId(), joinedContests);
 
         List<Long> hostedContests = contestReviewerRepository.findContestIdsByReviewerEmail(user.getEmail());
-        log.info("개최 대회 조회(reviewer_email 기준) - userId: {}, email: {}, hostedContests: {}", user.getId(), user.getEmail(), hostedContests);
+        log.info("개최 대회 조회(reviewer_email 기준) - userId: {}, email: {}, hostedContests: {}", user.getId(),
+                user.getEmail(), hostedContests);
 
         LoginResponse response = LoginResponse.builder()
                 .userId(user.getId())
@@ -131,7 +132,8 @@ public class AuthService {
                 .joinedContests(joinedContests)
                 .hostedContests(hostedContests)
                 .build();
-        log.info("로그인 응답 - userId: {}, accessToken: {}, refreshToken: {}, sessionId: {}, joinedContests: {}, hostedContests: {}",
+        log.info(
+                "로그인 응답 - userId: {}, accessToken: {}, refreshToken: {}, sessionId: {}, joinedContests: {}, hostedContests: {}",
                 response.getUserId(), response.getAccessToken(), response.getRefreshToken(),
                 response.getSessionId(), response.getJoinedContests(), response.getHostedContests());
         return response;
