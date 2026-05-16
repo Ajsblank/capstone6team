@@ -353,6 +353,7 @@
 }
 
 .cc-reviewer-add {
+  display: block;
   background: none;
   border: 1.5px dashed #d1d5db;
   border-radius: 8px;

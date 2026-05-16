@@ -88,13 +88,14 @@ const BattleCreateContestPage: React.FC = () => {
   const [createdContest, setCreatedContest] = useState<ContestResponse | null>(null);
   const [showPreview, setShowPreview]   = useState(false);
 
-  const descImportRef  = useRef<HTMLInputElement>(null);
-  const aiCodeInputRef = useRef<HTMLInputElement>(null);
+  const [aiCodeInputKey, setAiCodeInputKey] = useState(0);
+
+  const descImportRef = useRef<HTMLInputElement>(null);
 
   const handleAICodeAdd = (files: FileList | null) => {
-    if (!files) return;
+    if (!files || files.length === 0) return;
     setExampleAICodes(prev => [...prev, ...Array.from(files)]);
-    if (aiCodeInputRef.current) aiCodeInputRef.current.value = "";
+    setAiCodeInputKey(k => k + 1);
   };
   const handleAICodeRemove = (i: number) =>
     setExampleAICodes(prev => prev.filter((_, idx) => idx !== i));
@@ -324,8 +325,8 @@ const BattleCreateContestPage: React.FC = () => {
                         ))}
                       </div>
                     )}
-                    <button type="button" className="cc-reviewer-add" onClick={() => aiCodeInputRef.current?.click()}>+ AI 코드 추가</button>
-                    <input ref={aiCodeInputRef} type="file" accept=".py,.cpp,.java,.js,.ts" multiple style={{ display: "none" }} onChange={(e) => handleAICodeAdd(e.target.files)} />
+                    <label htmlFor="cc-ai-code-input" className="cc-reviewer-add">+ AI 코드 추가</label>
+                    <input key={aiCodeInputKey} id="cc-ai-code-input" type="file" accept=".py,.cpp,.java,.js,.ts" multiple style={{ display: "none" }} onChange={(e) => handleAICodeAdd(e.target.files)} />
                   </div>
 
                   <FileInput label="시각화 HTML 파일" accept=".html" value={visualizationHtml} onChange={setVisualizationHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
