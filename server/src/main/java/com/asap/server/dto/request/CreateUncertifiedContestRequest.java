@@ -1,7 +1,6 @@
 package com.asap.server.dto.request;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import com.asap.server.global.json.FlexibleMinuteLocalDateTimeDeserializer;
 import com.asap.server.global.type.ContestStatus;
@@ -11,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -25,6 +25,7 @@ import lombok.Setter;
 @Setter
 @Schema(description = "비인증 대회 생성 요청")
 @JsonPropertyOrder({
+  "creatorId",
     "title",
     "description",
     "timeLimitSec",
@@ -35,6 +36,14 @@ import lombok.Setter;
     "status"
 })
 public class CreateUncertifiedContestRequest {
+
+  @NotNull(message = "creatorId는 필수입니다.")
+  @Schema(description = "대회 생성자 ID", example = "1")
+  private Long creatorId;
+
+  @NotNull(message = "인증 여부는 필수입니다.")
+  @Schema(description = "비인증 대회는 false", example = "false")
+  private Boolean certification;
 
   @NotNull(message = "제목은 필수입니다.")
   @jakarta.validation.constraints.NotBlank(message = "제목은 필수입니다.")
@@ -74,4 +83,22 @@ public class CreateUncertifiedContestRequest {
   @Positive(message = "최대 참가자 수는 1 이상이어야 합니다.")
   @Schema(type = "integer", example = "10")
   private Integer maxParticipants;
+
+  @NotBlank(message = "sampleCode는 필수입니다.")
+  @Schema(description = "샘플 코드 파일 내용", example = "int main() { return 0; }")
+  private String sampleCode;
+
+  @NotBlank(message = "judgeCode는 필수입니다.")
+  @Schema(description = "채점 코드 파일 내용", example = "int main() { return 0; }")
+  private String judgeCode;
+
+  @NotEmpty(message = "exampleAiCodes는 최소 1개 이상 필요합니다.")
+  @Schema(description = "예제 AI 코드 목록", example = "[\"int main() { return 0; }\"]")
+  private java.util.List<String> exampleAiCodes;
+
+  @Schema(description = "시각화 HTML 내용", example = "<html><body>visualization</body></html>")
+  private String visualizationHtml;
+
+  @Schema(description = "혼자하기 HTML 내용", example = "<html><body>solo play</body></html>")
+  private String soloPlayHtml;
 }
