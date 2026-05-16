@@ -821,15 +821,16 @@ public class ContestService {
 
         validateDatePair(startDate, endDate);
 
-        // 수정 시 명세: 시작 시간은 현재보다 이전, 종료 시간은 현재보다 이후
+        // 날짜 수정 시점 검증은 상태별로 다르게 적용한다.
         if (request.getStartDate() != null || request.getEndDate() != null) {
-            if (!startDate.isBefore(now)) {
-                throw new IllegalArgumentException("시작 시간은 현재 시간보다 이전이어야 합니다.");
+            if (target == ContestStatus.RUNNING || target == ContestStatus.PAUSED) {
+                if (!startDate.isBefore(now)) {
+                    throw new IllegalArgumentException("RUNNING/PAUSED 상태에서는 시작 시간이 현재 시간보다 이전이어야 합니다.");
+                }
+                if (!endDate.isAfter(now)) {
+                    throw new IllegalArgumentException("RUNNING/PAUSED 상태에서는 종료 시간이 현재 시간보다 이후여야 합니다.");
+                }
             }
-            if (!endDate.isAfter(now)) {
-                throw new IllegalArgumentException("종료 시간은 현재 시간보다 이후여야 합니다.");
-            }
-            return new DatePolicy(startDate, endDate);
         }
 
         validateStatusByPeriod(target, startDate, endDate, now);
