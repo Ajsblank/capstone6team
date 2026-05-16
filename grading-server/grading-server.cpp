@@ -47,7 +47,7 @@ CmdResult exec_cmd(const std::string& cmd) {
 int main() {
     try {
         // Redis 연결 설정
-      auto redis = Redis("tcp://3.216.165.85:6379");
+        auto redis = Redis("tcp://3.216.165.85:6379");
         //auto redis = Redis("tcp://localhost:6379");
         std::cout << "[Worker] 코드 배틀 서버 시작...\n";
 
