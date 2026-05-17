@@ -73,10 +73,6 @@ const BattleCreateCertifiedPage: React.FC = () => {
                 <span className="cc-modal-info-value">{createdContest.id}</span>
               </div>
               <div className="cc-modal-info-row">
-                <span className="cc-modal-info-label">상태</span>
-                <span className="cc-modal-info-value">{createdContest.status}</span>
-              </div>
-              <div className="cc-modal-info-row">
                 <span className="cc-modal-info-label">생성 일시</span>
                 <span className="cc-modal-info-value">
                   {new Date(createdContest.createdAt).toLocaleString("ko-KR")}
