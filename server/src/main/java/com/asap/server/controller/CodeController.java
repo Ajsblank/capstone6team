@@ -10,19 +10,21 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.AlgorithmProblem;
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleExampleAI;
+import com.asap.server.domain.CodeBattleMatch;
+import com.asap.server.domain.CodeBattleParticipant;
 import com.asap.server.domain.CodeBattleSubmission;
 import com.asap.server.domain.Users;
-import com.asap.server.dto.request.CodeSubmitRequest;
 import com.asap.server.dto.request.CodeBattleTestRequest;
+import com.asap.server.dto.request.CodeSubmitRequest;
 import com.asap.server.dto.response.CodeSubmitResponse;
 import com.asap.server.repository.AlgorithmProblemRepository;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
+import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.asap.server.repository.usersRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,7 +50,7 @@ public class CodeController {
     private final CodeBattleMatchRepository matchRepository;
     private final CodeBattleContestRepository contestRepository;
     private final CodeBattleSubmissionRepository submissionRepository;
-
+    private final CodeBattleParticipantRepository participantRepository;
     private static final String SUBMISSION_COUNT_KEY = "submission_count";
     private static final String GRADING_QUEUE_KEY = "algorithms_grading_queue";
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
@@ -128,21 +130,21 @@ public class CodeController {
                     request.getSourceCode(),
                     "PENDING");
             submissionRepository.save(submission);
-
+            log.info("코드 제출 완료");
             for (CodeBattleExampleAI ai : aiList) {
                 Users aiUser = userRepository.getReferenceById(1L);
                 Users submitter = submission.getUser();
 
                 CodeBattleMatch aiMatch = new CodeBattleMatch(
                         contest,
-                        submitter,    // user1 (제출자)
-                        aiUser,       // user2 (AI, ID 1)
-                        null,         // winner
-                        null,         // log
-                        ai.getExampleOrder()
-                    );
+                        submitter, // user1 (제출자)
+                        aiUser, // user2 (AI, ID 1)
+                        null, // winner
+                        null, // log
+                        ai.getExampleOrder());
                 aiMatch.setSubmission(submission);
                 matchRepository.save(aiMatch);
+                log.info("ai 매치 생성 완료 id = {}", ai.getExampleOrder());
 
                 ObjectNode rootNode = objectMapper.createObjectNode();
 
@@ -159,8 +161,29 @@ public class CodeController {
 
                 String jsonPayload = objectMapper.writeValueAsString(rootNode);
                 redisTemplate.opsForList().leftPush(CODE_BATTLE_GRADING_QUEUE_KEY, jsonPayload);
+                log.info("{}번 ai 매치 큐 전송 완료");
+            }
+            log.info("\"코드 배틀 제출 완료 (ID: {} )", submission.getId());
+
+            Long userId = submission.getUser().getId();
+            Long contestId = submission.getContest().getId();
+
+            CodeBattleParticipant participant = participantRepository
+                    .findByUserIdAndContestId(userId, contestId)
+                    .orElse(null);
+
+            // 참가 신청 이력이 없으면 최종 제출을 기록할 수 없다.
+            if (participant == null) {
+                return ResponseEntity
+                        .badRequest()
+                        .body(new CodeSubmitResponse(false, "참가 신청 이력이 없습니다."));
             }
 
+            // AUTO 모드면 최신 제출로 갱신, MANUAL 모드는 사용자 선택 유지
+            if (!participant.isManual()) {
+                participant.setSubmission(submission);
+                participantRepository.save(participant);
+            }
             return ResponseEntity.ok(new CodeSubmitResponse(true, "코드 배틀 제출 완료 (ID: " + submission.getId() + ")"));
 
         } catch (Exception e) {
@@ -178,7 +201,7 @@ public class CodeController {
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
             ObjectNode rootNode = objectMapper.createObjectNode();
-            
+
             rootNode.put("userId", request.getUserId());
             rootNode.put("judge", contest.getJudgeCode());
             rootNode.put("player1", request.getSourceCode1());

@@ -489,13 +489,8 @@ public class ContestService {
     private void saveExampleAiCodes(CodeBattleContest contest, List<String> exampleAiCodes) {
         List<CodeBattleExampleAI> entities = new ArrayList<>();
         int order = 1;
-<<<<<<< HEAD
         for (String exampleAiCode : exampleAiCodes) {
-            entities.add(new CodeBattleExampleAI(contest, order, exampleAiCode));
-=======
-        for (String exampleAiUrl : exampleAiUrls) {
-            entities.add(new CodeBattleExampleAI(contest, order, "", exampleAiUrl));
->>>>>>> origin/dev/mid
+            entities.add(new CodeBattleExampleAI(contest, order, "", exampleAiCode));
             order++;
         }
         exampleAIRepository.saveAll(entities);
@@ -555,10 +550,10 @@ public class ContestService {
     public ContestResponse getContestResponse(Long contestId) {
         CodeBattleContest contest = getContestById(contestId);
         applyResourceUrlsIfMissing(contest);
-        return ContestResponse.from(contest, getExampleAiUrls(contestId));
+        return ContestResponse.from(contest, getExampleAiCodes(contestId));
     }
 
-    private List<String> getExampleAiUrls(Long contestId) {
+    private List<String> getExampleAiCodes(Long contestId) {
         return exampleAIRepository.findByContestIdOrderByExampleOrderAsc(contestId)
                 .stream()
                 .map(CodeBattleExampleAI::getCode)
