@@ -23,7 +23,7 @@ import lombok.Setter;
  */
 @Entity
 @Table(name = "contest_reviewer", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_contest_reviewer_email", columnNames = {"contest_id", "reviewer_email"})
+  @UniqueConstraint(name = "uk_contest_reviewer_email", columnNames = { "contest_id", "reviewer_email" })
 })
 @Getter
 @Setter
