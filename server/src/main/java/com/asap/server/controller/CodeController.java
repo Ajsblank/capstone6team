@@ -174,13 +174,10 @@ public class CodeController {
 
             // 참가 신청 이력이 없으면 최종 제출을 기록할 수 없다.
             if (participant == null) {
-                return ResponseEntity
-                        .badRequest()
-                        .body(new CodeSubmitResponse(false, "참가 신청 이력이 없습니다."));
+                log.info("참가 신청 이력이 없어 최종 제출 스킵");
             }
-
             // AUTO 모드면 최신 제출로 갱신, MANUAL 모드는 사용자 선택 유지
-            if (!participant.isManual()) {
+            else if (!participant.isManual()) {
                 participant.setSubmission(submission);
                 participantRepository.save(participant);
             }

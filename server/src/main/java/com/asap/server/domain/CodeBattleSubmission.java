@@ -3,9 +3,6 @@ package com.asap.server.domain;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import com.asap.server.global.type.Language;
 
 import jakarta.persistence.Column;
@@ -42,8 +39,7 @@ public class CodeBattleSubmission {
   private CodeBattleContest contest;
 
   @Enumerated(EnumType.STRING)
-  @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-  @Column(columnDefinition = "language", nullable = false)
+  @Column(columnDefinition = "language")
   private Language language;
 
   @Column(name = "code_url", columnDefinition = "TEXT")
