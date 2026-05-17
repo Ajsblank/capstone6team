@@ -177,7 +177,7 @@ public class RedisResultWorker implements CommandLineRunner {
             JsonNode rootNode = objectMapper.readTree(rawData);
             
             // 채점 서버가 보내주는 데이터 타입에 맞게 파싱 방법을 선택하세요 (String vs Long)
-            String userIdStr = rootNode.get("userid").asText();
+            String userIdStr = rootNode.get("userId").asText();
             Long targetUserId = Long.parseLong(userIdStr); 
             
             String resultLog = rootNode.get("log").asText();
