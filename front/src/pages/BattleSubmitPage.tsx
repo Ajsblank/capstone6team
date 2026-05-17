@@ -493,7 +493,7 @@ const SubmitPage: React.FC = () => {
 
         {activeTab === "review" && isReviewer && (
           <div className="full-panel" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            <ReviewTab contestId={problemId} />
+            <ReviewTab contestId={problemId} onLogClick={handleLogClick} />
           </div>
         )}
       </div>
