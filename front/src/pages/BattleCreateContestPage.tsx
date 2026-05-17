@@ -190,7 +190,6 @@ const BattleCreateContestPage: React.FC = () => {
             <p className="cc-modal-msg">대회가 성공적으로 등록되었습니다.</p>
             <div className="cc-modal-info">
               <div className="cc-modal-info-row"><span className="cc-modal-info-label">ID</span><span className="cc-modal-info-value">{createdContest.id}</span></div>
-              <div className="cc-modal-info-row"><span className="cc-modal-info-label">상태</span><span className="cc-modal-info-value">{createdContest.status}</span></div>
               <div className="cc-modal-info-row"><span className="cc-modal-info-label">생성 일시</span><span className="cc-modal-info-value">{new Date(createdContest.createdAt).toLocaleString("ko-KR")}</span></div>
             </div>
             <button className="cc-modal-confirm" onClick={() => { setCreatedContest(null); navigate("battle"); }}>확인</button>
