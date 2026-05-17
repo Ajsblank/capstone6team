@@ -17,6 +17,7 @@ import com.asap.server.domain.CodeBattleExampleAI;
 import com.asap.server.domain.CodeBattleSubmission;
 import com.asap.server.domain.Users;
 import com.asap.server.dto.request.CodeSubmitRequest;
+import com.asap.server.dto.request.CodeBattleRequest;
 import com.asap.server.dto.response.CodeSubmitResponse;
 import com.asap.server.repository.AlgorithmProblemRepository;
 import com.asap.server.repository.CodeBattleContestRepository;
@@ -51,6 +52,7 @@ public class CodeController {
     private static final String SUBMISSION_COUNT_KEY = "submission_count";
     private static final String GRADING_QUEUE_KEY = "algorithms_grading_queue";
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
+    private static final String CODE_BATTLE_TEST_QUEUE_KEY = "code_battle_test_queue";
 
     @PostMapping("/submit")
     @Operation(description = "language는 eunm 타입입니다. (CPP,PYTHON,JAVA,C)")
@@ -163,6 +165,32 @@ public class CodeController {
 
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new CodeSubmitResponse(false, e.getMessage()));
+        }
+    }
+
+    @PostMapping("/submit/test")
+    public ResponseEntity<String> submitCodeBattleTest(@Valid @RequestBody CodeBattleRequest request) {
+        try {
+            CodeBattleContest contest = contestRepository.findById(Long.parseLong(request.getProblemId()))
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대회입니다."));
+
+            Users user = userRepository.findById(Long.parseLong(request.getUserId()))
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
+
+            ObjectNode rootNode = objectMapper.createObjectNode();
+            
+            rootNode.put("userid", request.getUserId());
+            rootNode.put("judge", contest.getJudgeCode());
+            rootNode.put("player1", request.getSourceCode1());
+            rootNode.put("player2", request.getSourceCode2());
+
+            String jsonPayload = objectMapper.writeValueAsString(rootNode);
+            redisTemplate.opsForList().leftPush(CODE_BATTLE_TEST_QUEUE_KEY, jsonPayload);
+
+            return ResponseEntity.ok("채점 대기열에 등록되었습니다.");
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 }
