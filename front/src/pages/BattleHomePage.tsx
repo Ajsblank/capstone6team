@@ -5,9 +5,17 @@ import "./AppLayout.css";
 import "./BattleHomePage.css";
 
 type BattleTab = "contest" | "ranking" | "help";
+type StatusFilter = "" | "RUNNING" | "PLANNED" | "ENDED";
 
-const PAGE_SIZE = 10;
+const FETCH_SIZE = 100;
 const VALID_BATTLE_TABS: BattleTab[] = ["contest", "ranking", "help"];
+
+const STATUS_LABEL: Record<string, string> = {
+  RUNNING: "개최 중",
+  PLANNED: "개최 예정",
+  ENDED:   "종료",
+  TEST:    "TEST",
+};
 
 function getTabFromHash(): BattleTab {
   const parts = window.location.hash.replace("#", "").split("/");
@@ -21,11 +29,24 @@ const BattlePage: React.FC = () => {
 
   // 대회 목록 상태
   const [contests, setContests] = useState<ContestItem[]>([]);
-  const [contestPage, setContestPage] = useState(0);
-  const [contestTotalPages, setContestTotalPages] = useState(0);
   const [contestLoading, setContestLoading] = useState(false);
   const [contestError, setContestError] = useState<string | null>(null);
   const [blockedPopup, setBlockedPopup] = useState(false);
+
+  // 필터 상태
+  const [filterStatus, setFilterStatus]       = useState<StatusFilter>("");
+  const [filterName,   setFilterName]         = useState("");
+  const [filterStartFrom, setFilterStartFrom] = useState("");
+  const [filterEndTo,     setFilterEndTo]     = useState("");
+
+  const hasFilters = !!(filterStatus || filterName || filterStartFrom || filterEndTo);
+
+  const resetFilters = () => {
+    setFilterStatus("");
+    setFilterName("");
+    setFilterStartFrom("");
+    setFilterEndTo("");
+  };
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -44,14 +65,13 @@ const BattlePage: React.FC = () => {
     setActiveTab(tab);
   };
 
-  const fetchContests = useCallback(async (page: number) => {
+  const fetchContests = useCallback(async () => {
     setContestLoading(true);
     setContestError(null);
     try {
-      const data = await getContestList(page, PAGE_SIZE, ["id,desc"]);
+      const data = await getContestList(0, FETCH_SIZE, ["id,desc"]);
       setContests(data.content);
-      setContestTotalPages(data.totalPages);
-    } catch (e: any) {
+    } catch {
       setContestError("대회 목록을 불러오지 못했습니다.");
     } finally {
       setContestLoading(false);
@@ -59,8 +79,29 @@ const BattlePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (activeTab === "contest") fetchContests(contestPage);
-  }, [activeTab, contestPage, fetchContests]);
+    if (activeTab === "contest") fetchContests();
+  }, [activeTab, fetchContests]);
+
+  // 필터 + 우선순위 정렬
+  const filteredContests = [...contests]
+    .sort((a, b) => {
+      const ap = joinedContestIds.includes(a.id) || hostedContestIds.includes(a.id) ? 0 : 1;
+      const bp = joinedContestIds.includes(b.id) || hostedContestIds.includes(b.id) ? 0 : 1;
+      return ap - bp;
+    })
+    .filter(c => {
+      if (filterStatus && c.status !== filterStatus) return false;
+      if (filterName && !c.title.toLowerCase().includes(filterName.toLowerCase())) return false;
+      if (filterStartFrom && c.startTime) {
+        if (new Date(c.startTime) < new Date(filterStartFrom)) return false;
+      }
+      if (filterEndTo && c.endTime) {
+        const to = new Date(filterEndTo);
+        to.setHours(23, 59, 59, 999);
+        if (new Date(c.endTime) > to) return false;
+      }
+      return true;
+    });
 
   return (
     <div className="home-page battle-home-page">
@@ -121,12 +162,53 @@ const BattlePage: React.FC = () => {
           <div className="bp-contest">
             <div className="bp-contest-header">
               <h2 className="bp-contest-title">대회 목록</h2>
-              <button
-                className="bp-create-contest-btn"
-                onClick={() => navigate("create-contest")}
-              >
+              <button className="bp-create-contest-btn" onClick={() => navigate("create-contest")}>
                 + 대회 개최
               </button>
+            </div>
+
+            {/* ── 필터 바 ── */}
+            <div className="bp-filter-bar">
+              <select
+                className="bp-filter-select"
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value as StatusFilter)}
+              >
+                <option value="">전체 상태</option>
+                <option value="RUNNING">진행 중</option>
+                <option value="PLANNED">예정</option>
+                <option value="ENDED">종료</option>
+              </select>
+
+              <input
+                className="bp-filter-input"
+                type="text"
+                placeholder="대회명 검색"
+                value={filterName}
+                onChange={e => setFilterName(e.target.value)}
+              />
+
+              <div className="bp-filter-date-group">
+                <label className="bp-filter-date-label">시작일</label>
+                <input
+                  className="bp-filter-date"
+                  type="date"
+                  value={filterStartFrom}
+                  onChange={e => setFilterStartFrom(e.target.value)}
+                />
+                <span className="bp-filter-date-sep">~</span>
+                <label className="bp-filter-date-label">종료일</label>
+                <input
+                  className="bp-filter-date"
+                  type="date"
+                  value={filterEndTo}
+                  onChange={e => setFilterEndTo(e.target.value)}
+                />
+              </div>
+
+              {hasFilters && (
+                <button className="bp-filter-reset" onClick={resetFilters}>초기화</button>
+              )}
             </div>
 
             {contestLoading && (
@@ -141,85 +223,66 @@ const BattlePage: React.FC = () => {
               </div>
             )}
 
-            {!contestLoading && !contestError && contests.length === 0 && (
-              <div className="bp-contest-empty">
-                <span className="bp-contest-empty-text">아직 등록된 대회가 없습니다.</span>
-              </div>
-            )}
-
-            {!contestLoading && !contestError && contests.length > 0 && (
+            {!contestLoading && !contestError && (
               <>
-                <div className="bp-problem-list">
-                  {[...contests]
-                    .sort((a, b) => {
-                      const aPriority = joinedContestIds.includes(a.id) || hostedContestIds.includes(a.id) ? 0 : 1;
-                      const bPriority = joinedContestIds.includes(b.id) || hostedContestIds.includes(b.id) ? 0 : 1;
-                      return aPriority - bPriority;
-                    })
-                    .map((c) => (
-                    <div
-                      key={c.id}
-                      className="bp-problem-card"
-                      onClick={() => {
-                        if (c.status === "PLANNED") { setBlockedPopup(true); return; }
-                        window.location.hash = `submit/${c.id}`;
-                      }}
-                    >
-                      <div className="bp-problem-card-left">
-                        <span className="bp-problem-num">#{c.id}</span>
-                        <div>
-                          <p className="bp-problem-title">
-                            {c.title}
-                            {joinedContestIds.includes(c.id) && (
-                              <span className="bp-contest-badge bp-contest-badge--joined">참가중</span>
-                            )}
-                            {hostedContestIds.includes(c.id) && (
-                              <span className="bp-contest-badge bp-contest-badge--hosted">검수중</span>
-                            )}
-                          </p>
-                          {c.description && (
-                            <p className="bp-problem-desc">{c.description}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="bp-problem-card-right">
-                        {c.status && (
-                          <span className={`bp-problem-difficulty${
-                            c.status === "TEST"    ? " bp-problem-difficulty--test"    :
-                            c.status === "PLANNED" ? " bp-problem-difficulty--planned" :
-                            c.status === "RUNNING" ? " bp-problem-difficulty--running" : ""
-                          }`}>
-                            {c.status === "PLANNED" ? "개최 예정" :
-                             c.status === "RUNNING" ? "개최 중" :
-                             c.status}
-                          </span>
-                        )}
-                        <span className="bp-problem-arrow">→</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {contestTotalPages > 1 && (
-                  <div className="bp-pagination">
-                    <button
-                      className="bp-page-btn"
-                      disabled={contestPage === 0}
-                      onClick={() => setContestPage((p) => p - 1)}
-                    >
-                      ← 이전
-                    </button>
-                    <span className="bp-page-info">
-                      {contestPage + 1} / {contestTotalPages}
+                {filteredContests.length === 0 ? (
+                  <div className="bp-contest-empty">
+                    <span className="bp-contest-empty-text">
+                      {hasFilters ? "조건에 맞는 대회가 없습니다." : "아직 등록된 대회가 없습니다."}
                     </span>
-                    <button
-                      className="bp-page-btn"
-                      disabled={contestPage >= contestTotalPages - 1}
-                      onClick={() => setContestPage((p) => p + 1)}
-                    >
-                      다음 →
-                    </button>
                   </div>
+                ) : (
+                  <>
+                    <p className="bp-filter-count">총 {filteredContests.length}개 대회</p>
+                    <div className="bp-problem-list">
+                      {filteredContests.map(c => (
+                        <div
+                          key={c.id}
+                          className="bp-problem-card"
+                          onClick={() => {
+                            if (c.status === "PLANNED") { setBlockedPopup(true); return; }
+                            window.location.hash = `submit/${c.id}`;
+                          }}
+                        >
+                          <div className="bp-problem-card-left">
+                            <span className="bp-problem-num">#{c.id}</span>
+                            <div>
+                              <p className="bp-problem-title">
+                                {c.title}
+                                {joinedContestIds.includes(c.id) && (
+                                  <span className="bp-contest-badge bp-contest-badge--joined">참가중</span>
+                                )}
+                                {hostedContestIds.includes(c.id) && (
+                                  <span className="bp-contest-badge bp-contest-badge--hosted">검수중</span>
+                                )}
+                              </p>
+                              {c.description && <p className="bp-problem-desc">{c.description}</p>}
+                              {(c.startTime || c.endTime) && (
+                                <p className="bp-problem-dates">
+                                  {c.startTime && <span>{new Date(c.startTime).toLocaleDateString("ko-KR")}</span>}
+                                  {c.startTime && c.endTime && <span> — </span>}
+                                  {c.endTime && <span>{new Date(c.endTime).toLocaleDateString("ko-KR")}</span>}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="bp-problem-card-right">
+                            {c.status && (
+                              <span className={`bp-problem-difficulty${
+                                c.status === "TEST"    ? " bp-problem-difficulty--test"    :
+                                c.status === "PLANNED" ? " bp-problem-difficulty--planned" :
+                                c.status === "RUNNING" ? " bp-problem-difficulty--running" :
+                                c.status === "ENDED"   ? " bp-problem-difficulty--ended"   : ""
+                              }`}>
+                                {STATUS_LABEL[c.status] ?? c.status}
+                              </span>
+                            )}
+                            <span className="bp-problem-arrow">→</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </>
             )}
