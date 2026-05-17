@@ -3,7 +3,10 @@ import { getAccessToken, applyAuthInterceptor } from "./authApi";
 
 const BASE_URL = (process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
 
-const api = axios.create({ baseURL: BASE_URL });
+const api = axios.create({
+  baseURL: BASE_URL,
+  headers: { "Content-Type": "application/json" },
+});
 
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
@@ -56,6 +59,12 @@ export const patchContest = async (contestId: number, data: PatchContestData): P
   await api.patch(`/api/contests/${contestId}`, data);
 };
 
+const htmlToText = (html: string): string => {
+  const el = document.createElement("div");
+  el.innerHTML = html;
+  return (el.textContent ?? el.innerText ?? "").trim();
+};
+
 // ── 비인증 대회 생성 — POST /api/contests/create/uncertified ──
 export const createContest = async (data: CreateContestData): Promise<ContestResponse> => {
   const [sampleCode, judgeCode] = await Promise.all([
@@ -68,7 +77,7 @@ export const createContest = async (data: CreateContestData): Promise<ContestRes
 
   const { data: res } = await api.post<ContestResponse>("/api/contests/create/uncertified", {
     title:           data.title,
-    description:     data.description,
+    description:     htmlToText(data.description),
     certification:   data.certification,
     timeLimitSec:    data.timeLimitSec,
     memoryLimitMb:   data.memoryLimitMb,
@@ -101,7 +110,7 @@ export const createCertifiedContest = async (
 
   const { data: res } = await api.post<ContestResponse>("/api/contests/create/certified", {
     title:           data.title,
-    description:     data.description,
+    description:     htmlToText(data.description),
     certification:   data.certification,
     timeLimitSec:    data.timeLimitSec,
     memoryLimitMb:   data.memoryLimitMb,

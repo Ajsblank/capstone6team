@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from "react";
 import Editor from "@monaco-editor/react";
 import { reviewContest } from "../api/codeBattleApi";
+import { useApp } from "../context/AppContext";
 import { Language } from "../types/index";
 import "./ReviewTab.css";
 
@@ -23,6 +24,7 @@ interface Props {
 }
 
 const ReviewTab: React.FC<Props> = ({ contestId }) => {
+  const { user } = useApp();
   const [lang1, setLang1] = useState<Language>("python");
   const [code1, setCode1] = useState(CODE_DEFAULTS["python"]);
   const [lang2, setLang2] = useState<Language>("python");
@@ -67,9 +69,10 @@ const ReviewTab: React.FC<Props> = ({ contestId }) => {
 
     try {
       const res = await reviewContest(
-        contestId,
-        code1, lang1.toUpperCase(),
-        code2, lang2.toUpperCase(),
+        String(user?.id ?? ""),
+        String(contestId),
+        code1,
+        code2,
         controller.signal
       );
       clearTimer();
