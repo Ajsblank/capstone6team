@@ -9,6 +9,7 @@ interface Props {
   onJoin?: () => Promise<void>;
   joinStatus?: "idle" | "joining" | "joined" | "error";
   joinError?: string;
+  isReviewer?: boolean;
   onEdit?: () => void;  // 개최자 본인일 때만 전달됨
 }
 
@@ -28,7 +29,7 @@ function formatDateTime(dt: string): string {
   });
 }
 
-const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin, joinStatus = "idle", joinError, onEdit }) => {
+const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin, joinStatus = "idle", joinError, isReviewer, onEdit }) => {
   if (loading) {
     return (
       <div className="prob" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -110,10 +111,12 @@ const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin,
         <section className="prob-section prob-join-section">
           <button
             className={`prob-join-btn${joinStatus === "joined" ? " prob-join-btn--done" : ""}`}
-            onClick={onJoin}
-            disabled={joinStatus === "joining" || joinStatus === "joined"}
+            onClick={isReviewer ? undefined : onJoin}
+            disabled={isReviewer || joinStatus === "joining" || joinStatus === "joined"}
+            title={isReviewer ? "검수자는 해당 대회에 참가할 수 없습니다" : undefined}
           >
-            {joinStatus === "joining" ? "참가 신청 중..." :
+            {isReviewer        ? "검수자 (참가 불가)" :
+             joinStatus === "joining" ? "참가 신청 중..." :
              joinStatus === "joined"  ? "✓ 참가 완료" :
              "대회 참가"}
           </button>

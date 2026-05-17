@@ -257,7 +257,7 @@ const BattlePage: React.FC = () => {
                           key={c.id}
                           className={`bp-problem-card${statusCardClass(c.status)}`}
                           onClick={() => {
-                            if (c.status === "PLANNED") { setBlockedPopup(true); return; }
+                            if (c.status === "PLANNED" && !hostedContestIds.includes(c.id)) { setBlockedPopup(true); return; }
                             window.location.hash = `submit/${c.id}`;
                           }}
                         >
