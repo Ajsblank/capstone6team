@@ -622,6 +622,58 @@
   font-weight: 400;
 }
 
+/* ── Step indicator (certified mode) ── */
+.cc-step-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: opacity 0.2s;
+}
+.cc-step-section--dim { opacity: 0.38; }
+
+.cc-step-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cc-step-badge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #ea580c;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  padding: 2px 7px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cc-step-badge--2 {
+  color: #7c3aed;
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+}
+
+.cc-step-done-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  border-radius: 10px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.cc-step-connector {
+  width: 1px;
+  height: 18px;
+  background: linear-gradient(to bottom, #fed7aa, #ddd6fe);
+  margin-left: 14px;
+  flex-shrink: 0;
+}
+
 /* ── Title row (name + cert toggle inline) ── */
 .cc-title-row {
   display: flex;
