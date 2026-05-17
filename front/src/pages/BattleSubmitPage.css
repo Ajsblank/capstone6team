@@ -100,6 +100,8 @@
 .sp-sub-tab-btn--active { color: #ea580c; border-bottom-color: #ea580c; font-weight: 600; }
 .sp-sub-tab-btn--disabled { opacity: 0.38; cursor: not-allowed; }
 .sp-sub-tab-btn--disabled:hover { color: #6b7280; }
+.sp-sub-tab-btn--unavailable { color: #f97316; opacity: 0.45; cursor: not-allowed; }
+.sp-sub-tab-btn--unavailable:hover { color: #f97316; }
 
 .page-body {
   flex: 1; overflow: hidden;

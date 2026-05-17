@@ -132,7 +132,7 @@ const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin,
       )}
 
       {/* 예제 코드 */}
-      {detail.exampleCode && (
+      {detail.sampleCode && (
         <section className="prob-section">
           <h2>예제 코드</h2>
           <pre style={{
@@ -146,7 +146,7 @@ const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin,
             lineHeight: 1.6,
             margin: 0,
           }}>
-            <code>{detail.exampleCode}</code>
+            <code>{detail.sampleCode}</code>
           </pre>
         </section>
       )}

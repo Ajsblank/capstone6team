@@ -39,7 +39,7 @@ const EditContestModal: React.FC<Props> = ({ contestId, initial, onClose, onSave
   const [status, setStatus]               = useState<ContestStatus>(initial.status as ContestStatus);
   const [startDate, setStartDate]         = useState(toInputDatetime(initial.startDate));
   const [endDate, setEndDate]             = useState(toInputDatetime(initial.endDate));
-  const [exampleCode, setExampleCode]     = useState(initial.exampleCode ?? "");
+  const [sampleCode, setExampleCode]     = useState(initial.sampleCode ?? "");
   const [judgeCode, setJudgeCode]         = useState("");
 
   const [saving, setSaving] = useState(false);
@@ -69,7 +69,7 @@ const EditContestModal: React.FC<Props> = ({ contestId, initial, onClose, onSave
       status,
       startDate:      startDate ? toApiDatetime(startDate) : undefined,
       endDate:        endDate   ? toApiDatetime(endDate)   : undefined,
-      exampleCode:    exampleCode || undefined,
+      sampleCode:    sampleCode || undefined,
       judgeCode:      judgeCode.trim() || undefined,
     };
 
@@ -85,7 +85,7 @@ const EditContestModal: React.FC<Props> = ({ contestId, initial, onClose, onSave
         status:          payload.status,
         startDate:       payload.startDate,
         endDate:         payload.endDate,
-        exampleCode:     payload.exampleCode,
+        sampleCode:     payload.sampleCode,
       });
       onClose();
     } catch (err: any) {
@@ -163,7 +163,7 @@ const EditContestModal: React.FC<Props> = ({ contestId, initial, onClose, onSave
           {/* 예제 코드 */}
           <div className="ecm-field">
             <label className="ecm-label">예제 코드</label>
-            <textarea className="ecm-textarea ecm-textarea--code" value={exampleCode} onChange={e => setExampleCode(e.target.value)} spellCheck={false} />
+            <textarea className="ecm-textarea ecm-textarea--code" value={sampleCode} onChange={e => setExampleCode(e.target.value)} spellCheck={false} />
           </div>
 
           {/* 채점 코드 */}

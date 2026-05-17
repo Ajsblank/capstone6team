@@ -10,7 +10,8 @@ import "./BattleCreateContestPage.css";
 const BattleCreateCertifiedPage: React.FC = () => {
   const { user, logout, navigate } = useApp();
 
-  const [emails, setEmails] = useState<string[]>([""]);
+  const hostEmail = user?.email ?? "";
+  const [emails, setEmails] = useState<string[]>([]);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [createdContest, setCreatedContest] = useState<ContestResponse | null>(null);
@@ -31,12 +32,14 @@ const BattleCreateCertifiedPage: React.FC = () => {
       return;
     }
 
-    const validEmails = emails.map(e => e.trim()).filter(Boolean);
-    if (validEmails.length === 0) {
+    if (!hostEmail) {
       setSubmitStatus("error");
-      setErrorMsg("검수자 이메일을 최소 1개 입력해주세요.");
+      setErrorMsg("로그인 정보에 이메일이 없습니다. 다시 로그인해주세요.");
       return;
     }
+
+    const additionalEmails = emails.map(e => e.trim()).filter(e => e && e !== hostEmail);
+    const validEmails = [hostEmail, ...additionalEmails];
 
     setSubmitStatus("submitting");
     setErrorMsg("");
@@ -128,6 +131,19 @@ const BattleCreateCertifiedPage: React.FC = () => {
                   </p>
 
                   <div className="cc-reviewer-list">
+                    {/* 개최자 이메일 — 기본 포함, 비활성화 */}
+                    <div className="cc-reviewer-row cc-reviewer-row--default">
+                      <input
+                        className="cc-input"
+                        type="email"
+                        value={hostEmail}
+                        disabled
+                        readOnly
+                      />
+                      <span className="cc-reviewer-badge">개최자</span>
+                    </div>
+
+                    {/* 추가 검수자 이메일 */}
                     {emails.map((email, i) => (
                       <div key={i} className="cc-reviewer-row">
                         <input
@@ -137,16 +153,14 @@ const BattleCreateCertifiedPage: React.FC = () => {
                           value={email}
                           onChange={e => handleEmailChange(i, e.target.value)}
                         />
-                        {emails.length > 1 && (
-                          <button
-                            type="button"
-                            className="cc-reviewer-remove"
-                            onClick={() => handleRemoveEmail(i)}
-                            aria-label="이메일 삭제"
-                          >
-                            ✕
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          className="cc-reviewer-remove"
+                          onClick={() => handleRemoveEmail(i)}
+                          aria-label="이메일 삭제"
+                        >
+                          ✕
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -188,7 +202,7 @@ const BattleCreateCertifiedPage: React.FC = () => {
                   { label: "시작 일시",               done: !!draft.startDate },
                   { label: "종료 일시",               done: !!draft.endDate },
                 ] : [];
-                const validReviewerCount = emails.filter(e => e.trim()).length;
+                const validReviewerCount = (hostEmail ? 1 : 0) + emails.filter(e => e.trim()).length;
                 return (
                   <ContestSidebar
                     currentStep={2}

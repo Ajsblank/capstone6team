@@ -19,14 +19,16 @@ export interface ContestDetail {
   certification: boolean;
   timeLimitSec: number;
   memoryLimitMb: number;
-  exampleCode: string;
+  sampleCode: string;
   status: string;
+  visualizationHtml: string;
+  soloPlayHtml: string;
   startDate: string;
   endDate: string;
   maxParticipants: number;
   createdAt: string;
-  // TODO: 백엔드 creatorId 반환 구현 후 활성화
-  // creatorId: string;
+  exampleAiCodes: string[];
+  creator_id: number;
 }
 
 export interface ContestListResponse {
