@@ -250,8 +250,9 @@ public class ContestController {
             @PathVariable Long contestId,
             @PathVariable Long targetUserId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-
+                log.info("조회 시도: {} / {}", contestId, targetUserId);
         List<CodeBattleMySubmissionResponse> responses = submissionService.getMySubmissionsWithAi(contestId, targetUserId);
+        log.info("조회: {}", responses);
         return ResponseEntity.ok(responses);
     }
 
