@@ -48,7 +48,7 @@ export interface PatchContestData {
   timeLimitSec?: number;
   memoryLimitMb?: number;
   judgeCode?: string;
-  exampleCode?: string;
+  sampleCode?: string;
   status?: ContestStatus;
   startDate?: string;
   endDate?: string;

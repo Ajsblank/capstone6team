@@ -30,7 +30,7 @@ export interface LocalSubmission {
   error?: string;               // 채점 오류 메시지
 }
 
-interface TabDef { id: Tab; label: string; disabled?: boolean; tooltip?: string; }
+interface TabDef { id: Tab; label: string; disabled?: boolean; unavailable?: boolean; tooltip?: string; }
 
 const BASE_TAB_LIST: TabDef[] = [
   { id: "problem",        label: "문제" },
@@ -90,16 +90,24 @@ const SubmitPage: React.FC = () => {
   );
   const [joinError, setJoinError] = useState("");
 
+  // contestDetail 로드 전(null)에는 탭 비활성화하지 않음
+  const viz1Available = !contestDetail || !!contestDetail.visualizationHtml?.trim();
+  const viz2Available = !contestDetail || !!contestDetail.soloPlayHtml?.trim();
+
   const isJoined = joinedContestIds.includes(problemId) || joinStatus === "joined";
 
   const TAB_LIST: TabDef[] = [
     ...BASE_TAB_LIST,
     ...(isReviewer ? [{ id: "review" as Tab, label: "검수" }] : []),
-  ].map(tab =>
-    !tab.disabled && !isJoined && PARTICIPATION_REQUIRED_TABS.includes(tab.id)
-      ? { ...tab, disabled: true, tooltip: "대회에 참가 후 이용 가능합니다" }
-      : tab
-  );
+  ].map(tab => {
+    if (!tab.disabled && !isJoined && PARTICIPATION_REQUIRED_TABS.includes(tab.id))
+      return { ...tab, disabled: true, tooltip: "대회에 참가 후 이용 가능합니다" };
+    if (tab.id === "viz1" && !viz1Available)
+      return { ...tab, unavailable: true, tooltip: "콘텐츠가 준비되지 않았습니다" };
+    if (tab.id === "viz2" && !viz2Available)
+      return { ...tab, unavailable: true, tooltip: "콘텐츠가 준비되지 않았습니다" };
+    return tab;
+  });
 
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -238,6 +246,17 @@ const SubmitPage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isJoined]);
 
+  // 콘텐츠 없는 탭 직접 접근 시 문제 탭으로 이동
+  useEffect(() => {
+    if (!contestDetail) return;
+    if ((activeTab === "viz1" && !contestDetail.visualizationHtml?.trim()) ||
+        (activeTab === "viz2" && !contestDetail.soloPlayHtml?.trim())) {
+      window.location.hash = `submit/${problemId}/problem`;
+      setHashState(prev => ({ ...prev, tab: "problem" }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contestDetail]);
+
   const handleTabChange = useCallback((tab: Tab) => {
     window.location.hash = `submit/${problemId}/${tab}`;
     setHashState(prev => ({ ...prev, tab }));
@@ -368,9 +387,14 @@ const SubmitPage: React.FC = () => {
         {TAB_LIST.map((tab) => (
           <button
             key={tab.id}
-            className={`sp-sub-tab-btn${activeTab === tab.id ? " sp-sub-tab-btn--active" : ""}${tab.disabled ? " sp-sub-tab-btn--disabled" : ""}`}
+            className={[
+              "sp-sub-tab-btn",
+              activeTab === tab.id ? "sp-sub-tab-btn--active" : "",
+              tab.disabled    ? "sp-sub-tab-btn--disabled"    : "",
+              tab.unavailable ? "sp-sub-tab-btn--unavailable" : "",
+            ].filter(Boolean).join(" ")}
             title={tab.tooltip}
-            onClick={tab.disabled ? undefined : () => handleTabChange(tab.id)}
+            onClick={tab.disabled || tab.unavailable ? undefined : () => handleTabChange(tab.id)}
           >
             {tab.label}
           </button>
@@ -420,11 +444,11 @@ const SubmitPage: React.FC = () => {
         )}
 
         {/* viz1: 로그 분석 — pendingLog를 iframe에 postMessage로 전달 */}
-        {activeTab === "viz1" && (
+        {activeTab === "viz1" && contestDetail?.visualizationHtml && (
           <div className="full-panel" style={{ height: "800px" }}>
             <iframe
               ref={logIframeRef}
-              src="/chito_battle_log.html"
+              srcdoc={contestDetail.visualizationHtml}
               title="Battle Log Analysis"
               width="100%"
               height="100%"
@@ -434,10 +458,10 @@ const SubmitPage: React.FC = () => {
           </div>
         )}
 
-        {activeTab === "viz2" && (
+        {activeTab === "viz2" && contestDetail?.soloPlayHtml && (
           <div className="full-panel" style={{ height: "800px" }}>
             <iframe
-              src="/chito_battle_self.html"
+              srcdoc={contestDetail.soloPlayHtml}
               title="Demon Tournament Game"
               width="100%"
               height="100%"
