@@ -30,7 +30,7 @@ public class CodeBattleExampleAI {
   private CodeBattleContest contest;
 
   @Column(name = "example_order")
-  private Integer exampleOrder;
+  private Long exampleOrder;
 
   @Column(columnDefinition = "TEXT")
   private String description;
@@ -41,10 +41,16 @@ public class CodeBattleExampleAI {
   @Column(nullable = false)
   private LocalDateTime created_at;
 
-  public CodeBattleExampleAI(CodeBattleContest contest, Integer exampleOrder, String description, String code) {
+  public CodeBattleExampleAI(CodeBattleContest contest, Long exampleOrder, String description, String code) {
     this.contest = contest;
     this.exampleOrder = exampleOrder;
     this.description = description;
+    this.code = code;
+  }
+
+  public CodeBattleExampleAI(CodeBattleContest contest, Long exampleOrder, String code) {
+    this.contest = contest;
+    this.exampleOrder = exampleOrder;
     this.code = code;
   }
 

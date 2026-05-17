@@ -215,7 +215,7 @@ CREATE TABLE contest_schedule (
     scheduled_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT fk_contest_id FOREIGN KEY (contest_id) REFERENCES code_battle_contest (id)
+    CONSTRAINT fk_contest_schedule_contest FOREIGN KEY (contest_id) REFERENCES code_battle_contest (id)
 );
 
 -- =========================================================
@@ -228,7 +228,7 @@ CREATE TABLE contest_swiss_session (
     session_number INT,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     finished_at TIMESTAMP,
-    CONSTRAINT fk_contest_id FOREIGN KEY (contest_id) REFERENCES code_battle_contest (id)
+    CONSTRAINT fk_contest_swiss_session_contest FOREIGN KEY (contest_id) REFERENCES code_battle_contest (id)
 );
 -- =========================================================
 -- CONTEST SWISS ROUND
