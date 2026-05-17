@@ -84,25 +84,19 @@ const BattlePage: React.FC = () => {
             대회
           </button>
           <button
-            className={`home-tab-btn${activeTab === "ranking" ? " home-tab-btn--active" : ""}`}
-            onClick={() => handleTabChange("ranking")}
+            className="home-tab-btn home-tab-btn--disabled"
+            title="준비 중인 기능입니다"
           >
             랭킹
           </button>
           <button
-            className={`home-tab-btn${activeTab === "help" ? " home-tab-btn--active" : ""}`}
-            onClick={() => handleTabChange("help")}
+            className="home-tab-btn home-tab-btn--disabled"
+            title="준비 중인 기능입니다"
           >
             도움말
           </button>
         </nav>
         <div className="home-auth-area">
-          <button
-            className="home-auth-btn home-auth-btn--ghost"
-            onClick={() => navigate("landing")}
-          >
-            메인
-          </button>
           {user ? (
             <>
               <span className="home-username" onClick={() => navigate("profile")}>{user.username}</span>

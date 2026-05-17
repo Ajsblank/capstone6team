@@ -39,6 +39,29 @@
   z-index: 90;
 }
 
+.sp-back-btn {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: "Segoe UI", sans-serif;
+  font-weight: 500;
+  padding: 0;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.sp-back-btn:hover { color: #ea580c; }
+
+.sp-problem-bar-divider {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background: #e5e7eb;
+  margin: 0 16px;
+  flex-shrink: 0;
+}
+
 .sp-problem-title {
   font-size: 1rem;
   font-weight: 800;
@@ -75,6 +98,8 @@
 }
 .sp-sub-tab-btn:hover { color: #111827; }
 .sp-sub-tab-btn--active { color: #ea580c; border-bottom-color: #ea580c; font-weight: 600; }
+.sp-sub-tab-btn--disabled { opacity: 0.38; cursor: not-allowed; }
+.sp-sub-tab-btn--disabled:hover { color: #6b7280; }
 
 .page-body {
   flex: 1; overflow: hidden;
@@ -100,3 +125,4 @@
   border-radius: 8px; border: 1px solid #e5e7eb;
   background: #ffffff;
 }
+

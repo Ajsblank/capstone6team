@@ -30,14 +30,16 @@ export interface LocalSubmission {
   error?: string;               // 채점 오류 메시지
 }
 
-const BASE_TAB_LIST: { id: Tab; label: string }[] = [
+interface TabDef { id: Tab; label: string; disabled?: boolean; tooltip?: string; }
+
+const BASE_TAB_LIST: TabDef[] = [
   { id: "problem",        label: "문제" },
   { id: "submit",         label: "제출" },
   { id: "my-submissions", label: "내 제출" },
   { id: "viz1",           label: "로그 분석" },
   { id: "viz2",           label: "혼자서 하기" },
-  { id: "leaderboard",    label: "리더보드" },
-  { id: "battle-results", label: "대결 결과" },
+  { id: "leaderboard",    label: "리더보드",   disabled: true, tooltip: "준비 중인 기능입니다" },
+  { id: "battle-results", label: "대결 결과",   disabled: true, tooltip: "준비 중인 기능입니다" },
 ];
 
 const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2", "leaderboard", "battle-results", "review"];
@@ -307,13 +309,11 @@ const SubmitPage: React.FC = () => {
           <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
         </span>
         <nav className="home-tab-nav">
-          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle/home"; }}>홈</button>
-          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle/problems"; }}>문제</button>
           <button className="home-tab-btn home-tab-btn--active" onClick={() => { window.location.hash = "battle/contest"; }}>대회</button>
-          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle/help"; }}>도움말</button>
+          <button className="home-tab-btn home-tab-btn--disabled" title="준비 중인 기능입니다">랭킹</button>
+          <button className="home-tab-btn home-tab-btn--disabled" title="준비 중인 기능입니다">도움말</button>
         </nav>
         <div className="home-auth-area">
-          <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("landing")}>메인</button>
           {user ? (
             <>
               <span className="home-username" onClick={() => navigate("profile")}>{user.username}</span>
@@ -334,6 +334,8 @@ const SubmitPage: React.FC = () => {
 
       {/* 문제 제목 바 */}
       <div className="sp-problem-bar">
+        <button className="sp-back-btn" onClick={() => navigate("battle")}>← 대회 목록</button>
+        <span className="sp-problem-bar-divider" />
         <span className="sp-problem-title">
           {contestDetailLoading ? "불러오는 중..." : (contestDetail?.title ?? "대회")}
         </span>
@@ -344,8 +346,9 @@ const SubmitPage: React.FC = () => {
         {TAB_LIST.map((tab) => (
           <button
             key={tab.id}
-            className={`sp-sub-tab-btn${activeTab === tab.id ? " sp-sub-tab-btn--active" : ""}`}
-            onClick={() => handleTabChange(tab.id)}
+            className={`sp-sub-tab-btn${activeTab === tab.id ? " sp-sub-tab-btn--active" : ""}${tab.disabled ? " sp-sub-tab-btn--disabled" : ""}`}
+            title={tab.tooltip}
+            onClick={tab.disabled ? undefined : () => handleTabChange(tab.id)}
           >
             {tab.label}
           </button>
