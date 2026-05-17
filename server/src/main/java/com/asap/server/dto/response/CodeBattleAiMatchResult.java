@@ -22,7 +22,7 @@ public class CodeBattleAiMatchResult {
         }
 
         return CodeBattleAiMatchResult.builder()
-                .aiId(1L)
+                .aiId(match.getAiOrder()+0l)
                 .status(status)
                 .log(match.getLog())
                 .build();
