@@ -17,7 +17,7 @@ import com.asap.server.domain.CodeBattleExampleAI;
 import com.asap.server.domain.CodeBattleSubmission;
 import com.asap.server.domain.Users;
 import com.asap.server.dto.request.CodeSubmitRequest;
-import com.asap.server.dto.request.CodeBattleRequest;
+import com.asap.server.dto.request.CodeBattleTestRequest;
 import com.asap.server.dto.response.CodeSubmitResponse;
 import com.asap.server.repository.AlgorithmProblemRepository;
 import com.asap.server.repository.CodeBattleContestRepository;
@@ -169,7 +169,7 @@ public class CodeController {
     }
 
     @PostMapping("/submit/test")
-    public ResponseEntity<String> submitCodeBattleTest(@Valid @RequestBody CodeBattleRequest request) {
+    public ResponseEntity<String> submitCodeBattleTest(@Valid @RequestBody CodeBattleTestRequest request) {
         try {
             CodeBattleContest contest = contestRepository.findById(Long.parseLong(request.getProblemId()))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대회입니다."));
@@ -179,7 +179,7 @@ public class CodeController {
 
             ObjectNode rootNode = objectMapper.createObjectNode();
             
-            rootNode.put("userid", request.getUserId());
+            rootNode.put("userId", request.getUserId());
             rootNode.put("judge", contest.getJudgeCode());
             rootNode.put("player1", request.getSourceCode1());
             rootNode.put("player2", request.getSourceCode2());
