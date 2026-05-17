@@ -4,15 +4,15 @@ import { getContestList, ContestItem } from "../api/codeBattleApi";
 import "./AppLayout.css";
 import "./BattleHomePage.css";
 
-type BattleTab = "home" | "problems" | "contest" | "help";
+type BattleTab = "contest" | "ranking" | "help";
 
 const PAGE_SIZE = 10;
-const VALID_BATTLE_TABS: BattleTab[] = ["home", "problems", "contest", "help"];
+const VALID_BATTLE_TABS: BattleTab[] = ["contest", "ranking", "help"];
 
 function getTabFromHash(): BattleTab {
   const parts = window.location.hash.replace("#", "").split("/");
   const tab = parts[1] as BattleTab;
-  return VALID_BATTLE_TABS.includes(tab) ? tab : "home";
+  return VALID_BATTLE_TABS.includes(tab) ? tab : "contest";
 }
 
 const BattlePage: React.FC = () => {
@@ -59,9 +59,7 @@ const BattlePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (activeTab === "contest") {
-      fetchContests(contestPage);
-    }
+    if (activeTab === "contest") fetchContests(contestPage);
   }, [activeTab, contestPage, fetchContests]);
 
   return (
@@ -80,22 +78,16 @@ const BattlePage: React.FC = () => {
         </span>
         <nav className="home-tab-nav">
           <button
-            className={`home-tab-btn${activeTab === "home" ? " home-tab-btn--active" : ""}`}
-            onClick={() => handleTabChange("home")}
-          >
-            홈
-          </button>
-          <button
-            className={`home-tab-btn${activeTab === "problems" ? " home-tab-btn--active" : ""}`}
-            onClick={() => handleTabChange("problems")}
-          >
-            문제
-          </button>
-          <button
             className={`home-tab-btn${activeTab === "contest" ? " home-tab-btn--active" : ""}`}
             onClick={() => handleTabChange("contest")}
           >
             대회
+          </button>
+          <button
+            className={`home-tab-btn${activeTab === "ranking" ? " home-tab-btn--active" : ""}`}
+            onClick={() => handleTabChange("ranking")}
+          >
+            랭킹
           </button>
           <button
             className={`home-tab-btn${activeTab === "help" ? " home-tab-btn--active" : ""}`}
@@ -130,45 +122,6 @@ const BattlePage: React.FC = () => {
       </header>
 
       <main className="home-body">
-        {/* 홈 탭 */}
-        {activeTab === "home" && (
-          <div className="home-content">
-            <div className="home-hero">
-              <h1 className="home-hero-title">코드 배틀</h1>
-              <p className="home-hero-sub">AI 코드를 제출하고 상대방의 AI와 실시간으로 대결하세요</p>
-            </div>
-            <p className="home-site-desc">
-              코드 배틀은 나만의 AI 코드를 작성해 다른 참가자의 AI와 자동으로 대결하는 플랫폼입니다.
-              
-            </p>
-          </div>
-        )}
-
-        {/* 문제 탭 */}
-        {activeTab === "problems" && (
-          <div className="bp-problems">
-            <h2 className="bp-problems-title">배틀 문제 목록</h2>
-            <div className="bp-problem-list">
-              <div
-                className="bp-problem-card"
-                onClick={() => { window.location.hash = "submit/1"; }}
-              >
-                <div className="bp-problem-card-left">
-                  <span className="bp-problem-num">#1</span>
-                  <div>
-                    <p className="bp-problem-title">치토 배틀</p>
-                    <p className="bp-problem-desc">AI 코드를 제출하여 상대방의 치토와 배틀을 펼치세요.</p>
-                  </div>
-                </div>
-                <div className="bp-problem-card-right">
-                  <span className="bp-problem-difficulty">일반</span>
-                  <span className="bp-problem-arrow">→</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* 대회 탭 */}
         {activeTab === "contest" && (
           <div className="bp-contest">
@@ -276,6 +229,13 @@ const BattlePage: React.FC = () => {
                 )}
               </>
             )}
+          </div>
+        )}
+
+        {/* 랭킹 탭 */}
+        {activeTab === "ranking" && (
+          <div className="home-placeholder">
+            <span className="home-placeholder-text">랭킹 — 준비 중입니다.</span>
           </div>
         )}
 
