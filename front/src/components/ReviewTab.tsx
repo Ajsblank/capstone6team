@@ -1,6 +1,7 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import { reviewContest } from "../api/codeBattleApi";
+import { setTestResultCallback } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
 import { Language } from "../types/index";
 import "./ReviewTab.css";
@@ -42,6 +43,9 @@ const ReviewTab: React.FC<Props> = ({ contestId }) => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   };
 
+  // 언마운트 시 SSE 콜백 해제
+  useEffect(() => () => { setTestResultCallback(null); }, []);
+
   const handleLangChange = (side: 1 | 2, lang: Language) => {
     if (side === 1) { setLang1(lang); setCode1(CODE_DEFAULTS[lang]); }
     else            { setLang2(lang); setCode2(CODE_DEFAULTS[lang]); }
@@ -62,24 +66,33 @@ const ReviewTab: React.FC<Props> = ({ contestId }) => {
       remaining -= 1;
       setCountdown(remaining);
       if (remaining <= 0) {
-        controller.abort();
         clearTimer();
+        setTestResultCallback(null);
+        setErrorMsg("채점 시간이 초과되었습니다. (60초)");
+        setPhase("error");
       }
     }, 1000);
 
+    // SSE test_result 수신 시 결과 반영
+    setTestResultCallback((logData: string) => {
+      clearTimer();
+      setTestResultCallback(null);
+      setLog(logData);
+      setPhase("done");
+    });
+
     try {
-      const res = await reviewContest(
+      await reviewContest(
         String(user?.id ?? ""),
         String(contestId),
         code1,
         code2,
         controller.signal
       );
-      clearTimer();
-      setLog(res.log);
-      setPhase("done");
+      // POST 성공 — SSE로 결과 대기 중
     } catch (err: any) {
       clearTimer();
+      setTestResultCallback(null);
       if (err.name === "AbortError" || err.name === "CanceledError") {
         setErrorMsg("채점 시간이 초과되었습니다. (60초)");
       } else if (err.response) {
@@ -89,10 +102,11 @@ const ReviewTab: React.FC<Props> = ({ contestId }) => {
       }
       setPhase("error");
     }
-  }, [contestId, code1, lang1, code2, lang2, phase]);
+  }, [contestId, code1, lang1, code2, lang2, phase, user]);
 
   const handleCancel = () => {
     abortRef.current?.abort();
+    setTestResultCallback(null);
     clearTimer();
     setPhase("idle");
     setCountdown(TIMEOUT_SEC);
