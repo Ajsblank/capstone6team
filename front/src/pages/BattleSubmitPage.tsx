@@ -448,7 +448,7 @@ const SubmitPage: React.FC = () => {
           <div className="full-panel" style={{ height: "800px" }}>
             <iframe
               ref={logIframeRef}
-              srcdoc={contestDetail.visualizationHtml}
+              srcDoc={contestDetail.visualizationHtml}
               title="Battle Log Analysis"
               width="100%"
               height="100%"
@@ -461,7 +461,7 @@ const SubmitPage: React.FC = () => {
         {activeTab === "viz2" && contestDetail?.soloPlayHtml && (
           <div className="full-panel" style={{ height: "800px" }}>
             <iframe
-              srcdoc={contestDetail.soloPlayHtml}
+              srcDoc={contestDetail.soloPlayHtml}
               title="Demon Tournament Game"
               width="100%"
               height="100%"

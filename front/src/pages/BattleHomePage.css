@@ -108,16 +108,38 @@
   justify-content: space-between;
   background: #ffffff;
   border: 1px solid #e5e7eb;
+  border-left: 4px solid #e5e7eb;
   border-radius: 10px;
-  padding: 20px 24px;
+  padding: 18px 24px;
   cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
 }
 .bp-problem-card:hover {
-  border-color: #fed7aa;
   box-shadow: 0 4px 16px rgba(234, 88, 12, 0.1);
   transform: translateY(-1px);
 }
+
+/* 상태별 좌측 액센트 바 */
+.bp-problem-card--running {
+  border-left-color: #16a34a;
+}
+.bp-problem-card--running:hover { border-color: #bbf7d0; border-left-color: #16a34a; }
+
+.bp-problem-card--planned {
+  border-left-color: #2563eb;
+}
+.bp-problem-card--planned:hover { border-color: #bfdbfe; border-left-color: #2563eb; }
+
+.bp-problem-card--ended {
+  border-left-color: #d1d5db;
+  opacity: 0.75;
+}
+.bp-problem-card--ended:hover { border-color: #e5e7eb; border-left-color: #d1d5db; opacity: 1; }
+
+.bp-problem-card--test {
+  border-left-color: #d97706;
+}
+.bp-problem-card--test:hover { border-color: #fde68a; border-left-color: #d97706; }
 
 .bp-problem-card-left {
   display: flex;
@@ -128,10 +150,14 @@
 .bp-problem-num {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #9ca3af;
+  color: transparent;
   font-family: "Courier New", monospace;
   min-width: 28px;
   padding-top: 2px;
+  transition: color 0.15s;
+}
+.bp-problem-card:hover .bp-problem-num {
+  color: #9ca3af;
 }
 
 .bp-problem-title {
@@ -167,10 +193,14 @@
 }
 
 .bp-problem-desc {
-  font-size: 0.85rem;
-  color: #6b7280;
+  font-size: 0.82rem;
+  color: #9ca3af;
   margin: 0;
   line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
 }
 
 .bp-problem-card-right {
@@ -195,9 +225,9 @@
   border-color: #fde68a;
 }
 .bp-problem-difficulty--planned {
-  background: #f0fdf4;
-  color: #15803d;
-  border-color: #bbf7d0;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
 }
 .bp-problem-difficulty--running {
   background: #16a34a;
@@ -407,10 +437,39 @@
 
 /* ── 대회 날짜 ── */
 .bp-problem-dates {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.78rem;
   color: #9ca3af;
-  margin: 2px 0 0;
+  margin: 3px 0 4px;
   line-height: 1.4;
+}
+.bp-problem-dates-icon {
+  font-size: 0.72rem;
+  margin-right: 2px;
+}
+.bp-problem-dates-sep {
+  color: #d1d5db;
+  padding: 0 2px;
+}
+
+/* ── 개최 중 점 애니메이션 ── */
+@keyframes bp-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+.bp-status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: #ffffff;
+  border-radius: 50%;
+  margin-right: 5px;
+  animation: bp-pulse 1.6s ease-in-out infinite;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
 }
 
 /* ── 상태 배지 — 종료 ── */

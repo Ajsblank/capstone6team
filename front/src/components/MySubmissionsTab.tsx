@@ -21,17 +21,23 @@ const LANGUAGE_LABELS: Record<string, string> = {
 };
 
 function formatDate(d: Date | string): string {
-  const date = typeof d === "string" ? new Date(d) : d;
+  const date = typeof d === "string" ? parseServerDate(d) : d;
   return date.toLocaleString("ko-KR", {
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", second: "2-digit",
   });
 }
 
+// 서버는 타임존 없이 UTC 시각을 보냄("2026-05-17T16:19:10") → 브라우저가 로컬 시간으로 잘못 파싱하는 것을 방지
+function parseServerDate(s: string): Date {
+  if (s.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(s)) return new Date(s);
+  return new Date(s + "Z");
+}
+
 // 동일 submissionId를 가진 항목 그룹을 하나의 LocalSubmission으로 변환
 function serverGroupToLocal(group: ContestSubmissionResponse[], userId: string): LocalSubmission {
   // 가장 오래된 항목의 시간을 제출 시간으로 사용
-  const sorted = [...group].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const sorted = [...group].sort((a, b) => parseServerDate(a.createdAt).getTime() - parseServerDate(b.createdAt).getTime());
   const first = sorted[0];
 
   const matchMap = new Map<number, BattleMatchResult>();
@@ -51,7 +57,7 @@ function serverGroupToLocal(group: ContestSubmissionResponse[], userId: string):
 
   return {
     submissionId: first.submissionId,
-    submittedAt:  new Date(first.createdAt),
+    submittedAt:  parseServerDate(first.createdAt),
     language: "",
     success:  true,
     message:  "",
@@ -226,42 +232,38 @@ const MySubmissionsTab: React.FC<Props> = ({
           .map(group => serverGroupToLocal(group, userId))
           .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
 
-        const inProgress  = prev.filter(s => !s.finalized);
-        const withId      = inProgress.filter(s => s.submissionId != null);
-        const withoutId   = inProgress.filter(s => s.submissionId == null);
-
-        // SSE 단절로 submissionId를 받지 못한 로컬 대기 항목을
-        // 서버 확정 결과로 교체 (제출 시각 2분 이내 항목을 동일 제출로 간주)
+        // prev의 모든 항목(진행 중·완료 모두)을 순회하며 로컬 데이터를 보존
+        // submissionId가 없는 항목만 서버 항목과 시각 매칭해 ID를 보완
         const MATCH_MS = 120_000;
-        const usedServerIds = new Set<number>();
-        const resolvedPending: LocalSubmission[] = withoutId.map(local => {
-          const match = serverItems.find(s =>
+        const accountedServerIds = new Set<number>();
+
+        const updatedLocal = prev.map(local => {
+          if (local.submissionId != null) {
+            accountedServerIds.add(local.submissionId);
+            return local; // ID 있음 → 로컬 데이터 그대로 유지 (SSE 결과 보존)
+          }
+          const matched = serverItems.find(s =>
             s.submissionId != null &&
-            s.finalized &&
+            !accountedServerIds.has(s.submissionId!) &&
             Math.abs(s.submittedAt.getTime() - local.submittedAt.getTime()) < MATCH_MS
           );
-          if (match?.submissionId != null) {
-            usedServerIds.add(match.submissionId);
-            return match;
+          if (matched?.submissionId != null) {
+            accountedServerIds.add(matched.submissionId);
+            return { ...local, submissionId: matched.submissionId }; // ID만 보완, 나머지 로컬 유지
           }
           return local;
         });
 
-        // SSE로 이미 ID를 받은 in-progress 항목 및 교체된 서버 항목 중복 제거
-        const withIdIds = new Set(withId.map(s => s.submissionId).filter(Boolean));
-        const serverExtra = serverItems.filter(s =>
-          s.submissionId != null &&
-          !withIdIds.has(s.submissionId) &&
-          !usedServerIds.has(s.submissionId)
+        // 로컬에 없는 과거 서버 항목 추가 (새로고침으로 불러온 이전 제출 등)
+        const historical = serverItems.filter(
+          s => s.submissionId != null && !accountedServerIds.has(s.submissionId!)
         );
 
         console.log(
-          "[MySubmissionsTab] 병합 — withId:", withId.length,
-          "/ withoutId:", withoutId.length,
-          "/ resolved:", resolvedPending.filter(s => s.submissionId != null).length,
-          "/ serverExtra:", serverExtra.length,
+          "[MySubmissionsTab] 병합 — local:", updatedLocal.length,
+          "/ historical:", historical.length,
         );
-        return [...resolvedPending, ...withId, ...serverExtra]
+        return [...updatedLocal, ...historical]
           .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
       });
     } catch (e: any) {
