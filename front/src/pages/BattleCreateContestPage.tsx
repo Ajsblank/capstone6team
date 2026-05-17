@@ -6,6 +6,7 @@ import { useApp } from "../context/AppContext";
 import { createContest, ContestResponse, ContestStatus } from "../api/contestApi";
 import { setContestDraft } from "../contestDraft";
 import RichTextEditor from "../components/RichTextEditor";
+import ContestSidebar from "../components/ContestSidebar";
 import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
@@ -184,10 +185,9 @@ const BattleCreateContestPage: React.FC = () => {
     { label: "혼자서 하기 HTML",        done: !!soloPlayHtml,             optional: !certification },
     { label: "시작 일시",               done: !!startDate,                optional: false },
     { label: "종료 일시",               done: !!endDate,                  optional: false },
-    ...(certification ? [{ label: "검수자 이메일 (다음 단계)", done: false, optional: false, nextStep: true }] : []),
-  ] as { label: string; done: boolean; optional: boolean; nextStep?: boolean }[];
+  ] as { label: string; done: boolean; optional: boolean }[];
 
-  const allDone = checklist.filter(c => !c.optional && !c.nextStep).every(c => c.done);
+  const allDone = checklist.filter(c => !c.optional).every(c => c.done);
 
   return (
     <div className="cc-page">
@@ -407,30 +407,12 @@ const BattleCreateContestPage: React.FC = () => {
 
             {/* ── 체크리스트 컬럼 ── */}
             <aside className="cc-checklist-col">
-              <div className="cc-checklist-panel">
-                <div className="cc-checklist-header">
-                  <span className="cc-checklist-title">
-                    {certification ? "인증 대회" : "비인증 대회"} 체크리스트
-                  </span>
-                  {allDone && !certification && <span className="cc-checklist-ready">준비 완료 ✓</span>}
-                </div>
-                <ul className="cc-checklist">
-                  {checklist.map((item) => (
-                    <li
-                      key={item.label}
-                      className={`cc-checklist-item${item.done ? " cc-checklist-item--done" : ""}${item.optional ? " cc-checklist-item--optional" : ""}${item.nextStep ? " cc-checklist-item--next" : ""}`}
-                    >
-                      <span className="cc-checklist-icon">
-                        {item.nextStep ? "→" : item.done ? "✓" : "○"}
-                      </span>
-                      <span className="cc-checklist-label">
-                        {item.label}
-                        {item.optional && <span className="cc-checklist-opt"> (선택)</span>}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <ContestSidebar
+                currentStep={1}
+                certification={certification}
+                step1Items={checklist}
+                step1AllDone={allDone}
+              />
             </aside>
 
           </div>

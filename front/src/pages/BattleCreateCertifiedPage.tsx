@@ -3,6 +3,7 @@ import axios from "axios";
 import { useApp } from "../context/AppContext";
 import { createCertifiedContest, ContestResponse } from "../api/contestApi";
 import { getContestDraft, clearContestDraft } from "../contestDraft";
+import ContestSidebar from "../components/ContestSidebar";
 import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
@@ -112,73 +113,94 @@ const BattleCreateCertifiedPage: React.FC = () => {
 
       <main className="home-body">
         <div className="cc-content">
-          <div className="cc-form-wrapper">
-            <button className="cc-back-link" onClick={() => navigate("create-contest")}>
-              ← 이전 단계
-            </button>
-            <h2 className="cc-page-title">대회 개최 — 검수자 설정</h2>
+          <div className="cc-layout">
 
-            <div className="cc-form">
-              <section className="cc-section">
-                <h3 className="cc-section-title">검수자 이메일</h3>
-                <p className="cc-reviewer-desc">
-                  인증 대회를 검수할 담당자의 이메일을 입력하세요. 최소 1명 이상 필요합니다.
-                </p>
+            {/* ── 폼 컬럼 ── */}
+            <div className="cc-form-col">
+              <button className="cc-back-link" onClick={() => navigate("create-contest")}>← 이전 단계</button>
+              <h2 className="cc-page-title">대회 개최 — 검수자 설정</h2>
 
-                <div className="cc-reviewer-list">
-                  {emails.map((email, i) => (
-                    <div key={i} className="cc-reviewer-row">
-                      <input
-                        className="cc-input"
-                        type="email"
-                        placeholder="example@email.com"
-                        value={email}
-                        onChange={e => handleEmailChange(i, e.target.value)}
-                      />
-                      {emails.length > 1 && (
-                        <button
-                          type="button"
-                          className="cc-reviewer-remove"
-                          onClick={() => handleRemoveEmail(i)}
-                          aria-label="이메일 삭제"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ))}
+              <div className="cc-form">
+                <section className="cc-section">
+                  <h3 className="cc-section-title">검수자 이메일</h3>
+                  <p className="cc-reviewer-desc">
+                    인증 대회를 검수할 담당자의 이메일을 입력하세요. 최소 1명 이상 필요합니다.
+                  </p>
+
+                  <div className="cc-reviewer-list">
+                    {emails.map((email, i) => (
+                      <div key={i} className="cc-reviewer-row">
+                        <input
+                          className="cc-input"
+                          type="email"
+                          placeholder="example@email.com"
+                          value={email}
+                          onChange={e => handleEmailChange(i, e.target.value)}
+                        />
+                        {emails.length > 1 && (
+                          <button
+                            type="button"
+                            className="cc-reviewer-remove"
+                            onClick={() => handleRemoveEmail(i)}
+                            aria-label="이메일 삭제"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <button type="button" className="cc-reviewer-add" onClick={handleAddEmail}>
+                    + 검수자 추가
+                  </button>
+                </section>
+
+                <div className="cc-submit-area">
+                  <button
+                    type="button"
+                    className="cc-submit-btn"
+                    onClick={handleSubmit}
+                    disabled={submitStatus === "submitting"}
+                  >
+                    {submitStatus === "submitting" ? "등록 중..." : "대회 생성"}
+                  </button>
+                  <button type="button" className="cc-cancel-btn" onClick={() => navigate("battle")}>
+                    취소
+                  </button>
+                  {submitStatus === "error" && <span className="cc-error-msg">{errorMsg}</span>}
                 </div>
-
-                <button
-                  type="button"
-                  className="cc-reviewer-add"
-                  onClick={handleAddEmail}
-                >
-                  + 검수자 추가
-                </button>
-              </section>
-
-              <div className="cc-submit-area">
-                <button
-                  type="button"
-                  className="cc-submit-btn"
-                  onClick={handleSubmit}
-                  disabled={submitStatus === "submitting"}
-                >
-                  {submitStatus === "submitting" ? "등록 중..." : "대회 생성"}
-                </button>
-                <button
-                  type="button"
-                  className="cc-cancel-btn"
-                  onClick={() => navigate("battle")}
-                >
-                  취소
-                </button>
-                {submitStatus === "error" && (
-                  <span className="cc-error-msg">{errorMsg}</span>
-                )}
               </div>
             </div>
+
+            {/* ── 사이드바 컬럼 ── */}
+            <aside className="cc-checklist-col">
+              {(() => {
+                const draft = getContestDraft();
+                const step1Items = draft ? [
+                  { label: "대회 이름",               done: !!draft.title },
+                  { label: "문제 설명",               done: !!draft.description?.trim() },
+                  { label: "채점 코드",               done: !!draft.judgeCode },
+                  { label: "샘플 코드",               done: !!draft.sampleCode },
+                  { label: "예시 AI 코드 (1개 이상)", done: draft.exampleAiCodes.length > 0 },
+                  { label: "시각화 HTML",             done: !!draft.visualizationHtml },
+                  { label: "혼자서 하기 HTML",        done: !!draft.soloPlayHtml },
+                  { label: "시작 일시",               done: !!draft.startDate },
+                  { label: "종료 일시",               done: !!draft.endDate },
+                ] : [];
+                const validReviewerCount = emails.filter(e => e.trim()).length;
+                return (
+                  <ContestSidebar
+                    currentStep={2}
+                    certification={true}
+                    step1Items={step1Items}
+                    step1AllDone={true}
+                    reviewerCount={validReviewerCount}
+                  />
+                );
+              })()}
+            </aside>
+
           </div>
         </div>
       </main>
