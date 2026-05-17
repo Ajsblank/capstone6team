@@ -22,14 +22,15 @@ const TIMEOUT_SEC = 60;
 
 interface Props {
   contestId: number;
+  onLogClick?: (log: string) => void;
 }
 
-const ReviewTab: React.FC<Props> = ({ contestId }) => {
+const ReviewTab: React.FC<Props> = ({ contestId, onLogClick }) => {
   const { user } = useApp();
-  const [lang1, setLang1] = useState<Language>("python");
-  const [code1, setCode1] = useState(CODE_DEFAULTS["python"]);
-  const [lang2, setLang2] = useState<Language>("python");
-  const [code2, setCode2] = useState(CODE_DEFAULTS["python"]);
+  const [lang1, setLang1] = useState<Language>("cpp");
+  const [code1, setCode1] = useState(CODE_DEFAULTS["cpp"]);
+  const [lang2, setLang2] = useState<Language>("cpp");
+  const [code2, setCode2] = useState(CODE_DEFAULTS["cpp"]);
 
   const [phase, setPhase]     = useState<"idle" | "loading" | "done" | "error">("idle");
   const [log, setLog]         = useState<string>("");
@@ -170,6 +171,7 @@ const ReviewTab: React.FC<Props> = ({ contestId }) => {
         {/* 에디터 2 */}
         <div className="rv-editor-panel">
           <div className="rv-editor-header rv-editor-header--right">
+            <span className="rv-editor-label">AI 코드 2</span>
             <select
               className="rv-lang-select"
               value={lang2}
@@ -178,7 +180,6 @@ const ReviewTab: React.FC<Props> = ({ contestId }) => {
             >
               {LANGUAGE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <span className="rv-editor-label">AI 코드 2</span>
           </div>
           <div className="rv-editor-body">
             <Editor
@@ -226,7 +227,14 @@ const ReviewTab: React.FC<Props> = ({ contestId }) => {
         <div className="rv-log-panel">
           <div className="rv-log-header">
             <span className="rv-log-title">채점 결과 로그</span>
-            <button className="rv-log-reset" onClick={handleReset}>다시 검수하기</button>
+            <div className="rv-log-header-actions">
+              {onLogClick && log && (
+                <button className="rv-log-analyze-btn" onClick={() => onLogClick(log)}>
+                  로그 분석 →
+                </button>
+              )}
+              <button className="rv-log-reset" onClick={handleReset}>다시 검수하기</button>
+            </div>
           </div>
           <pre className="rv-log-body">{log}</pre>
         </div>

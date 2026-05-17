@@ -210,6 +210,26 @@
   font-family: "Segoe UI", sans-serif;
 }
 
+.rv-log-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rv-log-analyze-btn {
+  background: #ea580c;
+  border: none;
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  transition: background 0.15s;
+}
+.rv-log-analyze-btn:hover { background: #c2410c; }
+
 .rv-log-reset {
   background: none;
   border: 1px solid #30363d;
