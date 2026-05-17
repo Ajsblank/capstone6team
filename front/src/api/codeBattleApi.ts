@@ -41,7 +41,10 @@ export interface ContestListResponse {
 // 끝 슬래시 제거로 BASE_URL + "/path" 조합 시 // 방지
 const BASE_URL = (process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
 
-const api = axios.create({ baseURL: BASE_URL });
+const api = axios.create({
+  baseURL: BASE_URL,
+  headers: { "Content-Type": "application/json" },
+});
 
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
@@ -103,22 +106,21 @@ export const getMyBattleSubmissions = async (
   return response.data;
 };
 
-// ── 검수 코드 대결 — POST /api/contests/{contestId}/review ──
+// ── 검수 코드 대결 — POST /api/code/submit/test ──
 export interface ReviewResponse {
   log: string;
 }
 
 export const reviewContest = async (
-  contestId: number,
-  code1: string,
-  language1: string,
-  code2: string,
-  language2: string,
+  userId: string,
+  problemId: string,
+  sourceCode1: string,
+  sourceCode2: string,
   signal?: AbortSignal
 ): Promise<ReviewResponse> => {
   const { data } = await api.post<ReviewResponse>(
-    `/api/contests/${contestId}/review`,
-    { code1, language1, code2, language2 },
+    `/api/code/submit/test`,
+    { userId, problemId, sourceCode1, sourceCode2 },
     { signal }
   );
   return data;
