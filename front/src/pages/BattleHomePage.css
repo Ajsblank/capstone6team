@@ -302,3 +302,120 @@
   min-width: 60px;
   text-align: center;
 }
+
+/* ── 필터 바 ── */
+.bp-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.bp-filter-select {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #fff;
+  color: #374151;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.875rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.bp-filter-select:focus { border-color: #ea580c; }
+
+.bp-filter-input {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #fff;
+  color: #374151;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 160px;
+  flex: 1 1 160px;
+}
+.bp-filter-input:focus { border-color: #ea580c; }
+.bp-filter-input::placeholder { color: #9ca3af; }
+
+.bp-filter-date-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.bp-filter-date-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.bp-filter-date {
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #fff;
+  color: #374151;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.bp-filter-date:focus { border-color: #ea580c; }
+
+.bp-filter-date-sep {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.bp-filter-reset {
+  height: 36px;
+  padding: 0 14px;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  color: #6b7280;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.bp-filter-reset:hover {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #ea580c;
+}
+
+.bp-filter-count {
+  font-size: 0.82rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* ── 대회 날짜 ── */
+.bp-problem-dates {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  margin: 2px 0 0;
+  line-height: 1.4;
+}
+
+/* ── 상태 배지 — 종료 ── */
+.bp-problem-difficulty--ended {
+  background: #f3f4f6;
+  color: #6b7280;
+  border-color: #e5e7eb;
+}
