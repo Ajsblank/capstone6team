@@ -43,6 +43,7 @@ const BASE_TAB_LIST: TabDef[] = [
 ];
 
 const PARTICIPATION_REQUIRED_TABS: Tab[] = ["submit", "my-submissions", "viz1", "viz2"];
+const REVIEWER_ALLOWED_TABS: Tab[] = ["problem", "review"];
 
 const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2", "leaderboard", "battle-results", "review"];
 
@@ -100,6 +101,8 @@ const SubmitPage: React.FC = () => {
     ...BASE_TAB_LIST,
     ...(isReviewer ? [{ id: "review" as Tab, label: "검수" }] : []),
   ].map(tab => {
+    if (isReviewer && !REVIEWER_ALLOWED_TABS.includes(tab.id))
+      return { ...tab, disabled: true, tooltip: "검수자는 이용할 수 없습니다" };
     if (!tab.disabled && !isJoined && PARTICIPATION_REQUIRED_TABS.includes(tab.id))
       return { ...tab, disabled: true, tooltip: "대회에 참가 후 이용 가능합니다" };
     if (tab.id === "viz1" && !viz1Available)
@@ -237,9 +240,18 @@ const SubmitPage: React.FC = () => {
     };
   }, []);
 
+  // 검수자가 허용되지 않은 탭에 직접 접근 시 문제 탭으로 이동
+  useEffect(() => {
+    if (isReviewer && !REVIEWER_ALLOWED_TABS.includes(activeTab)) {
+      window.location.hash = `submit/${problemId}/problem`;
+      setHashState(prev => ({ ...prev, tab: "problem" }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReviewer]);
+
   // 미참가 상태에서 잠긴 탭 직접 접근 시 문제 탭으로 이동
   useEffect(() => {
-    if (!isJoined && PARTICIPATION_REQUIRED_TABS.includes(activeTab)) {
+    if (!isReviewer && !isJoined && PARTICIPATION_REQUIRED_TABS.includes(activeTab)) {
       window.location.hash = `submit/${problemId}/problem`;
       setHashState(prev => ({ ...prev, tab: "problem" }));
     }
@@ -411,6 +423,7 @@ const SubmitPage: React.FC = () => {
               onJoin={handleJoin}
               joinStatus={joinStatus}
               joinError={joinError}
+              isReviewer={isReviewer}
               onEdit={isOwner ? () => setShowEditModal(true) : undefined}
             />
           </div>
