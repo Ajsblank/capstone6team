@@ -90,6 +90,11 @@
   border-bottom-color: #16a34a;
   font-weight: 600;
 }
+.home-tab-btn--disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.home-tab-btn--disabled:hover { color: #6b7280; }
 
 /* Auth area — 로고 다음에 오지만 우측으로 밀어냄 */
 .home-auth-area {

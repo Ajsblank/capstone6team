@@ -41,8 +41,8 @@ const LandingPage: React.FC = () => {
         </span>
         <nav className="lp-nav">
           <button className="lp-nav-btn" onClick={() => navigate("battle")}>코드 배틀</button>
-          <button className="lp-nav-btn">도움말</button>
-          <button className="lp-nav-btn">문의</button>
+          <button className="lp-nav-btn lp-nav-btn--disabled" title="준비 중인 기능입니다">도움말</button>
+          <button className="lp-nav-btn lp-nav-btn--disabled" title="준비 중인 기능입니다">문의</button>
         </nav>
         <div className="lp-auth">
           {user ? (
