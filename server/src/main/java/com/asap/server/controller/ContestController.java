@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.asap.server.config.CustomUserDetails;
 import com.asap.server.domain.ContestSchedule;
 import com.asap.server.dto.request.ContestScheduleRequest;
 import com.asap.server.dto.request.CreateCertifiedContestRequest;
@@ -243,13 +244,14 @@ public class ContestController {
         }
     }
 
-    @GetMapping("/{contestId}/mySubmission")
+    @GetMapping("/{contestId}/{targetUserId}")
     @Operation(summary = "내 제출 및 AI 결과 조회", description = "내가 해당 대회에 제출한 코드와 샘플 AI와의 대결 결과를 조회합니다.")
     public ResponseEntity<List<CodeBattleMySubmissionResponse>> getMySubmissions(
             @PathVariable Long contestId,
-            @AuthenticationPrincipal Long userId) {
+            @PathVariable Long targetUserId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        List<CodeBattleMySubmissionResponse> responses = submissionService.getMySubmissionsWithAi(contestId, userId);
+        List<CodeBattleMySubmissionResponse> responses = submissionService.getMySubmissionsWithAi(contestId, targetUserId);
         return ResponseEntity.ok(responses);
     }
 
