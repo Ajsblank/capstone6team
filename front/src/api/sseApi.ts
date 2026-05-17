@@ -26,12 +26,14 @@ export type SseStatus = "connected" | "connecting" | "disconnected";
 
 type MatchCallback           = (result: BattleMatchResult) => void;
 type SummaryCallback         = (summary: SubmissionSummary) => void;
+type TestResultCallback      = (log: string) => void;
 type StatusCallback          = (status: SseStatus) => void;
 type ReconnectCallback       = () => void;
 
 let emitter: EventSource | null = null;
 let matchCallback:           MatchCallback           | null = null;
 let summaryCallback:         SummaryCallback         | null = null;
+let testResultCallback:      TestResultCallback      | null = null;
 let statusCallback:          StatusCallback          | null = null;
 let reconnectCallback:       ReconnectCallback       | null = null;
 let lastUserId: string | null = null;
@@ -110,6 +112,12 @@ function connectSSE(userId: string): void {
   emitter.addEventListener("submission_summary", handleSummary);
   emitter.addEventListener("submission-summary", handleSummary); // 하이픈 버전 호환
 
+  // 검수 결과 (백엔드 이름: test_result)
+  emitter.addEventListener("test_result", (e: Event) => {
+    console.log("[SSE] test_result 수신:", (e as MessageEvent).data);
+    testResultCallback?.((e as MessageEvent).data);
+  });
+
   // 이벤트 이름 없는 기본 메시지 (하위 호환)
   emitter.onmessage = (e) => {
     console.log("[SSE] onmessage (unnamed) — raw:", e.data);
@@ -152,7 +160,8 @@ function connectSSE(userId: string): void {
 // SSE 구독 — 로그인 직후 또는 페이지 로드 시 호출
 export const subscribeToResults = (userId: string, onMatch: MatchCallback) => {
   if (lastUserId === userId && emitter && emitter.readyState !== EventSource.CLOSED) {
-    console.log("[SSE] 이미 연결됨 — 재연결 스킵, userId:", userId);
+    const stateLabel = emitter.readyState === EventSource.OPEN ? "OPEN(1)" : "CONNECTING(0)";
+    console.log(`[SSE] emitter 존재(${stateLabel}) — 중복 생성 스킵, userId:`, userId);
     matchCallback = onMatch;
     return;
   }
@@ -170,6 +179,10 @@ export const setMatchCallback = (onMatch: MatchCallback) => {
 
 export const setSummaryCallback = (onSummary: SummaryCallback) => {
   summaryCallback = onSummary;
+};
+
+export const setTestResultCallback = (cb: TestResultCallback | null) => {
+  testResultCallback = cb;
 };
 
 // 현재 SSE 상태 콘솔 덤프 — 디버깅용
@@ -202,9 +215,10 @@ export const unsubscribeFromResults = () => {
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   emitter?.close();
   emitter = null;
-  matchCallback  = null;
-  summaryCallback = null;
-  lastUserId     = null;
+  matchCallback      = null;
+  summaryCallback    = null;
+  testResultCallback = null;
+  lastUserId         = null;
   reconnectAttempts        = 0;
   notifyStatus("disconnected");
 };

@@ -42,6 +42,8 @@ const BASE_TAB_LIST: TabDef[] = [
   { id: "battle-results", label: "대결 결과",   disabled: true, tooltip: "준비 중인 기능입니다" },
 ];
 
+const PARTICIPATION_REQUIRED_TABS: Tab[] = ["submit", "my-submissions", "viz1", "viz2"];
+
 const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2", "leaderboard", "battle-results", "review"];
 
 /**
@@ -62,14 +64,11 @@ function parseHash(): { problemId: number; tab: Tab } {
 }
 
 const SubmitPage: React.FC = () => {
-  const { navigate, user, logout, hostedContestIds } = useApp();
+  const { navigate, user, logout, joinedContestIds, hostedContestIds, addJoinedContest } = useApp();
 
   const [{ problemId, tab: activeTab }, setHashState] = useState(parseHash);
 
   const isReviewer = hostedContestIds.includes(problemId);
-  const TAB_LIST = isReviewer
-    ? [...BASE_TAB_LIST, { id: "review" as Tab, label: "검수" }]
-    : BASE_TAB_LIST;
 
   const [language, setLanguage] = useState<Language>("cpp");
   const [code, setCode] = useState<string>(LANGUAGE_DEFAULTS["cpp"]);
@@ -86,8 +85,21 @@ const SubmitPage: React.FC = () => {
   const [contestDetailLoading, setContestDetailLoading] = useState(false);
   const [contestDetailError, setContestDetailError] = useState<string | null>(null);
 
-  const [joinStatus, setJoinStatus] = useState<"idle" | "joining" | "joined" | "error">("idle");
+  const [joinStatus, setJoinStatus] = useState<"idle" | "joining" | "joined" | "error">(
+    () => joinedContestIds.includes(problemId) ? "joined" : "idle"
+  );
   const [joinError, setJoinError] = useState("");
+
+  const isJoined = joinedContestIds.includes(problemId) || joinStatus === "joined";
+
+  const TAB_LIST: TabDef[] = [
+    ...BASE_TAB_LIST,
+    ...(isReviewer ? [{ id: "review" as Tab, label: "검수" }] : []),
+  ].map(tab =>
+    !tab.disabled && !isJoined && PARTICIPATION_REQUIRED_TABS.includes(tab.id)
+      ? { ...tab, disabled: true, tooltip: "대회에 참가 후 이용 가능합니다" }
+      : tab
+  );
 
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -101,7 +113,7 @@ const SubmitPage: React.FC = () => {
     setContestDetail(null);
     setContestDetailError(null);
     setContestDetailLoading(true);
-    setJoinStatus("idle");
+    setJoinStatus(joinedContestIds.includes(problemId) ? "joined" : "idle");
     setJoinError("");
     getContestDetail(problemId)
       .then(data => { if (!cancelled) setContestDetail(data); })
@@ -121,6 +133,7 @@ const SubmitPage: React.FC = () => {
     try {
       await joinContest(problemId, user.email ?? user.id);
       setJoinStatus("joined");
+      addJoinedContest(problemId);
     } catch (err: any) {
       setJoinStatus("error");
       setJoinError(err.response?.data?.message ?? "참가 신청에 실패했습니다.");
@@ -215,6 +228,15 @@ const SubmitPage: React.FC = () => {
       setReconnectCallback(null);
     };
   }, []);
+
+  // 미참가 상태에서 잠긴 탭 직접 접근 시 문제 탭으로 이동
+  useEffect(() => {
+    if (!isJoined && PARTICIPATION_REQUIRED_TABS.includes(activeTab)) {
+      window.location.hash = `submit/${problemId}/problem`;
+      setHashState(prev => ({ ...prev, tab: "problem" }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isJoined]);
 
   const handleTabChange = useCallback((tab: Tab) => {
     window.location.hash = `submit/${problemId}/${tab}`;

@@ -106,22 +106,17 @@ export const getMyBattleSubmissions = async (
   return response.data;
 };
 
-// ── 검수 코드 대결 — POST /api/code/submit/test ──
-export interface ReviewResponse {
-  log: string;
-}
-
+// ── 검수 코드 대결 — POST /api/code/submit/test (결과는 SSE test_result 이벤트로 수신) ──
 export const reviewContest = async (
   userId: string,
   problemId: string,
   sourceCode1: string,
   sourceCode2: string,
   signal?: AbortSignal
-): Promise<ReviewResponse> => {
-  const { data } = await api.post<ReviewResponse>(
+): Promise<void> => {
+  await api.post(
     `/api/code/submit/test`,
     { userId, problemId, sourceCode1, sourceCode2 },
     { signal }
   );
-  return data;
 };

@@ -32,6 +32,7 @@ interface AppContextValue {
   logout: () => void;
   joinedContestIds: number[];
   hostedContestIds: number[];
+  addJoinedContest: (contestId: number) => void;
 }
 
 const VALID_PAGES: Page[] = ["landing", "home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "create-contest", "create-certified-contest", "profile", "account-settings"];
@@ -109,6 +110,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem("hostedContests", JSON.stringify(hostedContests));
   }, []);
 
+  const addJoinedContest = useCallback((contestId: number) => {
+    setJoinedContestIds(prev => {
+      if (prev.includes(contestId)) return prev;
+      const next = [...prev, contestId];
+      localStorage.setItem("joinedContests", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const logout = useCallback(async () => {
     await logoutApi();
     setUser(null);
@@ -121,8 +131,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const value = useMemo(
-    () => ({ currentPage, navigate, user, login, logout, joinedContestIds, hostedContestIds }),
-    [currentPage, user, navigate, login, logout, joinedContestIds, hostedContestIds]
+    () => ({ currentPage, navigate, user, login, logout, joinedContestIds, hostedContestIds, addJoinedContest }),
+    [currentPage, user, navigate, login, logout, joinedContestIds, hostedContestIds, addJoinedContest]
   );
 
   return (
