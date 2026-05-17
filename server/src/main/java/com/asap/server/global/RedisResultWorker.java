@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import com.asap.server.domain.CodeBattleParticipant;
 import java.util.List;
 import com.asap.server.repository.CodeBattleParticipantRepository;
+import com.fasterxml.jackson.databind.JsonNode;
 
 @Component
 @RequiredArgsConstructor
@@ -43,6 +44,7 @@ public class RedisResultWorker implements CommandLineRunner {
     public void run(String... args) {
         taskExecutor.execute(this::pollNormalQueue);
         taskExecutor.execute(this::pollAiQueue);
+        taskExecutor.execute(this::pollTestQueue);
     }
 
     private void pollNormalQueue() {
@@ -148,6 +150,48 @@ public class RedisResultWorker implements CommandLineRunner {
             CodeBattleAiMatchResult sseResponse = CodeBattleAiMatchResult.from(aiMatch, targetUserId);
             
             sseService.sendToUser(targetUserId, sseResponse);
+        }
+    }
+
+    private void pollTestQueue() {
+        log.info("🤖 [검수자 전용] Redis 결과 워커 가동...");
+        while (!Thread.currentThread().isInterrupted()) {
+            String rawData = null;
+            try {
+                rawData = redisTemplate.opsForList().rightPop("code_battle_test_result_queue", 5, TimeUnit.SECONDS);
+                if (rawData == null) continue;
+                log.info("🤖 [검수자 전용] Redis 결과 처리...");
+                processTestResult(rawData);
+            } catch (Exception e) {
+                if (Thread.currentThread().isInterrupted()) break;
+                log.error("❌ 검수자 결과 처리 중 에러: {}", e.getMessage());
+                if (rawData != null) redisTemplate.opsForList().leftPush("code_battle_test_result_error_queue", rawData);
+            }
+        }
+    }
+
+    private void processTestResult(String rawData) throws JsonProcessingException {
+        try {
+            log.info("❌ 검수 결과 처리 Log \n {}", rawData);
+            
+            JsonNode rootNode = objectMapper.readTree(rawData);
+            
+            // 채점 서버가 보내주는 데이터 타입에 맞게 파싱 방법을 선택하세요 (String vs Long)
+            String userIdStr = rootNode.get("userid").asText();
+            Long targetUserId = Long.parseLong(userIdStr); 
+            
+            String resultLog = rootNode.get("log").asText();
+    
+            sseService.sendToUser(targetUserId, resultLog);
+            
+            log.info("🎯 유저(ID: {})에게 SSE 로그 전송 완료 완료", targetUserId);
+    
+        } catch (JsonProcessingException e) {
+            log.error("Redis 메시지 JSON 파싱 실패: {}", rawData, e);
+        } catch (NumberFormatException e) {
+            log.error("userid 형변환 실패 (Long 타입이 아님)", e);
+        } catch (Exception e) {
+            log.error("결과 처리 중 알 수 없는 오류 발생", e);
         }
     }
 

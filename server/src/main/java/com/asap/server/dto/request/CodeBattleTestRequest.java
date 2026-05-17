@@ -9,7 +9,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CodeBattleRequest {
+public class CodeBattleTestRequest {
     @NotBlank
     private String userId;
     @NotBlank
