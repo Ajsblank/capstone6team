@@ -290,6 +290,7 @@ const MySubmissionsTab: React.FC<Props> = ({
     <div className="ms-container">
       <div className="ms-header-row">
         <h2 className="ms-title">내 제출 이력</h2>
+        {/* SSE 연결 상태 배지 — 시연용 비활성화
         <span
           className={`ms-sse-badge ms-sse-badge--${sseStatus}`}
           title="클릭 시 SSE 상태를 콘솔에 출력"
@@ -298,6 +299,7 @@ const MySubmissionsTab: React.FC<Props> = ({
         >
           {sseStatus === "connected" ? "● SSE 연결됨" : sseStatus === "connecting" ? "◌ SSE 연결 중" : "○ SSE 끊김"}
         </span>
+        */}
         <div className="ms-sort-group">
           <button
             className={`ms-sort-btn${sortOrder === "newest" ? " ms-sort-btn--active" : ""}`}
