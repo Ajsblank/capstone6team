@@ -51,7 +51,7 @@ function App() {
   return (
     <AppProvider>
       <PageRouter />
-      <DevApiBadge />
+      {/* <DevApiBadge /> */}
     </AppProvider>
   );
 }
