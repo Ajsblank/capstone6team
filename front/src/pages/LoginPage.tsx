@@ -30,10 +30,10 @@ const LoginPage: React.FC = () => {
       );
       const redirect = localStorage.getItem("loginRedirect");
       localStorage.removeItem("loginRedirect");
-      if (redirect) {
+      if (redirect && redirect !== "landing") {
         window.location.hash = redirect.replace("#", "");
       } else {
-        navigate("home");
+        navigate("battle");
       }
     } catch (err: any) {
       const msg = err.response?.data?.message ?? "이메일 또는 비밀번호가 올바르지 않습니다.";
