@@ -28,13 +28,8 @@ const LoginPage: React.FC = () => {
         tokenData.joinedContests ?? [],
         tokenData.hostedContests ?? []
       );
-      const redirect = localStorage.getItem("loginRedirect");
       localStorage.removeItem("loginRedirect");
-      if (redirect && redirect !== "landing") {
-        window.location.hash = redirect.replace("#", "");
-      } else {
-        navigate("battle");
-      }
+      navigate("landing");
     } catch (err: any) {
       const msg = err.response?.data?.message ?? "이메일 또는 비밀번호가 올바르지 않습니다.";
       setError(msg);
