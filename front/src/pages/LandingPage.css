@@ -60,14 +60,15 @@
 
 .lp-username {
   font-size: 0.9rem;
-  color: #111827;
+  color: #c2410c;
+  font-weight: 600;
   cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
   transition: background 0.15s;
   user-select: none;
 }
-.lp-username:hover { background: #f3f4f6; }
+.lp-username:hover { background: #fff7ed; }
 
 .lp-auth-btn {
   background: none;
