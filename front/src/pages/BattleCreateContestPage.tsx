@@ -360,13 +360,14 @@ const BattleCreateContestPage: React.FC = () => {
                   </div>
                 </section>
 
-                {/* 대회 상태 */}
+                {/* 대회 상태 — 시연용 비활성화
                 <section className="cc-section">
                   <h3 className="cc-section-title">대회 상태</h3>
                   <div className="cc-cert-group">
                     <button type="button" className={`cc-cert-btn${status === "TEST" ? " cc-cert-btn--certified" : ""}`} onClick={() => setStatus(status === "TEST" ? "PLANNED" : "TEST")}>TEST</button>
                   </div>
                 </section>
+                */}
 
                 {/* 버튼 영역 */}
                 <div className="cc-submit-area">
