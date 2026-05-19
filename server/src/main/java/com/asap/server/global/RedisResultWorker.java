@@ -1,6 +1,5 @@
 package com.asap.server.global;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.boot.CommandLineRunner;
@@ -12,11 +11,14 @@ import org.springframework.transaction.annotation.Transactional;
 import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.CodeBattleParticipant;
 import com.asap.server.domain.CodeBattleSubmission;
+import com.asap.server.domain.ContestSwissMatch;
 import com.asap.server.dto.response.CodeBattleAiMatchResult;
 import com.asap.server.dto.response.CodeBattleMatchResult;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
+import com.asap.server.repository.ContestSwissMatchRepository;
+import com.asap.server.service.ContestRunService;
 import com.asap.server.service.SseService;
 import com.asap.server.service.SwissMatchMaker;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -38,8 +40,10 @@ public class RedisResultWorker implements CommandLineRunner {
     private final SwissMatchMaker swissMatchMaker;
 
     private final CodeBattleMatchRepository matchRepository;
+    private final ContestSwissMatchRepository swissMatchRepository;
     private final CodeBattleSubmissionRepository submissionRepository;
     private final CodeBattleParticipantRepository participantRepository;
+    private final ContestRunService contestRunService;
 
     private final TaskExecutor taskExecutor;
 
@@ -70,8 +74,12 @@ public class RedisResultWorker implements CommandLineRunner {
                     log.info("풀리그 결과 처리");
                     processNormalPullResult(rawData);
                 } else {
-                    log.info("스위스 리그 결과 처리");
-                    processNormalSwissResult(rawData);
+                    String swissSessionIdStr = redisTemplate.opsForValue().get("swiss:matchId:" + result.getMatchId());
+                    if (swissSessionIdStr != null) {
+                        log.info("중간 스위스 결과 처리");
+                        processNormalSwissResult(rawData, Long.parseLong(swissSessionIdStr));
+                    } else
+                        return;
                 }
             } catch (Exception e) {
                 if (Thread.currentThread().isInterrupted())
@@ -124,27 +132,33 @@ public class RedisResultWorker implements CommandLineRunner {
         }
     }
 
-    // 스위서 결과 집계용 (미구현)
-    private void processNormalSwissResult(String rawData) throws JsonProcessingException {
+    // 스위서 결과 집계
+    private void processNormalSwissResult(String rawData, Long sessionId) throws JsonProcessingException {
         CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
-        CodeBattleMatch match = matchRepository.findById(result.getMatchId())
+        ContestSwissMatch match = swissMatchRepository.findById(result.getMatchId())
                 .orElseThrow(() -> new RuntimeException("Match not found (ID: " + result.getMatchId() + ")"));
 
+        // 매치 결과 저장
         int comp = result.getWinner();
-        if (comp == 1)
+        if (comp == 1) {
             match.setWinner(match.getUser1());
-        else if (comp == 2)
+            match.setResult("WIN1");
+        } else if (comp == 2) {
             match.setWinner(match.getUser2());
-        else
+            match.setResult("WIN2");
+        } else {
             match.setWinner(null);
+            match.setResult("DRAW");
+        }
 
         match.setLog(result.getLog());
-        matchRepository.save(match);
+        swissMatchRepository.save(match);
 
         sseService.sendToUser(match.getUser1().getId(), result);
         sseService.sendToUser(match.getUser2().getId(), result);
 
-        Long contestId = match.getContest().getId();
+        // 참가자 점수 갱신 (다음 세션 매칭에 반영하기 위함)
+        Long contestId = match.getRound().getSession().getContest().getId();
         CodeBattleParticipant p1 = participantRepository.findByContestIdAndUserId(contestId, match.getUser1().getId());
         CodeBattleParticipant p2 = participantRepository.findByContestIdAndUserId(contestId, match.getUser2().getId());
 
@@ -159,18 +173,19 @@ public class RedisResultWorker implements CommandLineRunner {
         participantRepository.save(p1);
         participantRepository.save(p2);
 
-        // 라운드 종료 체크
-        List<CodeBattleParticipant> allParticipants = participantRepository.findByContestId(contestId);
-        int matchesPerRound = allParticipants.size() / 2;
-        long totalCreated = matchRepository.countByContestId(contestId);
-        long totalFinished = matchRepository.countFinishedMatchesByContestId(contestId);
+        // 세션 완료 카운트 + 집계 트리거
+        Long done = redisTemplate.opsForValue().increment("swiss:done:" + sessionId);
+        String totalStr = redisTemplate.opsForValue().get("swiss:total:" + sessionId);
+        if (totalStr == null) {
+            log.warn("[Swiss] swiss:total 키 없음. sessionId={}", sessionId);
+            return;
+        }
+        Long total = Long.parseLong(totalStr);
+        log.info("[Swiss] sessionId={} {}/{}", sessionId, done, total);
 
-        if (totalCreated > 0 && totalCreated == totalFinished) {
-            int currentRound = (int) (totalFinished / matchesPerRound);
-            if (currentRound < 10)
-                swissMatchMaker.generateNextRound(contestId);
-            else
-                log.info("[Worker] 대회 ID: {} 10라운드 완료!", contestId);
+        if (done.equals(total)) {
+            log.info("[Swiss] sessionId={} 세션 집계 시작", sessionId);
+            contestRunService.aggregateSwissSession(sessionId);
         }
     }
 
