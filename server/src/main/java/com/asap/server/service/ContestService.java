@@ -29,6 +29,8 @@ import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestParticipantResponse;
 import com.asap.server.dto.response.ContestResponse;
+import com.asap.server.dto.response.ContestScheduleListResponse;
+import com.asap.server.dto.response.ContestScheduleResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
@@ -808,18 +810,37 @@ public class ContestService {
     private record DatePolicy(LocalDateTime startDate, LocalDateTime endDate) {
     }
 
-    public ContestSchedule saveSchedule(Long contestId, ContestScheduleRequest request) {
+    public ContestScheduleResponse saveSchedule(Long contestId, ContestScheduleRequest request) {
         CodeBattleContest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new EntityNotFoundException("대회를 찾을 수 없습니다."));
 
-        LocalDateTime start = request.getStartDate();
+        // scheduledTimes가 null이면 빈 리스트 반환
+        if (request.getScheduledTimes() == null) {
+            log.info("빈 예약 리스트");
+            return new ContestScheduleResponse(List.of());
+        }
 
-        ContestSchedule schedule = new ContestSchedule();
-        schedule.setContest(contest);
-        schedule.setScheduledAt(start);
-        ContestSchedule saved = contestScheduleRepository.save(schedule);
+        List<ContestSchedule> schedules = request.getScheduledTimes().stream()
+                .map(time -> {
+                    ContestSchedule schedule = new ContestSchedule();
+                    schedule.setContest(contest);
+                    schedule.setScheduledAt(time);
+                    // status는 PLANNED가 기본값
+                    return schedule;
+                })
+                .toList();
 
-        return saved;
+        List<ContestSchedule> saved = contestScheduleRepository.saveAll(schedules);
+        return ContestScheduleResponse.from(saved);
+    }
 
+    public List<ContestScheduleListResponse> getSchedules(Long contestId) {
+        contestRepository.findById(contestId)
+                .orElseThrow(() -> new EntityNotFoundException("대회를 찾을 수 없습니다."));
+
+        return contestScheduleRepository.findByContestId(contestId)
+                .stream()
+                .map(ContestScheduleListResponse::from)
+                .toList();
     }
 }

@@ -104,10 +104,11 @@ public class ContestRunService {
       for (CodeBattleParticipant p : participants) {
         p.setScore(0);
       }
-      participantRepository.saveAll(participants); // 초기화된 점수 DB 반영
+      // 초기화된 점수 DB 반영
+      participantRepository.saveAll(participants);
       // 스위스 매칭 예약 (미구현)
-      // swissMatchMaker.generateNextRound(contestId);
-      // swissMatchMaker.
+
+      // 종료 예약
       Runnable task = () -> processEnd(contestId);
       Instant endInstant = contest.getEndDate().atZone(ZoneId.of("Asia/Seoul")).toInstant();
       log.info("대회 종료 시간: {}", contest.getEndDate());
