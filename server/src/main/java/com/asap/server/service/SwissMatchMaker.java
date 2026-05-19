@@ -44,7 +44,7 @@ public class SwissMatchMaker {
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
     private static final String PULL_LEAGUE_MATCH_DEDUP_KEY_PREFIX = "code_battle:pull_league:dedup:";
 
-    public void queuePullLeagueForNewSubmission(Long contestId, Long submissionId) {
+    public void queuePullLeagueForNewSubmission(Long contestId, Long submissionId) { // 안쓰는 로직
         CodeBattleContest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. ID: " + contestId));
 
@@ -334,7 +334,7 @@ public class SwissMatchMaker {
     }
 
     @Transactional
-    public void generateNextRound(Long contestId) {
+    public void generateNextRound(Long contestId) { // 스위스 함수
         // 대회 및 참가자 정보 조회
         CodeBattleContest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. ID: " + contestId));
