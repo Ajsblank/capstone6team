@@ -9,7 +9,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.asap.server.config.CustomUserDetails;
+import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.ContestSchedule;
 import com.asap.server.dto.request.ContestScheduleRequest;
 import com.asap.server.dto.request.CreateCertifiedContestRequest;
@@ -33,10 +33,13 @@ import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestResponse;
+import com.asap.server.dto.response.FinalResultResponse;
 import com.asap.server.global.type.ContestStatus;
+import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.service.CodeBattleSubmissionService;
 import com.asap.server.service.ContestService;
 import com.asap.server.service.S3Service;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -59,6 +62,8 @@ public class ContestController {
     private final ContestService contestService;
     private final S3Service s3Service;
     private final CodeBattleSubmissionService submissionService;
+    private final ObjectMapper objectMapper;
+    private final CodeBattleContestRepository contestRepository;
 
     @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
     @PostMapping(value = "/create/uncertified", consumes = "application/json")
@@ -223,16 +228,35 @@ public class ContestController {
     }
 
     @GetMapping("/contest/{contestId}/final-result")
-    public ResponseEntity<String> getFinalResult(@PathVariable Long contestId) {
+    @Operation(summary = "풀리그 결과 조회", description = "대회 종료 처리 후 기록된 풀리그 결과를 Json 형식으로 반환합니다.")
+    public ResponseEntity<?> getFinalResult(@PathVariable Long contestId) {
         try {
+            CodeBattleContest contest = contestRepository.findById(contestId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대회입니다."));
+
+            if (contest.getStatus() != ContestStatus.END) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message", "아직 종료되지 않은 대회입니다."));
+            }
+
             String key = s3Service.buildFinalResultKey(contestId);
             String json = s3Service.readFileAsString(key);
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(json);
+            try {
+                json = s3Service.readFileAsString(key);
+            } catch (Exception e) {
+                // S3 파일 없음 = 종료는 됐지만 아직 집계 중
+                return ResponseEntity.accepted()
+                        .body(Map.of("message", "아직 집계 중이거나 데이터가 존재하지 않습니다."));
+            }
+            FinalResultResponse response = objectMapper.readValue(json, FinalResultResponse.class);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
             log.error("[풀리그] 최종 결과 조회 실패. contestId={}", contestId, e);
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "결과 조회 중 오류가 발생했습니다."));
         }
     }
+
 }
