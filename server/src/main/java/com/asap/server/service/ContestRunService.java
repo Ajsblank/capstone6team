@@ -104,10 +104,11 @@ public class ContestRunService {
       for (CodeBattleParticipant p : participants) {
         p.setScore(0);
       }
-      participantRepository.saveAll(participants); // 초기화된 점수 DB 반영
+      // 초기화된 점수 DB 반영
+      participantRepository.saveAll(participants);
       // 스위스 매칭 예약 (미구현)
-      // swissMatchMaker.generateNextRound(contestId);
-      // swissMatchMaker.
+
+      // 종료 예약
       Runnable task = () -> processEnd(contestId);
       Instant endInstant = contest.getEndDate().atZone(ZoneId.of("Asia/Seoul")).toInstant();
       log.info("대회 종료 시간: {}", contest.getEndDate());
@@ -138,22 +139,20 @@ public class ContestRunService {
       // 제출 전에 참가자/제출 수 검사
       long participantCount = participantRepository.countByContestId(contestId);
       long submissionCount = participantRepository.findByContestIdAndSubmissionIsNotNull(contestId).size();
-
-      log.info("대회 종료 검사. contestId: {}, participantCount: {}, submissionCount: {}", contestId, participantCount,
-          submissionCount);
-
+      // 참가자 2명 미만 이거나 제출이 2개 미만이면 grading 종료
+      if (participantCount < 2 || submissionCount < 2) {
+        log.warn("참가자/제출 부족으로 grading을 스킵합니다. participantCount: {}, submissionCount: {}", participantCount,
+            submissionCount);
+        return;
+      }
       contest.setStatus(ContestStatus.END);
       contestRepository.save(contest);
       log.info("대회 종료 시간 도달로 상태를 END로 변경했습니다. contestId: {}", contestId);
 
-      // 참가자 2명 이상 && 제출 2개 이상이면 grading 실행
-      if (participantCount >= 2 && submissionCount >= 2) {
-        swissMatchMaker.pullLeagueGrading(contestId);
-        log.info("Grading을 실행합니다. contestId: {}", contestId);
-      } else {
-        log.warn("참가자/제출 부족으로 grading을 스킵합니다. participantCount: {}, submissionCount: {}", participantCount,
-            submissionCount);
-      }
+      // Grading 실행
+      log.info("최종 Grading을 실행합니다. contestId: {}", contestId);
+      swissMatchMaker.pullLeagueGrading(contestId);
+
     } finally {
       scheduledTasks.remove(contestId);
       log.debug("[Scheduler] contestId={} 종료 스케줄을 제거했습니다.", contestId);
