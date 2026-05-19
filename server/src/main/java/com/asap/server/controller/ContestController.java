@@ -39,6 +39,7 @@ import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.service.CodeBattleSubmissionService;
 import com.asap.server.service.ContestService;
 import com.asap.server.service.S3Service;
+import com.asap.server.service.SwissMatchMaker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -64,6 +65,7 @@ public class ContestController {
     private final CodeBattleSubmissionService submissionService;
     private final ObjectMapper objectMapper;
     private final CodeBattleContestRepository contestRepository;
+    private final SwissMatchMaker swissMatchMaker;
 
     @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
     @PostMapping(value = "/create/uncertified", consumes = "application/json")
@@ -256,6 +258,16 @@ public class ContestController {
             log.error("[풀리그] 최종 결과 조회 실패. contestId={}", contestId, e);
             return ResponseEntity.internalServerError()
                     .body(Map.of("message", "결과 조회 중 오류가 발생했습니다."));
+        }
+    }
+
+    @PostMapping("/contest/{contestId}/final-test")
+    public ResponseEntity<String> testPullLeagueGrading(@PathVariable Long contestId) {
+        try {
+            swissMatchMaker.pullLeagueGrading(contestId);
+            return ResponseEntity.ok("풀리그 채점 대기열에 등록되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
