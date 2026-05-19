@@ -57,17 +57,17 @@ public class CodeBattleMatch {
   private Long aiOrder;
 
   public CodeBattleMatch(CodeBattleContest contest, Users user1, Users user2, Users winner, String log) {
-    this(contest, user1, user2, winner, null, log);
+    this(contest, user1, user2, winner, log, 0L);
   }
 
-  public CodeBattleMatch(CodeBattleContest contest, Users user1, Users user2, Users winner,
-      CodeBattleSubmission submission, String log) {
+  public CodeBattleMatch(CodeBattleContest contest, Users user1, Users user2, Users winner, String log,
+      Long aiOrder) {
     this.contest = contest;
     this.user1 = user1;
     this.user2 = user2;
     this.winner = winner;
-    this.submission = submission;
     this.log = log;
+    this.aiOrder = aiOrder;
   }
 
   @PrePersist
