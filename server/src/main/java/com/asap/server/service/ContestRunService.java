@@ -149,7 +149,7 @@ public class ContestRunService {
       log.info("대회 종료 시간 도달로 상태를 END로 변경했습니다. contestId: {}", contestId);
 
       // Grading 실행
-      log.info("Grading을 실행합니다. contestId: {}", contestId);
+      log.info("최종 Grading을 실행합니다. contestId: {}", contestId);
       swissMatchMaker.pullLeagueGrading(contestId);
 
     } finally {

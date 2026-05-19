@@ -50,6 +50,9 @@ public class CodeBattleMatch {
   @Column(columnDefinition = "TEXT")
   private String log;
 
+  @Column(name = "result", nullable = false)
+  private String result = "PENDING";
+
   @Column(nullable = false)
   private LocalDateTime created_at;
 
