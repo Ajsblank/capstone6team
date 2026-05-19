@@ -48,6 +48,7 @@ public class RedisResultWorker implements CommandLineRunner {
         taskExecutor.execute(this::pollNormalQueue);
         taskExecutor.execute(this::pollAiQueue);
         taskExecutor.execute(this::pollTestQueue);
+        // taskExecutor.execute(this::pollPullLeagueQueue); // 최종 대회용으로 추가함
     }
 
     private void pollNormalQueue() {
@@ -59,7 +60,14 @@ public class RedisResultWorker implements CommandLineRunner {
                 if (rawData == null)
                     continue;
                 log.info("🤖 [대회용] Redis 결과 처리...");
-                processNormalResult(rawData);
+                if (true) {// 최종 대회 처리
+                    log.info("풀리그 결과 처리");
+                    processNormalPullResult(rawData);
+                } else {
+                    log.info("스위스 리그 결과 처리");
+                    processNormalSwissResult(rawData);
+
+                }
             } catch (Exception e) {
                 if (Thread.currentThread().isInterrupted())
                     break;
@@ -70,7 +78,49 @@ public class RedisResultWorker implements CommandLineRunner {
         }
     }
 
-    private void processNormalResult(String rawData) throws JsonProcessingException {
+    private void processNormalPullResult(String rawData) throws JsonProcessingException {
+        CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
+        CodeBattleMatch match = matchRepository.findById(result.getMatchId())
+                .orElseThrow(() -> new RuntimeException("Match not found (ID: " + result.getMatchId() + ")"));
+
+        int comp = result.getWinner();
+        if (comp == 1) {
+            match.setWinner(match.getUser1());
+            match.setResult("WIN1");
+        } else if (comp == 2) {
+            match.setWinner(match.getUser2());
+            match.setResult("WIN2");
+        } else if (comp == 0) {
+            match.setWinner(null);
+            match.setResult("DRAW");
+        }
+
+        match.setLog(result.getLog());
+        matchRepository.save(match);
+
+        sseService.sendToUser(match.getUser1().getId(), result);
+        sseService.sendToUser(match.getUser2().getId(), result);
+
+        Long contestId = match.getContest().getId();
+
+        // 제안 코드 — Redis 카운터로 완료 감지 ✅
+        Long done = redisTemplate.opsForValue().increment("contest:done:" + contestId);
+        String totalStr = redisTemplate.opsForValue().get("contest:total:" + contestId);
+        if (totalStr == null) {
+            log.warn("[풀리그] contest:total 키 없음. contestId={}", contestId);
+            return;
+        }
+        Long total = Long.parseLong(totalStr);
+        log.info("[풀리그] contestId={} {}/{}", contestId, done, total);
+
+        if (done.equals(total)) {
+            log.info("[풀리그] contestId={} 최종 집계 처리", contestId);
+            swissMatchMaker.aggregateAndSave(contestId);
+        }
+    }
+
+    // 스위서 결과 집계용 (미구현)
+    private void processNormalSwissResult(String rawData) throws JsonProcessingException {
         CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
         CodeBattleMatch match = matchRepository.findById(result.getMatchId())
                 .orElseThrow(() -> new RuntimeException("Match not found (ID: " + result.getMatchId() + ")"));

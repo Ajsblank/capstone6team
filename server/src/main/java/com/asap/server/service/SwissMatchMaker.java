@@ -2,6 +2,8 @@ package com.asap.server.service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,6 +38,7 @@ public class SwissMatchMaker {
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
     private final S3Service s3Service;
+    private final SseService sseService;
 
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
     private static final String PULL_LEAGUE_MATCH_DEDUP_KEY_PREFIX = "code_battle:pull_league:dedup:";
@@ -131,6 +134,9 @@ public class SwissMatchMaker {
             log.info("[SwissMatchMaker] 풀리그 대회 ID: {}, {}개의 제출 코드로 매칭을 생성합니다.", contestId, submissions.size());
 
             int expected = (submissions.size() * (submissions.size() - 1)) / 2;
+            redisTemplate.opsForValue().set("contest:total:" + contestId, String.valueOf(expected));
+            redisTemplate.opsForValue().set("contest:done:" + contestId, "0");
+            log.info("[풀리그] contestId={} 카운터 미리 초기화. total={}", contestId, expected);
             int enqueued = 0, dedupSkipped = 0, enqueueFailed = 0;
 
             // 3. 풀리그 매칭 (i < j 로 중복 방지)
@@ -161,8 +167,13 @@ public class SwissMatchMaker {
 
                     } catch (Exception e) {
                         enqueueFailed++;
-                        log.error("[SwissMatchMaker] 큐 적재 실패. s1={}, s2={}, 원인={}",
+                        log.error("[SwissMatchMaker] 큐 적재 실패로 전체 중단. s1={}, s2={}, 원인={}",
                                 s1.getId(), s2.getId(), e.getMessage());
+                        // Redis 카운터 정리
+                        redisTemplate.delete("contest:total:" + contestId);
+                        redisTemplate.delete("contest:done:" + contestId);
+
+                        throw new RuntimeException("풀리그 큐 적재 실패로 전체 중단", e);
                     }
                 }
             }
@@ -170,30 +181,38 @@ public class SwissMatchMaker {
             log.info(
                     "[SwissMatchMaker] 풀리그 대회 ID {} 매칭 완료. expected={}, enqueued={}, dedupSkipped={}, enqueueFailed={}",
                     contestId, expected, enqueued, dedupSkipped, enqueueFailed);
+
         } finally {
             redisTemplate.delete(dedupSetKey);
             log.info("[SwissMatchMaker] 풀리그 대회 ID {} dedup 키를 정리했습니다.", contestId);
         }
     }
 
-    private void enqueueMatchToGradingQueue(
+    private void enqueueMatchToGradingQueue( // 풀리그 처리 함수
             Long matchId,
             CodeBattleContest contest,
             CodeBattleSubmission s1,
             CodeBattleSubmission s2,
             int aiOrder) throws Exception {
 
-        // S3에서 코드 읽기
-        log.info("[S3] judge={}", contest.getJudgeCode());
-        log.info("[S3] p1={}", s1.getCodeUrl());
-        log.info("[S3] p2={}", s2.getCodeUrl());
+        // S3에서 코드 읽기 비활성화
+        // log.info("[S3] judge={}", contest.getJudgeCode());
+        // log.info("[S3] p1={}", s1.getCodeUrl());
+        // log.info("[S3] p2={}", s2.getCodeUrl());
 
-        String judgeCode = s3Service.readFileAsString(contest.getJudgeCode());
-        String player1Code = s3Service.readFileAsString(s1.getCodeUrl());
-        String player2Code = s3Service.readFileAsString(s2.getCodeUrl());
+        // String judgeCode = s3Service.readFileAsString(contest.getJudgeCode());
+        // String player1Code = s3Service.readFileAsString(s1.getCodeUrl());
+        // String player2Code = s3Service.readFileAsString(s2.getCodeUrl());
 
-        log.info("[S3] 읽기 완료. judge={}자, p1={}자, p2={}자",
-                judgeCode.length(), player1Code.length(), player2Code.length());
+        // log.info("[S3] 읽기 완료. judge={}자, p1={}자, p2={}자",
+        // judgeCode.length(), player1Code.length(), player2Code.length());
+        String judgeCode = contest.getJudgeCode();
+        String player1Code = s1.getCodeUrl();
+        String player2Code = s2.getCodeUrl();
+
+        log.info("[대회 처리] judge={}, 길이={}", judgeCode, judgeCode.length());
+        log.info("[대회 처리] p1={}, 길이={}", player1Code, player1Code.length());
+        log.info("[대회 처리] p2={}, 길이={}", player2Code, player2Code.length());
 
         // JSON 구성
         ObjectNode root = objectMapper.createObjectNode();
@@ -327,6 +346,93 @@ public class SwissMatchMaker {
                 // 특정 매치 JSON 생성/전송 실패 시 에러 로깅 (전체 루프가 중단되지 않도록 방지)
                 log.error("[SwissMatchMaker] Redis 전송 실패 - matchId: {}", match.getId(), e);
             }
+        }
+    }
+
+    public void aggregateAndSave(Long contestId) {
+        log.info("[풀리그] contestId={} 최종 집계 시작", contestId);
+
+        try {
+            // 1. participant 테이블에서 바로 읽기 (이미 score 누적돼 있음)
+            List<CodeBattleParticipant> participants = participantRepository.findByContestId(contestId);
+
+            // 2. score 기준 내림차순 정렬
+            List<CodeBattleParticipant> sorted = participants.stream()
+                    .sorted(Comparator.comparingInt(
+                            (CodeBattleParticipant p) -> p.getScore() == null ? 0 : p.getScore()).reversed())
+                    .collect(Collectors.toList());
+
+            // ✅ 3. 매치 한 번만 조회 후 유저별 Map 생성 (여기 추가)
+            List<CodeBattleMatch> allMatches = matchRepository.findByContestId(contestId);
+            // 유저별 통계 Map
+            Map<Long, Integer> winsMap = new HashMap<>();
+            Map<Long, Integer> drawsMap = new HashMap<>();
+            Map<Long, Integer> lossesMap = new HashMap<>();
+            Map<Long, List<Long>> userMatchIds = new HashMap<>();
+            for (CodeBattleMatch m : allMatches) {
+                Long user1Id = m.getUser1().getId();
+                Long user2Id = m.getUser2().getId();
+                userMatchIds.computeIfAbsent(user1Id, k -> new ArrayList<>()).add(m.getId());
+                userMatchIds.computeIfAbsent(user2Id, k -> new ArrayList<>()).add(m.getId());
+                // 승/무/패 집계
+                if ("WIN1".equals(m.getResult())) {
+                    winsMap.merge(user1Id, 1, Integer::sum);
+                    lossesMap.merge(user2Id, 1, Integer::sum);
+                } else if ("WIN2".equals(m.getResult())) {
+                    winsMap.merge(user2Id, 1, Integer::sum);
+                    lossesMap.merge(user1Id, 1, Integer::sum);
+                } else if ("DRAW".equals(m.getResult())) {
+                    drawsMap.merge(user1Id, 1, Integer::sum);
+                    drawsMap.merge(user2Id, 1, Integer::sum);
+                }
+            }
+
+            // ✅ 4. standings 생성
+            List<Map<String, Object>> standings = new ArrayList<>();
+            for (int i = 0; i < sorted.size(); i++) {
+                CodeBattleParticipant p = sorted.get(i);
+                Long userId = p.getUser().getId();
+
+                int wins = winsMap.getOrDefault(userId, 0);
+                int draws = drawsMap.getOrDefault(userId, 0);
+                int losses = lossesMap.getOrDefault(userId, 0);
+                double points = wins * 1.0 + draws * 0.5;
+
+                Map<String, Object> standing = new LinkedHashMap<>();
+                standing.put("user_id", userId);
+                standing.put("wins", wins);
+                standing.put("draws", draws);
+                standing.put("losses", losses);
+                standing.put("rank", i + 1);
+                standing.put("points", points);
+                standing.put("match_ids", userMatchIds.getOrDefault(userId, List.of()));
+                standings.add(standing);
+            }
+
+            // 5. 최종 JSON 생성
+            Map<String, Object> finalResult = new LinkedHashMap<>();
+            finalResult.put("total_participants", sorted.size());
+            finalResult.put("final-standings", standings);
+            String json = objectMapper.writeValueAsString(finalResult);
+
+            // 6. S3 저장
+            String key = s3Service.buildFinalResultKey(contestId);
+            s3Service.uploadJsonResult(key, json);
+            log.info("[풀리그] contestId={} S3 저장 완료", contestId);
+
+            // 6. SSE 전송 — 참가자 전원에게
+            for (CodeBattleParticipant p : participants) {
+                sseService.sendToUser(p.getUser().getId(), json, "contest-end");
+            }
+            log.info("[풀리그] contestId={} SSE 전송 완료", contestId);
+
+        } catch (Exception e) {
+            log.error("[풀리그] contestId={} 집계 저장 실패: {}", contestId, e.getMessage());
+        } finally {
+            // 7. Redis 키 정리
+            redisTemplate.delete("contest:total:" + contestId);
+            redisTemplate.delete("contest:done:" + contestId);
+            log.info("[풀리그] contestId={} Redis 키 정리 완료", contestId);
         }
     }
 }
