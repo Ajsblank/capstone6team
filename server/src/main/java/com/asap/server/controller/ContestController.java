@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,6 +36,7 @@ import com.asap.server.dto.response.ContestResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.service.CodeBattleSubmissionService;
 import com.asap.server.service.ContestService;
+import com.asap.server.service.S3Service;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -55,6 +57,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ContestController {
 
     private final ContestService contestService;
+    private final S3Service s3Service;
     private final CodeBattleSubmissionService submissionService;
 
     @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
@@ -217,5 +220,19 @@ public class ContestController {
                 targetUserId);
         log.info("조회: {}", responses);
         return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/contest/{contestId}/final-result")
+    public ResponseEntity<String> getFinalResult(@PathVariable Long contestId) {
+        try {
+            String key = s3Service.buildFinalResultKey(contestId);
+            String json = s3Service.readFileAsString(key);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(json);
+        } catch (Exception e) {
+            log.error("[풀리그] 최종 결과 조회 실패. contestId={}", contestId, e);
+            return ResponseEntity.notFound().build();
+        }
     }
 }
