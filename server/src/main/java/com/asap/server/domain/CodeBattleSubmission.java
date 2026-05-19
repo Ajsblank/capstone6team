@@ -52,8 +52,8 @@ public class CodeBattleSubmission {
   @Column
   private String result;
 
-  @Column(nullable = false)
-  private LocalDateTime created_at;
+  @Column(name = "created_at")
+  private LocalDateTime createdAt;
 
   public CodeBattleSubmission(Users user, CodeBattleContest contest, Language language, String codeUrl,
       String result) {
@@ -70,6 +70,6 @@ public class CodeBattleSubmission {
 
   @PrePersist
   protected void onCreate() {
-    created_at = LocalDateTime.now();
+    createdAt = LocalDateTime.now();
   }
 }

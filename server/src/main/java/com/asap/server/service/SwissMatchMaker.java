@@ -1,5 +1,6 @@
 package com.asap.server.service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -107,7 +108,6 @@ public class SwissMatchMaker {
         }
 
         // 2. Participant 기준으로 제출 코드 1인 1개 조회
-        String dedupSetKey = PULL_LEAGUE_MATCH_DEDUP_KEY_PREFIX + contestId;
         try {
             List<CodeBattleSubmission> submissions = participantRepository
                     .findByContestIdAndSubmissionIsNotNull(contestId)
@@ -137,7 +137,7 @@ public class SwissMatchMaker {
             redisTemplate.opsForValue().set("contest:total:" + contestId, String.valueOf(expected));
             redisTemplate.opsForValue().set("contest:done:" + contestId, "0");
             log.info("[풀리그] contestId={} 카운터 미리 초기화. total={}", contestId, expected);
-            int enqueued = 0, dedupSkipped = 0, enqueueFailed = 0;
+            int enqueued = 0;
 
             // 3. 풀리그 매칭 (i < j 로 중복 방지)
             for (int i = 0; i < submissions.size(); i++) {
@@ -145,28 +145,18 @@ public class SwissMatchMaker {
                     CodeBattleSubmission s1 = submissions.get(i);
                     CodeBattleSubmission s2 = submissions.get(j);
 
-                    // Redis dedup 체크
-                    String dedupMember = Math.min(s1.getId(), s2.getId()) + ":" + Math.max(s1.getId(), s2.getId());
-                    if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(dedupSetKey, dedupMember))) {
-                        dedupSkipped++;
-                        continue;
-                    }
-
                     try {
-                        // 매치 저장 (이미 있으면 재사용)
-                        CodeBattleMatch match = matchRepository
-                                .findByContestIdAndUser1IdAndUser2Id(contestId, s1.getUser().getId(),
-                                        s2.getUser().getId())
-                                .orElseGet(() -> matchRepository.save(
-                                        new CodeBattleMatch(contest, s1.getUser(), s2.getUser(), null, null)));
-
+                        // 매치 저장
+                        CodeBattleMatch match = matchRepository.save(
+                                new CodeBattleMatch(contest, s1.getUser(), s2.getUser(), null, null));
+                        // 매치 ID Redis에 누적
+                        redisTemplate.opsForList().leftPush("contest:matchIds:" + contestId,
+                                String.valueOf(match.getId()));
                         // 큐에 적재
                         enqueueMatchToGradingQueue(match.getId(), contest, s1, s2, 0);
-                        redisTemplate.opsForSet().add(dedupSetKey, dedupMember);
                         enqueued++;
 
                     } catch (Exception e) {
-                        enqueueFailed++;
                         log.error("[SwissMatchMaker] 큐 적재 실패로 전체 중단. s1={}, s2={}, 원인={}",
                                 s1.getId(), s2.getId(), e.getMessage());
                         // Redis 카운터 정리
@@ -177,15 +167,13 @@ public class SwissMatchMaker {
                     }
                 }
             }
-
             log.info(
-                    "[SwissMatchMaker] 풀리그 대회 ID {} 매칭 완료. expected={}, enqueued={}, dedupSkipped={}, enqueueFailed={}",
-                    contestId, expected, enqueued, dedupSkipped, enqueueFailed);
-
-        } finally {
-            redisTemplate.delete(dedupSetKey);
-            log.info("[SwissMatchMaker] 풀리그 대회 ID {} dedup 키를 정리했습니다.", contestId);
+                    "[SwissMatchMaker] 풀리그 대회 ID {} 매칭 완료. expected={}, enqueued={}",
+                    contestId, expected, enqueued);
+        } catch (RuntimeException e) {
+            throw e; // 상위로 전파
         }
+
     }
 
     private void enqueueMatchToGradingQueue( // 풀리그 처리 함수
@@ -209,14 +197,17 @@ public class SwissMatchMaker {
         String judgeCode = contest.getJudgeCode();
         String player1Code = s1.getCodeUrl();
         String player2Code = s2.getCodeUrl();
-
-        log.info("[대회 처리] judge={}, 길이={}", judgeCode, judgeCode.length());
-        log.info("[대회 처리] p1={}, 길이={}", player1Code, player1Code.length());
-        log.info("[대회 처리] p2={}, 길이={}", player2Code, player2Code.length());
+        // S3 시 사용
+        // log.info("[대회 처리] judge={}, 길이={}", judgeCode, judgeCode.length());
+        // log.info("[대회 처리] p1={}, 길이={}", player1Code, player1Code.length());
+        // log.info("[대회 처리] p2={}, 길이={}", player2Code, player2Code.length());
+        log.info("[대회 처리] 길이={}", judgeCode.length());
+        log.info("[대회 처리] 길이={}", player1Code.length());
+        log.info("[대회 처리] 길이={}", player2Code.length());
 
         // JSON 구성
         ObjectNode root = objectMapper.createObjectNode();
-        root.put("submissionId", matchId);
+        root.put("submissionId", matchId); // 이름 오류 부분 (정상 작동)
         root.put("language1", s1.getLanguage().name());
         root.put("language2", s2.getLanguage().name());
         root.put("aiOrder", aiOrder);
@@ -353,17 +344,16 @@ public class SwissMatchMaker {
         log.info("[풀리그] contestId={} 최종 집계 시작", contestId);
 
         try {
-            // 1. participant 테이블에서 바로 읽기 (이미 score 누적돼 있음)
-            List<CodeBattleParticipant> participants = participantRepository.findByContestId(contestId);
+            // 이번 채점 매치 ID만 조회
+            List<String> matchIdStrs = redisTemplate.opsForList()
+                    .range("contest:matchIds:" + contestId, 0, -1);
 
-            // 2. score 기준 내림차순 정렬
-            List<CodeBattleParticipant> sorted = participants.stream()
-                    .sorted(Comparator.comparingInt(
-                            (CodeBattleParticipant p) -> p.getScore() == null ? 0 : p.getScore()).reversed())
+            List<Long> matchIds = matchIdStrs.stream()
+                    .map(Long::parseLong)
                     .collect(Collectors.toList());
+            // 해당 매치만 DB에서 조회
+            List<CodeBattleMatch> allMatches = matchRepository.findAllById(matchIds);
 
-            // ✅ 3. 매치 한 번만 조회 후 유저별 Map 생성 (여기 추가)
-            List<CodeBattleMatch> allMatches = matchRepository.findByContestId(contestId);
             // 유저별 통계 Map
             Map<Long, Integer> winsMap = new HashMap<>();
             Map<Long, Integer> drawsMap = new HashMap<>();
@@ -386,17 +376,37 @@ public class SwissMatchMaker {
                     drawsMap.merge(user2Id, 1, Integer::sum);
                 }
             }
+            Map<Long, LocalDateTime> submissionTimeMap = new HashMap<>();
+            List<CodeBattleParticipant> participants = participantRepository.findByContestId(contestId);
+            for (CodeBattleParticipant p : participants) {
+                if (p.getSubmission() != null && p.getSubmission().getCreatedAt() != null) {
+                    submissionTimeMap.put(p.getUser().getId(), p.getSubmission().getCreatedAt());
+                }
+            }
+            // 유저 ID 목록 추출 후 points 기준 정렬
+            List<Long> userIds = new ArrayList<>(userMatchIds.keySet());
+            userIds.sort((a, b) -> { // Tim Sort 사용
+                double pointsA = winsMap.getOrDefault(a, 0) * 1.0 + drawsMap.getOrDefault(a, 0) * 0.5;
+                double pointsB = winsMap.getOrDefault(b, 0) * 1.0 + drawsMap.getOrDefault(b, 0) * 0.5;
+                // 1순위: points 내림차순
+                int cmp = Double.compare(pointsB, pointsA);
+                if (cmp != 0)
+                    return cmp;
 
+                // 2순위: 제출 시간 오름차순 (빠를수록 유리)
+                LocalDateTime timeA = submissionTimeMap.getOrDefault(a, LocalDateTime.MAX);
+                LocalDateTime timeB = submissionTimeMap.getOrDefault(b, LocalDateTime.MAX);
+                return timeA.compareTo(timeB);
+            });
             // ✅ 4. standings 생성
             List<Map<String, Object>> standings = new ArrayList<>();
-            for (int i = 0; i < sorted.size(); i++) {
-                CodeBattleParticipant p = sorted.get(i);
-                Long userId = p.getUser().getId();
+            for (int i = 0; i < userIds.size(); i++) {
+                Long userId = userIds.get(i);
 
                 int wins = winsMap.getOrDefault(userId, 0);
                 int draws = drawsMap.getOrDefault(userId, 0);
                 int losses = lossesMap.getOrDefault(userId, 0);
-                double points = wins * 1.0 + draws * 0.5;
+                double points = wins * 1.0 + draws * 0.5; // draw 값 정책
 
                 Map<String, Object> standing = new LinkedHashMap<>();
                 standing.put("user_id", userId);
@@ -409,20 +419,20 @@ public class SwissMatchMaker {
                 standings.add(standing);
             }
 
-            // 5. 최종 JSON 생성
+            // 최종 JSON 생성
             Map<String, Object> finalResult = new LinkedHashMap<>();
-            finalResult.put("total_participants", sorted.size());
+            finalResult.put("total_participants", userIds.size());
             finalResult.put("final-standings", standings);
             String json = objectMapper.writeValueAsString(finalResult);
 
-            // 6. S3 저장
+            // S3 저장
             String key = s3Service.buildFinalResultKey(contestId);
             s3Service.uploadJsonResult(key, json);
             log.info("[풀리그] contestId={} S3 저장 완료", contestId);
 
-            // 6. SSE 전송 — 참가자 전원에게
-            for (CodeBattleParticipant p : participants) {
-                sseService.sendToUser(p.getUser().getId(), json, "contest-end");
+            // SSE 전송 — 참가자 전원에게
+            for (Long userId : userIds) {
+                sseService.sendToUser(userId, json, "contest-end");
             }
             log.info("[풀리그] contestId={} SSE 전송 완료", contestId);
 
@@ -432,6 +442,7 @@ public class SwissMatchMaker {
             // 7. Redis 키 정리
             redisTemplate.delete("contest:total:" + contestId);
             redisTemplate.delete("contest:done:" + contestId);
+            redisTemplate.delete("contest:matchIds:" + contestId); // ✅ 추가
             log.info("[풀리그] contestId={} Redis 키 정리 완료", contestId);
         }
     }
