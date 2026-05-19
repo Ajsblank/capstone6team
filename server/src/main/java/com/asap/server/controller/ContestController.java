@@ -24,7 +24,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.asap.server.config.CustomUserDetails;
 import com.asap.server.domain.CodeBattleContest;
-import com.asap.server.domain.ContestSchedule;
 import com.asap.server.dto.request.ContestScheduleRequest;
 import com.asap.server.dto.request.CreateCertifiedContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
@@ -33,6 +32,8 @@ import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestResponse;
+import com.asap.server.dto.response.ContestScheduleListResponse;
+import com.asap.server.dto.response.ContestScheduleResponse;
 import com.asap.server.dto.response.FinalResultResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
@@ -161,10 +162,10 @@ public class ContestController {
 
     @Operation(summary = "중간 대회 일정 추가")
     @PostMapping("/{contestId}/admin")
-    public ResponseEntity<ContestSchedule> postSchedule(@PathVariable Long contestId,
-            @RequestBody ContestScheduleRequest request) {
-        ContestSchedule schedule = contestService.saveSchedule(contestId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(schedule);
+    public ResponseEntity<ContestScheduleResponse> postSchedule(@PathVariable Long contestId,
+            @Valid @RequestBody ContestScheduleRequest request) {
+        ContestScheduleResponse response = contestService.saveSchedule(contestId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @Operation(summary = "대회 수정", description = "PATCH /api/contests/{contestId}는 대회 메타데이터만 수정합니다. 리소스(visual/solo/judge/sample)는 /api/contests/{contestId}/resource를 사용하세요.")
@@ -259,6 +260,12 @@ public class ContestController {
             return ResponseEntity.internalServerError()
                     .body(Map.of("message", "결과 조회 중 오류가 발생했습니다."));
         }
+    }
+
+    @Operation(summary = "중간 대회 목록 조회")
+    @GetMapping("/{contestId}/schedules")
+    public ResponseEntity<List<ContestScheduleListResponse>> getSchedules(@PathVariable Long contestId) {
+        return ResponseEntity.ok(contestService.getSchedules(contestId));
     }
 
     @PostMapping("/contest/{contestId}/final-test")

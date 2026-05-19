@@ -59,14 +59,19 @@ public class RedisResultWorker implements CommandLineRunner {
                 rawData = redisTemplate.opsForList().rightPop("code_battle_result_queue", 5, TimeUnit.SECONDS);
                 if (rawData == null)
                     continue;
+                CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
+                CodeBattleMatch match = matchRepository.findById(result.getMatchId())
+                        .orElseThrow(() -> new RuntimeException("Match not found (ID: " + result.getMatchId() + ")"));
+
+                Long contestId = match.getContest().getId();
                 log.info("🤖 [대회용] Redis 결과 처리...");
-                if (true) {// 최종 대회 처리
+                String totalKey = redisTemplate.opsForValue().get("contest:total:" + contestId);
+                if (totalKey != null) {// 최종 대회 처리
                     log.info("풀리그 결과 처리");
                     processNormalPullResult(rawData);
                 } else {
                     log.info("스위스 리그 결과 처리");
                     processNormalSwissResult(rawData);
-
                 }
             } catch (Exception e) {
                 if (Thread.currentThread().isInterrupted())

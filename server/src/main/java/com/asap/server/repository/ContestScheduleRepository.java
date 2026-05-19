@@ -7,5 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.asap.server.domain.ContestSchedule;
 
 public interface ContestScheduleRepository extends JpaRepository<ContestSchedule, Long> {
-  List<ContestSchedule> findByContest_Id(Long contestId);
+
+  List<ContestSchedule> findByContestId(Long contestId);
 }
