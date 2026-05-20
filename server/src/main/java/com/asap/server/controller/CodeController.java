@@ -18,7 +18,6 @@ import com.asap.server.domain.Users;
 import com.asap.server.dto.request.CodeBattleTestRequest;
 import com.asap.server.dto.request.CodeSubmitRequest;
 import com.asap.server.dto.response.CodeSubmitResponse;
-import com.asap.server.repository.AlgorithmProblemRepository;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
@@ -41,7 +40,6 @@ public class CodeController {
 
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
-    private final AlgorithmProblemRepository problemRepository; // DB 조회를 위한 레포지토리
     private final usersRepository userRepository;
     private final CodeBattleExampleAIRepository exampleAIRepository;
     private final CodeBattleMatchRepository matchRepository;
