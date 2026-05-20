@@ -109,23 +109,23 @@ public class CodeController {
                 aiMatch.setSubmission(submission);
                 matchRepository.save(aiMatch);
 
-                ObjectNode root = objectMapper.createObjectNode();
-                root.put("submissionId", submission.getId());
-                root.put("timeLimitSec", contest.getTimeLimitSec());
-                root.put("memoryLimitMb", contest.getMemoryLimitMB());
-                root.put("aiOrder", ai.getExampleOrder());
+                ObjectNode rootNode = objectMapper.createObjectNode();
+                rootNode.put("submissionId", submission.getId());
+                rootNode.put("timeLimitSec", contest.getTimeLimitSec());
+                rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
+                rootNode.put("aiOrder", ai.getExampleOrder());
 
-                ObjectNode codes = root.putObject("codes");
-                codes.put("judge", contest.getJudgeCode());
-                codes.put("player1", request.getSourceCode());
-                codes.put("player2", ai.getCode());
+                ObjectNode codesNode = rootNode.putObject("codes");
+                codesNode.put("judge", contest.getJudgeCode());
+                codesNode.put("player1", request.getSourceCode());
+                codesNode.put("player2", ai.getCode());
 
-                ObjectNode languages = root.putObject("languages");
-                languages.put("judge", "cpp");
-                languages.put("player1", request.getLanguage().name().toLowerCase());
-                languages.put("player2", ai.getLanguage().name().toLowerCase());
+                ObjectNode languagesNode = rootNode.putObject("languages");
+                languagesNode.put("judge", "cpp");
+                languagesNode.put("player1", request.getLanguage().name().toLowerCase());
+                languagesNode.put("player2", ai.getLanguage().name().toLowerCase());
 
-                String jsonPayload = objectMapper.writeValueAsString(root);
+                String jsonPayload = objectMapper.writeValueAsString(rootNode);
                 redisTemplate.opsForList().leftPush(CODE_BATTLE_GRADING_QUEUE_KEY, jsonPayload);
             }
 
