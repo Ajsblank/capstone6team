@@ -199,7 +199,7 @@ public class ContestRunService {
 
       // Grading 실행
       log.info("최종 Grading을 실행합니다. contestId: {}", contestId);
-      swissMatchMaker.pullLeagueGrading(contestId);
+      swissMatchMaker.fullLeagueGrading(contestId);
 
     } finally {
       scheduledTasks.remove(contestId);

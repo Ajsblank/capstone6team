@@ -42,68 +42,14 @@ public class SwissMatchMaker {
     private final SseService sseService;
 
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
-    private static final String PULL_LEAGUE_MATCH_DEDUP_KEY_PREFIX = "code_battle:pull_league:dedup:";
 
-    public void queuePullLeagueForNewSubmission(Long contestId, Long submissionId) { // 안쓰는 로직
-        CodeBattleContest contest = contestRepository.findById(contestId)
-                .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. ID: " + contestId));
-
-        CodeBattleSubmission newSubmission = submissionRepository.findByIdAndContest_Id(submissionId, contestId)
-                .orElseThrow(() -> new IllegalArgumentException("대회 제출을 찾을 수 없습니다. submissionId: " + submissionId));
-
-        List<CodeBattleSubmission> submissions = submissionRepository.findByContest_Id(contestId);
-        if (submissions == null || submissions.size() < 2) {
-            return;
-        }
-
-        String dedupSetKey = PULL_LEAGUE_MATCH_DEDUP_KEY_PREFIX + contestId;
-        int enqueued = 0;
-
-        for (CodeBattleSubmission opponent : submissions) {
-            if (opponent.getId().equals(newSubmission.getId())) {
-                continue;
-            }
-            if (newSubmission.getUser().getId().equals(opponent.getUser().getId())) {
-                continue;
-            }
-
-            long leftId = Math.min(newSubmission.getId(), opponent.getId());
-            long rightId = Math.max(newSubmission.getId(), opponent.getId());
-            String dedupMember = leftId + ":" + rightId;
-
-            if (Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(dedupSetKey, dedupMember))) {
-                continue;
-            }
-
-            try {
-                CodeBattleMatch match = new CodeBattleMatch(
-                        contest,
-                        newSubmission.getUser(),
-                        opponent.getUser(),
-                        null,
-                        null);
-                match = matchRepository.save(match);
-
-                enqueueMatchToGradingQueue(match.getId(), contest, newSubmission, opponent, 0);
-                redisTemplate.opsForSet().add(dedupSetKey, dedupMember);
-                enqueued++;
-            } catch (Exception e) {
-                log.error("[SwissMatchMaker] Redis 전송 실패 - submissionId1: {}, submissionId2: {}",
-                        newSubmission.getId(), opponent.getId(), e);
-            }
-        }
-
-        log.info("[SwissMatchMaker] 신규 제출 기반 풀리그 큐 적재 완료. contestId: {}, submissionId: {}, enqueued: {}",
-                contestId, submissionId, enqueued);
-    }
-
-    public void pullLeagueGrading(Long contestId) { // 풀리그 시작 함수
+    public void fullLeagueGrading(Long contestId) { // 풀리그 시작 함수
         // 1. 대회 및 모든 제출 코드 조회
         CodeBattleContest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. ID: " + contestId));
 
         if (contest.getStatus() == com.asap.server.global.type.ContestStatus.CANCELED) {
-            log.info("[SwissMatchMaker] 대회 ID {} 는 취소 상태(CANCELED)라 pullLeagueGrading을 스킵합니다.", contestId);
+            log.info("[SwissMatchMaker] 대회 ID {} 는 취소 상태(CANCELED)라 FullLeagueGrading을 스킵합니다.", contestId);
             return;
         }
 
@@ -173,7 +119,6 @@ public class SwissMatchMaker {
         } catch (RuntimeException e) {
             throw e; // 상위로 전파
         }
-
     }
 
     private void enqueueMatchToGradingQueue( // 풀리그 처리 함수
