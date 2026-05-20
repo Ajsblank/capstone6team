@@ -21,6 +21,7 @@ import com.asap.server.repository.ContestSwissMatchRepository;
 import com.asap.server.service.ContestRunService;
 import com.asap.server.service.FullLeagueService;
 import com.asap.server.service.SseService;
+import com.asap.server.service.SwissLeagueService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,6 +45,7 @@ public class RedisResultWorker implements CommandLineRunner {
     private final CodeBattleSubmissionRepository submissionRepository;
     private final CodeBattleParticipantRepository participantRepository;
     private final ContestRunService contestRunService;
+    private final SwissLeagueService swissService;
 
     private final TaskExecutor taskExecutor;
 
@@ -185,7 +187,7 @@ public class RedisResultWorker implements CommandLineRunner {
 
         if (done.equals(total)) {
             log.info("[Swiss] sessionId={} 세션 집계 시작", sessionId);
-            contestRunService.aggregateSwissSession(sessionId);
+            swissService.aggregateSwissSession(sessionId);
         }
     }
 

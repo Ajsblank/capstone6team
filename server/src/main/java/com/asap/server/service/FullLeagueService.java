@@ -37,9 +37,7 @@ public class FullLeagueService {
     private final S3Service s3Service;
     private final SseService sseService;
 
-    private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
     private static final String CODE_BATTLE_FULL_LEAGUE_QUEUE_KEY = "code_battle_full_league_queue";
-    private static final String CODE_BATTLE_SWISS_LEAGUE_QUEUE_KEY = "code_battle_swiss_league_queue";
 
     public void fullLeagueGrading(Long contestId) { // 풀리그 시작 함수
         // 1. 대회 및 모든 제출 코드 조회
@@ -158,7 +156,6 @@ public class FullLeagueService {
         codesNode.put("judge", judgeCode);
         codesNode.put("player1", player1Code);
         codesNode.put("player2", player2Code);
-
         ObjectNode languagesNode = rootNode.putObject("languages");
         languagesNode.put("judge", "cpp");
         languagesNode.put("language1", s1.getLanguage().name());
