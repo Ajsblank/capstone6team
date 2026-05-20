@@ -57,6 +57,9 @@ public class ContestRunService {
 
   private final StringRedisTemplate redisTemplate;
   private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
+  private static final String CODE_BATTLE_SWISS_LEAGUE_QUEUE_KEY = "code_battle_swiss_league_queue";
+  private static final String CODE_BATTLE_FULL_LEAGUE_QUEUE_KEY = "code_battle_full_league_queue";
+
   private final S3Service s3Service;
   private final SseService sseService;
 
@@ -359,7 +362,7 @@ public class ContestRunService {
     codes.put("player2", player2Code);
 
     String payload = objectMapper.writeValueAsString(root);
-    Long queueSize = redisTemplate.opsForList().leftPush(CODE_BATTLE_GRADING_QUEUE_KEY, payload);
+    Long queueSize = redisTemplate.opsForList().leftPush(CODE_BATTLE_SWISS_LEAGUE_QUEUE_KEY, payload);
 
     log.info("[SwissScheduler] 큐 적재 완료. matchId={}, queueSize={}", matchId, queueSize);
   }
