@@ -121,7 +121,6 @@ public class CodeBattleContest {
   public void updateContestFields(
       String title,
       String description,
-      Boolean certification,
       Integer timeLimitSec,
       Integer memoryLimitMB,
       String judgeCode,
@@ -132,9 +131,6 @@ public class CodeBattleContest {
     }
     if (description != null) {
       this.description = description;
-    }
-    if (certification != null) {
-      this.certification = certification;
     }
     if (timeLimitSec != null) {
       this.timeLimitSec = timeLimitSec;

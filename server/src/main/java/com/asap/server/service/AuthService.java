@@ -137,11 +137,14 @@ public class AuthService {
                 .sessionId(sessionId)
                 .joinedContests(joinedContests)
                 .hostedContests(hostedContests)
+                .createdContests(createdContests)
+
                 .build();
         log.info(
-                "로그인 응답 - userId: {}, accessToken: {}, refreshToken: {}, sessionId: {}, joinedContests: {}, hostedContests: {}",
+                "로그인 응답 - userId: {}, accessToken: {}, refreshToken: {}, sessionId: {}, joinedContests: {}, hostedContests: {}, createdContests: {}",
                 response.getUserId(), response.getAccessToken(), response.getRefreshToken(),
-                response.getSessionId(), response.getJoinedContests(), response.getHostedContests());
+                response.getSessionId(), response.getJoinedContests(), response.getHostedContests(),
+                response.getCreatedContests());
         return response;
     }
 
