@@ -269,9 +269,9 @@ public class ContestController {
     }
 
     @PostMapping("/contest/{contestId}/final-test")
-    public ResponseEntity<String> testPullLeagueGrading(@PathVariable Long contestId) {
+    public ResponseEntity<String> testFullLeagueGrading(@PathVariable Long contestId) {
         try {
-            swissMatchMaker.pullLeagueGrading(contestId);
+            swissMatchMaker.fullLeagueGrading(contestId);
             return ResponseEntity.ok("풀리그 채점 대기열에 등록되었습니다.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

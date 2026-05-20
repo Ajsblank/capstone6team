@@ -52,7 +52,7 @@ public class RedisResultWorker implements CommandLineRunner {
         taskExecutor.execute(this::pollNormalQueue);
         taskExecutor.execute(this::pollAiQueue);
         taskExecutor.execute(this::pollTestQueue);
-        // taskExecutor.execute(this::pollPullLeagueQueue); // 최종 대회용으로 추가함
+        // taskExecutor.execute(this::pollFullLeagueQueue); // 최종 대회용으로 추가함
     }
 
     private void pollNormalQueue() {
@@ -72,7 +72,7 @@ public class RedisResultWorker implements CommandLineRunner {
                 String totalKey = redisTemplate.opsForValue().get("contest:total:" + contestId);
                 if (totalKey != null) {// 최종 대회 처리
                     log.info("풀리그 결과 처리");
-                    processNormalPullResult(rawData);
+                    processNormalFullResult(rawData);
                 } else {
                     String swissSessionIdStr = redisTemplate.opsForValue().get("swiss:matchId:" + result.getMatchId());
                     if (swissSessionIdStr != null) {
@@ -91,7 +91,7 @@ public class RedisResultWorker implements CommandLineRunner {
         }
     }
 
-    private void processNormalPullResult(String rawData) throws JsonProcessingException {
+    private void processNormalFullResult(String rawData) throws JsonProcessingException {
         CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
         CodeBattleMatch match = matchRepository.findById(result.getMatchId())
                 .orElseThrow(() -> new RuntimeException("Match not found (ID: " + result.getMatchId() + ")"));
