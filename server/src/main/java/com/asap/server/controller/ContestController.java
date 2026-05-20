@@ -38,9 +38,10 @@ import com.asap.server.dto.response.FinalResultResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.service.CodeBattleSubmissionService;
+import com.asap.server.service.ContestRunService;
 import com.asap.server.service.ContestService;
+import com.asap.server.service.FullLeagueService;
 import com.asap.server.service.S3Service;
-import com.asap.server.service.SwissMatchMaker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -66,7 +67,8 @@ public class ContestController {
     private final CodeBattleSubmissionService submissionService;
     private final ObjectMapper objectMapper;
     private final CodeBattleContestRepository contestRepository;
-    private final SwissMatchMaker swissMatchMaker;
+    private final FullLeagueService fullLeagueService;
+    private final ContestRunService contestRunService;
 
     @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
     @PostMapping(value = "/create/uncertified", consumes = "application/json")
@@ -271,8 +273,21 @@ public class ContestController {
     @PostMapping("/contest/{contestId}/final-test")
     public ResponseEntity<String> testFullLeagueGrading(@PathVariable Long contestId) {
         try {
-            swissMatchMaker.fullLeagueGrading(contestId);
+            fullLeagueService.fullLeagueGrading(contestId);
             return ResponseEntity.ok("풀리그 채점 대기열에 등록되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/contest/{contestId}/swiss-session-test")
+    public ResponseEntity<String> testSwissSession(
+            @PathVariable Long contestId,
+            @RequestParam int sessionNumber,
+            @RequestParam Long scheduleId) {
+        try {
+            contestRunService.processSwissSession(contestId, sessionNumber, scheduleId);
+            return ResponseEntity.ok("스위스 세션 " + sessionNumber + " 실행됨");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

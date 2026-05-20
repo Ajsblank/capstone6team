@@ -19,8 +19,8 @@ import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.asap.server.repository.ContestSwissMatchRepository;
 import com.asap.server.service.ContestRunService;
+import com.asap.server.service.FullLeagueService;
 import com.asap.server.service.SseService;
-import com.asap.server.service.SwissMatchMaker;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,7 +37,7 @@ public class RedisResultWorker implements CommandLineRunner {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final SseService sseService;
-    private final SwissMatchMaker swissMatchMaker;
+    private final FullLeagueService swissMatchMaker;
 
     private final CodeBattleMatchRepository matchRepository;
     private final ContestSwissMatchRepository swissMatchRepository;
