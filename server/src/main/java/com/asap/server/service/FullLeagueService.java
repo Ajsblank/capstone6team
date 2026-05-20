@@ -274,5 +274,4 @@ public class FullLeagueService {
             log.info("[풀리그] contestId={} Redis 키 정리 완료", contestId);
         }
     }
-
 }

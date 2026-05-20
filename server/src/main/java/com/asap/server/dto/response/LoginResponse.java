@@ -16,4 +16,6 @@ public class LoginResponse {
     private String sessionId;
     private List<Long> joinedContests;
     private List<Long> hostedContests;
+    private List<Long> createdContests;
+
 }
