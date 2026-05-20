@@ -24,6 +24,7 @@ import com.asap.server.dto.request.ContestScheduleRequest;
 import com.asap.server.dto.request.CreateCertifiedContestRequest;
 import com.asap.server.dto.request.CreateContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
+import com.asap.server.dto.request.UpdateContestCertifiedRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
 import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
@@ -59,6 +60,7 @@ public class ContestService {
     private final ContestScheduleRepository contestScheduleRepository;
     private final ContestRunService contestRun;
     private final S3Service s3Service;
+    private final ContestReviewerRepository contestReviewerRepository;
 
     @Transactional(rollbackFor = Exception.class)
     public ContestResponse createContest(
@@ -574,54 +576,120 @@ public class ContestService {
         CodeBattleContest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다."));
 
+        // 시간 수정 후 대회 상태를 갱신하는 로직 필요
         LocalDateTime now = LocalDateTime.now();
-        boolean hasStatusOrSchedulePatch = request.getStatus() != null
-                || request.getStartDate() != null
-                || request.getEndDate() != null;
+        boolean hasSchedulePatch = request.getStartDate() != null || request.getEndDate() != null;
 
-        DatePolicy policy = hasStatusOrSchedulePatch
-                ? resolveDatePolicyForUpdate(contest, request, now)
-                : new DatePolicy(contest.getStartDate(), contest.getEndDate());
+        // 대회 시간 갱신
+        LocalDateTime startDate = request.getStartDate() != null
+                ? request.getStartDate()
+                : contest.getStartDate();
 
-        validatePatchValues(request);
+        LocalDateTime endDate = request.getEndDate() != null
+                ? request.getEndDate()
+                : contest.getEndDate();
 
+        // 필드 갱신 -- NULL 일 때 바꾸면 안됨
         contest.updateContestFields(
                 trimToNull(request.getTitle()),
                 trimToNull(request.getDescription()),
-                request.getCertification(),
                 request.getTimeLimitSec(),
                 request.getMemoryLimitMb(),
                 null,
                 null,
                 request.getMaxParticipants());
 
-        if (hasStatusOrSchedulePatch) {
-            ContestStatus targetStatus = request.getStatus() != null ? request.getStatus() : contest.getStatus();
-            contest.updateStatusAndSchedule(targetStatus, policy.startDate(), policy.endDate());
-        }
-
-        if (hasStatusOrSchedulePatch) {
-            if (TransactionSynchronizationManager.isSynchronizationActive()) {
-                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() {
-                        if (contest.getStatus() == ContestStatus.PLANNED
-                                && contest.getStartDate() != null
-                                && contest.getEndDate() != null) {
-                            contestRun.upsertContestSchedule(contest);
-                        }
-                    }
-                });
-            } else {
-                if (contest.getStatus() == ContestStatus.PLANNED
-                        && contest.getStartDate() != null
-                        && contest.getEndDate() != null) {
-                    contestRun.upsertContestSchedule(contest);
-                }
-            }
+        if (hasSchedulePatch) {
+            ContestStatus calculatedStatus = resolveStatus(startDate, endDate, now);
+            contest.updateStatusAndSchedule(calculatedStatus, startDate, endDate);
+            registerScheduleAfterCommit(contest);
         }
 
         return ContestDetailResponse.from(contest);
+    }
+
+    // 메소드 오버라이드, 인증 대회용
+    @Transactional
+    public ContestDetailResponse updateContest(Long contestId, UpdateContestCertifiedRequest request) {
+        CodeBattleContest contest = contestRepository.findById(contestId)
+                .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다."));
+
+        // 시간 수정 후 대회 상태를 갱신하는 로직 필요
+        LocalDateTime now = LocalDateTime.now();
+        boolean hasSchedulePatch = request.getStartDate() != null || request.getEndDate() != null;
+
+        // 대회 시간 갱신
+        LocalDateTime startDate = request.getStartDate() != null
+                ? request.getStartDate()
+                : contest.getStartDate();
+
+        LocalDateTime endDate = request.getEndDate() != null
+                ? request.getEndDate()
+                : contest.getEndDate();
+
+        // 필드 갱신 -- NULL 일 때 바꾸면 안됨
+        contest.updateContestFields(
+                trimToNull(request.getTitle()),
+                trimToNull(request.getDescription()),
+                request.getTimeLimitSec(),
+                request.getMemoryLimitMb(),
+                null,
+                null,
+                request.getMaxParticipants());
+        // 검수자 이메일 별도 처리
+        if (request.getReviewerEmails() != null && !request.getReviewerEmails().isEmpty()) {
+            // 기존 검수자 삭제 후 새로 등록
+            contestReviewerRepository.deleteByContestId(contest.getId());
+            request.getReviewerEmails().forEach(email -> {
+                ContestReviewer reviewer = ContestReviewer.create(contest, email);
+                contestReviewerRepository.save(reviewer);
+            });
+        }
+        if (hasSchedulePatch) {
+            ContestStatus calculatedStatus = resolveStatus(startDate, endDate, now);
+            contest.updateStatusAndSchedule(calculatedStatus, startDate, endDate);
+            registerScheduleAfterCommit(contest);
+        }
+
+        return ContestDetailResponse.from(contest);
+    }
+
+    private ContestStatus resolveStatus(LocalDateTime startDate, LocalDateTime endDate, LocalDateTime now) {
+        if (startDate == null || endDate == null)
+            return ContestStatus.CANCELED; // CANCELLED 가 맞는 철자, 현재 비정상 상태를 반영
+        if (now.isBefore(startDate))
+            return ContestStatus.PLANNED;
+        if (now.isAfter(endDate))
+            return ContestStatus.END;
+        return ContestStatus.RUNNING;
+    }
+
+    private void scheduleIfPlanned(CodeBattleContest contest) {
+        switch (contest.getStatus()) {
+            case PLANNED -> {
+                if (contest.getStartDate() != null && contest.getEndDate() != null) {
+                    contestRun.upsertContestSchedule(contest); // 기존 있으면 덮어쓰기, 없으면 등록
+                }
+            }
+            case RUNNING, END -> {
+                contestRun.cancelContestSchedule(contest.getId()); // 스케줄 제거
+            }
+            default -> {
+            } // 그 외 상태는 무시
+        }
+    }
+
+    private void registerScheduleAfterCommit(CodeBattleContest contest) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    scheduleIfPlanned(contest);
+                }
+            });
+        } else {
+            scheduleIfPlanned(contest);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -699,45 +767,6 @@ public class ContestService {
 
         validateDatePair(startDate, endDate);
         validateStatusByPeriod(status, startDate, endDate, now);
-        return new DatePolicy(startDate, endDate);
-    }
-
-    private DatePolicy resolveDatePolicyForUpdate(
-            CodeBattleContest contest,
-            UpdateContestRequest request,
-            LocalDateTime now) {
-
-        ContestStatus target = request.getStatus() != null ? request.getStatus() : contest.getStatus();
-
-        if (target == ContestStatus.TEST) {
-            // TEST는 일정 무시
-            return new DatePolicy(null, null);
-        }
-
-        LocalDateTime startDate = request.getStartDate() != null ? request.getStartDate() : contest.getStartDate();
-        LocalDateTime endDate = request.getEndDate() != null ? request.getEndDate() : contest.getEndDate();
-
-        // 상태를 RUNNING으로 바꾸면서 시작 시간이 없거나 미래면 현재 시각으로 시작
-        if (target == ContestStatus.RUNNING && request.getStartDate() == null
-                && (startDate == null || now.isBefore(startDate))) {
-            startDate = now;
-        }
-
-        validateDatePair(startDate, endDate);
-
-        // 날짜 수정 시점 검증은 상태별로 다르게 적용한다.
-        if (request.getStartDate() != null || request.getEndDate() != null) {
-            if (target == ContestStatus.RUNNING || target == ContestStatus.PAUSED) {
-                if (!startDate.isBefore(now)) {
-                    throw new IllegalArgumentException("RUNNING/PAUSED 상태에서는 시작 시간이 현재 시간보다 이전이어야 합니다.");
-                }
-                if (!endDate.isAfter(now)) {
-                    throw new IllegalArgumentException("RUNNING/PAUSED 상태에서는 종료 시간이 현재 시간보다 이후여야 합니다.");
-                }
-            }
-        }
-
-        validateStatusByPeriod(target, startDate, endDate, now);
         return new DatePolicy(startDate, endDate);
     }
 

@@ -27,6 +27,7 @@ import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.dto.request.ContestScheduleRequest;
 import com.asap.server.dto.request.CreateCertifiedContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
+import com.asap.server.dto.request.UpdateContestCertifiedRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
 import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.dto.response.ContestDetailResponse;
@@ -170,9 +171,25 @@ public class ContestController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @Operation(summary = "대회 수정", description = "PATCH /api/contests/{contestId}는 대회 메타데이터만 수정합니다. 리소스(visual/solo/judge/sample)는 /api/contests/{contestId}/resource를 사용하세요.")
-    @PatchMapping("/{contestId}")
-    public ResponseEntity<ContestDetailResponse> updateContest(
+    @Operation(summary = "안증 대회 수정", description = "PATCH /api/contests/{contestId}는 대회 메타데이터만 수정합니다. 리소스(visual/solo/judge/sample)는 /api/contests/{contestId}/resource를 사용하세요.")
+    @PatchMapping("/{contestId}/modify/certified")
+    public ResponseEntity<ContestDetailResponse> updateContestCertified(
+            @PathVariable Long contestId,
+            @RequestBody UpdateContestCertifiedRequest request) {
+        try {
+            ContestDetailResponse response = contestService.updateContest(contestId, request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("대회 수정 실패 - contestId: {}", contestId, e);
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
+
+    @Operation(summary = "비인증 대회 수정", description = "PATCH /api/contests/{contestId}는 대회 메타데이터만 수정합니다. 리소스(visual/solo/judge/sample)는 /api/contests/{contestId}/resource를 사용하세요.")
+    @PatchMapping("/{contestId}/modify/uncertified")
+    public ResponseEntity<ContestDetailResponse> updateContestUncertified(
             @PathVariable Long contestId,
             @RequestBody UpdateContestRequest request) {
         try {
