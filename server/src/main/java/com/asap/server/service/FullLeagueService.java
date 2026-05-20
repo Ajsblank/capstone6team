@@ -20,7 +20,6 @@ import com.asap.server.domain.CodeBattleSubmission;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
-import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -30,12 +29,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SwissMatchMaker {
+public class FullLeagueService {
 
     private final CodeBattleContestRepository contestRepository;
     private final CodeBattleParticipantRepository participantRepository;
     private final CodeBattleMatchRepository matchRepository;
-    private final CodeBattleSubmissionRepository submissionRepository;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
     private final S3Service s3Service;
