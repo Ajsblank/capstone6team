@@ -48,11 +48,8 @@ public class CodeController {
     private final CodeBattleParticipantRepository participantRepository;
 
     private static final String SUBMISSION_COUNT_KEY = "submission_count";
-    private static final String GRADING_QUEUE_KEY = "algorithms_grading_queue";
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
     private static final String CODE_BATTLE_TEST_QUEUE_KEY = "code_battle_test_queue";
-    private static final String CODE_BATTLE_SWISS_LEAGUE_QUEUE_KEY = "code_battle_swiss_league_queue";
-    private static final String CODE_BATTLE_FULL_LEAGUE_QUEUE_KEY = "code_battle_full_league_queue";
 
     @PostMapping("/submit/codebattle")
     @Operation(description = "language는 eunm 타입입니다. (CPP,PYTHON,JAVA,C)")
@@ -146,23 +143,23 @@ public class CodeController {
             Users user = userRepository.findById(Long.parseLong(request.getUserId()))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
-            ObjectNode root = objectMapper.createObjectNode();
-            root.put("submissionId", contest.getId());
-            root.put("timeLimitSec", contest.getTimeLimitSec());
-            root.put("memoryLimitMb", contest.getMemoryLimitMB());
-            root.put("aiOrder", 0L);
+            ObjectNode rootNode = objectMapper.createObjectNode();
+            rootNode.put("submissionId", contest.getId());
+            rootNode.put("timeLimitSec", contest.getTimeLimitSec());
+            rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
+            rootNode.put("aiOrder", 0L);
 
-            ObjectNode codes = root.putObject("codes");
-            codes.put("judge", contest.getJudgeCode());
-            codes.put("player1", request.getSourceCode1());
-            codes.put("player2", request.getSourceCode2());
+            ObjectNode codesNode = rootNode.putObject("codes");
+            codesNode.put("judge", contest.getJudgeCode());
+            codesNode.put("player1", request.getSourceCode1());
+            codesNode.put("player2", request.getSourceCode2());
 
-            ObjectNode languages = root.putObject("languages");
-            languages.put("judge", request.getLanguage1().name());
-            languages.put("player1", request.getLanguage2().name());
-            languages.put("player2", request.getLanguage3().name());
+            ObjectNode languagesNode = rootNode.putObject("languages");
+            languagesNode.put("judge", request.getLanguage1().name());
+            languagesNode.put("player1", request.getLanguage2().name());
+            languagesNode.put("player2", request.getLanguage3().name());
 
-            String jsonPayload = objectMapper.writeValueAsString(root);
+            String jsonPayload = objectMapper.writeValueAsString(rootNode);
             redisTemplate.opsForList().leftPush(CODE_BATTLE_TEST_QUEUE_KEY, jsonPayload);
 
             return ResponseEntity.ok("채점 대기열에 등록되었습니다.");
