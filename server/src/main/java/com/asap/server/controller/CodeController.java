@@ -160,9 +160,9 @@ public class CodeController {
             codes.put("player2", request.getSourceCode2());
 
             ObjectNode languages = root.putObject("languages");
-            languages.put("judge", "cpp");
-            languages.put("player1", "cpp");
-            languages.put("player2", "cpp");
+            languages.put("judge", request.getLanguage1().name());
+            languages.put("player1", request.getLanguage2().name());
+            languages.put("player2", request.getLanguage3().name());
 
             String jsonPayload = objectMapper.writeValueAsString(root);
             redisTemplate.opsForList().leftPush(CODE_BATTLE_TEST_QUEUE_KEY, jsonPayload);
