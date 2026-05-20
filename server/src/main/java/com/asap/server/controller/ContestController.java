@@ -38,10 +38,10 @@ import com.asap.server.dto.response.FinalResultResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.service.CodeBattleSubmissionService;
-import com.asap.server.service.ContestRunService;
 import com.asap.server.service.ContestService;
 import com.asap.server.service.FullLeagueService;
 import com.asap.server.service.S3Service;
+import com.asap.server.service.SwissLeagueService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -68,7 +68,7 @@ public class ContestController {
     private final ObjectMapper objectMapper;
     private final CodeBattleContestRepository contestRepository;
     private final FullLeagueService fullLeagueService;
-    private final ContestRunService contestRunService;
+    private final SwissLeagueService swissService;
 
     @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
     @PostMapping(value = "/create/uncertified", consumes = "application/json")
@@ -286,7 +286,7 @@ public class ContestController {
             @RequestParam int sessionNumber,
             @RequestParam Long scheduleId) {
         try {
-            contestRunService.processSwissSession(contestId, sessionNumber, scheduleId);
+            swissService.processSwissSession(contestId, sessionNumber, scheduleId);
             return ResponseEntity.ok("스위스 세션 " + sessionNumber + " 실행됨");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
