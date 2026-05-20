@@ -47,7 +47,7 @@ public class ContestRunService {
   private final CodeBattleParticipantRepository participantRepository;
   private final TaskScheduler taskScheduler;
   private final Map<Long, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
-  private final SwissMatchMaker swissMatchMaker;
+  private final FullLeagueService swissMatchMaker;
   private final ContestScheduleRepository contestScheduleRepository;
   private final ContestSwissSessionRepository swissSessionRepository;
   private final ContestSwissRoundRepository swissRoundRepository;
@@ -189,8 +189,9 @@ public class ContestRunService {
       long submissionCount = participantRepository.findByContestIdAndSubmissionIsNotNull(contestId).size();
       // 참가자 2명 미만 이거나 제출이 2개 미만이면 grading 종료
       if (participantCount < 2 || submissionCount < 2) {
-        log.warn("참가자/제출 부족으로 grading을 스킵합니다. participantCount: {}, submissionCount: {}", participantCount,
-            submissionCount);
+        contest.setStatus(ContestStatus.CANCELED);
+        log.warn("참가자/제출 부족으로 grading을 스킵합니다. participantCount: {}, submissionCount: {}\n대회 상태 = {}", participantCount,
+            submissionCount, ContestStatus.CANCELED);
         return;
       }
       contest.setStatus(ContestStatus.END);
