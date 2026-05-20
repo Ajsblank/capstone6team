@@ -58,7 +58,6 @@ public class ContestRunService {
   private final StringRedisTemplate redisTemplate;
   private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
   private static final String CODE_BATTLE_SWISS_LEAGUE_QUEUE_KEY = "code_battle_swiss_league_queue";
-  private static final String CODE_BATTLE_FULL_LEAGUE_QUEUE_KEY = "code_battle_full_league_queue";
 
   private final S3Service s3Service;
   private final SseService sseService;
