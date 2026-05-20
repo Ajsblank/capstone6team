@@ -37,7 +37,7 @@ public class RedisResultWorker implements CommandLineRunner {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final SseService sseService;
-    private final FullLeagueService swissMatchMaker;
+    private final FullLeagueService fullLeagueService;
 
     private final CodeBattleMatchRepository matchRepository;
     private final ContestSwissMatchRepository swissMatchRepository;
@@ -128,7 +128,7 @@ public class RedisResultWorker implements CommandLineRunner {
 
         if (done.equals(total)) {
             log.info("[풀리그] contestId={} 최종 집계 처리", contestId);
-            swissMatchMaker.aggregateAndSave(contestId);
+            fullLeagueService.aggregateAndSave(contestId);
         }
     }
 

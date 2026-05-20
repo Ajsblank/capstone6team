@@ -245,7 +245,7 @@ public class ContestController {
             }
 
             String key = s3Service.buildFinalResultKey(contestId);
-            String json = s3Service.readFileAsString(key);
+            String json;
             try {
                 json = s3Service.readFileAsString(key);
             } catch (Exception e) {
@@ -292,5 +292,4 @@ public class ContestController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-
 }
