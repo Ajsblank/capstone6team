@@ -1,6 +1,5 @@
 package com.asap.server.controller;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.data.redis.core.RedisTemplate;
@@ -10,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.asap.server.domain.AlgorithmProblem;
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleExampleAI;
 import com.asap.server.domain.CodeBattleMatch;
@@ -28,7 +26,6 @@ import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.asap.server.repository.usersRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -56,56 +53,8 @@ public class CodeController {
     private static final String GRADING_QUEUE_KEY = "algorithms_grading_queue";
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
     private static final String CODE_BATTLE_TEST_QUEUE_KEY = "code_battle_test_queue";
-
-    @PostMapping("/submit")
-    @Operation(description = "language는 eunm 타입입니다. (CPP,PYTHON,JAVA,C)")
-    public ResponseEntity<CodeSubmitResponse> submitCode(@Valid @RequestBody CodeSubmitRequest request) {
-
-        try {
-            // DB에서 문제 정보 조회
-            AlgorithmProblem problem = problemRepository.findById(Long.parseLong(request.getProblemId()))
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 문제 ID입니다."));
-
-            // Redis에서 순차 ID 생성
-            Long nextId = redisTemplate.opsForValue().increment(SUBMISSION_COUNT_KEY);
-            String submissionId = String.valueOf(nextId);
-
-            // C++ 서버 전용 JSON Payload 구성
-            ObjectNode rootNode = objectMapper.createObjectNode();
-            rootNode.put("submissionId", submissionId);
-            rootNode.put("code", request.getSourceCode());
-            rootNode.put("language", request.getLanguage().name());
-            rootNode.put("timeLimitSec", problem.getTimeLimitSec());
-            rootNode.put("memoryLimitMb", problem.getMemoryLimitMb());
-
-            // 테스트케이스 합치기
-            ArrayNode testcasesNode = rootNode.putArray("testcases");
-
-            List<AlgorithmProblem.TestCase> allTestCases = new ArrayList<>();
-            if (problem.getExampleTestcases() != null)
-                allTestCases.addAll(problem.getExampleTestcases());
-            if (problem.getHiddenTestcases() != null)
-                allTestCases.addAll(problem.getHiddenTestcases());
-
-            for (AlgorithmProblem.TestCase tc : allTestCases) {
-                ObjectNode tcNode = testcasesNode.addObject();
-                tcNode.put("input", tc.getInput());
-                tcNode.put("output", tc.getOutput());
-            }
-
-            // Redis 전송
-            String jsonPayload = objectMapper.writeValueAsString(rootNode);
-            redisTemplate.opsForList().leftPush(GRADING_QUEUE_KEY, jsonPayload);
-
-            log.info("채점 요청 성공 - ID: {}, 문제: {}", submissionId, problem.getTitle());
-
-            return ResponseEntity.ok(new CodeSubmitResponse(true, "제출 성공! (ID: " + submissionId + ")"));
-
-        } catch (Exception e) {
-            log.error("채점 요청 실패: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(new CodeSubmitResponse(false, e.getMessage()));
-        }
-    }
+    private static final String CODE_BATTLE_SWISS_LEAGUE_QUEUE_KEY = "code_battle_swiss_league_queue";
+    private static final String CODE_BATTLE_FULL_LEAGUE_QUEUE_KEY = "code_battle_full_league_queue";
 
     @PostMapping("/submit/codebattle")
     @Operation(description = "language는 eunm 타입입니다. (CPP,PYTHON,JAVA,C)")
@@ -162,20 +111,23 @@ public class CodeController {
                 aiMatch.setSubmission(submission);
                 matchRepository.save(aiMatch);
 
-                ObjectNode rootNode = objectMapper.createObjectNode();
+                ObjectNode root = objectMapper.createObjectNode();
+                root.put("submissionId", submission.getId());
+                root.put("timeLimitSec", contest.getTimeLimitSec());
+                root.put("memoryLimitMb", contest.getMemoryLimitMB());
+                root.put("aiOrder", ai.getExampleOrder());
 
-                rootNode.put("submissionId", submission.getId());
-                rootNode.put("aiOrder", ai.getExampleOrder());
-                rootNode.put("language", request.getLanguage().name());
-                rootNode.put("timeLimitSec", contest.getTimeLimitSec());
-                rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
+                ObjectNode codes = root.putObject("codes");
+                codes.put("judge", contest.getJudgeCode());
+                codes.put("player1", request.getSourceCode());
+                codes.put("player2", ai.getCode());
 
-                ObjectNode codesNode = rootNode.putObject("codes");
-                codesNode.put("judge", contest.getJudgeCode());
-                codesNode.put("player1", request.getSourceCode());
-                codesNode.put("player2", ai.getCode());
+                ObjectNode languages = root.putObject("languages");
+                languages.put("judge", "cpp");
+                languages.put("player1", request.getLanguage().name().toLowerCase());
+                languages.put("player2", ai.getLanguage().name().toLowerCase());
 
-                String jsonPayload = objectMapper.writeValueAsString(rootNode);
+                String jsonPayload = objectMapper.writeValueAsString(root);
                 redisTemplate.opsForList().leftPush(CODE_BATTLE_GRADING_QUEUE_KEY, jsonPayload);
             }
 
@@ -186,6 +138,7 @@ public class CodeController {
         }
     }
 
+    // 현재 CPP만 지원
     @PostMapping("/submit/test")
     public ResponseEntity<String> submitCodeBattleTest(@Valid @RequestBody CodeBattleTestRequest request) {
         try {
@@ -195,14 +148,23 @@ public class CodeController {
             Users user = userRepository.findById(Long.parseLong(request.getUserId()))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
-            ObjectNode rootNode = objectMapper.createObjectNode();
+            ObjectNode root = objectMapper.createObjectNode();
+            root.put("submissionId", contest.getId());
+            root.put("timeLimitSec", contest.getTimeLimitSec());
+            root.put("memoryLimitMb", contest.getMemoryLimitMB());
+            root.put("aiOrder", 0L);
 
-            rootNode.put("userId", request.getUserId());
-            rootNode.put("judge", contest.getJudgeCode());
-            rootNode.put("player1", request.getSourceCode1());
-            rootNode.put("player2", request.getSourceCode2());
+            ObjectNode codes = root.putObject("codes");
+            codes.put("judge", contest.getJudgeCode());
+            codes.put("player1", request.getSourceCode1());
+            codes.put("player2", request.getSourceCode2());
 
-            String jsonPayload = objectMapper.writeValueAsString(rootNode);
+            ObjectNode languages = root.putObject("languages");
+            languages.put("judge", "cpp");
+            languages.put("player1", "cpp");
+            languages.put("player2", "cpp");
+
+            String jsonPayload = objectMapper.writeValueAsString(root);
             redisTemplate.opsForList().leftPush(CODE_BATTLE_TEST_QUEUE_KEY, jsonPayload);
 
             return ResponseEntity.ok("채점 대기열에 등록되었습니다.");

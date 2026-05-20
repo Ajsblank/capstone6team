@@ -270,7 +270,7 @@ public class ContestController {
         return ResponseEntity.ok(contestService.getSchedules(contestId));
     }
 
-    @PostMapping("/contest/{contestId}/final-test")
+    @PostMapping("/{contestId}/final-test")
     public ResponseEntity<String> testFullLeagueGrading(@PathVariable Long contestId) {
         try {
             fullLeagueService.fullLeagueGrading(contestId);
@@ -280,7 +280,7 @@ public class ContestController {
         }
     }
 
-    @PostMapping("/contest/{contestId}/swiss-session-test")
+    @PostMapping("/{contestId}/swiss-session-test")
     public ResponseEntity<String> testSwissSession(
             @PathVariable Long contestId,
             @RequestParam int sessionNumber,
