@@ -153,13 +153,12 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
         <button
           className="ms-expand-btn"
           onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
-          disabled={total === 0}
         >
           {expanded ? "▲" : "▼"}
         </button>
       </div>
 
-      {expanded && total > 0 && (
+      {expanded && (
         <div className="ms-item-body">
           <table className="ms-match-table">
             <thead>
