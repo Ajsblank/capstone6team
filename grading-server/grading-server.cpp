@@ -44,8 +44,69 @@ CmdResult exec_cmd(const std::string& cmd) {
     return {result, WEXITSTATUS(status)};
 }
 
+int setup_role(const std::string& role, const std::string& code, const std::string& lang, const std::string& abs_work_dir) {
+    std::string file_name = role;
+    std::string compile_cmd = "";
+    std::string run_cmd = "";
+    std::string docker_img = "code-battle-env"; // 다중 언어 지원 이미지 이름
+
+    if (lang == "java") {
+        file_name[0] = std::toupper(file_name[0]); // player1 -> Player1
+        write_file(abs_work_dir + "/" + file_name + ".java", code);
+        compile_cmd = "docker run --rm -v " + abs_work_dir + ":/app -w /app " + docker_img + " javac " + file_name + ".java";
+        run_cmd = "java -cp /app " + file_name;
+    } else if (lang == "python" || lang == "py") {
+        write_file(abs_work_dir + "/" + role + ".py", code);
+        // 파이썬은 사전 컴파일이 필요 없음
+        run_cmd = "python3 /app/" + role + ".py";
+    } else { // 기본값 C++
+        write_file(abs_work_dir + "/" + role + ".cpp", code);
+        compile_cmd = "docker run --rm -v " + abs_work_dir + ":/app -w /app " + docker_img + " g++ -O2 -o " + role + " " + role + ".cpp";
+    }
+
+    // 컴파일이 필요한 언어(C++, Java)의 경우 컴파일 수행
+    if (!compile_cmd.empty()) {
+        CmdResult res = exec_cmd(compile_cmd);
+        if (res.exit_code != 0) {
+            std::cerr << "[" << role << " 컴파일 에러]\n" << res.output << std::endl;
+            return res.exit_code;
+        }
+    }
+
+    // JVM이나 인터프리터를 거쳐야 하는 경우, Judge가 실행 파일처럼 호출할 수 있도록 Wrapper 생성
+    if (!run_cmd.empty()) {
+        std::string wrapper_path = abs_work_dir + "/" + role;
+        write_file(wrapper_path, "#!/bin/sh\n" + run_cmd + " \"$@\"\n");
+        // 생성된 스크립트에 실행 권한 부여
+        fs::permissions(wrapper_path, fs::perms::owner_all | fs::perms::group_exec | fs::perms::others_exec);
+    }
+
+    return 0;
+}
+
 int main() {
     try {
+        std::cout << "[Worker] 채점 환경(Docker) 초기화 중..." << std::endl;
+        
+        std::string dockerfile_content =
+            "FROM ubuntu:22.04\n"
+            "ENV DEBIAN_FRONTEND=noninteractive\n"
+            "RUN apt-get update && apt-get install -y \\\n"
+            "    build-essential \\\n"
+            "    openjdk-17-jdk \\\n"
+            "    python3 \\\n"
+            "    && rm -rf /var/lib/apt/lists/*\n"
+            "CMD [\"/bin/bash\"]\n";
+            
+        write_file("./Dockerfile", dockerfile_content);
+
+        CmdResult build_res = exec_cmd("docker build -t code-battle-env .");
+        if (build_res.exit_code != 0) {
+            std::cerr << "[에러] Docker 통합 이미지 빌드 실패:\n" << build_res.output << std::endl;
+            return 1; // 필수 환경 구성 실패 시 서버 종료
+        }
+        std::cout << "[Worker] 다국어 채점 환경(code-battle-env) 준비 완료!\n";
+
         // Redis 연결 설정
         auto redis = Redis("tcp://3.216.165.85:6379");
         //auto redis = Redis("tcp://localhost:6379");
@@ -57,13 +118,14 @@ int main() {
             std::string queue_name = item->first;
             std::string json_str = item->second;
             json data = json::parse(json_str);
+
             if (queue_name == "code_battle_test_queue") {
                 
                 int time_limit_sec = 10;
                 std::string work_dir = "./";
                 std::string abs_work_dir = fs::absolute(work_dir).string();
 
-                std::cout << "▶ 매치 ID: " << " (제한시간: " << time_limit_sec << "초)" << std::endl;
+                std::cout << "▶ 테스트 매치: " << " (제한시간: " << time_limit_sec << "초)" << std::endl;
 
                 // 작업 폴더 생성
                 std::error_code ec;
@@ -73,10 +135,10 @@ int main() {
                     continue;
                 }
 
-                // C++ 코드 생성
-                write_file(work_dir + "/judge.cpp", data["judge"]);
-                write_file(work_dir + "/player1.cpp", data["player1"]);
-                write_file(work_dir + "/player2.cpp", data["player2"]);
+                // 언어 정보 파싱 (기본값 cpp)
+                std::string j_lang = data.contains("languages") ? data["languages"].value("judge", "cpp") : "cpp";
+                std::string p1_lang = data.contains("languages") ? data["languages"].value("player1", "cpp") : "cpp";
+                std::string p2_lang = data.contains("languages") ? data["languages"].value("player2", "cpp") : "cpp";
 
                 json result_json;
                 result_json["userId"] = data["userId"];
@@ -84,24 +146,25 @@ int main() {
 
                 // Dockerfile 생성 및 build 제거 -> 볼륨 마운트로 즉시 컴파일
                 std::cout << "빌드 중..." << std::endl;
-                auto compile = [&](const std::string& file, const std::string& out) {
-                return exec_cmd("docker run --rm -v " + abs_work_dir + ":/app -w /app gcc:latest g++ -O2 -o " + out + " " + file);
-                };
-                CmdResult res_j = compile("judge.cpp", "judge");
-                CmdResult res_p1 = compile("player1.cpp", "player1");
-                CmdResult res_p2 = compile("player2.cpp", "player2");
+                int exit_j = setup_role("judge", data["judge"], j_lang, abs_work_dir);
+                int exit_p1 = setup_role("player1", data["player1"], p1_lang, abs_work_dir);
+                int exit_p2 = setup_role("player2", data["player2"], p2_lang, abs_work_dir);
                 
-                if (res_j.exit_code != 0) {
-                } else if (res_p1.exit_code != 0 && res_p2.exit_code != 0) {
-                } else if (res_p1.exit_code != 0) {
-                } else if (res_p2.exit_code != 0) {
+                if (exit_j != 0) {
+                    result_json["log"] = "Judge Compile Error";
+                } else if (exit_p1 != 0 && exit_p2 != 0) {
+                    result_json["log"] = "Both Players Compile Error";
+                } else if (exit_p1 != 0) {
+                    result_json["log"] = "Player 1 Compile Error";
+                } else if (exit_p2 != 0) {
+                    result_json["log"] = "Player 2 Compile Error";
                 }
                 else
                 {
                     std::cout << "실행 및 채점 중..." << std::endl;
                     std::string run_cmd = "timeout " + std::to_string(time_limit_sec) + "s " +
                                         "docker run -i --rm -v " + abs_work_dir + ":/app -w /app " +
-                                        "--memory=512m --network=none gcc:latest " +
+                                        "--memory=512m --network=none gcc:code-battle-env " +
                                         "./judge ./player1 ./player2 2>&1";
                 
                     CmdResult run_res = exec_cmd(run_cmd);
@@ -140,9 +203,9 @@ int main() {
                 }
     
                 // C++ 코드 생성
-                write_file(work_dir + "/judge.cpp", data["codes"]["judge"]);
-                write_file(work_dir + "/player1.cpp", data["codes"]["player1"]);
-                write_file(work_dir + "/player2.cpp", data["codes"]["player2"]);
+                std::string j_lang = data.contains("languages") ? data["languages"].value("judge", "cpp") : "cpp";
+                std::string p1_lang = data.contains("languages") ? data["languages"].value("player1", "cpp") : "cpp";
+                std::string p2_lang = data.contains("languages") ? data["languages"].value("player2", "cpp") : "cpp";
     
                 json result_json;
                 result_json["matchId"] = match_id_num;
@@ -153,28 +216,25 @@ int main() {
     
                 // Dockerfile 생성 및 build 제거 -> 볼륨 마운트로 즉시 컴파일
                 std::cout << "빌드 중..." << std::endl;
-                auto compile = [&](const std::string& file, const std::string& out) {
-                return exec_cmd("docker run --rm -v " + abs_work_dir + ":/app -w /app gcc:latest g++ -O2 -o " + out + " " + file);
-                };
-                CmdResult res_j = compile("judge.cpp", "judge");
-                CmdResult res_p1 = compile("player1.cpp", "player1");
-                CmdResult res_p2 = compile("player2.cpp", "player2");
+                int exit_j = setup_role("judge", data["codes"]["judge"], j_lang, abs_work_dir);
+                int exit_p1 = setup_role("player1", data["codes"]["player1"], p1_lang, abs_work_dir);
+                int exit_p2 = setup_role("player2", data["codes"]["player2"], p2_lang, abs_work_dir);
                 
-                if (res_j.exit_code != 0) {
+                if (exit_j != 0) {
                     result_json["winner"] = 0;
-                } else if (res_p1.exit_code != 0 && res_p2.exit_code != 0) {
+                } else if (exit_p1 != 0 && exit_p2 != 0) {
                     result_json["winner"] = 0;
-                } else if (res_p1.exit_code != 0) {
-                    result_json["winner"] = 2;
-                } else if (res_p2.exit_code != 0) {
-                    result_json["winner"] = 1;
+                } else if (exit_p1 != 0) {
+                    result_json["winner"] = 2; // P1 컴파일 에러면 P2 승
+                } else if (exit_p2 != 0) {
+                    result_json["winner"] = 1; // P2 컴파일 에러면 P1 승
                 }
                 else
                 {
                     std::cout << "실행 및 채점 중..." << std::endl;
                     std::string run_cmd = "timeout " + std::to_string(time_limit_sec) + "s " +
                                         "docker run -i --rm -v " + abs_work_dir + ":/app -w /app " +
-                                        "--memory=512m --network=none gcc:latest " +
+                                        "--memory=512m --network=none gcc:code-battle-env " +
                                         "./judge ./player1 ./player2 2>&1";
                 
                     CmdResult run_res = exec_cmd(run_cmd);
