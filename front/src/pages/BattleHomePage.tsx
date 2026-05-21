@@ -153,6 +153,12 @@ const BattlePage: React.FC = () => {
           >
             도움말
           </button>
+          <button
+            className="home-tab-btn home-tab-btn--disabled"
+            title="준비 중인 기능입니다"
+          >
+            문의
+          </button>
         </nav>
         <div className="home-auth-area">
           {user ? (

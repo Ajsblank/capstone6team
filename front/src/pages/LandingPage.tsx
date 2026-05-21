@@ -40,7 +40,8 @@ const LandingPage: React.FC = () => {
           <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="lp-logo-img" />
         </span>
         <nav className="lp-nav">
-          <button className="lp-nav-btn" onClick={() => navigate("battle")}>코드 배틀</button>
+          <button className="lp-nav-btn" onClick={() => navigate("battle")}>대회</button>
+          <button className="lp-nav-btn lp-nav-btn--disabled" title="준비 중인 기능입니다">랭킹</button>
           <button className="lp-nav-btn lp-nav-btn--disabled" title="준비 중인 기능입니다">도움말</button>
           <button className="lp-nav-btn lp-nav-btn--disabled" title="준비 중인 기능입니다">문의</button>
         </nav>
