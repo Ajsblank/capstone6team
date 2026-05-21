@@ -13,6 +13,7 @@ import ProfilePage from "./pages/ProfilePage";
 import AccountSettingsPage from "./pages/AccountSettingsPage";
 import BattleCreateContestPage from "./pages/BattleCreateContestPage";
 import BattleCreateCertifiedPage from "./pages/BattleCreateCertifiedPage";
+import ContestSettingsPage from "./pages/ContestSettingsPage";
 
 const DevApiBadge: React.FC = () => (
   <div style={{
@@ -43,6 +44,7 @@ const PageRouter: React.FC = () => {
     case "account-settings": return <AccountSettingsPage />;
     case "create-contest":            return <BattleCreateContestPage />;
     case "create-certified-contest":  return <BattleCreateCertifiedPage />;
+    case "contest-settings":          return <ContestSettingsPage />;
     default:                 return <AlgoHomePage />;
   }
 };

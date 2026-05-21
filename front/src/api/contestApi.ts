@@ -59,6 +59,52 @@ export const patchContest = async (contestId: number, data: PatchContestData): P
   await api.patch(`/api/contests/${contestId}`, data);
 };
 
+export interface ModifyContestData {
+  title: string;
+  description: string;
+  timeLimitSec: number;
+  memoryLimitMb: number;
+  sampleCode?: File | null;
+  judgeCode?: File | null;
+  exampleAiCodes?: File[];
+  visualizationHtml?: File | null;
+  soloPlayHtml?: File | null;
+  startDate: string;
+  endDate: string;
+  maxParticipants: number;
+}
+
+async function buildModifyBody(data: ModifyContestData) {
+  const sampleCode        = data.sampleCode        ? await data.sampleCode.text()        : undefined;
+  const judgeCode         = data.judgeCode         ? await data.judgeCode.text()         : undefined;
+  const exampleAiCodes    = data.exampleAiCodes && data.exampleAiCodes.length > 0
+    ? await Promise.all(data.exampleAiCodes.map(f => f.text())) : undefined;
+  const visualizationHtml = data.visualizationHtml ? await data.visualizationHtml.text() : undefined;
+  const soloPlayHtml      = data.soloPlayHtml      ? await data.soloPlayHtml.text()      : undefined;
+  return {
+    title:           data.title,
+    description:     data.description,
+    timeLimitSec:    data.timeLimitSec,
+    memoryLimitMb:   data.memoryLimitMb,
+    startDate:       data.startDate ? data.startDate.replace("T", " ").slice(0, 16) : undefined,
+    endDate:         data.endDate   ? data.endDate.replace("T", " ").slice(0, 16)   : undefined,
+    maxParticipants: data.maxParticipants,
+    ...(sampleCode        !== undefined && { sampleCode }),
+    ...(judgeCode         !== undefined && { judgeCode }),
+    ...(exampleAiCodes    !== undefined && { exampleAiCodes }),
+    ...(visualizationHtml !== undefined && { visualizationHtml }),
+    ...(soloPlayHtml      !== undefined && { soloPlayHtml }),
+  };
+}
+
+export const modifyContest = async (contestId: number, data: ModifyContestData): Promise<void> => {
+  await api.patch(`/api/contests/${contestId}/modify/uncertified`, await buildModifyBody(data));
+};
+
+export const modifyCertifiedContest = async (contestId: number, data: ModifyContestData): Promise<void> => {
+  await api.patch(`/api/contests/${contestId}/modify/certified`, await buildModifyBody(data));
+};
+
 
 // ── 비인증 대회 생성 — POST /api/contests/create/uncertified ──
 export const createContest = async (data: CreateContestData): Promise<ContestResponse> => {
