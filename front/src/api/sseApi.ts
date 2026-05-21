@@ -172,6 +172,17 @@ export const subscribeToResults = (userId: string, onMatch: MatchCallback) => {
   connectSSE(userId);
 };
 
+// SSE 연결만 보장 — 콜백은 건드리지 않음 (AppContext 전용)
+export const ensureSseConnected = (userId: string) => {
+  if (lastUserId === userId && emitter && emitter.readyState !== EventSource.CLOSED) {
+    return;
+  }
+  lastUserId = userId;
+  reconnectAttempts = 0;
+  isFirstConnect = true;
+  connectSSE(userId);
+};
+
 // 연결은 유지하고 콜백만 교체 — 페이지 이동 시 사용
 export const setMatchCallback = (onMatch: MatchCallback) => {
   matchCallback = onMatch;

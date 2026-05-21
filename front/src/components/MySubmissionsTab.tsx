@@ -102,6 +102,34 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
   onLogClick: (log: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [animKey,    setAnimKey]    = useState(0);
+  const [flashType,  setFlashType]  = useState("pending");
+  const prevMatchCountRef = useRef(sub.matches.length);
+  const prevFinalizedRef  = useRef(sub.finalized);
+
+  useEffect(() => {
+    const hasNewMatch   = sub.matches.length > prevMatchCountRef.current;
+    const justFinalized = !prevFinalizedRef.current && sub.finalized;
+    if (hasNewMatch || justFinalized) {
+      if (hasNewMatch && sub.matches.length > 0) {
+        // 방금 도착한 단건 매치의 결과를 사용
+        const latest = sub.matches[sub.matches.length - 1];
+        setFlashType(
+          latest.winner === userId ? "win" :
+          latest.winner === "draw" ? "draw" : "loss"
+        );
+      } else if (justFinalized) {
+        // 신규 매치 없이 최종 확정만 된 경우 → 전체 결과 사용
+        const w = sub.wins   ?? sub.matches.filter(m => m.winner === userId).length;
+        const l = sub.losses ?? sub.matches.filter(m => m.winner !== userId && m.winner !== "draw").length;
+        setFlashType(w > l ? "win" : l > w ? "loss" : "draw");
+      }
+      setAnimKey(k => k + 1);
+      if (prevMatchCountRef.current === 0 && sub.matches.length > 0) setExpanded(true);
+    }
+    prevMatchCountRef.current = sub.matches.length;
+    prevFinalizedRef.current  = sub.finalized;
+  }, [sub.matches.length, sub.finalized, userId]);
 
   const wins   = sub.finalized && sub.wins   !== undefined ? sub.wins   : sub.matches.filter(m => m.winner === userId).length;
   const losses = sub.finalized && sub.losses !== undefined ? sub.losses : sub.matches.filter(m => m.winner !== userId && m.winner !== "draw").length;
@@ -116,10 +144,11 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
 
   return (
     <div className={`ms-item ms-item--${resultType}`}>
+      {animKey > 0 && <div key={animKey} className={`ms-item-flash ms-item-flash--${flashType}`} aria-hidden="true" />}
       <div
         className="ms-item-header"
-        onClick={() => total > 0 && setExpanded(v => !v)}
-        style={{ cursor: total > 0 ? "pointer" : "default" }}
+        onClick={() => setExpanded(v => !v)}
+        style={{ cursor: "pointer" }}
       >
         <span className="ms-item-seq">#{seqNum}</span>
         <span className="ms-item-date">{formatDate(sub.submittedAt)}</span>
@@ -289,7 +318,6 @@ const MySubmissionsTab: React.FC<Props> = ({
     <div className="ms-container">
       <div className="ms-header-row">
         <h2 className="ms-title">내 제출 이력</h2>
-        {/* SSE 연결 상태 배지 — 시연용 비활성화
         <span
           className={`ms-sse-badge ms-sse-badge--${sseStatus}`}
           title="클릭 시 SSE 상태를 콘솔에 출력"
@@ -298,7 +326,6 @@ const MySubmissionsTab: React.FC<Props> = ({
         >
           {sseStatus === "connected" ? "● SSE 연결됨" : sseStatus === "connecting" ? "◌ SSE 연결 중" : "○ SSE 끊김"}
         </span>
-        */}
         <div className="ms-sort-group">
           <button
             className={`ms-sort-btn${sortOrder === "newest" ? " ms-sort-btn--active" : ""}`}
@@ -331,7 +358,7 @@ const MySubmissionsTab: React.FC<Props> = ({
             const seqNum = sortOrder === "newest" ? total - i : i + 1;
             return (
               <SubmissionItem
-                key={sub.submissionId ?? sub.submittedAt.toISOString()}
+                key={sub.submittedAt.toISOString()}
                 sub={sub}
                 seqNum={seqNum}
                 userId={userId}

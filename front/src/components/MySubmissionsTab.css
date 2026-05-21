@@ -113,6 +113,7 @@
 
 /* ── 제출 아이템 ── */
 .ms-item {
+  position: relative;
   background: #ffffff;
   border: 1px solid #d8d8e8;
   border-left-width: 4px;
@@ -275,6 +276,25 @@
   color: #e05475;
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+/* ── SSE 결과 도착 오버레이 애니메이션 ── */
+.ms-item-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  --fc-s: rgba(253, 224, 71, 0.42);
+  --fc-m: rgba(253, 224, 71, 0.18);
+  animation: ms-item-flash-anim 0.75s ease-out forwards;
+}
+.ms-item-flash--win  { --fc-s: rgba(34,  197,  94, 0.38); --fc-m: rgba(34,  197,  94, 0.14); }
+.ms-item-flash--loss { --fc-s: rgba(239,  68,  68, 0.38); --fc-m: rgba(239,  68,  68, 0.14); }
+.ms-item-flash--draw { --fc-s: rgba(249, 115,  22, 0.38); --fc-m: rgba(249, 115,  22, 0.14); }
+@keyframes ms-item-flash-anim {
+  0%   { background: var(--fc-s); }
+  55%  { background: var(--fc-m); }
+  100% { background: transparent; }
 }
 
 /* ── 로딩 스피너 ── */
