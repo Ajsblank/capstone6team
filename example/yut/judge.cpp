@@ -9,6 +9,7 @@
 #include <poll.h>
 #include <signal.h>
 #include <algorithm>
+#include <cmath>
 
 using namespace std;
 
@@ -51,8 +52,8 @@ string recv_msg(Player& p, int& time_used) {
 void kill_bot(Player& p) { kill(p.pid, SIGKILL); waitpid(p.pid, nullptr, 0); close(p.w_fd); close(p.r_fd); }
 
 void player_loses(Player& loser, Player& winner, string reason) {
-    cout << "\n❌ [ABORT] " << loser.name << " 에러/반칙 패배! 사유: " << reason << "\n";
-    cout << "🎉 RESULT: " << winner.name << " 승리!\n";
+    cout << "\n❌ " << loser.name << " ERROR (" << reason << ")\n";
+    cout << "🎉 " << winner.name << " WIN\n";
     send_msg(loser, "FINISH"); send_msg(winner, "FINISH");
     kill_bot(loser); kill_bot(winner); exit(0);
 }
@@ -61,8 +62,8 @@ mt19937 gen(random_device{}());
 
 int get_yut() {
     int r = gen() % 16;
-    if (r==0) return -1; if (r<4) return 1; if (r<10) return 2;
-    if (r<14) return 3; if (r==14) return 4; return 5;
+    if (r == 0) return -1; if (r < 4) return 1; if (r < 10) return 2;
+    if (r < 14) return 3; if (r == 14) return 4; return 5;
 }
 
 int step_forward(int u, bool first) {
@@ -78,6 +79,18 @@ int step_backward(int u) {
     if (u==21) return 5; if (u==22) return 21; if (u==23) return 22;
     if (u==24) return 10; if (u==25) return 24; if (u==26) return 23; if (u==27) return 26;
     return u - 1;
+}
+
+bool has_valid_move(Player& cur, const vector<int>& yut_pool) {
+    for (int y : yut_pool) {
+        if (y > 0) return true;
+        if (y < 0) {
+            for (int i = 0; i < 4; i++) {
+                if (cur.pos[i] > 0) return true; // 필드에 말이 있으면 빽도 가능
+            }
+        }
+    }
+    return false;
 }
 
 int main(int argc, char* argv[]) {
@@ -101,18 +114,22 @@ int main(int argc, char* argv[]) {
     send_msg(p1, "INIT "+to_string(p1.skills[0])+" "+to_string(p1.skills[1])+" "+to_string(p2.skills[0])+" "+to_string(p2.skills[1]));
     send_msg(p2, "INIT "+to_string(p2.skills[0])+" "+to_string(p2.skills[1])+" "+to_string(p1.skills[0])+" "+to_string(p1.skills[1]));
 
-    int turn = 0, bomb = 0;
-    bool double_buff = false, takeout = false, backstep = false;
-    int force_roll_type = 0; // 2, 3, 5, 6 스킬 확률 조작용 변수
+    int turn = 0, bomb = 0, teleport = 0;
     
-    while (turn < 100) {
+    while (turn < 200) {
         Player& cur = *p[turn%2]; Player& opp = *p[1-(turn%2)];
+        
         bool can_roll = true, rolled_this_turn = false, skill_this_turn = false;
         vector<int> yut_pool; vector<string> opp_logs;
+        
+        bool double_buff = false, takeout = false, backstep = false;
+        int force_roll_type = 0; 
         
         if (cur.saved_yut != 0) { yut_pool.push_back(cur.saved_yut); cur.saved_yut = 0; }
 
         cout << "\n---------------- [TURN " << turn + 1 << " : " << cur.name << "] ----------------\n";
+
+        send_msg(cur, "TIME " + to_string(cur.time_left) + " " + to_string(opp.time_left));
 
         while (true) {
             if (cur.pos[0]==0 && cur.pos[1]==0 && cur.pos[2]==0 && cur.pos[3]==0) {
@@ -120,15 +137,7 @@ int main(int argc, char* argv[]) {
                 send_msg(p1, "FINISH"); send_msg(p2, "FINISH"); kill_bot(p1); kill_bot(p2); return 0;
             }
 
-            stringstream ss;
-            ss << "TIME " << cur.time_left << " " << opp.time_left << " " << can_roll << " " << rolled_this_turn << " " << skill_this_turn << " "
-               << cur.skill_left[0] << " " << cur.skill_left[1] << " " << opp.skill_left[0] << " " << opp.skill_left[1] << " " << bomb << " ";
-            for(int i=0;i<4;i++) ss << cur.pos[i] << " "; for(int i=0;i<4;i++) ss << opp.pos[i] << " ";
-            ss << yut_pool.size(); for(int y : yut_pool) ss << " " << y;
-            send_msg(cur, ss.str());
-
             int t = 0; string res = recv_msg(cur, t); cur.time_left -= t;
-            
             if (res == "TIMEOUT" || cur.time_left < 0) player_loses(cur, opp, "TLE");
 
             stringstream cmd(res); string action; 
@@ -139,18 +148,16 @@ int main(int argc, char* argv[]) {
                 rolled_this_turn = true; can_roll = false;
                 
                 int y = 0;
-                // 확률 조작 스킬 적용
-                if (force_roll_type == 2) y = 3;
-                else if (force_roll_type == 3) y = -1;
-                else if (force_roll_type == 5) y = (gen() % 2) ? 1 : 5;
+                if (force_roll_type == 5) y = (gen() % 2) ? 1 : 5;
                 else if (force_roll_type == 6) y = (gen() % 2) ? 4 : 5;
                 else y = get_yut();
-                force_roll_type = 0; // 적용 후 초기화
+                
+                force_roll_type = 0; 
                 
                 cout << cur.name << " ROLL " << y << "\n";
                 opp_logs.push_back("ROLL " + to_string(y));
                 
-                if (takeout) { cur.saved_yut = y; takeout = false; }
+                if (takeout) { cur.saved_yut = y; takeout = false; if(y>=4) can_roll = true; }
                 else if (backstep) { yut_pool.push_back(-abs(y)); backstep = false; if(y>=4) can_roll = true; }
                 else if (double_buff) { yut_pool.push_back(y); yut_pool.push_back(y); double_buff = false; if(y>=4) can_roll=true; }
                 else { yut_pool.push_back(y); if(y>=4) can_roll = true; }
@@ -170,26 +177,28 @@ int main(int argc, char* argv[]) {
                         int pa, pb; if (!(cmd >> pa >> pb)) player_loses(cur, opp, "Skill Target Missing");
                         log_str += " " + to_string(pa) + " " + to_string(pb);
                         
-                        if(id==9)opp.pos[pb%4]=-1; 
-                        else if(id==10){ for(int i=0;i<4;i++){ if(cur.pos[i]==-1){ cur.pos[i]=cur.pos[pa%4]; break; } } }
-                        else if(id==11)swap(cur.pos[pa%4], opp.pos[pb%4]); else if(id==12)opp.pos[pb%4]=step_forward(cur.pos[pa%4], false);
-                        else if(id==13)cur.pos[pa%4]=step_backward(opp.pos[pb%4]);
-                        else if(id==14){for(int i=0;i<4;i++){if(cur.pos[i]>0&&cur.pos[i]<20)cur.pos[i]=gen()%19+1; if(opp.pos[i]>0&&opp.pos[i]<20)opp.pos[i]=gen()%19+1;}}
-                        else if(id==15)cur.pos[pa%4]=0; else if(id==16)bomb=pb;
-
-                        string board_state = "";
-                        for(int i=0; i<4; i++) board_state += to_string(cur.pos[i]) + " ";
-                        for(int i=0; i<4; i++) board_state += to_string(opp.pos[i]) + (i==3?"":" ");
-                        send_msg(cur, "SKILL_RESULT BOARD " + board_state);
+                        if(id==9) opp.pos[pb%4]=-1; 
+                        else if(id==10) { for(int i=0;i<4;i++){ if(cur.pos[i]==-1){ cur.pos[i]=cur.pos[pa%4]; break; } } }
+                        else if(id==11) swap(cur.pos[pa%4], opp.pos[pb%4]); 
+                        else if(id==12) opp.pos[pb%4] = step_forward(cur.pos[pa%4], false);
+                        else if(id==13) cur.pos[pa%4] = step_backward(opp.pos[pb%4]);
+                        else if(id==14) teleport = pa; // 결승점 텔레포트 설치
+                        else if(id==15) bomb = pa; // 지뢰 설치
                     } else {
-                        if(id==1){yut_pool.push_back(1); yut_pool.push_back(2); send_msg(cur, "SKILL_RESULT YUT 2 1 2");}
-                        else if(id==2){force_roll_type=2; send_msg(cur, "SKILL_RESULT OK");}
-                        else if(id==3){force_roll_type=3; send_msg(cur, "SKILL_RESULT OK");}
-                        else if(id==4){double_buff=true; send_msg(cur, "SKILL_RESULT OK");}
-                        else if(id==5){force_roll_type=5; send_msg(cur, "SKILL_RESULT OK");}
-                        else if(id==6){force_roll_type=6; send_msg(cur, "SKILL_RESULT OK");}
-                        else if(id==7){takeout=true; send_msg(cur, "SKILL_RESULT OK");}
-                        else if(id==8){backstep=true; send_msg(cur, "SKILL_RESULT OK");}
+                        if (id == 8) { // 백스텝 조건 검사: 필드에 말이 없으면 사용 불가
+                            bool has_piece = false;
+                            for(int i=0; i<4; i++) if(cur.pos[i] > 0) has_piece = true;
+                            if (!has_piece) player_loses(cur, opp, "Cannot use Backstep without pieces");
+                        }
+                        
+                        if(id==1){ yut_pool.push_back(1); yut_pool.push_back(2); can_roll = false; }
+                        else if(id==2){ yut_pool.push_back(3); can_roll = false; }
+                        else if(id==3){ yut_pool.push_back(-1); can_roll = false; }
+                        else if(id==4){ double_buff=true; }
+                        else if(id==5){ force_roll_type=5; }
+                        else if(id==6){ force_roll_type=6; }
+                        else if(id==7){ takeout=true; }
+                        else if(id==8){ backstep=true; }
                     }
                     cout << cur.name << " " << log_str << "\n";
                     opp_logs.push_back(log_str);
@@ -200,6 +209,7 @@ int main(int argc, char* argv[]) {
                 auto it = find(yut_pool.begin(), yut_pool.end(), yut_val);
                 if (it == yut_pool.end()) player_loses(cur, opp, "Yut Not In Pool");
                 if (cur.pos[pid] == 0) player_loses(cur, opp, "Move Finished Piece");
+                if (cur.pos[pid] == -1 && yut_val < 0) player_loses(cur, opp, "Back-do from Wait State");
 
                 string log_str = "MOVE " + to_string(pid) + " " + to_string(yut_val);
                 cout << cur.name << " " << log_str << "\n";
@@ -210,28 +220,25 @@ int main(int argc, char* argv[]) {
                 vector<int> stacked; for(int i=0;i<4;i++) if(cur.pos[i]==u && u!=-1) stacked.push_back(i);
                 if (stacked.empty()) stacked.push_back(pid);
 
-                if (u == -1 && yut_val < 0) player_loses(cur, opp, "Back-do from Wait State");
                 if (yut_val > 0) for(int i=0;i<yut_val;i++) u = step_forward(u, i==0);
                 else if (yut_val < 0) for(int i=0;i<-yut_val;i++) u = step_backward(u);
 
                 if (bomb > 0 && ((yut_val>0 && start_pos<=bomb && u>=bomb) || (yut_val<0 && start_pos>=bomb && u<=bomb))) {
                     u = -1; bomb = 0;
+                } else if (teleport > 0 && u == teleport) {
+                    u = 0; teleport = 0;
                 }
+                
                 for (int i : stacked) cur.pos[i] = u;
 
-                int caught_flag = 0;
                 if (u > 0 && u < 20) {
-                    for(int i=0;i<4;i++) if(opp.pos[i]==u) { opp.pos[i]=-1; caught_flag=1; }
-                    if (caught_flag) { can_roll = true; }
+                    bool caught = false;
+                    for(int i=0;i<4;i++) if(opp.pos[i]==u) { opp.pos[i]=-1; caught=true; }
+                    if (caught) can_roll = true; 
                 }
-
-                string board_state = "";
-                for(int i=0; i<4; i++) board_state += to_string(cur.pos[i]) + " ";
-                for(int i=0; i<4; i++) board_state += to_string(opp.pos[i]) + (i==3?"":" ");
-                send_msg(cur, "MOVE_RESULT " + to_string(caught_flag) + " " + board_state);
             } 
             else if (action == "PASS") {
-                if (can_roll || !yut_pool.empty()) player_loses(cur, opp, "PASS with Actions Left");
+                if (can_roll || has_valid_move(cur, yut_pool)) player_loses(cur, opp, "PASS with Actions Left");
                 break; 
             } else player_loses(cur, opp, "Unknown Command");
         }
@@ -246,7 +253,7 @@ int main(int argc, char* argv[]) {
         turn++;
     }
     
-    cout << "DRAW\n";
+    cout << "\n=== 최대 턴 도달 무승부 ===\n";
     send_msg(p1, "FINISH"); send_msg(p2, "FINISH");
     kill_bot(p1); kill_bot(p2); return 0;
 }
