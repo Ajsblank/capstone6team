@@ -37,7 +37,7 @@ function getTabFromHash(): BattleTab {
 }
 
 const BattlePage: React.FC = () => {
-  const { user, logout, navigate, joinedContestIds, hostedContestIds } = useApp();
+  const { user, logout, navigate, joinedContestIds, hostedContestIds, createdContestIds } = useApp();
   const [activeTab, setActiveTab] = useState<BattleTab>(getTabFromHash);
 
   // 대회 목록 상태
@@ -263,7 +263,7 @@ const BattlePage: React.FC = () => {
                           key={c.id}
                           className={`bp-problem-card${statusCardClass(c.status)}`}
                           onClick={() => {
-                            if (c.status === "PLANNED" && !hostedContestIds.includes(c.id)) { setBlockedPopup(true); return; }
+                            if (c.status === "PLANNED" && !hostedContestIds.includes(c.id) && !createdContestIds.includes(c.id)) { setBlockedPopup(true); return; }
                             window.location.hash = `submit/${c.id}`;
                           }}
                         >
@@ -277,6 +277,9 @@ const BattlePage: React.FC = () => {
                                 )}
                                 {hostedContestIds.includes(c.id) && (
                                   <span className="bp-contest-badge bp-contest-badge--hosted">검수중</span>
+                                )}
+                                {createdContestIds.includes(c.id) && (
+                                  <span className="bp-contest-badge bp-contest-badge--created">개최</span>
                                 )}
                               </p>
                               {(c.startTime || c.endTime) && (
@@ -301,6 +304,18 @@ const BattlePage: React.FC = () => {
                                 {c.status === "RUNNING" && <span className="bp-status-dot" />}
                                 {STATUS_LABEL[c.status] ?? c.status}
                               </span>
+                            )}
+                            {createdContestIds.includes(c.id) && (c.status === "PLANNED" || c.status === "RUNNING") && (
+                              <button
+                                className="bp-settings-btn"
+                                title="대회 설정"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  window.location.hash = `contest-settings/${c.id}`;
+                                }}
+                              >
+                                ⚙
+                              </button>
                             )}
                             <span className="bp-problem-arrow">→</span>
                           </div>

@@ -25,8 +25,9 @@ const LoginPage: React.FC = () => {
       setUsername(email);
       login(
         { id: uid ?? email, username: email, email },
-        tokenData.joinedContests ?? [],
-        tokenData.hostedContests ?? []
+        tokenData.joinedContests  ?? [],
+        tokenData.hostedContests  ?? [],
+        tokenData.createdContests ?? []
       );
       localStorage.removeItem("loginRedirect");
       navigate("landing");
