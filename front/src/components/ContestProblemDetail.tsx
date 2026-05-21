@@ -1,6 +1,4 @@
 import React from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { ContestDetail } from "../api/codeBattleApi";
 import "./ChitoBattleProblem.css";
 
@@ -132,9 +130,7 @@ const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin,
       {detail.description && (
         <section className="prob-section">
           <h2>문제 설명</h2>
-          <div className="prob-md">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{detail.description}</ReactMarkdown>
-          </div>
+          <div className="prob-md" dangerouslySetInnerHTML={{ __html: detail.description }} />
         </section>
       )}
 

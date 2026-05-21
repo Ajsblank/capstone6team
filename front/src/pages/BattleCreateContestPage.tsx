@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { marked } from "marked";
+import mammoth from "mammoth";
 import { useApp } from "../context/AppContext";
 import { createContest, ContestResponse, ContestStatus } from "../api/contestApi";
 import { setContestDraft } from "../contestDraft";
 import ContestSidebar from "../components/ContestSidebar";
+import RichTextEditor from "../components/RichTextEditor";
 import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
@@ -28,25 +29,8 @@ const Toast: React.FC<ToastProps> = ({ messages, onClose }) => {
 };
 
 
-interface MdEditorProps { value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; }
-const MdEditor: React.FC<MdEditorProps> = ({ value, onChange, rows = 6, placeholder }) => {
-  const [tab, setTab] = useState<"write" | "preview">("write");
-  return (
-    <div className="cc-md-editor">
-      <div className="cc-md-tabs">
-        <button type="button" className={`cc-md-tab${tab === "write" ? " cc-md-tab--active" : ""}`} onClick={() => setTab("write")}>편집</button>
-        <button type="button" className={`cc-md-tab${tab === "preview" ? " cc-md-tab--active" : ""}`} onClick={() => setTab("preview")}>미리보기</button>
-      </div>
-      {tab === "write" ? (
-        <textarea className="cc-md-textarea" rows={rows} placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
-      ) : value.trim() ? (
-        <div className="cc-md-preview"><ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown></div>
-      ) : (
-        <div className="cc-md-empty">미리볼 내용이 없습니다.</div>
-      )}
-    </div>
-  );
-};
+const isDescEmpty = (html: string) =>
+  !html || html === "<p></p>" || html.replace(/<[^>]*>/g, "").trim() === "";
 
 interface FileInputProps { label: string; required?: boolean; accept?: string; value: File | null; onChange: (f: File | null) => void; hint?: string; }
 const FileInput: React.FC<FileInputProps> = ({ label, required, accept, value, onChange, hint }) => {
@@ -91,7 +75,33 @@ const BattleCreateContestPage: React.FC = () => {
   const [showPreview, setShowPreview]   = useState(false);
 
   const [aiCodeInputKey, setAiCodeInputKey] = useState(0);
-  const descImportRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const docImportRef = useRef<HTMLInputElement>(null);
+
+  const handleDocImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImporting(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      let html = "";
+      if (ext === "html" || ext === "htm") {
+        html = await file.text();
+      } else if (ext === "md") {
+        html = await Promise.resolve(marked.parse(await file.text()));
+      } else if (ext === "txt") {
+        const text = await file.text();
+        html = text.split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`).join("");
+      } else if (ext === "docx") {
+        const result = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
+        html = result.value;
+      }
+      if (html) setDescription(html);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const handleAICodeAdd = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -105,7 +115,7 @@ const BattleCreateContestPage: React.FC = () => {
   const handleSubmit = async () => {
     const missing: string[] = [];
     if (!title.trim())           missing.push("대회 이름");
-    if (!description.trim()) missing.push("문제 설명");
+    if (isDescEmpty(description)) missing.push("문제 설명");
     if (!sampleCode)             missing.push("샘플 코드");
     if (!judgeCode)              missing.push("채점 코드");
     if (exampleAiCodes.length === 0) missing.push("예시 AI 코드");
@@ -143,7 +153,7 @@ const BattleCreateContestPage: React.FC = () => {
   const handleNextStep = () => {
     const missing: string[] = [];
     if (!title.trim())           missing.push("대회 이름");
-    if (!description.trim()) missing.push("문제 설명");
+    if (isDescEmpty(description)) missing.push("문제 설명");
     if (!sampleCode)             missing.push("샘플 코드");
     if (!judgeCode)              missing.push("채점 코드");
     if (exampleAiCodes.length === 0) missing.push("예시 AI 코드");
@@ -167,7 +177,7 @@ const BattleCreateContestPage: React.FC = () => {
   // 체크리스트 계산
   const checklist = [
     { label: "대회 이름",               done: !!title.trim(),             optional: false },
-    { label: "문제 설명",               done: !!description.trim(),  optional: false },
+    { label: "문제 설명",               done: !isDescEmpty(description),  optional: false },
     { label: "채점 코드",               done: !!judgeCode,                optional: false },
     { label: "샘플 코드",               done: !!sampleCode,               optional: false },
     { label: "예시 AI 코드 (1개 이상)", done: exampleAiCodes.length > 0,  optional: false },
@@ -219,8 +229,8 @@ const BattleCreateContestPage: React.FC = () => {
               </div>
               <div>
                 <div className="cc-preview-desc-label">문제 설명</div>
-                {description.trim()
-                  ? <div className="cc-md-preview"><ReactMarkdown remarkPlugins={[remarkGfm]}>{description}</ReactMarkdown></div>
+                {!isDescEmpty(description)
+                  ? <div className="cc-md-preview" dangerouslySetInnerHTML={{ __html: description }} />
                   : <div className="cc-md-empty">문제 설명이 없습니다.</div>}
               </div>
             </div>
@@ -282,19 +292,18 @@ const BattleCreateContestPage: React.FC = () => {
                   <h3 className="cc-section-title">문제 설명</h3>
                   <div className="cc-field">
                     <div className="cc-label-row">
-                      <label className="cc-label">문제 설명 <Req show={!description.trim()} /></label>
-                      <button type="button" className="cc-import-btn" onClick={() => descImportRef.current?.click()}>
-                        문서 불러오기
+                      <label className="cc-label">문제 설명 <Req show={isDescEmpty(description)} /></label>
+                      <button type="button" className="cc-import-btn" disabled={importing} onClick={() => docImportRef.current?.click()}>
+                        {importing ? "불러오는 중…" : "문서 불러오기"}
                       </button>
-                      <input
-                        ref={descImportRef}
-                        type="file"
-                        accept=".md,.txt"
-                        style={{ display: "none" }}
-                        onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setDescription(await f.text()); e.target.value = ""; }}
-                      />
+                      <input ref={docImportRef} type="file" accept=".md,.txt,.html,.htm,.docx" style={{ display: "none" }} onChange={handleDocImport} />
                     </div>
-                    <MdEditor value={description} onChange={setDescription} rows={8} placeholder="문제를 설명해주세요. Markdown을 지원합니다." />
+                    <RichTextEditor
+                      value={description}
+                      onChange={setDescription}
+                      placeholder="문제를 설명해주세요. 이미지, 링크, 표 등을 삽입할 수 있습니다."
+                      minHeight={280}
+                    />
                   </div>
                 </section>
 
