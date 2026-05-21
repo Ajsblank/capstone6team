@@ -119,6 +119,7 @@ export interface TokenResponse {
   userId: string;
   joinedContests?: number[];
   hostedContests?: number[];
+  createdContests?: number[];
 }
 
 // ──────────────────────────────────────────

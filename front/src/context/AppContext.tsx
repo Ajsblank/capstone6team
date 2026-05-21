@@ -28,10 +28,11 @@ interface AppContextValue {
   currentPage: Page;
   navigate: (page: Page) => void;
   user: User | null;
-  login: (user: User, joinedContests?: number[], hostedContests?: number[]) => void;
+  login: (user: User, joinedContests?: number[], hostedContests?: number[], createdContests?: number[]) => void;
   logout: () => void;
   joinedContestIds: number[];
   hostedContestIds: number[];
+  createdContestIds: number[];
   addJoinedContest: (contestId: number) => void;
 }
 
@@ -51,6 +52,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [hostedContestIds, setHostedContestIds] = useState<number[]>(() => {
     try { return JSON.parse(localStorage.getItem("hostedContests") ?? "[]"); } catch { return []; }
+  });
+  const [createdContestIds, setCreatedContestIds] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem("createdContests") ?? "[]"); } catch { return []; }
   });
 
   const [user, setUser] = useState<User | null>(() => {
@@ -85,8 +89,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else {
       setJoinedContestIds([]);
       setHostedContestIds([]);
+      setCreatedContestIds([]);
       localStorage.removeItem("joinedContests");
       localStorage.removeItem("hostedContests");
+      localStorage.removeItem("createdContests");
       unsubscribeFromResults();
     }
   }, [user?.id]);
@@ -102,12 +108,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener("auth:logout", handleForceLogout);
   }, []);
 
-  const login = useCallback((u: User, joinedContests: number[] = [], hostedContests: number[] = []) => {
+  const login = useCallback((u: User, joinedContests: number[] = [], hostedContests: number[] = [], createdContests: number[] = []) => {
     setUser(u);
     setJoinedContestIds(joinedContests);
     setHostedContestIds(hostedContests);
+    setCreatedContestIds(createdContests);
     localStorage.setItem("joinedContests", JSON.stringify(joinedContests));
     localStorage.setItem("hostedContests", JSON.stringify(hostedContests));
+    localStorage.setItem("createdContests", JSON.stringify(createdContests));
   }, []);
 
   const addJoinedContest = useCallback((contestId: number) => {
@@ -124,15 +132,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUser(null);
     setJoinedContestIds([]);
     setHostedContestIds([]);
+    setCreatedContestIds([]);
     localStorage.removeItem("joinedContests");
     localStorage.removeItem("hostedContests");
+    localStorage.removeItem("createdContests");
     window.location.hash = "landing";
     setCurrentPage("landing");
   }, []);
 
   const value = useMemo(
-    () => ({ currentPage, navigate, user, login, logout, joinedContestIds, hostedContestIds, addJoinedContest }),
-    [currentPage, user, navigate, login, logout, joinedContestIds, hostedContestIds, addJoinedContest]
+    () => ({ currentPage, navigate, user, login, logout, joinedContestIds, hostedContestIds, createdContestIds, addJoinedContest }),
+    [currentPage, user, navigate, login, logout, joinedContestIds, hostedContestIds, createdContestIds, addJoinedContest]
   );
 
   return (
