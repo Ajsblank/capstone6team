@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { logoutApi, getAccessToken, getUserId, getUsername } from "../api/authApi";
-import { subscribeToResults, unsubscribeFromResults } from "../api/sseApi";
+import { ensureSseConnected, unsubscribeFromResults } from "../api/sseApi";
 
 export type Page =
   | "landing"
@@ -80,8 +80,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 로그인/페이지 새로고침 시 SSE 재연결, 로그아웃 시 해제
   useEffect(() => {
     if (user?.id) {
-      console.log("[AppContext] SSE 구독 — userId:", user.id);
-      subscribeToResults(user.id, () => {});
+      console.log("[AppContext] SSE 연결 보장 — userId:", user.id);
+      ensureSseConnected(user.id);
     } else {
       setJoinedContestIds([]);
       setHostedContestIds([]);
