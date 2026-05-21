@@ -14,6 +14,7 @@ export type Page =
   | "create-problem"
   | "create-contest"
   | "create-certified-contest"
+  | "contest-settings"
   | "profile"
   | "account-settings";
 
@@ -36,7 +37,7 @@ interface AppContextValue {
   addJoinedContest: (contestId: number) => void;
 }
 
-const VALID_PAGES: Page[] = ["landing", "home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "create-contest", "create-certified-contest", "profile", "account-settings"];
+const VALID_PAGES: Page[] = ["landing", "home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "create-contest", "create-certified-contest", "contest-settings", "profile", "account-settings"];
 
 function getPageFromHash(): Page {
   const hash = window.location.hash.replace("#", "").split("/")[0] as Page;
