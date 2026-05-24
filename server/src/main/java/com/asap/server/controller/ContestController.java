@@ -39,9 +39,7 @@ import com.asap.server.dto.response.ContestScheduleResponse;
 import com.asap.server.dto.response.FinalResultResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
-import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.ContestSwissSessionRepository;
-import com.asap.server.service.CodeBattleSubmissionService;
 import com.asap.server.service.ContestService;
 import com.asap.server.service.FullLeagueService;
 import com.asap.server.service.S3Service;
@@ -68,13 +66,11 @@ public class ContestController {
 
     private final ContestService contestService;
     private final S3Service s3Service;
-    private final CodeBattleSubmissionService submissionService;
     private final ObjectMapper objectMapper;
     private final CodeBattleContestRepository contestRepository;
     private final FullLeagueService fullLeagueService;
     private final SwissLeagueService swissService;
     private final ContestSwissSessionRepository sessionRepository;
-    private final CodeBattleParticipantRepository participantRepository;
 
     @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
     @PostMapping(value = "/create/uncertified", consumes = "application/json")
@@ -248,7 +244,7 @@ public class ContestController {
             @PathVariable Long targetUserId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         log.info("조회 시도: {} / {}", contestId, targetUserId);
-        List<CodeBattleMySubmissionResponse> responses = submissionService.getMySubmissionsWithAi(contestId,
+        List<CodeBattleMySubmissionResponse> responses = contestService.getMySubmissionsWithAi(contestId,
                 targetUserId);
         log.info("조회: {}", responses);
         return ResponseEntity.ok(responses);

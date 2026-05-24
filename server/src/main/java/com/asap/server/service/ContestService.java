@@ -5,6 +5,7 @@ import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleExampleAI;
+import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.CodeBattleParticipant;
 import com.asap.server.domain.ContestReviewer;
 import com.asap.server.domain.ContestSchedule;
@@ -26,6 +28,8 @@ import com.asap.server.dto.request.CreateContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
 import com.asap.server.dto.request.UpdateContestCertifiedRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
+import com.asap.server.dto.response.CodeBattleAiMatchResult;
+import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestParticipantResponse;
@@ -35,6 +39,7 @@ import com.asap.server.dto.response.ContestScheduleResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
+import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.ContestReviewerRepository;
 import com.asap.server.repository.ContestScheduleRepository;
@@ -61,6 +66,7 @@ public class ContestService {
     private final ContestRunService contestRun;
     private final S3Service s3Service;
     private final ContestReviewerRepository contestReviewerRepository;
+    private final CodeBattleMatchRepository matchRepository;
 
     @Transactional(rollbackFor = Exception.class)
     public ContestResponse createContest(
@@ -871,5 +877,21 @@ public class ContestService {
                 .stream()
                 .map(ContestScheduleListResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CodeBattleMySubmissionResponse> getMySubmissionsWithAi(Long contestId, Long userId) {
+
+        // 해당 유저가 AI와 진행한 모든 매치 기록 조회
+        List<CodeBattleMatch> matches = matchRepository.findByContestIdAndUser1Id(contestId, userId);
+        System.out.println("조회 시도 - contestId: " + contestId + ", userId: " + userId);
+
+        return matches.stream()
+                .map(match -> {
+                    CodeBattleAiMatchResult aiResult = CodeBattleAiMatchResult.from(match, userId);
+
+                    return CodeBattleMySubmissionResponse.of(match.getSubmission(), aiResult);
+                })
+                .collect(Collectors.toList());
     }
 }
