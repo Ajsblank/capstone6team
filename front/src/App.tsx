@@ -14,6 +14,7 @@ import AccountSettingsPage from "./pages/AccountSettingsPage";
 import BattleCreateContestPage from "./pages/BattleCreateContestPage";
 import BattleCreateCertifiedPage from "./pages/BattleCreateCertifiedPage";
 import ContestSettingsPage from "./pages/ContestSettingsPage";
+import SwissTournamentPage from "./pages/SwissTournamentPage";
 
 const DevApiBadge: React.FC = () => (
   <div style={{
@@ -45,6 +46,7 @@ const PageRouter: React.FC = () => {
     case "create-contest":            return <BattleCreateContestPage />;
     case "create-certified-contest":  return <BattleCreateCertifiedPage />;
     case "contest-settings":          return <ContestSettingsPage />;
+    case "tournament":                return <SwissTournamentPage />;
     default:                 return <AlgoHomePage />;
   }
 };
