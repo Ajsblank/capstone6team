@@ -16,11 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleParticipant;
-import com.asap.server.domain.ContestSchedule;
+import com.asap.server.domain.ContestSwissSession;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
-import com.asap.server.repository.ContestScheduleRepository;
+import com.asap.server.repository.ContestSwissSessionRepository;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -36,9 +36,10 @@ public class ContestRunService {
   private final Map<Long, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
   private final Map<Long, List<ScheduledFuture<?>>> swissScheduledTasks = new ConcurrentHashMap<>();
   private final FullLeagueService fullLeagueService;
-  private final ContestScheduleRepository contestScheduleRepository;
+  private final ContestSwissSessionRepository swissRepository;
   private final SwissLeagueService swissLeagueService;
 
+  // 서버 실행 시 대회 예약
   @PostConstruct
   public void initContestSchedules() {
     List<CodeBattleContest> contests = contestRepository.findAll();
@@ -46,6 +47,7 @@ public class ContestRunService {
 
     for (CodeBattleContest contest : contests) {
 
+      // 현재 대회 진행 중 끊긴 대회에 대해서 재 실행 처리가 없음
       if (!contest.getStartDate().isAfter(LocalDateTime.now())) {
         log.debug("[Scheduler] contestId={} 시작 시간이 이미 지났으므로 스킵합니다. 시작 시간: {}", contest.getId(), contest.getStartDate());
         continue;
@@ -78,23 +80,24 @@ public class ContestRunService {
     log.info("[Scheduler] contestId={} 대회의 시작 시간이 등록되었습니다. 등록 시간={}", contestId, contest.getStartDate());
 
     // 중간 대회 일정 조회 → 스위스 세션 예약
-    List<ContestSchedule> schedules = contestScheduleRepository.findByContestId(contestId);
-    schedules.sort(Comparator.comparing(ContestSchedule::getScheduledAt));
+    List<ContestSwissSession> schedules = swissRepository.findByContestId(contestId);
+    schedules.sort(Comparator.comparing(ContestSwissSession::getScheduledAt));
 
-    int sessionCount = 0;
+    int sessionCount = 1;
     for (int i = 0; i < schedules.size(); i++) {
       // 예약 시점 확인
       LocalDateTime scheduledAt = schedules.get(i).getScheduledAt();
       if (!scheduledAt.isAfter(LocalDateTime.now())) {
-        log.debug("[Scheduler] contestId={} 스위스 세션 {} 시간이 지나 스킵. 시간={}",
-            contestId, i + 1, scheduledAt);
+        log.debug("[Scheduler] 스위스 세션 예약 contestId={} 시작 시간이 이미 지났으므로 스킵합니다. 시작 시간: {}",
+            contestId, scheduledAt);
         continue;
       }
+      // 종료 시점 이후 대회 판단 필요
       sessionCount++;
-      final int sessionIndex = sessionCount; // 세션 번호 (0-based → +1해서 저장)
-      final Long scheduleId = schedules.get(i).getId();
-
-      Runnable sessionTask = () -> swissLeagueService.processSwissSession(contestId, sessionIndex + 1, scheduleId);
+      // 세션 번호 (0-based → +1해서 저장)
+      final int sessionIndex = sessionCount;
+      final Long sessionId = schedules.get(i).getId();
+      Runnable sessionTask = () -> swissLeagueService.generateSwissSession(contestId, sessionIndex, sessionId);
       Instant sessionInstant = schedules.get(i).getScheduledAt()
           .atZone(ZoneId.of("Asia/Seoul")).toInstant();
 
@@ -103,12 +106,12 @@ public class ContestRunService {
           return null;
         return sessionInstant;
       });
+      // 여기 부분 풀리그와 비교 다른 부분 처리
       if (sessionScheduled != null) {
         swissScheduledTasks.computeIfAbsent(contestId, k -> new ArrayList<>()).add(sessionScheduled);
       }
-
       log.info("[Scheduler] contestId={} 스위스 세션 {} 예약 완료. 시작 시간={}",
-          contestId, sessionIndex + 1, schedules.get(i).getScheduledAt());
+          contestId, sessionIndex, schedules.get(i).getScheduledAt());
     }
   }
 
@@ -132,6 +135,8 @@ public class ContestRunService {
     if (swissFutures != null && !swissFutures.isEmpty()) {
       swissFutures.forEach(f -> f.cancel(false));
       log.info("[Scheduler] contestId={} 스위스 세션 스케줄 {}개를 취소했습니다.", contestId, swissFutures.size());
+    } else {
+      log.debug("[Scheduler] contestId={} 취소할 스위스 스케줄이 없습니다.", contestId);
     }
   }
 
@@ -144,16 +149,6 @@ public class ContestRunService {
       contest.setStatus(ContestStatus.RUNNING);
       contestRepository.save(contest);
       log.info("[Scheduler] contestId={} 대회를 RUNNING 상태로 시작합니다.", contestId);
-
-      // 해당 대회의 참가자 목록 조회
-      List<CodeBattleParticipant> participants = participantRepository.findByContestId(contestId);
-
-      // 모든 참가자의 score를 0으로 초기화
-      for (CodeBattleParticipant p : participants) {
-        p.setScore(0);
-      }
-      // 초기화된 점수 DB 반영
-      participantRepository.saveAll(participants);
 
       // 종료 예약
       Runnable task = () -> processEnd(contestId);
@@ -196,6 +191,16 @@ public class ContestRunService {
       contest.setStatus(ContestStatus.END);
       contestRepository.save(contest);
       log.info("대회 종료 시간 도달로 상태를 END로 변경했습니다. contestId: {}", contestId);
+
+      // 해당 대회의 참가자 목록 조회
+      List<CodeBattleParticipant> participants = participantRepository.findByContestId(contestId);
+
+      // 모든 참가자의 score를 0으로 초기화
+      for (CodeBattleParticipant p : participants) {
+        p.setScore(0);
+      }
+      // 초기화된 점수 DB 반영
+      participantRepository.saveAll(participants);
 
       // Grading 실행
       log.info("최종 Grading을 실행합니다. contestId: {}", contestId);

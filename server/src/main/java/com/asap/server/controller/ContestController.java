@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.asap.server.config.CustomUserDetails;
 import com.asap.server.domain.CodeBattleContest;
+import com.asap.server.domain.ContestSwissSession;
 import com.asap.server.dto.request.ContestScheduleRequest;
 import com.asap.server.dto.request.CreateCertifiedContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
@@ -38,6 +39,8 @@ import com.asap.server.dto.response.ContestScheduleResponse;
 import com.asap.server.dto.response.FinalResultResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
+import com.asap.server.repository.CodeBattleParticipantRepository;
+import com.asap.server.repository.ContestSwissSessionRepository;
 import com.asap.server.service.CodeBattleSubmissionService;
 import com.asap.server.service.ContestService;
 import com.asap.server.service.FullLeagueService;
@@ -70,6 +73,8 @@ public class ContestController {
     private final CodeBattleContestRepository contestRepository;
     private final FullLeagueService fullLeagueService;
     private final SwissLeagueService swissService;
+    private final ContestSwissSessionRepository sessionRepository;
+    private final CodeBattleParticipantRepository participantRepository;
 
     @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
     @PostMapping(value = "/create/uncertified", consumes = "application/json")
@@ -300,13 +305,49 @@ public class ContestController {
     @PostMapping("/{contestId}/swiss-session-test")
     public ResponseEntity<String> testSwissSession(
             @PathVariable Long contestId,
-            @RequestParam int sessionNumber,
-            @RequestParam Long scheduleId) {
+            @RequestParam int sessionNumber) {
         try {
-            swissService.processSwissSession(contestId, sessionNumber, scheduleId);
-            return ResponseEntity.ok("스위스 세션 " + sessionNumber + " 실행됨");
+            CodeBattleContest contest = contestRepository.findById(contestId)
+                    .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
+            // 1. 세션 값 초기화
+            ContestSwissSession session = new ContestSwissSession();
+            session.setContest(contest);
+            session = sessionRepository.save(session);
+
+            swissService.generateSwissSession(contestId, sessionNumber, session.getId());
+            return ResponseEntity.ok("스위스 세션 " + sessionNumber + " 실행됨. sessionId=" + session.getId());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            log.error("[스위스 테스트] 예외 발생", e);
+            return ResponseEntity.badRequest().body(e.getClass().getSimpleName() + ": " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{contestId}/swiss-round-aggregate-test")
+    public ResponseEntity<String> testSwissRoundAggregate(
+            @PathVariable Long contestId,
+            @RequestParam Long roundId) {
+        try {
+            swissService.aggregateSwissRound(roundId);
+            return ResponseEntity.ok("라운드 " + roundId + " 집계 완료");
+        } catch (Exception e) {
+            log.error("[스위스 라운드 집계 테스트] 예외 발생", e);
+            return ResponseEntity.badRequest().body(e.getClass().getSimpleName() + ": " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{contestId}/swiss-session-aggregate-test")
+    public ResponseEntity<String> testSwissSessionAggregate(
+            @PathVariable Long contestId,
+            @RequestParam int sessionNumber) {
+        try {
+            ContestSwissSession session = sessionRepository
+                    .findByContestIdAndSessionNumber(contestId, sessionNumber)
+                    .orElseThrow(() -> new IllegalArgumentException("세션 없음"));
+            swissService.aggregateSwissSession(session.getId());
+            return ResponseEntity.ok("세션 " + session.getId() + " 집계 완료");
+        } catch (Exception e) {
+            log.error("[스위스 세션 집계 테스트] 예외 발생", e);
+            return ResponseEntity.badRequest().body(e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 }

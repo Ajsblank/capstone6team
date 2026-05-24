@@ -45,7 +45,7 @@ public class FullLeagueService {
                 .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. ID: " + contestId));
 
         if (contest.getStatus() == com.asap.server.global.type.ContestStatus.CANCELED) {
-            log.info("[SwissMatchMaker] 대회 ID {} 는 취소 상태(CANCELED)라 FullLeagueGrading을 스킵합니다.", contestId);
+            log.info("[풀리그] 대회 ID {} 는 취소 상태(CANCELED)라 FullLeagueGrading을 스킵합니다.", contestId);
             return;
         }
 
@@ -58,22 +58,22 @@ public class FullLeagueService {
                     .filter(s -> {
                         // null 필드 있으면 해당 제출 스킵 + 로그
                         if (s.getLanguage() == null) {
-                            log.warn("[SwissMatchMaker] submission ID {}의 language가 null, 스킵", s.getId());
+                            log.warn("[풀리그] submission ID {}의 language가 null, 스킵", s.getId());
                             return false;
                         }
                         if (s.getCodeUrl() == null) {
-                            log.warn("[SwissMatchMaker] submission ID {}의 codeUrl가 null, 스킵", s.getId());
+                            log.warn("[풀리그] submission ID {}의 codeUrl가 null, 스킵", s.getId());
                             return false;
                         }
                         return true;
                     })
                     .collect(Collectors.toList());
             if (submissions == null || submissions.size() < 2) {
-                log.warn("[SwissMatchMaker] 풀리그 대회 ID {} 제출 코드 부족으로 매칭을 생성하지 못했습니다. {}", contestId);
+                log.warn("[풀리그] 풀리그 대회 ID {} 제출 코드 부족으로 매칭을 생성하지 못했습니다. {}", contestId);
                 return;
             }
 
-            log.info("[SwissMatchMaker] 풀리그 대회 ID: {}, {}개의 제출 코드로 매칭을 생성합니다.", contestId, submissions.size());
+            log.info("[풀리그] 풀리그 대회 ID: {}, {}개의 제출 코드로 매칭을 생성합니다.", contestId, submissions.size());
 
             int expected = (submissions.size() * (submissions.size() - 1)) / 2;
             redisTemplate.opsForValue().set("contest:total:" + contestId, String.valueOf(expected));
@@ -99,7 +99,7 @@ public class FullLeagueService {
                         enqueued++;
 
                     } catch (Exception e) {
-                        log.error("[SwissMatchMaker] 큐 적재 실패로 전체 중단. s1={}, s2={}, 원인={}",
+                        log.error("[풀리그] 큐 적재 실패로 전체 중단. s1={}, s2={}, 원인={}",
                                 s1.getId(), s2.getId(), e.getMessage());
                         // Redis 카운터 정리
                         redisTemplate.delete("contest:total:" + contestId);
@@ -110,7 +110,7 @@ public class FullLeagueService {
                 }
             }
             log.info(
-                    "[SwissMatchMaker] 풀리그 대회 ID {} 매칭 완료. expected={}, enqueued={}",
+                    "[풀리그] 대회 ID {} 매칭 완료. expected={}, enqueued={}",
                     contestId, expected, enqueued);
         } catch (RuntimeException e) {
             throw e; // 상위로 전파
@@ -164,7 +164,7 @@ public class FullLeagueService {
         String payload = objectMapper.writeValueAsString(rootNode);
         Long queueSize = redisTemplate.opsForList().leftPush(CODE_BATTLE_FULL_LEAGUE_QUEUE_KEY, payload);
 
-        log.info("[SwissMatchMaker] 큐 적재 완료. matchId={}, queueSize={}", matchId, queueSize);
+        log.info("[풀리그] 큐 적재 완료. matchId={}, queueSize={}", matchId, queueSize);
     }
 
     public void aggregateAndSave(Long contestId) { // 풀리그 집계 함수
