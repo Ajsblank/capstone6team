@@ -121,7 +121,7 @@ int main() {
 
             if (queue_name == "code_battle_test_queue") {
                 
-                int time_limit_sec = 10;
+                int time_limit_sec = 1000;
                 std::string work_dir = "./";
                 std::string abs_work_dir = fs::absolute(work_dir).string();
 
@@ -164,7 +164,7 @@ int main() {
                     std::cout << "실행 및 채점 중..." << std::endl;
                     std::string run_cmd = "timeout " + std::to_string(time_limit_sec) + "s " +
                                         "docker run -i --rm -v " + abs_work_dir + ":/app -w /app " +
-                                        "--memory=512m --network=none gcc:code-battle-env " +
+                                        "--memory=512m --network=none code-battle-env " +
                                         "./judge ./player1 ./player2 2>&1";
                 
                     CmdResult run_res = exec_cmd(run_cmd);
@@ -188,7 +188,8 @@ int main() {
                     continue;
                 }
                 
-                int time_limit_sec = data["timeLimitSec"];
+                //int time_limit_sec = data["timeLimitSec"];
+                int time_limit_sec = 1000;
                 std::string work_dir = "./" + match_id;
                 std::string abs_work_dir = fs::absolute(work_dir).string();
     
@@ -234,7 +235,7 @@ int main() {
                     std::cout << "실행 및 채점 중..." << std::endl;
                     std::string run_cmd = "timeout " + std::to_string(time_limit_sec) + "s " +
                                         "docker run -i --rm -v " + abs_work_dir + ":/app -w /app " +
-                                        "--memory=512m --network=none gcc:code-battle-env " +
+                                        "--memory=512m --network=none code-battle-env " +
                                         "./judge ./player1 ./player2 2>&1";
                 
                     CmdResult run_res = exec_cmd(run_cmd);
