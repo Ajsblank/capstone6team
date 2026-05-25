@@ -107,6 +107,19 @@ export const getMyBattleSubmissions = async (
   return response.data;
 };
 
+// ── 세션 목록 조회 — GET /api/contests/{contestId}/sessionList ──
+export interface ContestSession {
+  sessionNumber: number;
+  startDate: string;
+  endDate: string;
+  status: string; // "RUNNING" | "PLANNED" | "END" | ...
+}
+
+export const getContestSessions = async (contestId: number): Promise<ContestSession[]> => {
+  const { data } = await api.get<ContestSession[]>(`/api/contests/${contestId}/sessionList`);
+  return data;
+};
+
 // ── 검수 코드 대결 — POST /api/code/submit/test (결과는 SSE test_result 이벤트로 수신) ──
 export const reviewContest = async (
   userId: string,
