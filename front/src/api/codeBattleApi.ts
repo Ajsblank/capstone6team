@@ -120,6 +120,26 @@ export const getContestSessions = async (contestId: number): Promise<ContestSess
   return data;
 };
 
+// ── 최종 결과 조회 — GET /api/contests/{contestId}/final-result ──
+export interface FinalStanding {
+  user_id: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  rank: number;
+  points: number;
+}
+
+export interface FinalResult {
+  total_participants: number;
+  "final-standings": FinalStanding[];
+}
+
+export const getFinalResult = async (contestId: number): Promise<FinalResult> => {
+  const { data } = await api.get<FinalResult>(`/api/contests/${contestId}/final-result`);
+  return data;
+};
+
 // ── 검수 코드 대결 — POST /api/code/submit/test (결과는 SSE test_result 이벤트로 수신) ──
 export const reviewContest = async (
   userId: string,
