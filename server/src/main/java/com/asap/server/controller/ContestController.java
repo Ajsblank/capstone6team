@@ -1,8 +1,10 @@
 package com.asap.server.controller;
 
 import java.net.URI;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +40,7 @@ import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestResponse;
 import com.asap.server.dto.response.ContestScheduleListResponse;
 import com.asap.server.dto.response.ContestScheduleResponse;
+import com.asap.server.dto.response.ContestSessionListResponse;
 import com.asap.server.dto.response.FinalResultResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
@@ -284,6 +287,24 @@ public class ContestController {
             return ResponseEntity.internalServerError()
                     .body(Map.of("message", "결과 조회 중 오류가 발생했습니다."));
         }
+    }
+
+    @Operation(summary = "스위스 세션 목록 조회", description = "세션 번호별 최신 세션 하나씩 반환합니다.")
+    @GetMapping("/{contestId}/sessionList")
+    public ResponseEntity<List<ContestSessionListResponse>> getSessionList(@PathVariable Long contestId) {
+        List<ContestSessionListResponse> responses = sessionRepository.findByContestId(contestId)
+                .stream()
+                .filter(s -> s.getSessionNumber() != null)
+                .collect(Collectors.toMap(
+                        ContestSwissSession::getSessionNumber,
+                        s -> s,
+                        (a, b) -> b.getId() > a.getId() ? b : a))
+                .values()
+                .stream()
+                .sorted(Comparator.comparing(ContestSwissSession::getSessionNumber))
+                .map(ContestSessionListResponse::from)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
 
     @Operation(summary = "중간 대회 목록 조회")

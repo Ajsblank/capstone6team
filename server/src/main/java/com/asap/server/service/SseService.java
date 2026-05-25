@@ -57,7 +57,7 @@ public class SseService {
         Map<String, Object> currentState = sessionStates.get(key);
         if (currentState != null) {
             try {
-                emitter.send(SseEmitter.event().name("session-state").data(currentState));
+                emitter.send(SseEmitter.event().name("init").data(currentState));
             } catch (IOException e) {
                 removeSessionEmitter(key, emitter);
             }
@@ -93,7 +93,7 @@ public class SseService {
 
     public void updateSessionState(Long contestId, Long sessionId, Map<String, Object> state) {
         sessionStates.put(contestId + ":" + sessionId, state);
-        sendToSession(contestId, sessionId, state, "session-state");
+        sendToSession(contestId, sessionId, state, "update");
     }
 
     public Map<String, Object> getSessionState(Long contestId, Long sessionId) {
