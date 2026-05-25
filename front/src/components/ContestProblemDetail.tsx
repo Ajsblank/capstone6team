@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { marked } from "marked";
 import { ContestDetail } from "../api/codeBattleApi";
 import "./ChitoBattleProblem.css";
 
@@ -29,7 +30,27 @@ function formatDateTime(dt: string): string {
   });
 }
 
+function detectExt(code: string): string {
+  if (/public\s+class\s+\w+/.test(code) || /import\s+java\./.test(code)) return "java";
+  if (/using\s+namespace\s+std/.test(code) || /#include\s*</.test(code))  return "cpp";
+  if (/^\s*(def |import |from .+ import|print\()/m.test(code))            return "py";
+  if (/^\s*(function |const |let |var |=>)/m.test(code))                  return "js";
+  return "txt";
+}
+
+function makeDownloadUrl(code: string): string {
+  return `data:text/plain;charset=utf-8,${encodeURIComponent(code)}`;
+}
+
 const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin, joinStatus = "idle", joinError, isReviewer, onEdit }) => {
+  const [descHtml, setDescHtml] = useState("");
+
+  useEffect(() => {
+    if (!detail?.description) { setDescHtml(""); return; }
+    const result = marked.parse(detail.description);
+    if (result instanceof Promise) result.then(setDescHtml);
+    else setDescHtml(result);
+  }, [detail?.description]);
   if (loading) {
     return (
       <div className="prob" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -127,32 +148,39 @@ const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin,
       )}
 
       {/* 문제 설명 */}
-      {detail.description && (
+      {descHtml && (
         <section className="prob-section">
           <h2>문제 설명</h2>
-          <div className="prob-md" dangerouslySetInnerHTML={{ __html: detail.description }} />
+          <div className="prob-md" dangerouslySetInnerHTML={{ __html: descHtml }} />
         </section>
       )}
 
       {/* 예제 코드 */}
-      {detail.sampleCode && (
-        <section className="prob-section">
-          <h2>예제 코드</h2>
-          <pre style={{
-            background: "#1e1e1e",
-            color: "#d4d4d4",
-            padding: "16px 20px",
-            borderRadius: "8px",
-            fontSize: "0.82rem",
-            fontFamily: '"Fira Code", "Consolas", monospace',
-            overflowX: "auto",
-            lineHeight: 1.6,
-            margin: 0,
-          }}>
-            <code>{detail.sampleCode}</code>
-          </pre>
-        </section>
-      )}
+      {detail.sampleCode && (() => {
+        const ext  = detectExt(detail.sampleCode);
+        const name = `${detail.title}_예시코드.${ext}`;
+        return (
+          <section className="prob-section">
+            <h2>예제 코드</h2>
+            <a
+              href={makeDownloadUrl(detail.sampleCode)}
+              download={name}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 14px",
+                background: "#1e293b",
+                border: "1px solid #334155",
+                borderRadius: 7,
+                color: "#93c5fd",
+                fontSize: "0.85rem",
+                textDecoration: "none",
+              }}
+            >
+              ⬇ {name}
+            </a>
+          </section>
+        );
+      })()}
     </div>
   );
 };
