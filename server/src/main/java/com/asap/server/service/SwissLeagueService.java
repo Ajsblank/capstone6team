@@ -169,7 +169,8 @@ public class SwissLeagueService {
     if (currentState != null) {
       @SuppressWarnings("unchecked")
       List<Map<String, Object>> rounds = (List<Map<String, Object>>) currentState.get("rounds");
-      if (rounds != null) rounds.add(roundState);
+      if (rounds != null)
+        rounds.add(roundState);
       sseService.updateSessionState(contest.getId(), session.getId(), currentState);
     }
 
@@ -536,12 +537,14 @@ public class SwissLeagueService {
 
   private void updateMatchResult(Long contestId, Long sessionId, ContestSwissMatch match, int winner) {
     Map<String, Object> state = sseService.getSessionState(contestId, sessionId);
-    if (state == null) return;
+    if (state == null)
+      return;
 
     int roundNumber = match.getRound().getRoundNumber();
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> rounds = (List<Map<String, Object>>) state.get("rounds");
-    if (rounds == null) return;
+    if (rounds == null)
+      return;
 
     rounds.stream()
         .filter(r -> ((Number) r.get("round_number")).intValue() == roundNumber)
@@ -549,7 +552,8 @@ public class SwissLeagueService {
         .ifPresent(roundState -> {
           @SuppressWarnings("unchecked")
           List<Map<String, Object>> matches = (List<Map<String, Object>>) roundState.get("matches");
-          if (matches == null) return;
+          if (matches == null)
+            return;
           matches.stream()
               .filter(m -> m.get("match_id") != null
                   && ((Number) m.get("match_id")).longValue() == match.getId())
@@ -561,5 +565,63 @@ public class SwissLeagueService {
         });
 
     sseService.updateSessionState(contestId, sessionId, state);
+  }
+
+  public void restoreSessionState(Long contestId, Long sessionId) {
+    if (sseService.getSessionState(contestId, sessionId) != null)
+      return;
+
+    ContestSwissSession session = swissSessionRepository.findById(sessionId).orElse(null);
+    if (session == null)
+      return;
+
+    List<ContestSwissRound> rounds = swissRoundRepository.findBySessionId(sessionId);
+    rounds.sort(Comparator.comparing(ContestSwissRound::getRoundNumber));
+
+    String totalStr = redisTemplate.opsForValue().get("swiss:session:" + sessionId + totalKey);
+    int totalRounds = (totalStr != null) ? Integer.parseInt(totalStr) : rounds.size();
+
+    Map<String, Object> state = new LinkedHashMap<>();
+    state.put("session_number", session.getSessionNumber());
+    state.put("status", session.getStatus().name());
+    state.put("total_rounds", totalRounds);
+
+    List<Map<String, Object>> roundsList = new ArrayList<>();
+    for (ContestSwissRound round : rounds) {
+      Map<String, Object> roundState = new LinkedHashMap<>();
+      roundState.put("round_number", round.getRoundNumber());
+      roundState.put("status", round.getStatus().name());
+
+      List<ContestSwissMatch> matches = swissMatchRepository.findByRoundId(round.getId());
+      List<Map<String, Object>> matchList = new ArrayList<>();
+      for (ContestSwissMatch match : matches) {
+        Map<String, Object> matchInfo = new LinkedHashMap<>();
+        matchInfo.put("match_id", match.getId());
+        matchInfo.put("user1_id", match.getUser1().getId());
+        matchInfo.put("user2_id", match.getUser2() != null ? match.getUser2().getId() : null);
+
+        if (match.getResult() == ResultType.BYE) {
+          matchInfo.put("winner", 1);
+          matchInfo.put("result", ResultType.BYE);
+        } else if (match.getResult() != null) {
+          Integer winnerNum = null;
+          if (match.getWinner() != null) {
+            winnerNum = match.getWinner().getId().equals(match.getUser1().getId()) ? 1 : 2;
+          }
+          matchInfo.put("winner", winnerNum);
+          matchInfo.put("result", match.getResult());
+        } else {
+          matchInfo.put("winner", null);
+          matchInfo.put("result", null);
+        }
+        matchList.add(matchInfo);
+      }
+      roundState.put("matches", matchList);
+      roundsList.add(roundState);
+    }
+    state.put("rounds", roundsList);
+
+    sseService.updateSessionState(contestId, sessionId, state);
+    log.info("[스위스리그] sessionId={} DB에서 상태 복원 완료. rounds={}", sessionId, rounds.size());
   }
 }

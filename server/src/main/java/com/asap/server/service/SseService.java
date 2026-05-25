@@ -82,7 +82,6 @@ public class SseService {
         } else {
             log.warn("[SSE init 없음] key={} — 세션이 아직 시작되지 않았거나 상태 없음", key);
         }
-
         return emitter;
     }
 
