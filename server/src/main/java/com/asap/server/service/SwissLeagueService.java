@@ -74,6 +74,7 @@ public class SwissLeagueService {
       // session.setContest(contest); 미리 처리됨
       session.setSessionNumber(sessionNumber);
       session.setStartedAt(LocalDateTime.now());
+      // SessionStatus
       session.setStatus(ContestStatus.RUNNING);
       session = swissSessionRepository.save(session);
 
@@ -96,6 +97,7 @@ public class SwissLeagueService {
 
       // 참가자(제출 포함) 없음 예외 종료 처리
       if (participants.isEmpty()) {
+        // SessionStatus
         session.setStatus(ContestStatus.END);
         session.setFinishedAt(LocalDateTime.now());
         session = swissSessionRepository.save(session);
