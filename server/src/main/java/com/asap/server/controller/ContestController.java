@@ -373,7 +373,7 @@ public class ContestController {
         }
     }
 
-    @GetMapping(value = "/{contestId}/{sessionNumber}/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/{contestId}/subscribe/{sessionNumber}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
 
     @Operation(summary = "세션 정보 SSE 구독 API", description = "sessionNumber로 최신 세션을 찾아 SSE 구독합니다.")
     public SseEmitter subscribeSession(
