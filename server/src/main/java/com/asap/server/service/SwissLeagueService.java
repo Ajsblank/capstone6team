@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -19,6 +20,7 @@ import com.asap.server.domain.CodeBattleSubmission;
 import com.asap.server.domain.ContestSwissMatch;
 import com.asap.server.domain.ContestSwissRound;
 import com.asap.server.domain.ContestSwissSession;
+import com.asap.server.dto.response.CodeBattleMatchResult;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.global.type.MatchStatus;
 import com.asap.server.global.type.ResultType;
@@ -27,6 +29,7 @@ import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.ContestSwissMatchRepository;
 import com.asap.server.repository.ContestSwissRoundRepository;
 import com.asap.server.repository.ContestSwissSessionRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -47,6 +50,8 @@ public class SwissLeagueService {
 
   private final StringRedisTemplate redisTemplate;
   private static final String CODE_BATTLE_SWISS_LEAGUE_QUEUE_KEY = "code_battle_swiss_league_queue";
+
+  private final Map<Long, Map<String, Object>> sessionStateMap = new ConcurrentHashMap<>();
 
   private final S3Service s3Service;
   private final SseService sseService;
@@ -122,6 +127,14 @@ public class SwissLeagueService {
         int log2Ceil = size <= 1 ? 0 : 32 - Integer.numberOfLeadingZeros(size - 1);
         roundsPerSession = log2Ceil + 1;
       }
+      // sse 정보 초기화
+      Map<String, Object> sessionState = new LinkedHashMap<>();
+      sessionState.put("session_number", sessionNumber);
+      sessionState.put("status", "RUNNING");
+      sessionState.put("total_rounds", roundsPerSession);
+      sessionState.put("rounds", new ArrayList<>());
+      sessionStateMap.put(session.getId(), sessionState);
+      sseService.sendToSession(contestId, session.getId(), sessionState, "session-state");
 
       redisTemplate.opsForValue().set("swiss:session:" + session.getId() + totalKey, String.valueOf(roundsPerSession));
       redisTemplate.opsForValue().set("swiss:session:" + session.getId() + doneKey, "0");
@@ -158,8 +171,20 @@ public class SwissLeagueService {
       matchsPerRound++;
     // 홀수 처리 필요 (매치로 넘길지 따로 처리할지)
 
+    // 라운드 상태 초기화 및 sessionStateMap에 추가
+    Map<String, Object> roundState = new LinkedHashMap<>();
+    roundState.put("round_number", roundNumber);
+    roundState.put("status", "RUNNING");
+    roundState.put("matches", new ArrayList<>());
+    Map<String, Object> currentState = sessionStateMap.get(session.getId());
+    if (currentState != null) {
+      @SuppressWarnings("unchecked")
+      List<Map<String, Object>> rounds = (List<Map<String, Object>>) currentState.get("rounds");
+      if (rounds != null) rounds.add(roundState);
+    }
+
     int matchCount = 0;
-    for (int j = 0; j + 1 < matchsPerRound; j += 2) {
+    for (int j = 0; j + 1 < participants.size(); j += 2) {
       CodeBattleParticipant p1 = participants.get(j);
       CodeBattleParticipant p2 = participants.get(j + 1);
       // 선 후공 중복 필요 + 추후 로직 수정 편하기 위한 추상화나 코드 정리 필요
@@ -168,6 +193,7 @@ public class SwissLeagueService {
       match.setUser1(p1.getUser());
       match.setUser2(p2.getUser());
       ContestSwissMatch savedMatch = swissMatchRepository.save(match);
+
       redisTemplate.opsForList().leftPush(swissRound + round.getId() + matchKey, String.valueOf(savedMatch.getId()));
       try {
         enqueueSwissMatchToGradingQueue(
@@ -203,10 +229,28 @@ public class SwissLeagueService {
       // 채점 없이 바로 done 증가
       redisTemplate.opsForValue().increment(swissRound + round.getId() + doneKey);
       matchCount++;
+
+      // 부전승 매치도 roundState matches에 추가
+      @SuppressWarnings("unchecked")
+      List<Map<String, Object>> byeMatches = (List<Map<String, Object>>) roundState.get("matches");
+      if (byeMatches != null) {
+        Map<String, Object> byeMatchInfo = new LinkedHashMap<>();
+        byeMatchInfo.put("match_id", byeMatch.getId());
+        byeMatchInfo.put("user1_id", bye.getUser().getId());
+        byeMatchInfo.put("user2_id", null);
+        byeMatchInfo.put("winner", 1);
+        byeMatchInfo.put("result", ResultType.BYE);
+        byeMatches.add(byeMatchInfo);
+      }
       log.info("[스위스리그] roundId={} userId={} 부전승 처리", round.getId(), bye.getUser().getId());
     }
 
     log.info("[스위스리그] roundId={} round={} 매치 {}/{}개 생성 완료", round.getId(), roundNumber, matchCount, matchsPerRound);
+
+    // 라운드/매치 생성 후 세션 상태 전송
+    if (currentState != null) {
+      sseService.sendToSession(contest.getId(), session.getId(), currentState, "session-state");
+    }
   }
 
   private void enqueueSwissMatchToGradingQueue(
@@ -286,6 +330,21 @@ public class SwissLeagueService {
       ContestSwissSession session = round.getSession();
       String totalStr = redisTemplate.opsForValue()
           .get("swiss:session:" + session.getId() + totalKey);
+
+      // 라운드 완료 시 sessionStateMap 갱신 및 전송
+      Map<String, Object> sessionState = sessionStateMap.get(session.getId());
+      if (sessionState != null) {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rounds = (List<Map<String, Object>>) sessionState.get("rounds");
+        if (rounds != null) {
+          rounds.stream()
+              .filter(r -> ((Number) r.get("round_number")).intValue() == round.getRoundNumber())
+              .findFirst()
+              .ifPresent(r -> r.put("status", "FINISHED"));
+        }
+        sseService.sendToSession(contestId, session.getId(), sessionState, "session-state");
+      }
+
       int totalRounds = Integer.parseInt(totalStr);
       int nextRound = round.getRoundNumber() + 1;
       if (nextRound <= totalRounds) {
@@ -303,6 +362,7 @@ public class SwissLeagueService {
         log.info("[스위스리그] sessionId={} 모든 라운드 완료 → 세션 집계", session.getId());
         aggregateSwissSession(session.getId());
       }
+
     } catch (Exception e) {
       log.error("[스위스리그] roundId={} 집계 실패", roundId, e);
     } finally {
@@ -416,9 +476,12 @@ public class SwissLeagueService {
       session.setStatus(ContestStatus.END);
       swissSessionRepository.save(session);
 
-      // SSE 전송
-      for (Long userId : userIds) {
-        sseService.sendToUser(userId, json, "swiss-session-end");
+      // 세션 종료 시 sessionStateMap 갱신, 전송 및 제거
+      Map<String, Object> endState = sessionStateMap.get(sessionId);
+      if (endState != null) {
+        endState.put("status", "END");
+        sseService.sendToSession(contestId, sessionId, endState, "session-state");
+        sessionStateMap.remove(sessionId);
       }
 
     } catch (Exception e) {
@@ -427,6 +490,77 @@ public class SwissLeagueService {
       redisTemplate.delete("swiss:session:" + sessionId + totalKey);
       redisTemplate.delete("swiss:session:" + sessionId + doneKey);
       log.info("[스위스리그] sessionId={} Redis 키 정리 완료", sessionId);
+    }
+  }
+
+  @Transactional
+  public void processSwissResult(String rawData) throws JsonProcessingException {
+    CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
+    ContestSwissMatch match = swissMatchRepository.findById(result.getMatchId())
+        .orElseThrow(() -> new RuntimeException("Match not found (ID: " + result.getMatchId() + ")"));
+
+    // 매치 결과 저장
+    if (match.getResult() != ResultType.BYE) {
+      int comp = result.getWinner();
+      if (comp == 1) {
+        match.setWinner(match.getUser1());
+        match.setResult(ResultType.WIN1);
+      } else if (comp == 2) {
+        match.setWinner(match.getUser2());
+        match.setResult(ResultType.WIN2);
+      } else if (comp == 0) {
+        match.setWinner(null);
+        match.setResult(ResultType.DRAW);
+      }
+      match.setLog(result.getLog());
+      swissMatchRepository.save(match);
+
+      Long contestId = match.getRound().getSession().getContest().getId();
+      Long sessionId = match.getRound().getSession().getId();
+      int roundNumber = match.getRound().getRoundNumber();
+
+      // 매치 결과 sessionStateMap 갱신 및 전송
+      Map<String, Object> sessionState = sessionStateMap.get(sessionId);
+      if (sessionState != null) {
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rounds = (List<Map<String, Object>>) sessionState.get("rounds");
+        if (rounds != null) {
+          rounds.stream()
+              .filter(r -> ((Number) r.get("round_number")).intValue() == roundNumber)
+              .findFirst()
+              .ifPresent(roundState -> {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> matches = (List<Map<String, Object>>) roundState.get("matches");
+                if (matches != null) {
+                  Map<String, Object> matchInfo = new LinkedHashMap<>();
+                  matchInfo.put("match_id", match.getId());
+                  matchInfo.put("user1_id", match.getUser1().getId());
+                  matchInfo.put("user2_id", match.getUser2() != null ? match.getUser2().getId() : null);
+                  matchInfo.put("winner", result.getWinner());
+                  matchInfo.put("result", match.getResult());
+                  matches.add(matchInfo);
+                }
+              });
+        }
+        sseService.sendToSession(contestId, sessionId, sessionState, "session-state");
+      }
+
+    } else { // 부전승 참가자 결과 전송
+      sseService.sendToUser(match.getUser1().getId(), result);
+    }
+    // 라운드 완료 체크
+    Long roundId = match.getRound().getId();
+    Long roundDone = redisTemplate.opsForValue().increment(swissRound + roundId + doneKey);
+    String roundTotalStr = redisTemplate.opsForValue().get(swissRound + roundId + totalKey);
+    if (roundTotalStr == null) {
+      log.warn("[스위스리그] round:{} total 키 없음", roundId);
+      return;
+    }
+    long roundTotal = Long.parseLong(roundTotalStr);
+    log.info("[스위스리그] roundId={} {}/{}", roundId, roundDone, roundTotal);
+
+    if (roundDone == roundTotal) {
+      aggregateSwissRound(roundId);
     }
   }
 }
