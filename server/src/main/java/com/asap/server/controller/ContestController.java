@@ -60,6 +60,7 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -372,12 +373,24 @@ public class ContestController {
         }
     }
 
-    @GetMapping(value = "/{contestId}/{sessionId}/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "세션 정보 SSE 구독 API", description = "세션의 전체 정보를 받아옵니다.")
+    @GetMapping(value = "/{contestId}/{sessionNumber}/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+
+    @Operation(summary = "세션 정보 SSE 구독 API", description = "sessionNumber로 최신 세션을 찾아 SSE 구독합니다.")
     public SseEmitter subscribeSession(
             @PathVariable Long contestId,
-            @PathVariable Long sessionId) {
-        log.info("[SSE 세션 구독] contestId={} sessionId={}", contestId, sessionId);
-        return sseService.subscribeSession(contestId, sessionId);
+            @PathVariable int sessionNumber,
+            HttpServletResponse response) {
+
+        ContestSwissSession session = sessionRepository
+                .findTopByContestIdAndSessionNumberOrderByIdDesc(contestId, sessionNumber)
+                .orElse(null);
+
+        if (session == null) {
+            log.warn("[SSE 세션 구독 실패] contestId={} sessionNumber={} — 세션 없음", contestId, sessionNumber);
+            return null;
+        }
+
+        log.info("[SSE 세션 구독] contestId={} sessionNumber={} sessionId={}", contestId, sessionNumber, session.getId());
+        return sseService.subscribeSession(contestId, session.getId());
     }
 }

@@ -11,4 +11,6 @@ public interface ContestSwissSessionRepository extends JpaRepository<ContestSwis
   List<ContestSwissSession> findByContestId(Long contestId);
 
   Optional<ContestSwissSession> findByContestIdAndSessionNumber(Long contestId, int sessionNumber);
+
+  Optional<ContestSwissSession> findTopByContestIdAndSessionNumberOrderByIdDesc(Long contestId, int sessionNumber);
 }
