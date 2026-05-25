@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.asap.server.config.CustomUserDetails;
 import com.asap.server.domain.CodeBattleContest;
@@ -43,6 +45,7 @@ import com.asap.server.repository.ContestSwissSessionRepository;
 import com.asap.server.service.ContestService;
 import com.asap.server.service.FullLeagueService;
 import com.asap.server.service.S3Service;
+import com.asap.server.service.SseService;
 import com.asap.server.service.SwissLeagueService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -71,6 +74,7 @@ public class ContestController {
     private final FullLeagueService fullLeagueService;
     private final SwissLeagueService swissService;
     private final ContestSwissSessionRepository sessionRepository;
+    private final SseService sseService;
 
     @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
     @PostMapping(value = "/create/uncertified", consumes = "application/json")
@@ -345,5 +349,14 @@ public class ContestController {
             log.error("[스위스 세션 집계 테스트] 예외 발생", e);
             return ResponseEntity.badRequest().body(e.getClass().getSimpleName() + ": " + e.getMessage());
         }
+    }
+
+    @GetMapping(value = "/{contestId}/{sessionId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "세션 정보 SSE 구독 API", description = "세션의 전체 정보를 받아옵니다.")
+    public SseEmitter subscribeSession(
+            @PathVariable Long contestId,
+            @PathVariable Long sessionId) {
+        log.info("[SSE 세션 구독] contestId={} sessionId={}", contestId, sessionId);
+        return sseService.subscribeSession(contestId, sessionId);
     }
 }
