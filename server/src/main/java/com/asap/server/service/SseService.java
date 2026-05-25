@@ -47,20 +47,40 @@ public class SseService {
 
     public SseEmitter subscribeSession(Long contestId, Long sessionId) {
         String key = contestId + ":" + sessionId;
-        SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
-        sessionEmitters.computeIfAbsent(key, k -> new ArrayList<>()).add(emitter);
+        log.info("[SSE 구독 시작] key={}", key);
 
-        emitter.onCompletion(() -> removeSessionEmitter(key, emitter));
-        emitter.onTimeout(() -> removeSessionEmitter(key, emitter));
+        SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
+
+        sessionEmitters.computeIfAbsent(key, k -> new ArrayList<>()).add(emitter);
+        log.info("[SSE 구독 등록] key={} 현재 구독자 수={}", key,
+                sessionEmitters.getOrDefault(key, new ArrayList<>()).size());
+
+        emitter.onCompletion(() -> {
+            log.info("[SSE 연결 종료] key={}", key);
+            removeSessionEmitter(key, emitter);
+        });
+        emitter.onTimeout(() -> {
+            log.warn("[SSE 타임아웃] key={}", key);
+            removeSessionEmitter(key, emitter);
+        });
+        emitter.onError(e -> {
+            log.error("[SSE 에러] key={} error={}", key, e.getMessage());
+            removeSessionEmitter(key, emitter);
+        });
 
         // 이미 진행 중인 세션이면 현재 상태를 즉시 전송 (init)
         Map<String, Object> currentState = sessionStates.get(key);
+        log.info("[SSE init 확인] key={} 저장된 상태 존재={}", key, currentState != null);
         if (currentState != null) {
             try {
                 emitter.send(SseEmitter.event().name("init").data(currentState));
+                log.info("[SSE init 전송 성공] key={}", key);
             } catch (IOException e) {
+                log.error("[SSE init 전송 실패] key={} error={}", key, e.getMessage());
                 removeSessionEmitter(key, emitter);
             }
+        } else {
+            log.warn("[SSE init 없음] key={} — 세션이 아직 시작되지 않았거나 상태 없음", key);
         }
 
         return emitter;
