@@ -42,8 +42,8 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack 
 
   useEffect(() => {
     const token = getAccessToken() ?? "";
-    const url   = `${BASE_URL}/api/contests/${contestId}/${sessionNumber}?token=${token}`;
-    const es    = new EventSource(url);
+    const url = `${BASE_URL}/api/contests/${contestId}/${sessionNumber}/subscribe?token=${token}`;
+    const es  = new EventSource(url);
     esRef.current = es;
 
     es.onopen = () => setSseStatus("connected");
@@ -53,18 +53,31 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack 
       es.close();
     };
 
-    // 백엔드 구현 후 이벤트명에 맞게 추가
-    const handleData = (e: MessageEvent) => {
+    // init: 최초 연결 시 전체 상태 수신 → 상태 초기화
+    const handleInit = (e: MessageEvent) => {
+      try {
+        const payload = JSON.parse(e.data);
+        const rounds: SessionRound[] = Array.isArray(payload)
+          ? payload
+          : payload.rounds ?? [];
+        setRounds(rounds.slice().sort((a, b) => a.roundNumber - b.roundNumber));
+      } catch {
+        console.warn("[SessionDetailPanel] init 파싱 실패:", e.data);
+      }
+    };
+
+    // update: 갱신된 라운드/매치 정보 수신 → 기존 상태에 병합
+    const handleUpdate = (e: MessageEvent) => {
       try {
         const payload = JSON.parse(e.data);
 
-        // 전체 라운드 배열로 수신하는 경우
+        // 전체 라운드 배열로 수신
         if (Array.isArray(payload)) {
-          setRounds(payload as SessionRound[]);
+          setRounds(payload.slice().sort((a, b) => a.roundNumber - b.roundNumber));
           return;
         }
 
-        // 단일 라운드 업데이트인 경우
+        // 단일 라운드 업데이트
         if (payload.roundNumber !== undefined) {
           setRounds(prev => {
             const idx = prev.findIndex(r => r.roundNumber === payload.roundNumber);
@@ -76,32 +89,18 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack 
             return [...prev, payload as SessionRound]
               .sort((a, b) => a.roundNumber - b.roundNumber);
           });
-          return;
-        }
-
-        // 단일 매치 결과인 경우
-        if (payload.matchId !== undefined && payload.roundNumber !== undefined) {
-          setRounds(prev => prev.map(r =>
-            r.roundNumber === payload.roundNumber
-              ? { ...r, matches: r.matches.map(m => m.matchId === payload.matchId ? { ...m, ...payload } : m) }
-              : r
-          ));
         }
       } catch {
-        console.warn("[SessionDetailPanel] SSE 파싱 실패:", e.data);
+        console.warn("[SessionDetailPanel] update 파싱 실패:", e.data);
       }
     };
 
-    es.addEventListener("message",      handleData);
-    es.addEventListener("round",        handleData);
-    es.addEventListener("round-update", handleData);
-    es.addEventListener("match-result", handleData);
+    es.addEventListener("init",   handleInit);
+    es.addEventListener("update", handleUpdate);
 
     return () => {
-      es.removeEventListener("message",      handleData);
-      es.removeEventListener("round",        handleData);
-      es.removeEventListener("round-update", handleData);
-      es.removeEventListener("match-result", handleData);
+      es.removeEventListener("init",   handleInit);
+      es.removeEventListener("update", handleUpdate);
       es.close();
       esRef.current = null;
     };
