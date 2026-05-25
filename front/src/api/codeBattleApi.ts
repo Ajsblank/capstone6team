@@ -110,9 +110,8 @@ export const getMyBattleSubmissions = async (
 // ── 세션 목록 조회 — GET /api/contests/{contestId}/sessionList ──
 export interface ContestSession {
   sessionNumber: number;
-  startDate: string;
-  endDate: string;
-  status: string; // "RUNNING" | "PLANNED" | "END" | ...
+  scheduledAt: string | null;
+  status: string; // "RUNNING" | "END" | ...
 }
 
 export const getContestSessions = async (contestId: number): Promise<ContestSession[]> => {

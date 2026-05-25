@@ -68,15 +68,14 @@ const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick }) => {
             >
               {/* 카드 본문 — 잠금 시 블러 */}
               <div className={`bst-card-body${!isRunning ? " bst-card-body--blurred" : ""}`}>
-                <span className="bst-round-label">SESSION</span>
-                <span className="bst-round-num">{session.sessionNumber}</span>
+                <div className={`bst-num-area${isRunning ? " bst-num-area--running" : ""}`}>
+                  <span className="bst-round-label">SESSION</span>
+                  <span className={`bst-round-num${isRunning ? " bst-round-num--running" : ""}`}>
+                    {String(session.sessionNumber).padStart(2, "0")}
+                  </span>
+                </div>
                 {isRunning && (
-                  <>
-                    <span className="bst-badge bst-badge--running">● {STATUS_LABEL["RUNNING"]}</span>
-                    {session.endDate && (
-                      <span className="bst-date">~ {formatDate(session.endDate)}</span>
-                    )}
-                  </>
+                  <span className="bst-badge bst-badge--running">● {STATUS_LABEL["RUNNING"]}</span>
                 )}
               </div>
 
@@ -84,9 +83,13 @@ const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick }) => {
               {!isRunning && (
                 <div className="bst-lock-overlay">
                   <span className="bst-lock-icon">🔒</span>
-                  {session.startDate && (
+                  {session.scheduledAt ? (
                     <span className="bst-lock-text">
-                      {formatDate(session.startDate)}<br />시작 예정
+                      {formatDate(session.scheduledAt)}<br />시작 예정
+                    </span>
+                  ) : (
+                    <span className="bst-lock-text">
+                      {STATUS_LABEL[session.status] ?? session.status}
                     </span>
                   )}
                 </div>

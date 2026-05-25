@@ -36,12 +36,15 @@
 }
 
 .sdp-sse-dot {
-  font-size: 0.72rem;
-  font-family: monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 9px;
+  border-radius: 10px;
+  white-space: nowrap;
 }
-.sdp-sse-dot--connected    { color: #4ade80; }
-.sdp-sse-dot--connecting   { color: #facc15; }
-.sdp-sse-dot--disconnected { color: #f87171; }
+.sdp-sse-dot--connected    { color: #a6e3a1; background: rgba(166,227,161,0.12); }
+.sdp-sse-dot--connecting   { color: #f9e2af; background: rgba(249,226,175,0.12); }
+.sdp-sse-dot--disconnected { color: #f38ba8; background: rgba(243,139,168,0.12); }
 
 /* ── 라운드 탭 ── */
 .sdp-round-tabs {
@@ -124,9 +127,8 @@
   padding: 2px 10px;
   border-radius: 12px;
 }
-.sdp-round-badge--running { background: rgba(74,222,128,0.15); color: #4ade80; }
-.sdp-round-badge--end     { background: rgba(107,114,128,0.2); color: #9ca3af; }
-.sdp-round-badge--planned { background: rgba(250,204,21,0.12); color: #facc15; }
+.sdp-round-badge--running  { background: rgba(74,222,128,0.15); color: #4ade80; }
+.sdp-round-badge--finished { background: rgba(107,114,128,0.2); color: #9ca3af; }
 
 /* ── 매치 테이블 ── */
 .sdp-match-table {
@@ -161,7 +163,11 @@
   padding: 2px 10px;
   border-radius: 12px;
 }
-.sdp-result--win_p1  { background: rgba(135,206,235,0.15); color: #87ceeb; }
-.sdp-result--win_p2  { background: rgba(206,147,216,0.15); color: #ce93d8; }
+.sdp-result--win1    { background: rgba(135,206,235,0.15); color: #87ceeb; }
+.sdp-result--win2    { background: rgba(206,147,216,0.15); color: #ce93d8; }
 .sdp-result--draw    { background: rgba(250,204,21,0.12);  color: #facc15; }
-.sdp-result--pending { background: rgba(107,114,128,0.15); color: #9ca3af; }
+.sdp-result--bye     { background: rgba(107,114,128,0.15); color: #9ca3af; }
+.sdp-result--pending { background: rgba(107,114,128,0.10); color: #6b7280; }
+
+.sdp-player--winner { color: #4ade80; font-weight: 700; }
+.sdp-bye            { color: #4b5563; }
