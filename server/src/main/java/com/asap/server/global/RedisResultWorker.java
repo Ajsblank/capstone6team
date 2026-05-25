@@ -70,7 +70,8 @@ public class RedisResultWorker implements CommandLineRunner {
         while (!Thread.currentThread().isInterrupted()) {
             String rawData = null;
             try {
-                rawData = redisTemplate.opsForList().rightPop("code_battle_result_queue", 5, TimeUnit.SECONDS);
+                rawData = redisTemplate.opsForList().rightPop(CODE_BATTLE_FULL_LEAGUE_QUEUE__RESULT_KEY, 5,
+                        TimeUnit.SECONDS);
                 if (rawData == null)
                     continue;
 
