@@ -250,7 +250,7 @@ public class ContestController {
         return ResponseEntity.ok(responses);
     }
 
-    @GetMapping("/contest/{contestId}/final-result")
+    @GetMapping("/{contestId}/final-result")
     @Operation(summary = "풀리그 결과 조회", description = "대회 종료 처리 후 기록된 풀리그 결과를 Json 형식으로 반환합니다.")
     public ResponseEntity<?> getFinalResult(@PathVariable Long contestId) {
         try {
