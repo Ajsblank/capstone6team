@@ -44,7 +44,7 @@
 .bst-card {
   position: relative;
   width: 130px;
-  min-height: 190px;
+  min-height: 230px;
   border-radius: 14px;
   background: #16213e;
   border: 1.5px solid #2a2a4a;
@@ -75,8 +75,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 20px 12px;
+  gap: 12px;
+  padding: 0 12px 18px;
   width: 100%;
 }
 
@@ -86,19 +86,48 @@
   pointer-events: none;
 }
 
+/* ── 세션 넘버 영역 ── */
+.bst-num-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 20px 0 16px;
+  background: linear-gradient(160deg, #1a2545 0%, #111827 100%);
+  border-bottom: 1px solid #2a2a4a;
+  margin-bottom: 4px;
+}
+
+.bst-num-area--running {
+  background: linear-gradient(160deg, #0f2744 0%, #0a1929 100%);
+  border-bottom-color: rgba(135, 206, 235, 0.3);
+}
+
 .bst-round-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  color: #6b7280;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #4b5563;
   text-transform: uppercase;
 }
 
+.bst-num-area--running .bst-round-label {
+  color: rgba(135, 206, 235, 0.5);
+}
+
 .bst-round-num {
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: #e0e0e0;
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: #374151;
   line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bst-round-num--running {
+  color: #87ceeb;
+  text-shadow: 0 0 18px rgba(135, 206, 235, 0.5), 0 0 40px rgba(135, 206, 235, 0.2);
 }
 
 .bst-badge {

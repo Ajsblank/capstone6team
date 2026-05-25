@@ -457,8 +457,11 @@
   pointer-events: none;
 }
 
-.st-result-badge--p1 { background: #064e3b; color: #34d399; }
-.st-result-badge--p2 { background: #450a0a; color: #fca5a5; }
+.st-result-badge--p1   { background: #064e3b; color: #34d399; }
+.st-result-badge--p2   { background: #450a0a; color: #fca5a5; }
+.st-result-badge--draw { background: #422006; color: #fbbf24; }
+
+.st-match--draw::after { background: rgba(251, 191, 36, 0.12); }
 
 /* ── Connector Arrow ── */
 .st-connector {

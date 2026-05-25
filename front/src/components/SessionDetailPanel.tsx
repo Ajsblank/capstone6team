@@ -1,32 +1,34 @@
 import React, { useState, useEffect, useRef } from "react";
 import { getAccessToken } from "../api/authApi";
+import SwissTournamentViewer from "./SwissTournamentViewer";
 import "./SessionDetailPanel.css";
 
-// ── 백엔드 SSE 포맷 (미구현 — 수신 시 구조에 맞춰 파싱) ──
+// ─── Backend SSE types ─────────────────────────────────────────────────────────
+
 export interface SessionMatch {
-  matchId: number;
-  player1Id: string | number;
-  player2Id: string | number;
-  result: "WIN_P1" | "WIN_P2" | "DRAW" | "PENDING";
-  log?: string;
+  match_id: number;
+  user1_id: number;
+  user2_id: number | null;
+  winner: 0 | 1 | 2 | null;
+  result: "WIN1" | "WIN2" | "DRAW" | "BYE" | null;
 }
 
 export interface SessionRound {
-  roundNumber: number;
-  status: "RUNNING" | "END" | "PLANNED";
+  round_number: number;
+  status: "RUNNING" | "FINISHED";
   matches: SessionMatch[];
+}
+
+export interface SessionPayload {
+  session_number: number;
+  status: "RUNNING" | "FINISHED";
+  total_rounds: number;
+  rounds: SessionRound[];
 }
 
 type SseStatus = "connecting" | "connected" | "disconnected";
 
 const BASE_URL = (process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
-
-const RESULT_LABEL: Record<string, string> = {
-  WIN_P1: "P1 승",
-  WIN_P2: "P2 승",
-  DRAW:   "무승부",
-  PENDING: "진행 중",
-};
 
 interface Props {
   contestId: number;
@@ -35,63 +37,61 @@ interface Props {
 }
 
 const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack }) => {
-  const [rounds, setRounds]         = useState<SessionRound[]>([]);
-  const [sseStatus, setSseStatus]   = useState<SseStatus>("connecting");
-  const [activeRound, setActiveRound] = useState<number>(1);
+  const [payload,   setPayload]   = useState<SessionPayload | null>(null);
+  const [sseStatus, setSseStatus] = useState<SseStatus>("connecting");
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     const token = getAccessToken() ?? "";
+    const tag = `[SSE][contest=${contestId}][session=${sessionNumber}]`;
     const url = `${BASE_URL}/api/contests/${contestId}/${sessionNumber}/subscribe?token=${token}`;
-    const es  = new EventSource(url);
+
+    console.info(`${tag} 연결 시도 →`, url.replace(/token=[^&]*/, "token=***"));
+    const es = new EventSource(url);
     esRef.current = es;
 
-    es.onopen = () => setSseStatus("connected");
+    es.onopen = () => {
+      setSseStatus("connected");
+      console.info(`${tag} ✅ 연결 성공`);
+    };
 
-    es.onerror = () => {
+    es.onerror = (e) => {
       setSseStatus("disconnected");
+      console.error(`${tag} ❌ 연결 오류 (readyState=${es.readyState})`, e);
       es.close();
     };
 
-    // init: 최초 연결 시 전체 상태 수신 → 상태 초기화
     const handleInit = (e: MessageEvent) => {
+      console.group(`${tag} 📥 [init]`);
       try {
-        const payload = JSON.parse(e.data);
-        const rounds: SessionRound[] = Array.isArray(payload)
-          ? payload
-          : payload.rounds ?? [];
-        setRounds(rounds.slice().sort((a, b) => a.roundNumber - b.roundNumber));
-      } catch {
-        console.warn("[SessionDetailPanel] init 파싱 실패:", e.data);
+        const parsed = JSON.parse(e.data) as SessionPayload;
+        console.log("session_number:", parsed.session_number);
+        console.log("status        :", parsed.status);
+        console.log("total_rounds  :", parsed.total_rounds);
+        console.log("rounds        :", parsed.rounds);
+        console.groupEnd();
+        setPayload(parsed);
+      } catch (err) {
+        console.warn("파싱 실패:", e.data);
+        console.groupEnd();
       }
     };
 
-    // update: 갱신된 라운드/매치 정보 수신 → 기존 상태에 병합
     const handleUpdate = (e: MessageEvent) => {
+      console.group(`${tag} 🔄 [update]`);
       try {
-        const payload = JSON.parse(e.data);
-
-        // 전체 라운드 배열로 수신
-        if (Array.isArray(payload)) {
-          setRounds(payload.slice().sort((a, b) => a.roundNumber - b.roundNumber));
-          return;
-        }
-
-        // 단일 라운드 업데이트
-        if (payload.roundNumber !== undefined) {
-          setRounds(prev => {
-            const idx = prev.findIndex(r => r.roundNumber === payload.roundNumber);
-            if (idx >= 0) {
-              const next = [...prev];
-              next[idx] = payload as SessionRound;
-              return next;
-            }
-            return [...prev, payload as SessionRound]
-              .sort((a, b) => a.roundNumber - b.roundNumber);
-          });
-        }
-      } catch {
-        console.warn("[SessionDetailPanel] update 파싱 실패:", e.data);
+        const parsed = JSON.parse(e.data) as SessionPayload;
+        const runningRound = parsed.rounds.find(r => r.status === "RUNNING");
+        const resolvedCount = parsed.rounds.flatMap(r => r.matches).filter(m => m.winner !== null).length;
+        console.log("status        :", parsed.status);
+        console.log("현재 라운드   :", runningRound ? `Round ${runningRound.round_number}` : "없음 (종료)");
+        console.log("완료 매치 수  :", resolvedCount);
+        console.log("payload       :", parsed);
+        console.groupEnd();
+        setPayload(parsed);
+      } catch (err) {
+        console.warn("파싱 실패:", e.data);
+        console.groupEnd();
       }
     };
 
@@ -99,6 +99,7 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack 
     es.addEventListener("update", handleUpdate);
 
     return () => {
+      console.info(`${tag} 🔌 구독 해제`);
       es.removeEventListener("init",   handleInit);
       es.removeEventListener("update", handleUpdate);
       es.close();
@@ -106,105 +107,51 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack 
     };
   }, [contestId, sessionNumber]);
 
-  // 데이터 수신 시 진행 중인 라운드로 자동 이동
-  useEffect(() => {
-    const running = rounds.find(r => r.status === "RUNNING");
-    if (running) setActiveRound(running.roundNumber);
-  }, [rounds]);
-
-  const currentRound = rounds.find(r => r.roundNumber === activeRound);
-
   return (
     <div className="sdp-container">
+
       {/* 헤더 */}
       <div className="sdp-header">
         <button className="sdp-back-btn" onClick={onBack}>← 세션 목록</button>
-        <span className="sdp-header-title">Session {sessionNumber}</span>
+        <span className="sdp-header-title">
+          Session {sessionNumber}
+          {payload && (
+            <span style={{ fontSize: "0.8rem", color: "#6b7280", marginLeft: 8 }}>
+              ({payload.status === "FINISHED" ? "종료" : "진행 중"} · {payload.total_rounds}라운드)
+            </span>
+          )}
+        </span>
         <span className={`sdp-sse-dot sdp-sse-dot--${sseStatus}`}>
-          {sseStatus === "connected" ? "● 연결됨" : sseStatus === "connecting" ? "◌ 연결 중" : "○ 끊김"}
+          {sseStatus === "connected"    ? "● SSE 연결됨"  :
+           sseStatus === "connecting"   ? "◌ SSE 연결 중" : "○ SSE 끊김"}
         </span>
       </div>
 
-      {/* 라운드 탭 */}
-      {rounds.length > 0 && (
-        <div className="sdp-round-tabs">
-          {rounds.map(r => (
-            <button
-              key={r.roundNumber}
-              className={[
-                "sdp-round-tab",
-                activeRound === r.roundNumber ? "sdp-round-tab--active" : "",
-                r.status === "RUNNING" ? "sdp-round-tab--running" : "",
-              ].filter(Boolean).join(" ")}
-              onClick={() => setActiveRound(r.roundNumber)}
-            >
-              Round {r.roundNumber}
-              {r.status === "RUNNING" && <span className="sdp-round-live"> ●</span>}
-            </button>
-          ))}
+      {/* 연결 대기 안내 */}
+      {!payload && (
+        <div className="sdp-body">
+          {sseStatus === "connecting" && (
+            <div className="sdp-placeholder">
+              <span className="sdp-spinner" />
+              서버에 연결 중입니다...
+            </div>
+          )}
+          {sseStatus === "connected" && (
+            <div className="sdp-placeholder">데이터 수신 대기 중입니다.</div>
+          )}
+          {sseStatus === "disconnected" && (
+            <div className="sdp-placeholder sdp-placeholder--error">SSE 연결이 끊겼습니다.</div>
+          )}
         </div>
       )}
 
-      {/* 본문 */}
-      <div className="sdp-body">
-        {sseStatus === "connecting" && rounds.length === 0 && (
-          <div className="sdp-placeholder">
-            <span className="sdp-spinner" />
-            서버에 연결 중입니다...
-          </div>
-        )}
+      {/* 토너먼트 시각화 */}
+      {payload && (
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <SwissTournamentViewer payload={payload} />
+        </div>
+      )}
 
-        {sseStatus === "connected" && rounds.length === 0 && (
-          <div className="sdp-placeholder">데이터 수신 대기 중입니다.</div>
-        )}
-
-        {sseStatus === "disconnected" && rounds.length === 0 && (
-          <div className="sdp-placeholder sdp-placeholder--error">SSE 연결이 끊겼습니다.</div>
-        )}
-
-        {currentRound && (
-          <div className="sdp-round-body">
-            <div className="sdp-round-info">
-              <span className="sdp-round-title">Round {currentRound.roundNumber}</span>
-              <span className={`sdp-round-badge sdp-round-badge--${currentRound.status.toLowerCase()}`}>
-                {currentRound.status === "RUNNING" ? "● 진행 중" :
-                 currentRound.status === "END"     ? "종료" : "대기"}
-              </span>
-            </div>
-
-            {currentRound.matches.length === 0 ? (
-              <div className="sdp-placeholder">매치 정보가 없습니다.</div>
-            ) : (
-              <table className="sdp-match-table">
-                <thead>
-                  <tr>
-                    <th>매치</th>
-                    <th>P1</th>
-                    <th></th>
-                    <th>P2</th>
-                    <th>결과</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentRound.matches.map((m, i) => (
-                    <tr key={m.matchId} className="sdp-match-row">
-                      <td className="sdp-match-num">#{i + 1}</td>
-                      <td className="sdp-player">{m.player1Id}</td>
-                      <td className="sdp-vs">vs</td>
-                      <td className="sdp-player">{m.player2Id}</td>
-                      <td>
-                        <span className={`sdp-result sdp-result--${m.result.toLowerCase()}`}>
-                          {RESULT_LABEL[m.result] ?? m.result}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 };
