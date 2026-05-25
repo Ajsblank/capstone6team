@@ -290,7 +290,7 @@ const BattlePage: React.FC = () => {
                                   {c.endDate && <span>{formatDate(c.endDate)}</span>}
                                 </p>
                               )}
-                              {c.description && <p className="bp-problem-desc">{c.description}</p>}
+
                             </div>
                           </div>
                           <div className="bp-problem-card-right">

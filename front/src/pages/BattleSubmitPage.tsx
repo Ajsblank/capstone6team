@@ -6,6 +6,8 @@ import SubmitBar from "../components/SubmitBar";
 import SubmitSuccessModal from "../components/SubmitSuccessModal";
 import MySubmissionsTab from "../components/MySubmissionsTab";
 import ReviewTab from "../components/ReviewTab";
+import BattleSessionsTab from "../components/BattleSessionsTab";
+import SessionDetailPanel from "../components/SessionDetailPanel";
 import { submitCode, getContestDetail, joinContest, ContestDetail } from "../api/codeBattleApi";
 import { setMatchCallback, setSummaryCallback, setReconnectCallback, BattleMatchResult, SubmissionSummary, debugSse } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
@@ -39,11 +41,11 @@ const BASE_TAB_LIST: TabDef[] = [
   { id: "viz1",           label: "로그 분석" },
   { id: "viz2",           label: "혼자서 하기" },
   { id: "leaderboard",    label: "리더보드",   disabled: true, tooltip: "준비 중인 기능입니다" },
-  { id: "battle-results", label: "대결 결과",   disabled: true, tooltip: "준비 중인 기능입니다" },
+  { id: "battle-results", label: "대결" },
 ];
 
-const PARTICIPATION_REQUIRED_TABS: Tab[] = ["submit", "my-submissions", "viz1", "viz2"];
-const REVIEWER_ALLOWED_TABS: Tab[] = ["problem", "review"];
+const PARTICIPATION_REQUIRED_TABS: Tab[] = ["submit", "my-submissions", "viz1", "viz2", "battle-results"];
+const REVIEWER_ALLOWED_TABS: Tab[] = ["problem", "review", "battle-results"];
 
 const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2", "leaderboard", "battle-results", "review"];
 
@@ -112,7 +114,8 @@ const SubmitPage: React.FC = () => {
     return tab;
   });
 
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [showEditModal, setShowEditModal]       = useState(false);
+  const [selectedSession, setSelectedSession]   = useState<number | null>(null);
 
   // TODO: 백엔드에서 contestDetail.creatorId 반환 구현 후 아래 주석 해제
   // const isOwner = !!user && !!contestDetail && user.id === contestDetail.creatorId;
@@ -484,11 +487,26 @@ const SubmitPage: React.FC = () => {
           </div>
         )}
 
-        {(activeTab === "leaderboard" || activeTab === "battle-results") && (
+        {activeTab === "leaderboard" && (
           <div className="placeholder-panel">
-            <span className="placeholder-text">
-              {TAB_LIST.find((t) => t.id === activeTab)?.label} — 준비 중입니다.
-            </span>
+            <span className="placeholder-text">리더보드 — 준비 중입니다.</span>
+          </div>
+        )}
+
+        {activeTab === "battle-results" && (
+          <div className="full-panel" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            {selectedSession === null ? (
+              <BattleSessionsTab
+                contestId={problemId}
+                onSessionClick={setSelectedSession}
+              />
+            ) : (
+              <SessionDetailPanel
+                contestId={problemId}
+                sessionNumber={selectedSession}
+                onBack={() => setSelectedSession(null)}
+              />
+            )}
           </div>
         )}
 

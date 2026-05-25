@@ -1,0 +1,148 @@
+.bst-container {
+  padding: 24px 20px;
+  width: 100%;
+}
+
+.bst-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.bst-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e0e0e0;
+  margin: 0;
+}
+
+.bst-count {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.bst-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.bst-empty--error { color: #f87171; }
+
+/* ── 카드 목록 ── */
+.bst-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+/* ── 개별 카드 ── */
+.bst-card {
+  position: relative;
+  width: 130px;
+  min-height: 190px;
+  border-radius: 14px;
+  background: #16213e;
+  border: 1.5px solid #2a2a4a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  cursor: default;
+}
+
+.bst-card--running {
+  border-color: #87ceeb;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(135, 206, 235, 0.25);
+}
+
+.bst-card--running:hover {
+  border-color: #5bb8d6;
+  box-shadow: 0 0 22px rgba(135, 206, 235, 0.4);
+  transform: translateY(-2px);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+/* ── 카드 본문 ── */
+.bst-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 12px;
+  width: 100%;
+}
+
+.bst-card-body--blurred {
+  filter: blur(3px);
+  user-select: none;
+  pointer-events: none;
+}
+
+.bst-round-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.bst-round-num {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #e0e0e0;
+  line-height: 1;
+}
+
+.bst-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.bst-badge--running {
+  background: rgba(135, 206, 235, 0.15);
+  color: #87ceeb;
+  border: 1px solid rgba(135, 206, 235, 0.3);
+}
+
+.bst-date {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* ── 잠금 오버레이 ── */
+.bst-lock-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 12, 30, 0.72);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 2;
+  border-radius: 13px;
+}
+
+.bst-lock-icon {
+  font-size: 1.3rem;
+  opacity: 0.55;
+}
+
+.bst-lock-text {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  text-align: center;
+  line-height: 1.6;
+}
