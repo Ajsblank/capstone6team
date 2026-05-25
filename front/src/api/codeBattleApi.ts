@@ -5,11 +5,10 @@ import { getAccessToken, applyAuthInterceptor } from "./authApi";
 export interface ContestItem {
   id: number;
   title: string;
-  description?: string;
   status?: string;
-  startTime?: string;
-  endTime?: string;
-  problemTitle?: string;
+  startDate?: string;
+  endDate?: string;
+  maxParticipants?: number;
 }
 
 export interface ContestDetail {

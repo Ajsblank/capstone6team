@@ -109,13 +109,13 @@ const BattlePage: React.FC = () => {
     .filter(c => {
       if (filterStatus && c.status !== filterStatus) return false;
       if (filterName && !c.title.toLowerCase().includes(filterName.toLowerCase())) return false;
-      if (filterStartFrom && c.startTime) {
-        if (new Date(c.startTime) < new Date(filterStartFrom)) return false;
+      if (filterStartFrom && c.startDate) {
+        if (new Date(c.startDate) < new Date(filterStartFrom)) return false;
       }
-      if (filterEndTo && c.endTime) {
+      if (filterEndTo && c.endDate) {
         const to = new Date(filterEndTo);
         to.setHours(23, 59, 59, 999);
-        if (new Date(c.endTime) > to) return false;
+        if (new Date(c.endDate) > to) return false;
       }
       return true;
     });
@@ -282,12 +282,12 @@ const BattlePage: React.FC = () => {
                                   <span className="bp-contest-badge bp-contest-badge--created">개최</span>
                                 )}
                               </p>
-                              {(c.startTime || c.endTime) && (
+                              {(c.startDate || c.endDate) && (
                                 <p className="bp-problem-dates">
                                   <span className="bp-problem-dates-icon">📅</span>
-                                  {c.startTime && <span>{formatDate(c.startTime)}</span>}
-                                  {c.startTime && c.endTime && <span className="bp-problem-dates-sep">~</span>}
-                                  {c.endTime && <span>{formatDate(c.endTime)}</span>}
+                                  {c.startDate && <span>{formatDate(c.startDate)}</span>}
+                                  {c.startDate && c.endDate && <span className="bp-problem-dates-sep">~</span>}
+                                  {c.endDate && <span>{formatDate(c.endDate)}</span>}
                                 </p>
                               )}
                               {c.description && <p className="bp-problem-desc">{c.description}</p>}
