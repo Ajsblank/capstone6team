@@ -8,6 +8,7 @@ import MySubmissionsTab from "../components/MySubmissionsTab";
 import ReviewTab from "../components/ReviewTab";
 import BattleSessionsTab from "../components/BattleSessionsTab";
 import SessionDetailPanel from "../components/SessionDetailPanel";
+import FinalResultTab from "../components/FinalResultTab";
 import { submitCode, getContestDetail, joinContest, ContestDetail } from "../api/codeBattleApi";
 import { setMatchCallback, setSummaryCallback, setReconnectCallback, BattleMatchResult, SubmissionSummary, debugSse } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
@@ -16,7 +17,7 @@ import "./AppLayout.css";
 import "./BattleHomePage.css";
 import "./BattleSubmitPage.css";
 
-type Tab = "problem" | "submit" | "my-submissions" | "viz1" | "viz2" | "leaderboard" | "battle-results" | "review";
+type Tab = "problem" | "submit" | "my-submissions" | "viz1" | "viz2" | "leaderboard" | "battle-results" | "final-result" | "review";
 type SubmitStatus = "idle" | "submitting" | "success" | "error";
 
 export interface LocalSubmission {
@@ -42,12 +43,13 @@ const BASE_TAB_LIST: TabDef[] = [
   { id: "viz2",           label: "혼자서 하기" },
   { id: "leaderboard",    label: "리더보드",   disabled: true, tooltip: "준비 중인 기능입니다" },
   { id: "battle-results", label: "대결" },
+  { id: "final-result",   label: "최종 결과" },
 ];
 
-const PARTICIPATION_REQUIRED_TABS: Tab[] = ["submit", "my-submissions", "viz1", "viz2", "battle-results"];
-const REVIEWER_ALLOWED_TABS: Tab[] = ["problem", "review", "battle-results"];
+const PARTICIPATION_REQUIRED_TABS: Tab[] = ["submit", "my-submissions", "viz1", "viz2", "battle-results", "final-result"];
+const REVIEWER_ALLOWED_TABS: Tab[] = ["problem", "review", "battle-results", "final-result"];
 
-const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2", "leaderboard", "battle-results", "review"];
+const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2", "leaderboard", "battle-results", "final-result", "review"];
 
 /**
  * 해시 파싱
@@ -490,6 +492,12 @@ const SubmitPage: React.FC = () => {
         {activeTab === "leaderboard" && (
           <div className="placeholder-panel">
             <span className="placeholder-text">리더보드 — 준비 중입니다.</span>
+          </div>
+        )}
+
+        {activeTab === "final-result" && (
+          <div className="full-panel" style={{ overflowY: "auto" }}>
+            <FinalResultTab contestId={problemId} />
           </div>
         )}
 
