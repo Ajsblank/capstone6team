@@ -113,7 +113,7 @@ int main() {
         std::cout << "[Worker] 코드 배틀 서버 시작...\n";
 
         while (true) {
-            auto item = redis.brpop({"code_battle_test_queue", "code_battle_grading_queue"}, 0);
+            auto item = redis.brpop({"code_battle_test_queue", "code_battle_grading_queue", "code_battle_swiss_league_queue", "code_battle_full_league_queue"}, 0);
             if (!item) continue;
             std::string queue_name = item->first;
             std::string json_str = item->second;
@@ -177,7 +177,7 @@ int main() {
                 
                 std::cout << "▶ 매치 처리 완료. 다음 대결을 대기합니다." << std::endl;
             }
-            else if (queue_name == "code_battle_grading_queue") {
+            else {
     
                 long long match_id_num = data["submissionId"];
                 std::string match_id = std::to_string(match_id_num);
@@ -286,13 +286,15 @@ int main() {
                         }
                     }
                 }
-                if(data["aiOrder"] == 0)
-                    redis.lpush("code_battle_result_queue", result_json.dump());
-                else
+                if (queue_name == "code_battle_grading_queue")
                 {
                     result_json["aiOrder"] = data["aiOrder"];
                     redis.lpush("code_battle_ai_result_queue", result_json.dump());
                 }
+                else if (queue_name == "code_battle_swiss_league_queue")
+                    redis.lpush("code_battle_swiss_league_result_queue", result_json.dump());
+                else if (queue_name == "code_battle_full_league_queue")
+                    redis.lpush("code_battle_full_league_result_queue", result_json.dump());
     
                 // 이미지 및 임시 폴더 삭제
                 fs::remove_all(work_dir, ec);
