@@ -10,10 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.CodeBattleSubmission;
-import com.asap.server.domain.ContestSwissMatch;
 import com.asap.server.dto.response.CodeBattleAiMatchResult;
 import com.asap.server.dto.response.CodeBattleMatchResult;
-import com.asap.server.global.type.ResultType;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
@@ -139,7 +137,7 @@ public class RedisResultWorker implements CommandLineRunner {
                 if (rawData == null)
                     continue;
                 log.info("[스위스리그] Redis 결과 처리...");
-                processSwissResult(rawData);
+                swissService.processSwissResult(rawData);
             } catch (Exception e) {
                 if (Thread.currentThread().isInterrupted())
                     break;
@@ -147,49 +145,6 @@ public class RedisResultWorker implements CommandLineRunner {
                 if (rawData != null)
                     redisTemplate.opsForList().leftPush("code_battle_result_error_queue", rawData);
             }
-        }
-    }
-
-    private void processSwissResult(String rawData) throws JsonProcessingException {
-        CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
-        ContestSwissMatch match = swissMatchRepository.findById(result.getMatchId())
-                .orElseThrow(() -> new RuntimeException("Match not found (ID: " + result.getMatchId() + ")"));
-
-        // 매치 결과 저장
-        if (match.getResult() != ResultType.BYE) {
-            int comp = result.getWinner();
-            if (comp == 1) {
-                match.setWinner(match.getUser1());
-                match.setResult(ResultType.WIN1);
-            } else if (comp == 2) {
-                match.setWinner(match.getUser2());
-                match.setResult(ResultType.WIN2);
-            } else if (comp == 0) {
-                match.setWinner(null);
-                match.setResult(ResultType.DRAW);
-            }
-            match.setLog(result.getLog());
-            swissMatchRepository.save(match);
-
-            sseService.sendToUser(match.getUser1().getId(), result);
-            sseService.sendToUser(match.getUser2().getId(), result);
-
-        } else { // 부전승 참가자 결과 전송
-            sseService.sendToUser(match.getUser1().getId(), result);
-        }
-        // 라운드 완료 체크
-        Long roundId = match.getRound().getId();
-        Long roundDone = redisTemplate.opsForValue().increment(swissRound + roundId + doneKey);
-        String roundTotalStr = redisTemplate.opsForValue().get(swissRound + roundId + totalKey);
-        if (roundTotalStr == null) {
-            log.warn("[스위스리그] round:{} total 키 없음", roundId);
-            return;
-        }
-        long roundTotal = Long.parseLong(roundTotalStr);
-        log.info("[스위스리그] roundId={} {}/{}", roundId, roundDone, roundTotal);
-
-        if (roundDone == roundTotal) {
-            swissService.aggregateSwissRound(roundId);
         }
     }
 

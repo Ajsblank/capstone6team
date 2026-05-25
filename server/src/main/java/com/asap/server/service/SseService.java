@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 public class SseService {
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
     private final Map<String, List<SseEmitter>> sessionEmitters = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, Object>> sessionStates = new ConcurrentHashMap<>();
 
     public SseEmitter subscribe(Long userId) {
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
@@ -44,7 +45,6 @@ public class SseService {
         }
     }
 
-    // sse 세션 정보 추가 (아래로 쭉)
     public SseEmitter subscribeSession(Long contestId, Long sessionId) {
         String key = contestId + ":" + sessionId;
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
@@ -52,6 +52,17 @@ public class SseService {
 
         emitter.onCompletion(() -> removeSessionEmitter(key, emitter));
         emitter.onTimeout(() -> removeSessionEmitter(key, emitter));
+
+        // 이미 진행 중인 세션이면 현재 상태를 즉시 전송 (init)
+        Map<String, Object> currentState = sessionStates.get(key);
+        if (currentState != null) {
+            try {
+                emitter.send(SseEmitter.event().name("session-state").data(currentState));
+            } catch (IOException e) {
+                removeSessionEmitter(key, emitter);
+            }
+        }
+
         return emitter;
     }
 
@@ -78,5 +89,18 @@ public class SseService {
             }
         });
         list.removeAll(dead);
+    }
+
+    public void updateSessionState(Long contestId, Long sessionId, Map<String, Object> state) {
+        sessionStates.put(contestId + ":" + sessionId, state);
+        sendToSession(contestId, sessionId, state, "session-state");
+    }
+
+    public Map<String, Object> getSessionState(Long contestId, Long sessionId) {
+        return sessionStates.get(contestId + ":" + sessionId);
+    }
+
+    public void clearSessionState(Long contestId, Long sessionId) {
+        sessionStates.remove(contestId + ":" + sessionId);
     }
 }
