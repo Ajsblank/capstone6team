@@ -42,7 +42,7 @@ public class CodeBattleExampleAI {
   @Enumerated(EnumType.STRING)
   @JdbcTypeCode(SqlTypes.NAMED_ENUM)
   @Column(columnDefinition = "language", nullable = false)
-  private Language language;
+  private Language language = Language.CPP;
 
   @Column(columnDefinition = "TEXT")
   private String description;

@@ -3,7 +3,7 @@ package com.asap.server.controller;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -399,6 +399,10 @@ public class ContestController {
         response.setHeader("X-Accel-Buffering", "no");
         return switch (session.getStatus()) {
             case RUNNING -> {
+                // 캐시 없으면 DB에서 복원
+                if (sseService.getSessionState(contestId, session.getId()) == null) {
+                    swissService.restoreSessionState(contestId, session.getId());
+                }
                 log.info("[SSE 세션 구독] contestId={} sessionNumber={} sessionId={}",
                         contestId, sessionNumber, session.getId());
                 yield sseService.subscribeSession(contestId, session.getId());
@@ -412,10 +416,10 @@ public class ContestController {
                         String json = s3Service.readFileAsString(key);
                         SwissResultResponse result = objectMapper.readValue(json, SwissResultResponse.class);
                         // DTO에 없는 필드를 Map으로 보완
-                        Map<String, Object> response_ = new HashMap<>();
+                        Map<String, Object> response_ = new LinkedHashMap<>();
                         response_.put("session_number", result.getSessionNumber());
                         response_.put("status", "END");
-                        response_.put("total_rounds", result.getTotalParticipants());
+                        response_.put("total_rounds", result.getTotalRounds());
                         response_.put("rounds", result.getRounds());
                         emitter.send(SseEmitter.event().name("init").data(response_));
                     } catch (JsonProcessingException e) {

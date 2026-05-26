@@ -2,7 +2,7 @@ package com.asap.server.dto.response;
 
 import java.util.List;
 
-import com.asap.server.global.type.ContestStatus;
+import com.asap.server.global.type.MatchStatus;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
@@ -33,7 +33,7 @@ public class SwissResultResponse {
     @JsonProperty("round_number")
     private int roundNumber;
 
-    private ContestStatus status;
+    private MatchStatus status;
 
     private List<MatchDto> matches;
   }

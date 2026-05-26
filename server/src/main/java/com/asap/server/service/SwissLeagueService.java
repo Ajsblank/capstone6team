@@ -434,7 +434,9 @@ public class SwissLeagueService {
           matchMap.put("match_id", m.getId());
           matchMap.put("user1_id", m.getUser1().getId());
           matchMap.put("user2_id", m.getUser2() != null ? m.getUser2().getId() : null);
-          matchMap.put("winner", m.getWinner()); // 필드명 확인 필요
+          matchMap.put("winner", m.getWinner() != null
+              ? (m.getWinner().getId().equals(m.getUser1().getId()) ? 1 : 2)
+              : (m.getResult() == ResultType.DRAW ? 0 : null));
           matchMap.put("result", m.getResult() != null ? m.getResult().name() : null);
           matchList.add(matchMap);
         }
