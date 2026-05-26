@@ -32,7 +32,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import com.asap.server.config.CustomUserDetails;
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.ContestSwissSession;
-import com.asap.server.dto.request.ContestScheduleRequest;
 import com.asap.server.dto.request.CreateCertifiedContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
 import com.asap.server.dto.request.UpdateContestCertifiedRequest;
@@ -41,8 +40,6 @@ import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestResponse;
-import com.asap.server.dto.response.ContestScheduleListResponse;
-import com.asap.server.dto.response.ContestScheduleResponse;
 import com.asap.server.dto.response.ContestSessionListResponse;
 import com.asap.server.dto.response.FinalResultResponse;
 import com.asap.server.dto.response.SwissResultResponse;
@@ -177,14 +174,6 @@ public class ContestController {
         return ResponseEntity.ok(contestService.getContestDetailResponse(contestId));
     }
 
-    @Operation(summary = "중간 대회 일정 추가")
-    @PostMapping("/{contestId}/admin")
-    public ResponseEntity<ContestScheduleResponse> postSchedule(@PathVariable Long contestId,
-            @Valid @RequestBody ContestScheduleRequest request) {
-        ContestScheduleResponse response = contestService.saveSchedule(contestId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
     @Operation(summary = "안증 대회 수정", description = "PATCH /api/contests/{contestId}는 대회 메타데이터만 수정합니다. 리소스(visual/solo/judge/sample)는 /api/contests/{contestId}/resource를 사용하세요.")
     @PatchMapping("/{contestId}/modify/certified")
     public ResponseEntity<ContestDetailResponse> updateContestCertified(
@@ -311,12 +300,6 @@ public class ContestController {
                 .map(ContestSessionListResponse::from)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(responses);
-    }
-
-    @Operation(summary = "중간 대회 목록 조회")
-    @GetMapping("/{contestId}/schedules")
-    public ResponseEntity<List<ContestScheduleListResponse>> getSchedules(@PathVariable Long contestId) {
-        return ResponseEntity.ok(contestService.getSchedules(contestId));
     }
 
     @PostMapping("/{contestId}/final-test")
