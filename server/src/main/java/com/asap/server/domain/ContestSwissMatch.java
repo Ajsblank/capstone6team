@@ -52,7 +52,7 @@ public class ContestSwissMatch {
   @JdbcTypeCode(SqlTypes.NAMED_ENUM)
   @Enumerated(EnumType.STRING)
   @Column(name = "result", nullable = false)
-  private ResultType result;
+  private ResultType result = ResultType.PENDING;
 
   @Column(columnDefinition = "text")
   private String log;

@@ -887,6 +887,7 @@ public class ContestService {
         System.out.println("조회 시도 - contestId: " + contestId + ", userId: " + userId);
 
         return matches.stream()
+                .filter(match -> match.getSubmission() != null)
                 .map(match -> {
                     CodeBattleAiMatchResult aiResult = CodeBattleAiMatchResult.from(match, userId);
 

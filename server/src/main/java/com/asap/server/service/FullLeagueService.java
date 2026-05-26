@@ -15,9 +15,11 @@ import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.CodeBattleParticipant;
 import com.asap.server.domain.CodeBattleSubmission;
+import com.asap.server.dto.response.CodeBattleMatchResult;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -272,6 +274,47 @@ public class FullLeagueService {
             redisTemplate.delete("contest:done:" + contestId);
             redisTemplate.delete("contest:matchIds:" + contestId); // ✅ 추가
             log.info("[풀리그] contestId={} Redis 키 정리 완료", contestId);
+        }
+    }
+
+    public void processNormalFullResult(String rawData) throws JsonProcessingException {
+        CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
+        CodeBattleMatch match = matchRepository.findById(result.getMatchId())
+                .orElseThrow(() -> new RuntimeException("Match not found (ID: " + result.getMatchId() + ")"));
+
+        int comp = result.getWinner();
+        if (comp == 1) {
+            match.setWinner(match.getUser1());
+            match.setResult("WIN1");
+        } else if (comp == 2) {
+            match.setWinner(match.getUser2());
+            match.setResult("WIN2");
+        } else if (comp == 0) {
+            match.setWinner(null);
+            match.setResult("DRAW");
+        }
+
+        match.setLog(result.getLog());
+        matchRepository.save(match);
+
+        sseService.sendToUser(match.getUser1().getId(), result);
+        sseService.sendToUser(match.getUser2().getId(), result);
+
+        Long contestId = match.getContest().getId();
+
+        // 제안 코드 — Redis 카운터로 완료 감지 ✅
+        Long done = redisTemplate.opsForValue().increment("contest:done:" + contestId);
+        String totalStr = redisTemplate.opsForValue().get("contest:total:" + contestId);
+        if (totalStr == null) {
+            log.warn("[풀리그] contest:total 키 없음. contestId={}", contestId);
+            return;
+        }
+        Long total = Long.parseLong(totalStr);
+        log.info("[풀리그] contestId={} {}/{}", contestId, done, total);
+
+        if (done.equals(total)) {
+            log.info("[풀리그] contestId={} 최종 집계 처리", contestId);
+            aggregateAndSave(contestId);
         }
     }
 }
