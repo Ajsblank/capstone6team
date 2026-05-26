@@ -10,11 +10,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import com.asap.server.domain.CodeBattleMatch;
-import com.asap.server.domain.CodeBattleSubmission;
 import com.asap.server.dto.response.CodeBattleAiMatchResult;
 import com.asap.server.dto.response.CodeBattleMatchResult;
 import com.asap.server.repository.CodeBattleMatchRepository;
-import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.asap.server.service.FullLeagueService;
 import com.asap.server.service.SseService;
 import com.asap.server.service.SwissLeagueService;
@@ -34,7 +32,6 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
     private final FullLeagueService fullLeagueService;
 
     private final CodeBattleMatchRepository matchRepository;
-    private final CodeBattleSubmissionRepository submissionRepository;
     private final SwissLeagueService swissService;
     private final TaskExecutor taskExecutor;
     private static final String CODE_BATTLE_SWISS_LEAGUE_QUEUE_RESULT_KEY = "code_battle_swiss_league_result_queue";
@@ -46,7 +43,6 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
             SseService sseService,
             FullLeagueService fullLeagueService,
             CodeBattleMatchRepository matchRepository,
-            CodeBattleSubmissionRepository submissionRepository,
             SwissLeagueService swissService,
             @Qualifier("workerTaskExecutor") TaskExecutor taskExecutor) {
         this.redisTemplate = redisTemplate;
@@ -54,7 +50,6 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
         this.sseService = sseService;
         this.fullLeagueService = fullLeagueService;
         this.matchRepository = matchRepository;
-        this.submissionRepository = submissionRepository;
         this.swissService = swissService;
         this.taskExecutor = taskExecutor;
     }
@@ -145,12 +140,9 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
         CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
         Long submissionId = result.getMatchId();
 
-        CodeBattleSubmission submission = submissionRepository.findById(submissionId)
-                .orElseThrow(() -> new RuntimeException("Submission not found (ID: " + submissionId + ")"));
-
         CodeBattleMatch aiMatch = matchRepository.findBySubmissionIdAndAiOrder(submissionId, result.getAiOrder())
                 .orElse(null);
-
+        // submission 조회 삭제
         if (aiMatch != null) {
             int comp = result.getWinner();
             if (comp == 1)

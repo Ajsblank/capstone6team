@@ -20,9 +20,7 @@ import com.asap.server.domain.CodeBattleExampleAI;
 import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.CodeBattleParticipant;
 import com.asap.server.domain.ContestReviewer;
-import com.asap.server.domain.ContestSchedule;
 import com.asap.server.domain.Users;
-import com.asap.server.dto.request.ContestScheduleRequest;
 import com.asap.server.dto.request.CreateCertifiedContestRequest;
 import com.asap.server.dto.request.CreateContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
@@ -34,18 +32,14 @@ import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestParticipantResponse;
 import com.asap.server.dto.response.ContestResponse;
-import com.asap.server.dto.response.ContestScheduleListResponse;
-import com.asap.server.dto.response.ContestScheduleResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.ContestReviewerRepository;
-import com.asap.server.repository.ContestScheduleRepository;
 import com.asap.server.repository.usersRepository;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -62,7 +56,6 @@ public class ContestService {
     private final CodeBattleParticipantRepository participantRepository;
     private final ContestReviewerRepository reviewerRepository;
     private final usersRepository userRepository;
-    private final ContestScheduleRepository contestScheduleRepository;
     private final ContestRunService contestRun;
     private final S3Service s3Service;
     private final ContestReviewerRepository contestReviewerRepository;
@@ -843,40 +836,6 @@ public class ContestService {
     }
 
     private record DatePolicy(LocalDateTime startDate, LocalDateTime endDate) {
-    }
-
-    public ContestScheduleResponse saveSchedule(Long contestId, ContestScheduleRequest request) {
-        CodeBattleContest contest = contestRepository.findById(contestId)
-                .orElseThrow(() -> new EntityNotFoundException("대회를 찾을 수 없습니다."));
-
-        // scheduledTimes가 null이면 빈 리스트 반환
-        if (request.getScheduledTimes() == null) {
-            log.info("빈 예약 리스트");
-            return new ContestScheduleResponse(List.of());
-        }
-
-        List<ContestSchedule> schedules = request.getScheduledTimes().stream()
-                .map(time -> {
-                    ContestSchedule schedule = new ContestSchedule();
-                    schedule.setContest(contest);
-                    schedule.setScheduledAt(time);
-                    // status는 PLANNED가 기본값
-                    return schedule;
-                })
-                .toList();
-
-        List<ContestSchedule> saved = contestScheduleRepository.saveAll(schedules);
-        return ContestScheduleResponse.from(saved);
-    }
-
-    public List<ContestScheduleListResponse> getSchedules(Long contestId) {
-        contestRepository.findById(contestId)
-                .orElseThrow(() -> new EntityNotFoundException("대회를 찾을 수 없습니다."));
-
-        return contestScheduleRepository.findByContestId(contestId)
-                .stream()
-                .map(ContestScheduleListResponse::from)
-                .toList();
     }
 
     @Transactional(readOnly = true)
