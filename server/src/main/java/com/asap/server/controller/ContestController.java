@@ -259,9 +259,12 @@ public class ContestController {
             CodeBattleContest contest = contestRepository.findById(contestId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대회입니다."));
 
+            // if (contest.getStatus() != ContestStatus.END) {
+            // return ResponseEntity.badRequest()
+            // .body(Map.of("message", "아직 종료되지 않은 대회입니다."));
+            // }
             if (contest.getStatus() != ContestStatus.END) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of("message", "아직 종료되지 않은 대회입니다."));
+                log.info("end 상태가 아니지만 임시 조회 허용합니다.");
             }
 
             String key = s3Service.buildFinalResultKey(contestId);
