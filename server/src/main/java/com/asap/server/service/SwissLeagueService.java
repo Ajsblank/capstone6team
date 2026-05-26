@@ -155,8 +155,8 @@ public class SwissLeagueService {
     round.setStartedAt(LocalDateTime.now());
     round = swissRoundRepository.save(round);
 
-    int matchsPerRound = participants.size() / 2;
-    if (participants.size() % 2 == 1)
+    int matchsPerRound = participants.size();
+    if (matchsPerRound % 2 == 1)
       matchsPerRound++;
 
     // 라운드 상태 초기화 및 rounds 리스트에 추가 후 전송
@@ -164,7 +164,6 @@ public class SwissLeagueService {
     roundState.put("round_number", roundNumber);
     roundState.put("status", "RUNNING");
     roundState.put("matches", new ArrayList<>());
-
     sseService.addRound(contest.getId(), session.getId(), roundState);
 
     int matchCount = 0;
