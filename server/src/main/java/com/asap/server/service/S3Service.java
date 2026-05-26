@@ -427,4 +427,8 @@ public class S3Service {
   public String buildFinalResultKey(Long contestId) {
     return String.format("%s/%d/final-result", normalizeContestCodePrefix(), contestId);
   }
+
+  public String buildSessionResultKey(Long contestId, int sessionNumber) {
+    return String.format("%s/%d/swiss-result/session-%d", normalizeContestCodePrefix(), contestId, sessionNumber);
+  }
 }

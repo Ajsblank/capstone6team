@@ -1,7 +1,9 @@
 package com.asap.server.controller;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.asap.server.config.CustomUserDetails;
@@ -42,6 +45,7 @@ import com.asap.server.dto.response.ContestScheduleListResponse;
 import com.asap.server.dto.response.ContestScheduleResponse;
 import com.asap.server.dto.response.ContestSessionListResponse;
 import com.asap.server.dto.response.FinalResultResponse;
+import com.asap.server.dto.response.SwissResultResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.ContestSwissSessionRepository;
@@ -50,6 +54,7 @@ import com.asap.server.service.FullLeagueService;
 import com.asap.server.service.S3Service;
 import com.asap.server.service.SseService;
 import com.asap.server.service.SwissLeagueService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -373,8 +378,7 @@ public class ContestController {
         }
     }
 
-    @GetMapping(value = "/{contestId}/subscribe/{sessionNumber}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-
+    @GetMapping(value = "/{contestId}/{sessionNumber}/subscribe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "세션 정보 SSE 구독 API", description = "sessionNumber로 최신 세션을 찾아 SSE 구독합니다.")
     public SseEmitter subscribeSession(
             @PathVariable Long contestId,
@@ -383,14 +387,117 @@ public class ContestController {
 
         ContestSwissSession session = sessionRepository
                 .findTopByContestIdAndSessionNumberOrderByIdDesc(contestId, sessionNumber)
-                .orElse(null);
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "세션을 찾을 수 없습니다."));
 
-        if (session == null) {
-            log.warn("[SSE 세션 구독 실패] contestId={} sessionNumber={} — 세션 없음", contestId, sessionNumber);
-            return null;
+        log.info("[SSE 세션 구독 요청] contestId={} sessionNumber={} sessionId={} status={}",
+                contestId, sessionNumber, session.getId(), session.getStatus());
+        // nginx sse 버퍼링 방지
+        response.setHeader("Cache-Control", "no-cache");
+        // 브라우저 캐시 방지
+        response.setHeader("X-Accel-Buffering", "no");
+        return switch (session.getStatus()) {
+            case RUNNING -> {
+                log.info("[SSE 세션 구독] contestId={} sessionNumber={} sessionId={}",
+                        contestId, sessionNumber, session.getId());
+                yield sseService.subscribeSession(contestId, session.getId());
+            }
+            case END -> {
+                // 종료된 세션: DB에서 최종 결과를 가져와 단발성 SSE로 전달 후 즉시 close
+                SseEmitter emitter = new SseEmitter(0L);
+                try {
+                    String key = s3Service.buildSessionResultKey(contestId, sessionNumber);
+                    try {
+                        String json = s3Service.readFileAsString(key);
+                        SwissResultResponse result = objectMapper.readValue(json, SwissResultResponse.class);
+                        // DTO에 없는 필드를 Map으로 보완
+                        Map<String, Object> response_ = new HashMap<>();
+                        response_.put("session_number", result.getSessionNumber());
+                        response_.put("status", "END");
+                        response_.put("total_rounds", result.getTotalParticipants());
+                        response_.put("rounds", result.getRounds());
+                        emitter.send(SseEmitter.event().name("init").data(response_));
+                    } catch (JsonProcessingException e) {
+                        log.error("[SSE][END] JSON 파싱 실패. key={}", key, e);
+                        emitter.send(SseEmitter.event().name("init")
+                                .data(Map.of("status", "END", "message", "결과 데이터 파싱 중 오류가 발생했습니다.")));
+                    } catch (Exception e) {
+                        // S3 파일 없음 = 종료는 됐지만 아직 집계 중
+                        log.warn("[SSE][END] S3 파일 없음 또는 조회 실패. key={}", key, e);
+                        emitter.send(SseEmitter.event().name("init")
+                                .data(Map.of("status", "END", "message", "아직 집계 중이거나 데이터가 존재하지 않습니다.")));
+                    }
+                    emitter.complete();
+                } catch (IOException e) {
+                    emitter.completeWithError(e);
+                }
+                yield emitter;
+            }
+            case PLANNED -> {
+                // 시작 전 세션: 캐싱된 상태가 있으면 사용, 없으면 WAITING 응답
+                Object initData = sseService.getSessionState(contestId, session.getId());
+                if (initData == null) {
+                    initData = Map.of(
+                            "sessionNumber", sessionNumber,
+                            "status", "PLANNED",
+                            "total_rounds", 0,
+                            "rounds", List.of());
+                }
+                SseEmitter emitter = new SseEmitter(0L);
+                try {
+                    emitter.send(SseEmitter.event().name("init").data(initData));
+                    emitter.complete();
+                } catch (IOException e) {
+                    emitter.completeWithError(e);
+                }
+                yield emitter;
+            }
+            default -> throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "지원하지 않는 세션 상태: " + session.getStatus());
+        };
+    }
+
+    @GetMapping("/{contestId}/{sessionNumber}/session-result")
+    @Operation(summary = "세션 결과 조회", description = "세션 종료 후 기록된 스위스리그 결과를 Json 형식으로 반환합니다.")
+    public ResponseEntity<?> getSessionResult(@PathVariable Long contestId,
+            @PathVariable int sessionNumber) {
+        try {
+            ContestSwissSession session = sessionRepository
+                    .findTopByContestIdAndSessionNumberOrderByIdDesc(contestId, sessionNumber)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "세션을 찾을 수 없습니다."));
+
+            if (session.getStatus() != ContestStatus.END) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message", "아직 종료되지 않은 대회입니다."));
+            }
+
+            String key = s3Service.buildSessionResultKey(contestId, sessionNumber);
+            String json;
+            try {
+                json = s3Service.readFileAsString(key);
+            } catch (Exception e) {
+                // S3 파일 없음 = 종료는 됐지만 아직 집계 중
+                return ResponseEntity.accepted()
+                        .body(Map.of("message", "아직 집계 중이거나 데이터가 존재하지 않습니다."));
+            }
+            try {
+                SwissResultResponse response = objectMapper.readValue(json, SwissResultResponse.class);
+                return ResponseEntity.ok(response);
+            } catch (JsonProcessingException e) {
+                log.error("[스위스리그] JSON 파싱 실패. key={}", key, e);
+                return ResponseEntity.internalServerError()
+                        .body(Map.of("message", "결과 데이터 파싱 중 오류가 발생했습니다."));
+            }
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode())
+                    .body(Map.of("message", e.getReason()));
+        } catch (Exception e) {
+            log.error("[스위스리그] 세션 결과 조회 실패. contestId={}, sessionNumber={}", contestId, sessionNumber, e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "결과 조회 중 오류가 발생했습니다."));
         }
-
-        log.info("[SSE 세션 구독] contestId={} sessionNumber={} sessionId={}", contestId, sessionNumber, session.getId());
-        return sseService.subscribeSession(contestId, session.getId());
     }
 }

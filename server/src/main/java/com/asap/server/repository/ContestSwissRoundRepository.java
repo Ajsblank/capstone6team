@@ -8,4 +8,6 @@ import com.asap.server.domain.ContestSwissRound;
 
 public interface ContestSwissRoundRepository extends JpaRepository<ContestSwissRound, Long> {
   List<ContestSwissRound> findBySessionId(Long sessionId);
+
+  List<ContestSwissRound> findBySessionIdOrderByRoundNumber(Long sessionId);
 }

@@ -165,14 +165,7 @@ public class SwissLeagueService {
     roundState.put("status", "RUNNING");
     roundState.put("matches", new ArrayList<>());
 
-    Map<String, Object> currentState = sseService.getSessionState(contest.getId(), session.getId());
-    if (currentState != null) {
-      @SuppressWarnings("unchecked")
-      List<Map<String, Object>> rounds = (List<Map<String, Object>>) currentState.get("rounds");
-      if (rounds != null)
-        rounds.add(roundState);
-      sseService.updateSessionState(contest.getId(), session.getId(), currentState);
-    }
+    sseService.addRound(contest.getId(), session.getId(), roundState);
 
     int matchCount = 0;
     for (int j = 0; j + 1 < participants.size(); j += 2) {
@@ -185,20 +178,13 @@ public class SwissLeagueService {
       ContestSwissMatch savedMatch = swissMatchRepository.save(match);
 
       // 매치 생성 시 matches에 추가 (결과는 null)
-      if (currentState != null) {
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> matchList = (List<Map<String, Object>>) roundState.get("matches");
-        if (matchList != null) {
-          Map<String, Object> matchInfo = new LinkedHashMap<>();
-          matchInfo.put("match_id", savedMatch.getId());
-          matchInfo.put("user1_id", p1.getUser().getId());
-          matchInfo.put("user2_id", p2.getUser().getId());
-          matchInfo.put("winner", null);
-          matchInfo.put("result", null);
-          matchList.add(matchInfo);
-        }
-        sseService.updateSessionState(contest.getId(), session.getId(), currentState);
-      }
+      Map<String, Object> matchInfo = new LinkedHashMap<>();
+      matchInfo.put("match_id", savedMatch.getId());
+      matchInfo.put("user1_id", p1.getUser().getId());
+      matchInfo.put("user2_id", p2.getUser().getId());
+      matchInfo.put("winner", null);
+      matchInfo.put("result", null);
+      sseService.addMatch(contest.getId(), session.getId(), roundNumber, matchInfo);
 
       redisTemplate.opsForList().leftPush(swissRound + round.getId() + matchKey, String.valueOf(savedMatch.getId()));
       try {
@@ -236,24 +222,17 @@ public class SwissLeagueService {
       matchCount++;
 
       // 부전승 매치도 matches에 추가 후 전송
-      if (currentState != null) {
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> matchList = (List<Map<String, Object>>) roundState.get("matches");
-        if (matchList != null) {
-          Map<String, Object> byeMatchInfo = new LinkedHashMap<>();
-          byeMatchInfo.put("match_id", byeMatch.getId());
-          byeMatchInfo.put("user1_id", bye.getUser().getId());
-          byeMatchInfo.put("user2_id", null);
-          byeMatchInfo.put("winner", 1);
-          byeMatchInfo.put("result", ResultType.BYE);
-          matchList.add(byeMatchInfo);
-        }
-        sseService.updateSessionState(contest.getId(), session.getId(), currentState);
-      }
+      Map<String, Object> byeMatchInfo = new LinkedHashMap<>();
+      byeMatchInfo.put("match_id", byeMatch.getId());
+      byeMatchInfo.put("user1_id", bye.getUser().getId());
+      byeMatchInfo.put("user2_id", null);
+      byeMatchInfo.put("winner", 1);
+      byeMatchInfo.put("result", ResultType.BYE);
+      sseService.addMatch(contest.getId(), session.getId(), roundNumber, byeMatchInfo);
       log.info("[스위스리그] roundId={} userId={} 부전승 처리", round.getId(), bye.getUser().getId());
     }
-
     log.info("[스위스리그] roundId={} round={} 매치 {}/{}개 생성 완료", round.getId(), roundNumber, matchCount, matchsPerRound);
+
   }
 
   private void enqueueSwissMatchToGradingQueue(
@@ -333,19 +312,7 @@ public class SwissLeagueService {
       String totalStr = redisTemplate.opsForValue()
           .get("swiss:session:" + session.getId() + totalKey);
 
-      // 라운드 status FINISHED 갱신 및 전송
-      Map<String, Object> sessionState = sseService.getSessionState(contestId, session.getId());
-      if (sessionState != null) {
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> rounds = (List<Map<String, Object>>) sessionState.get("rounds");
-        if (rounds != null) {
-          rounds.stream()
-              .filter(r -> ((Number) r.get("round_number")).intValue() == round.getRoundNumber())
-              .findFirst()
-              .ifPresent(r -> r.put("status", "FINISHED"));
-        }
-        sseService.updateSessionState(contestId, session.getId(), sessionState);
-      }
+      sseService.updateRoundStatus(contestId, session.getId(), round.getRoundNumber(), "FINISHED");
 
       int totalRounds = Integer.parseInt(totalStr);
       int nextRound = round.getRoundNumber() + 1;
@@ -456,11 +423,34 @@ public class SwissLeagueService {
         s.put("match_ids", userMatchIds.getOrDefault(userId, List.of()));
         standings.add(s);
       }
+      List<ContestSwissRound> allRounds = swissRoundRepository.findBySessionIdOrderByRoundNumber(sessionId);
+      List<Map<String, Object>> roundList = new ArrayList<>();
+      for (ContestSwissRound round : allRounds) {
+        List<Map<String, Object>> matchList = new ArrayList<>();
+        for (ContestSwissMatch m : allMatches) {
+          if (!m.getRound().getId().equals(round.getId()))
+            continue;
+          Map<String, Object> matchMap = new LinkedHashMap<>();
+          matchMap.put("match_id", m.getId());
+          matchMap.put("user1_id", m.getUser1().getId());
+          matchMap.put("user2_id", m.getUser2() != null ? m.getUser2().getId() : null);
+          matchMap.put("winner", m.getWinner()); // 필드명 확인 필요
+          matchMap.put("result", m.getResult() != null ? m.getResult().name() : null);
+          matchList.add(matchMap);
+        }
+        Map<String, Object> roundMap = new LinkedHashMap<>();
+        roundMap.put("round_number", round.getRoundNumber());
+        roundMap.put("status", round.getStatus());
+        roundMap.put("matches", matchList);
+        roundList.add(roundMap);
+      }
 
       Map<String, Object> result = new LinkedHashMap<>();
       result.put("session_number", session.getSessionNumber());
       result.put("total_participants", userIds.size());
+      result.put("total_rounds", allRounds.size());
       result.put("final_standings", standings);
+      result.put("rounds", roundList);
       String json = objectMapper.writeValueAsString(result);
 
       String key = String.format("backend-deploy/contest-resource/%d/swiss-result/session-%d", contestId,
@@ -474,12 +464,8 @@ public class SwissLeagueService {
       swissSessionRepository.save(session);
 
       // 세션 status END 갱신, 전송 후 메모리 정리
-      Map<String, Object> endState = sseService.getSessionState(contestId, sessionId);
-      if (endState != null) {
-        endState.put("status", "END");
-        sseService.updateSessionState(contestId, sessionId, endState);
-        sseService.clearSessionState(contestId, sessionId);
-      }
+      sseService.updateSessionStatus(contestId, sessionId, "END");
+      sseService.clearSession(contestId, sessionId);
 
     } catch (Exception e) {
       log.error("[스위스리그] sessionId={} 집계 실패", sessionId, e);
@@ -513,7 +499,12 @@ public class SwissLeagueService {
 
       Long contestId = match.getRound().getSession().getContest().getId();
       Long sessionId = match.getRound().getSession().getId();
-      updateMatchResult(contestId, sessionId, match, result.getWinner());
+      sseService.updateMatchResult(
+          contestId, sessionId,
+          match.getRound().getRoundNumber(),
+          match.getId(),
+          result.getWinner(),
+          match.getResult());
 
     } else {
       sseService.sendToUser(match.getUser1().getId(), result);
@@ -533,38 +524,6 @@ public class SwissLeagueService {
     if (roundDone == roundTotal) {
       aggregateSwissRound(roundId);
     }
-  }
-
-  private void updateMatchResult(Long contestId, Long sessionId, ContestSwissMatch match, int winner) {
-    Map<String, Object> state = sseService.getSessionState(contestId, sessionId);
-    if (state == null)
-      return;
-
-    int roundNumber = match.getRound().getRoundNumber();
-    @SuppressWarnings("unchecked")
-    List<Map<String, Object>> rounds = (List<Map<String, Object>>) state.get("rounds");
-    if (rounds == null)
-      return;
-
-    rounds.stream()
-        .filter(r -> ((Number) r.get("round_number")).intValue() == roundNumber)
-        .findFirst()
-        .ifPresent(roundState -> {
-          @SuppressWarnings("unchecked")
-          List<Map<String, Object>> matches = (List<Map<String, Object>>) roundState.get("matches");
-          if (matches == null)
-            return;
-          matches.stream()
-              .filter(m -> m.get("match_id") != null
-                  && ((Number) m.get("match_id")).longValue() == match.getId())
-              .findFirst()
-              .ifPresent(m -> {
-                m.put("winner", winner);
-                m.put("result", match.getResult());
-              });
-        });
-
-    sseService.updateSessionState(contestId, sessionId, state);
   }
 
   public void restoreSessionState(Long contestId, Long sessionId) {
