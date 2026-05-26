@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -15,8 +16,12 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class SseService {
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
-    private final Map<String, List<SseEmitter>> sessionEmitters = new ConcurrentHashMap<>();
-    private final Map<String, Map<String, Object>> sessionStates = new ConcurrentHashMap<>();
+
+    // 세션 구독자 목록 - List를 CopyOnWriteArrayList로 교체
+    private final Map<String, CopyOnWriteArrayList<SseEmitter>> sessionEmitters = new ConcurrentHashMap<>();
+
+    // 세션 최신 상태 캐시 - Object로 받아서 DTO 그대로 저장 가능
+    private final Map<String, Object> sessionStates = new ConcurrentHashMap<>();
 
     public SseEmitter subscribe(Long userId) {
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
@@ -45,81 +50,204 @@ public class SseService {
         }
     }
 
+    // session 구독
     public SseEmitter subscribeSession(Long contestId, Long sessionId) {
-        String key = contestId + ":" + sessionId;
+        String key = buildKey(contestId, sessionId);
         log.info("[SSE 구독 시작] key={}", key);
 
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
 
-        sessionEmitters.computeIfAbsent(key, k -> new ArrayList<>()).add(emitter);
-        log.info("[SSE 구독 등록] key={} 현재 구독자 수={}", key,
-                sessionEmitters.getOrDefault(key, new ArrayList<>()).size());
+        emitter.onCompletion(() -> removeSessionEmitter(key, emitter));
+        emitter.onTimeout(() -> removeSessionEmitter(key, emitter));
+        emitter.onError(e -> removeSessionEmitter(key, emitter));
 
-        emitter.onCompletion(() -> {
-            log.info("[SSE 연결 종료] key={}", key);
-            removeSessionEmitter(key, emitter);
-        });
-        emitter.onTimeout(() -> {
-            log.warn("[SSE 타임아웃] key={}", key);
-            removeSessionEmitter(key, emitter);
-        });
-        emitter.onError(e -> {
-            log.error("[SSE 에러] key={} error={}", key, e.getMessage());
-            removeSessionEmitter(key, emitter);
-        });
-
-        // 이미 진행 중인 세션이면 현재 상태를 즉시 전송 (init)
-        Map<String, Object> currentState = sessionStates.get(key);
-        log.info("[SSE init 확인] key={} 저장된 상태 존재={}", key, currentState != null);
+        // init 먼저 전송 후 emitter 등록 → update가 init보다 먼저 도착하는 문제 방지
+        Object currentState = sessionStates.get(key);
         if (currentState != null) {
             try {
                 emitter.send(SseEmitter.event().name("init").data(currentState));
-                log.info("[SSE init 전송 성공] key={}", key);
+                log.info("[SSE init 전송] key={}", key);
             } catch (IOException e) {
-                log.error("[SSE init 전송 실패] key={} error={}", key, e.getMessage());
-                removeSessionEmitter(key, emitter);
+                log.error("[SSE init 전송 실패] key={}", key);
+                emitter.completeWithError(e);
+                return emitter; // 등록 없이 반환
             }
         } else {
-            log.warn("[SSE init 없음] key={} — 세션이 아직 시작되지 않았거나 상태 없음", key);
+            // 상태 없음 = 세션 시작 전
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("init")
+                        .data(Map.of("status", "WAITING")));
+            } catch (IOException e) {
+                emitter.completeWithError(e);
+                return emitter;
+            }
         }
+        // init 성공 후 등록
+        sessionEmitters
+                .computeIfAbsent(key, k -> new CopyOnWriteArrayList<>())
+                .add(emitter);
+        log.info("[SSE 구독 등록 완료] key={} 구독자 수={}", key,
+                sessionEmitters.get(key).size());
         return emitter;
     }
 
-    private void removeSessionEmitter(String key, SseEmitter emitter) {
-        List<SseEmitter> list = sessionEmitters.get(key);
-        if (list != null) {
-            list.remove(emitter);
-            if (list.isEmpty())
-                sessionEmitters.remove(key);
-        }
+    // ──────────────────────────────────────────
+    // 세션 상태 업데이트 및 브로드캐스트
+    // ──────────────────────────────────────────
+
+    /**
+     * 상태를 캐싱하고 구독자 전체에게 update 이벤트 전송
+     * data는 DTO 그대로 넘기면 됨
+     */
+    public void updateSessionState(Long contestId, Long sessionId, Object state) {
+        String key = buildKey(contestId, sessionId);
+        sessionStates.put(key, state);
+        broadcast(key, state, "update");
+        log.info("[SSE 상태 업데이트] key={}", key);
     }
 
-    public void sendToSession(Long contestId, Long sessionId, Object data, String eventName) {
-        String key = contestId + ":" + sessionId;
-        List<SseEmitter> list = sessionEmitters.get(key);
-        if (list == null)
+    // session 정리 함수
+    public void clearSession(Long contestId, Long sessionId) {
+        String key = buildKey(contestId, sessionId);
+        sessionStates.remove(key);
+        sessionEmitters.remove(key);
+        log.info("[SSE 세션 정리] key={}", key);
+    }
+
+    public Object getSessionState(Long contestId, Long sessionId) {
+        return sessionStates.get(buildKey(contestId, sessionId));
+    }
+
+    // ──────────────────────────────────────────
+    // 내부 유틸
+    // ──────────────────────────────────────────
+
+    private void broadcast(String key, Object data, String eventName) {
+        CopyOnWriteArrayList<SseEmitter> list = sessionEmitters.get(key);
+        if (list == null || list.isEmpty())
             return;
+
         List<SseEmitter> dead = new ArrayList<>();
-        list.forEach(emitter -> {
+        for (SseEmitter emitter : list) {
             try {
                 emitter.send(SseEmitter.event().name(eventName).data(data));
             } catch (IOException e) {
+                log.warn("[SSE 브로드캐스트 실패] key={} emitter 제거", key);
                 dead.add(emitter);
             }
-        });
+        }
         list.removeAll(dead);
     }
 
-    public void updateSessionState(Long contestId, Long sessionId, Map<String, Object> state) {
-        sessionStates.put(contestId + ":" + sessionId, state);
-        sendToSession(contestId, sessionId, state, "update");
+    private void removeSessionEmitter(String key, SseEmitter emitter) {
+        CopyOnWriteArrayList<SseEmitter> list = sessionEmitters.get(key);
+        if (list == null)
+            return;
+        list.remove(emitter);
+        if (list.isEmpty())
+            sessionEmitters.remove(key);
+        log.info("[SSE 연결 해제] key={} 남은 구독자={}", key,
+                sessionEmitters.getOrDefault(key, new CopyOnWriteArrayList<>()).size());
     }
 
-    public Map<String, Object> getSessionState(Long contestId, Long sessionId) {
-        return sessionStates.get(contestId + ":" + sessionId);
+    private String buildKey(Long contestId, Long sessionId) {
+        return contestId + ":" + sessionId;
     }
 
-    public void clearSessionState(Long contestId, Long sessionId) {
-        sessionStates.remove(contestId + ":" + sessionId);
+    // 라운드 추가
+    public void addRound(Long contestId, Long sessionId, Map<String, Object> roundState) {
+        Map<String, Object> state = getSessionStateAsMap(contestId, sessionId);
+        if (state == null)
+            return;
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rounds = (List<Map<String, Object>>) state.get("rounds");
+        if (rounds != null)
+            rounds.add(roundState);
+        updateSessionState(contestId, sessionId, state);
+    }
+
+    // 라운드 상태 변경
+    public void updateRoundStatus(Long contestId, Long sessionId, int roundNumber, String status) {
+        Map<String, Object> state = getSessionStateAsMap(contestId, sessionId);
+        if (state == null)
+            return;
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rounds = (List<Map<String, Object>>) state.get("rounds");
+        if (rounds == null)
+            return;
+        rounds.stream()
+                .filter(r -> ((Number) r.get("round_number")).intValue() == roundNumber)
+                .findFirst()
+                .ifPresent(r -> r.put("status", status));
+        updateSessionState(contestId, sessionId, state);
+    }
+
+    // 매치 추가
+    public void addMatch(Long contestId, Long sessionId, int roundNumber, Map<String, Object> matchInfo) {
+        Map<String, Object> state = getSessionStateAsMap(contestId, sessionId);
+        if (state == null)
+            return;
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rounds = (List<Map<String, Object>>) state.get("rounds");
+        if (rounds == null)
+            return;
+        rounds.stream()
+                .filter(r -> ((Number) r.get("round_number")).intValue() == roundNumber)
+                .findFirst()
+                .ifPresent(r -> {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> matches = (List<Map<String, Object>>) r.get("matches");
+                    if (matches != null)
+                        matches.add(matchInfo);
+                });
+        updateSessionState(contestId, sessionId, state);
+    }
+
+    // 매치 결과 업데이트
+    public void updateMatchResult(Long contestId, Long sessionId, int roundNumber, Long matchId, int winner,
+            Object result) {
+        Map<String, Object> state = getSessionStateAsMap(contestId, sessionId);
+        if (state == null)
+            return;
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rounds = (List<Map<String, Object>>) state.get("rounds");
+        if (rounds == null)
+            return;
+        rounds.stream()
+                .filter(r -> ((Number) r.get("round_number")).intValue() == roundNumber)
+                .findFirst()
+                .ifPresent(r -> {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> matches = (List<Map<String, Object>>) r.get("matches");
+                    if (matches == null)
+                        return;
+                    matches.stream()
+                            .filter(m -> m.get("match_id") != null
+                                    && ((Number) m.get("match_id")).longValue() == matchId)
+                            .findFirst()
+                            .ifPresent(m -> {
+                                m.put("winner", winner);
+                                m.put("result", result);
+                            });
+                });
+        updateSessionState(contestId, sessionId, state);
+    }
+
+    // 세션 status 변경
+    public void updateSessionStatus(Long contestId, Long sessionId, String status) {
+        Map<String, Object> state = getSessionStateAsMap(contestId, sessionId);
+        if (state == null)
+            return;
+        state.put("status", status);
+        updateSessionState(contestId, sessionId, state);
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getSessionStateAsMap(Long contestId, Long sessionId) {
+        Object state = sessionStates.get(buildKey(contestId, sessionId));
+        if (state instanceof Map)
+            return (Map<String, Object>) state;
+        return null;
     }
 }
