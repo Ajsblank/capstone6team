@@ -30,10 +30,27 @@ function formatDateTime(dt: string): string {
   });
 }
 
+const EXT_LANG: Record<string, string> = {
+  c:    "C20",
+  cpp:  "C++20",
+  cs:   "C#",
+  java: "OpenJDK Java 21",
+  js:   "Node.js",
+  ts:   "TypeScript",
+  py:   "PyPy3 / Python3",
+  rs:   "Rust 2024",
+  lua:  "Lua",
+  go:   "Go",
+  kt:   "Kotlin",
+};
+
 function detectExt(code: string): string {
   if (/public\s+class\s+\w+/.test(code) || /import\s+java\./.test(code)) return "java";
   if (/using\s+namespace\s+std/.test(code) || /#include\s*</.test(code))  return "cpp";
-  if (/^\s*(def |import |from .+ import|print\()/m.test(code))            return "py";
+  if (/^\s*using\s+System/.test(code))                                     return "cs";
+  if (/:\s*(String|Int|List|fun\s+\w+)/.test(code))                        return "kt";
+  if (/^\s*(def |from .+ import|import [\w.]+\s*$)/m.test(code))          return "py";
+  if (/^\s*(import\s+type |interface |type \w+\s*=)/m.test(code))         return "ts";
   if (/^\s*(function |const |let |var |=>)/m.test(code))                  return "js";
   return "txt";
 }
@@ -158,7 +175,8 @@ const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin,
       {/* 예제 코드 */}
       {detail.sampleCode && (() => {
         const ext  = detectExt(detail.sampleCode);
-        const name = `${detail.title}_예시코드.${ext}`;
+        const lang = EXT_LANG[ext] ?? ext.toUpperCase();
+        const name = `sample_code.${ext}`;
         return (
           <section className="prob-section">
             <h2>예제 코드</h2>
@@ -176,7 +194,7 @@ const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin,
                 textDecoration: "none",
               }}
             >
-              ⬇ {name}
+              ⬇ {lang}: {name}
             </a>
           </section>
         );
