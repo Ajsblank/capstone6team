@@ -170,16 +170,31 @@ public class ContestController {
 
     @Operation(summary = "대회 상세 조회(채점 코드 포함)")
     @GetMapping("/{contestId}/admin")
-    public ResponseEntity<ContestDetailResponse> getContestDetailAdmin(@PathVariable Long contestId) {
+    public ResponseEntity<ContestDetailResponse> getContestDetailAdmin(
+            @AuthenticationPrincipal Long userId,
+            @PathVariable Long contestId) {
+        CodeBattleContest contest = contestRepository.findById(contestId)
+                .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다."));
+        if (!contest.getCreator().getId().equals(userId)) {
+            log.info("대회 개최자와 일치하지 않는 유저 contestId={} userId={}", contestId, userId);
+            return ResponseEntity.status(403).body(null);
+        }
         return ResponseEntity.ok(contestService.getContestDetailResponse(contestId));
     }
 
     @Operation(summary = "안증 대회 수정", description = "PATCH /api/contests/{contestId}는 대회 메타데이터만 수정합니다. 리소스(visual/solo/judge/sample)는 /api/contests/{contestId}/resource를 사용하세요.")
     @PatchMapping("/{contestId}/modify/certified")
     public ResponseEntity<ContestDetailResponse> updateContestCertified(
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long contestId,
             @RequestBody UpdateContestCertifiedRequest request) {
         try {
+            CodeBattleContest contest = contestRepository.findById(contestId)
+                    .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다."));
+            if (!contest.getCreator().getId().equals(userId)) {
+                log.info("대회 개최자와 일치하지 않는 유저 contestId={} userId={}", contestId, userId);
+                return ResponseEntity.status(403).body(null);
+            }
             ContestDetailResponse response = contestService.updateContest(contestId, request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
@@ -193,9 +208,16 @@ public class ContestController {
     @Operation(summary = "비인증 대회 수정", description = "PATCH /api/contests/{contestId}는 대회 메타데이터만 수정합니다. 리소스(visual/solo/judge/sample)는 /api/contests/{contestId}/resource를 사용하세요.")
     @PatchMapping("/{contestId}/modify/uncertified")
     public ResponseEntity<ContestDetailResponse> updateContestUncertified(
+            @AuthenticationPrincipal Long userId,
             @PathVariable Long contestId,
             @RequestBody UpdateContestRequest request) {
         try {
+            CodeBattleContest contest = contestRepository.findById(contestId)
+                    .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다."));
+            if (!contest.getCreator().getId().equals(userId)) {
+                log.info("대회 개최자와 일치하지 않는 유저 contestId={} userId={}", contestId, userId);
+                return ResponseEntity.status(403).body(null);
+            }
             ContestDetailResponse response = contestService.updateContest(contestId, request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
