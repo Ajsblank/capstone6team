@@ -231,7 +231,6 @@ public class SwissLeagueService {
       log.info("[스위스리그] roundId={} userId={} 부전승 처리", round.getId(), bye.getUser().getId());
     }
     log.info("[스위스리그] roundId={} round={} 매치 {}/{}개 생성 완료", round.getId(), roundNumber, matchCount, matchsPerRound);
-
   }
 
   private void enqueueSwissMatchToGradingQueue(
