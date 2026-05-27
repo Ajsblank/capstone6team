@@ -180,22 +180,16 @@ const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin,
         return (
           <section className="prob-section">
             <h2>예제 코드</h2>
-            <a
-              href={makeDownloadUrl(detail.sampleCode)}
-              download={name}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 14px",
-                background: "#1e293b",
-                border: "1px solid #334155",
-                borderRadius: 7,
-                color: "#93c5fd",
-                fontSize: "0.85rem",
-                textDecoration: "none",
-              }}
-            >
-              ⬇ {lang}: {name}
-            </a>
+            <span style={{ fontSize: "0.9rem" }}>
+              <strong>{lang}</strong>:{" "}
+              <a
+                href={makeDownloadUrl(detail.sampleCode)}
+                download={name}
+                style={{ textDecoration: "underline", color: "inherit" }}
+              >
+                {name}
+              </a>
+            </span>
           </section>
         );
       })()}
