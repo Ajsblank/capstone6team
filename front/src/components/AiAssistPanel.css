@@ -1,0 +1,361 @@
+/* ── 루트: 너비 전환으로 접기/펼치기 ── */
+.aip-root {
+  width: 48px;
+  border-radius: 12px;
+  background: #0d1025;
+  border: 1px solid #2a2a4a;
+  overflow: hidden;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  flex-shrink: 0;
+}
+.aip-root--expanded {
+  width: 340px;
+}
+
+/* ── 접힌 상태 탭 (세로 레이블) ── */
+.aip-side-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 20px 0 16px;
+  gap: 12px;
+  cursor: pointer;
+  color: #4a5280;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+  user-select: none;
+}
+.aip-side-tab:hover { background: #111630; color: #8090c0; }
+
+.aip-side-icon { font-size: 1.1rem; }
+
+.aip-side-label {
+  writing-mode: vertical-lr;
+  text-orientation: upright;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  color: inherit;
+}
+
+/* ── 펼친 상태 헤더 ── */
+.aip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #1e2140;
+  background: #111630;
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.aip-header:hover { background: #141a38; }
+
+.aip-header-icon { font-size: 1rem; color: #7ab4f5; }
+
+.aip-header-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #a0aec0;
+  flex: 1;
+  white-space: nowrap;
+}
+
+.aip-header-close {
+  background: none;
+  border: none;
+  color: #4a5280;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 5px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.aip-header-close:hover { color: #c0c8e8; }
+
+/* ── 본문 (펼쳤을 때만 표시) ── */
+.aip-body {
+  overflow-y: auto;
+  padding: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+.aip-root--expanded .aip-body {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.18s ease 0.15s;
+}
+
+/* ── API 키 경고 ── */
+.aip-no-key {
+  padding: 8px 12px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.22);
+  border-radius: 7px;
+  color: #f87171;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+/* ── 탭 ── */
+.aip-tabs {
+  display: flex;
+  gap: 5px;
+}
+
+.aip-tab {
+  padding: 4px 12px;
+  border: 1px solid #2a2a4a;
+  border-radius: 16px;
+  background: none;
+  color: #5a6280;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.aip-tab:hover { background: #1a1f3a; color: #c0c8e8; }
+.aip-tab--active {
+  background: #1a2855;
+  border-color: #4a7fe0;
+  color: #7ab4f5;
+  font-weight: 600;
+}
+
+/* ── 탭 패널 ── */
+.aip-tab-panel { display: flex; flex-direction: column; gap: 10px; }
+
+/* ── 컨트롤 ── */
+.aip-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+
+.aip-select {
+  padding: 4px 8px;
+  background: #0f1325;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  color: #c0c8e8;
+  font-size: 0.78rem;
+  cursor: pointer;
+  flex: 1;
+  min-width: 90px;
+}
+
+.aip-gen-btn {
+  flex: 1;
+  padding: 5px 10px;
+  background: #1a3060;
+  border: 1px solid #4a7fe0;
+  border-radius: 7px;
+  color: #7ab4f5;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  min-width: 0;
+}
+.aip-gen-btn:hover:not(:disabled) { background: #1e3a72; }
+.aip-gen-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.aip-gen-btn--html {
+  background: #103040;
+  border-color: #2a7fa0;
+  color: #7dd4f0;
+}
+.aip-gen-btn--html:hover:not(:disabled) { background: #143848; }
+
+/* ── 단계 버튼 ── */
+.aip-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aip-step-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #0a0e1e;
+  border: 1px solid #1e2535;
+  border-radius: 7px;
+  color: #4a5280;
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+.aip-step-btn:hover { background: #111630; color: #8090c0; border-color: #2a3055; }
+.aip-step-btn--active {
+  background: #111e40;
+  border-color: #3a6ad4;
+  color: #7ab4f5;
+}
+.aip-step-btn--done .aip-step-num {
+  background: #1a5c3a;
+  color: #4ade80;
+  border-color: #1a5c3a;
+}
+
+.aip-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid #2a3055;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: #0d1225;
+}
+.aip-step-btn--active .aip-step-num {
+  background: #1a3a7a;
+  border-color: #3a6ad4;
+  color: #7ab4f5;
+}
+
+.aip-step-label { font-size: 0.78rem; }
+
+/* ── 전략 입력 ── */
+.aip-strategy-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #070b1a;
+  border: 1px solid #1e2535;
+  border-radius: 7px;
+  color: #b0bcd8;
+  font-size: 0.78rem;
+  padding: 8px 10px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+.aip-strategy-input::placeholder { color: #2a3050; }
+.aip-strategy-input:focus { outline: none; border-color: #2a4070; }
+
+/* ── full-width 생성 버튼 ── */
+.aip-gen-btn--full {
+  width: 100%;
+  justify-content: center;
+  padding: 7px 12px;
+}
+
+/* ── 편집 가능한 출력 textarea ── */
+.aip-output-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #070b1a;
+  border: 1px solid #1a2030;
+  border-radius: 7px;
+  min-height: 180px;
+  max-height: 300px;
+  font-family: "Fira Code", "Consolas", monospace;
+  font-size: 0.75rem;
+  color: #b0bcd8;
+  padding: 10px 12px;
+  resize: vertical;
+  line-height: 1.55;
+}
+.aip-output-textarea::placeholder { color: #2a3050; font-style: italic; }
+.aip-output-textarea:focus { outline: none; border-color: #2a4070; }
+
+/* ── 다음 단계 버튼 ── */
+.aip-next-step-btn {
+  padding: 5px 12px;
+  background: #101a35;
+  border: 1px solid #2a4070;
+  border-radius: 7px;
+  color: #7ab4f5;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.aip-next-step-btn:hover { background: #142040; }
+
+/* ── 출력 박스 ── */
+.aip-output-box {
+  background: #070b1a;
+  border: 1px solid #1a2030;
+  border-radius: 7px;
+  min-height: 100px;
+  max-height: 260px;
+  overflow-y: auto;
+  font-family: "Fira Code", "Consolas", monospace;
+  font-size: 0.75rem;
+  color: #b0bcd8;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.aip-output-placeholder {
+  color: #2a3050;
+  font-family: inherit;
+  font-style: italic;
+}
+
+.aip-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: #7ab4f5;
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: aip-blink 0.8s step-end infinite;
+}
+@keyframes aip-blink { 50% { opacity: 0; } }
+
+/* ── 에러 ── */
+.aip-error {
+  color: #f87171;
+  font-size: 0.78rem;
+  background: rgba(248, 113, 113, 0.07);
+  border: 1px solid rgba(248, 113, 113, 0.18);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+/* ── 적용 버튼 ── */
+.aip-apply-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aip-apply-btn {
+  padding: 5px 12px;
+  background: #0e2a1e;
+  border: 1px solid #1f6645;
+  border-radius: 7px;
+  color: #4ade80;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.aip-apply-btn:hover { background: #122f22; }

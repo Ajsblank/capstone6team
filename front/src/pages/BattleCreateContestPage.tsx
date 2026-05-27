@@ -7,6 +7,7 @@ import { createContest, ContestResponse, ContestStatus } from "../api/contestApi
 import { setContestDraft } from "../contestDraft";
 import ContestSidebar from "../components/ContestSidebar";
 import RichTextEditor from "../components/RichTextEditor";
+import AiAssistPanel from "../components/AiAssistPanel";
 import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
@@ -262,6 +263,19 @@ const BattleCreateContestPage: React.FC = () => {
       <main className="home-body">
         <div className="cc-content">
           <div className="cc-layout">
+
+            {/* ── AI 도우미 컬럼 (좌측) ── */}
+            <div className="cc-ai-col">
+              <AiAssistPanel
+                description={description}
+                sampleCode={sampleCode}
+                onApplySampleCode={setSampleCode}
+                onApplyJudgeCode={setJudgeCode}
+                onAddExampleAICode={(f) => setExampleAICodes(prev => [...prev, f])}
+                onApplyVisualization={setVisualizationHtml}
+                onApplySoloPlay={setSoloPlayHtml}
+              />
+            </div>
 
             {/* ── 폼 컬럼 ── */}
             <div className="cc-form-col">
