@@ -155,8 +155,8 @@ public class SwissLeagueService {
     round.setStartedAt(LocalDateTime.now());
     round = swissRoundRepository.save(round);
 
-    int matchsPerRound = participants.size();
-    if (matchsPerRound % 2 == 1)
+    int matchsPerRound = participants.size() / 2;
+    if (participants.size() % 2 == 1)
       matchsPerRound++;
 
     // 라운드 상태 초기화 및 rounds 리스트에 추가 후 전송
@@ -255,8 +255,8 @@ public class SwissLeagueService {
     codesNode.put("player2", player2Code);
     ObjectNode languagesNode = rootNode.putObject("languages");
     languagesNode.put("judge", "cpp");
-    languagesNode.put("language1", s1.getLanguage().name());
-    languagesNode.put("language2", s2.getLanguage().name());
+    languagesNode.put("language1", s1.getLanguage().name().toLowerCase());
+    languagesNode.put("language2", s2.getLanguage().name().toLowerCase());
 
     String payload = objectMapper.writeValueAsString(rootNode);
     Long queueSize = redisTemplate.opsForList().leftPush(CODE_BATTLE_SWISS_LEAGUE_QUEUE_KEY, payload);
