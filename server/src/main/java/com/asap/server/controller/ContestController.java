@@ -97,18 +97,6 @@ public class ContestController {
             @Valid @RequestBody CreateUncertifiedContestRequest request) {
         log.info("비인증 대회 경로");
 
-        // Legacy multipart version kept for reference during the temporary DTO
-        // migration.
-        // @PostMapping(value = "/create/uncertified", consumes = "multipart/form-data")
-        // public ResponseEntity<?> createContest(
-        // @RequestPart("request") CreateUncertifiedContestRequest request,
-        // @RequestPart(value = "visualFile", required = false) MultipartFile
-        // visualFile,
-        // @RequestPart(value = "soloFile", required = false) MultipartFile soloFile,
-        // @RequestPart("judgeCodeFile") MultipartFile judgeCodeFile,
-        // @RequestPart("sampleCodeFile") MultipartFile sampleCodeFile,
-        // @RequestPart("exampleAiFiles") List<MultipartFile> exampleAiFiles) {
-
         try {
             ContestResponse response = contestService.createUncertifiedContest(request.getCreatorId(), request);
             return ResponseEntity.created(URI.create("/api/contests/" + response.getId()))
@@ -130,16 +118,6 @@ public class ContestController {
             @Valid @RequestBody CreateCertifiedContestRequest request) {
         log.info("인증 대회 경로");
 
-        // Legacy multipart version kept for reference during the temporary DTO
-        // migration.
-        // @PostMapping(value = "/create/certified", consumes = "multipart/form-data")
-        // public ResponseEntity<?> createCertifiedContest(
-        // @RequestPart("request") CreateCertifiedContestRequest request,
-        // @RequestPart("visualFile") MultipartFile visualFile,
-        // @RequestPart("soloFile") MultipartFile soloFile,
-        // @RequestPart("judgeCodeFile") MultipartFile judgeCodeFile,
-        // @RequestPart("sampleCodeFile") MultipartFile sampleCodeFile,
-        // @RequestPart("exampleAiFiles") List<MultipartFile> exampleAiFiles) {
         try {
             ContestResponse response = contestService.createCertifiedContest(request.getCreatorId(), request);
             return ResponseEntity.created(URI.create("/api/contests/" + response.getId()))
@@ -523,9 +501,49 @@ public class ContestController {
     }
 
     @GetMapping("/{contestId}/sessionLeaderBoard")
+    @Operation(summary = "최신 세션 리더보드 조회", description = "종료된 세션 중 가장 높은 세션 번호를 가진 세션 리더보드를 조회합니다.")
+    public ResponseEntity<?> getSessionLeaderBoard(@PathVariable Long contestId) {
+        try {
+            ContestSwissSession session = sessionRepository.findByContestId(contestId)
+                    .stream()
+                    .filter(s -> s.getSessionNumber() != null)
+                    .filter(s -> s.getStatus() == ContestStatus.END)
+                    .max(Comparator.comparing(ContestSwissSession::getSessionNumber))
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "종료된 세션이 없습니다."));
+
+            String key = s3Service.buildSessionResultKey(contestId, session.getSessionNumber());
+            String json;
+            try {
+                json = s3Service.readFileAsString(key);
+            } catch (Exception e) {
+                // S3 파일 없음 = 종료는 됐지만 아직 집계 중
+                return ResponseEntity.accepted()
+                        .body(Map.of("message", "아직 집계 중이거나 데이터가 존재하지 않습니다."));
+            }
+
+            try {
+                SwissLeaderBoardResponse response = objectMapper.readValue(json, SwissLeaderBoardResponse.class);
+                return ResponseEntity.ok(response);
+            } catch (JsonProcessingException e) {
+                log.error("[스위스리그] JSON 파싱 실패. key={}", key, e);
+                return ResponseEntity.internalServerError()
+                        .body(Map.of("message", "결과 데이터 파싱 중 오류가 발생했습니다."));
+            }
+
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode())
+                    .body(Map.of("message", e.getReason()));
+        } catch (Exception e) {
+            log.error("[스위스리그] 세션 결과 조회 실패. contestId={}", contestId, e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "결과 조회 중 오류가 발생했습니다."));
+        }
+    }
+
+    @GetMapping("/{contestId}/{sessionNumber}/sessionLeaderBoard")
     @Operation(summary = "세션 리더보드 조회", description = "세션 종료 후 기록된 스위스리그 결과를 Json 형식으로 반환합니다.")
-    public ResponseEntity<?> getsessionLeaderBoard(@PathVariable Long contestId,
-            @RequestParam int sessionNumber) {
+    public ResponseEntity<?> getSessionLeaderBoardbySessionNumber(@PathVariable Long contestId,
+            @PathVariable int sessionNumber) {
         try {
             ContestSwissSession session = sessionRepository
                     .findTopByContestIdAndSessionNumberOrderByIdDesc(contestId, sessionNumber)
@@ -567,18 +585,13 @@ public class ContestController {
         }
     }
 
-    @GetMapping("/{contestId}/middleRanking")
+    @GetMapping("/{contestId}/{sessionNumber}/middleRanking")
     @Operation(summary = "세션 랭킹 조회", description = "최근 종료된 중간 대회의 결과를 조회합니다.")
-    public ResponseEntity<?> getmiddleRanking(@PathVariable Long contestId,
+    public ResponseEntity<?> getMiddleRanking(@PathVariable Long contestId,
+            @PathVariable int sessionNumber,
             @AuthenticationPrincipal Long userId) {
         try {
-            ContestSwissSession session = sessionRepository.findByContestId(contestId)
-                    .stream()
-                    .filter(s -> s.getSessionNumber() != null)
-                    .filter(s -> s.getStatus() == ContestStatus.END)
-                    .max(Comparator.comparing(ContestSwissSession::getSessionNumber))
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "종료된 세션이 없습니다."));
-            String key = s3Service.buildSessionResultKey(contestId, session.getSessionNumber());
+            String key = s3Service.buildSessionResultKey(contestId, sessionNumber);
             String json;
             try {
                 json = s3Service.readFileAsString(key);
@@ -659,4 +672,5 @@ public class ContestController {
         }
         return match.getLog();
     }
+
 }
