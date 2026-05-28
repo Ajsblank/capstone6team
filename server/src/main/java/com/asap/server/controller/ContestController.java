@@ -635,7 +635,7 @@ public class ContestController {
     }
 
     @GetMapping("/swiss/viewMatchLog")
-    @Operation(summary = "매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
+    @Operation(summary = "스위스 대회 매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
     public String getSwissMatchLog(@RequestParam Long matchId) {
 
         ContestSwissMatch match = swissMatchRepository.findById(matchId)
@@ -645,7 +645,7 @@ public class ContestController {
     }
 
     @GetMapping("/viewMatchLog")
-    @Operation(summary = "매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
+    @Operation(summary = "대회 매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
     public String geContesttMatchLog(@RequestParam Long matchId) {
 
         CodeBattleMatch match = matchRepository.findById(matchId)
