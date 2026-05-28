@@ -70,6 +70,17 @@
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
 }
 
+.bst-card--ended {
+  border-color: #4b5563;
+  cursor: pointer;
+}
+
+.bst-card--ended:hover {
+  border-color: #6b7280;
+  transform: translateY(-2px);
+  transition: border-color 0.2s, transform 0.15s;
+}
+
 /* ── 카드 본문 ── */
 .bst-card-body {
   display: flex;
@@ -141,6 +152,12 @@
   background: rgba(135, 206, 235, 0.15);
   color: #87ceeb;
   border: 1px solid rgba(135, 206, 235, 0.3);
+}
+
+.bst-badge--ended {
+  background: rgba(75, 85, 99, 0.3);
+  color: #9ca3af;
+  border: 1px solid rgba(75, 85, 99, 0.5);
 }
 
 .bst-date {
