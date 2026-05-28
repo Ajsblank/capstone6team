@@ -59,15 +59,17 @@ const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick }) => {
       <div className="bst-cards">
         {sessions.map(session => {
           const isRunning = session.status === "RUNNING";
+          const isEnded   = session.status === "END";
+          const isLocked  = !isRunning && !isEnded;
           return (
             <div
               key={session.sessionNumber}
-              className={`bst-card${isRunning ? " bst-card--running" : ""}`}
-              onClick={isRunning ? () => onSessionClick(session.sessionNumber) : undefined}
-              title={isRunning ? "클릭해서 세션 보기" : undefined}
+              className={`bst-card${isRunning ? " bst-card--running" : isEnded ? " bst-card--ended" : ""}`}
+              onClick={!isLocked ? () => onSessionClick(session.sessionNumber) : undefined}
+              title={!isLocked ? "클릭해서 세션 보기" : undefined}
             >
               {/* 카드 본문 — 잠금 시 블러 */}
-              <div className={`bst-card-body${!isRunning ? " bst-card-body--blurred" : ""}`}>
+              <div className={`bst-card-body${isLocked ? " bst-card-body--blurred" : ""}`}>
                 <div className={`bst-num-area${isRunning ? " bst-num-area--running" : ""}`}>
                   <span className="bst-round-label">SESSION</span>
                   <span className={`bst-round-num${isRunning ? " bst-round-num--running" : ""}`}>
@@ -77,10 +79,13 @@ const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick }) => {
                 {isRunning && (
                   <span className="bst-badge bst-badge--running">● {STATUS_LABEL["RUNNING"]}</span>
                 )}
+                {isEnded && (
+                  <span className="bst-badge bst-badge--ended">{STATUS_LABEL["END"]}</span>
+                )}
               </div>
 
               {/* 잠금 오버레이 */}
-              {!isRunning && (
+              {isLocked && (
                 <div className="bst-lock-overlay">
                   <span className="bst-lock-icon">🔒</span>
                   {session.scheduledAt ? (
