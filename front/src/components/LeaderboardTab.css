@@ -139,3 +139,194 @@
   font-weight: 600;
   letter-spacing: 0.05em;
 }
+
+/* ── 세션 네비게이션 ── */
+.lb-session-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lb-nav-btn {
+  background: none;
+  border: 1px solid #2a2a4a;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.lb-nav-btn:hover:not(:disabled) { background: #1e2a3a; border-color: #89b4fa; color: #89b4fa; }
+.lb-nav-btn:disabled { opacity: 0.3; cursor: default; }
+
+.lb-nav-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e0e0e0;
+  min-width: 52px;
+  text-align: center;
+}
+
+/* ── 내 카드 확장 ── */
+.lb-card--expandable {
+  cursor: pointer;
+  user-select: none;
+}
+.lb-card--expandable:hover { border-color: #a5c8ff !important; }
+
+.lb-expand-arrow {
+  font-size: 0.7rem;
+  color: #89b4fa;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+/* ── 매치 상세 패널 ── */
+.lb-detail-panel {
+  background: #0d1525;
+  border: 1px solid #1e2f50;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  padding: 14px 18px;
+  margin-top: -8px;
+  margin-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+.lb-detail-panel--error { color: #f87171; }
+
+.lb-detail-spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid #1e2f50;
+  border-top-color: #89b4fa;
+  border-radius: 50%;
+  animation: lb-spin 0.7s linear infinite;
+  margin-right: 8px;
+}
+@keyframes lb-spin { to { transform: rotate(360deg); } }
+
+.lb-detail-header {
+  width: 100%;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #4b5563;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* ── 매치 행 ── */
+.lb-match-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lb-match-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: #111827;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+.lb-match-round {
+  width: 28px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #4b5563;
+  flex-shrink: 0;
+}
+
+.lb-match-opponent {
+  flex: 1;
+  color: #d1d5db;
+  font-weight: 500;
+}
+
+.lb-match-result {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.lb-result--win     { background: rgba(74,222,128,0.12);  color: #4ade80; }
+.lb-result--lose    { background: rgba(248,113,113,0.12); color: #f87171; }
+.lb-result--draw    { background: rgba(250,204,21,0.12);  color: #facc15; }
+.lb-result--bye     { background: rgba(107,114,128,0.15); color: #9ca3af; }
+.lb-result--pending { background: rgba(107,114,128,0.10); color: #6b7280; }
+
+/* ── 버튼 ── */
+.lb-match-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.lb-log-btn, .lb-viz-btn {
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.lb-log-btn {
+  background: none;
+  border: 1px solid #2a3a5a;
+  color: #87ceeb;
+}
+.lb-log-btn:hover { background: #0f1e35; border-color: #87ceeb; }
+
+.lb-viz-btn {
+  background: none;
+  border: 1px solid #2a3a2a;
+  color: #4ade80;
+}
+.lb-viz-btn:hover { background: #0f1f0f; border-color: #4ade80; }
+
+.lb-log-btn--loading { opacity: 0.6; cursor: default; }
+.lb-log-btn--done    { border-color: #1e3a5f; color: #4b7a9a; cursor: default; }
+
+/* ── 매치 아이템 (행 + 로그 프리뷰) ── */
+.lb-match-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lb-log-error {
+  font-size: 0.72rem;
+  color: #f87171;
+  padding: 0 10px;
+}
+
+.lb-log-preview {
+  background: #070d1a;
+  border: 1px solid #1e2a40;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 0;
+}

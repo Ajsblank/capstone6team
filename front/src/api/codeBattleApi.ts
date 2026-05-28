@@ -73,6 +73,23 @@ export interface SessionLeaderboard {
   final_standings: LeaderboardStanding[];
 }
 
+export interface MyMatchInfo {
+  match_id: number;
+  round_number: number;
+  user1_id: number;
+  user2_id: number | null;
+  winner: 0 | 1 | 2 | null;
+  result: "WIN1" | "WIN2" | "DRAW" | "BYE" | null;
+}
+
+export interface MiddleRanking {
+  session_number: number;
+  total_participants: number;
+  total_rounds: number;
+  my_standing: LeaderboardStanding;
+  my_matches: MyMatchInfo[];
+}
+
 
 // 끝 슬래시 제거로 BASE_URL + "/path" 조합 시 // 방지
 const BASE_URL = (process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
@@ -187,8 +204,31 @@ export const updateMyProfile = async (patch: UserProfilePatch): Promise<UserProf
 };
 
 // ── 세션 리더보드 — GET /api/contests/{contestId}/sessionLeaderBoard ──
-export const getSessionLeaderboard = async (contestId: number): Promise<SessionLeaderboard> => {
-  const { data } = await api.get<SessionLeaderboard>(`/api/contests/${contestId}/sessionLeaderBoard`);
+export const getSessionLeaderboard = async (contestId: number, sessionNumber: number): Promise<SessionLeaderboard> => {
+  const { data } = await api.get<SessionLeaderboard>(`/api/contests/${contestId}/sessionLeaderBoard`, {
+    params: { sessionNumber },
+  });
+  return data;
+};
+
+export const getMiddleRanking = async (contestId: number, sessionNumber: number, userId: number): Promise<MiddleRanking> => {
+  const { data } = await api.get<MiddleRanking>(`/api/contests/${contestId}/${sessionNumber}/${userId}`);
+  return data;
+};
+
+// ── 스위스 매치 로그 — GET /api/contests/{contestId}/swiss/viewMatchLog/{matchId} ──
+export interface MatchLogDetail {
+  log: string;
+}
+
+export const getSwissMatchLog = async (contestId: number, matchId: number): Promise<MatchLogDetail> => {
+  const { data } = await api.get<MatchLogDetail>(`/api/contests/${contestId}/swiss/viewMatchLog/${matchId}`);
+  return data;
+};
+
+// ── 풀리그 매치 로그 — GET /api/contests/{contestId}/fullLeague/viewMatchLog/{matchId} ──
+export const getFullLeagueMatchLog = async (contestId: number, matchId: number): Promise<MatchLogDetail> => {
+  const { data } = await api.get<MatchLogDetail>(`/api/contests/${contestId}/fullLeague/viewMatchLog/${matchId}`);
   return data;
 };
 
