@@ -82,13 +82,6 @@ export interface MyMatchInfo {
   result: "WIN1" | "WIN2" | "DRAW" | "BYE" | null;
 }
 
-export interface MiddleRanking {
-  session_number: number;
-  total_participants: number;
-  total_rounds: number;
-  my_standing: LeaderboardStanding;
-  my_matches: MyMatchInfo[];
-}
 
 
 // 끝 슬래시 제거로 BASE_URL + "/path" 조합 시 // 방지
@@ -211,8 +204,8 @@ export const getSessionLeaderboard = async (contestId: number, sessionNumber: nu
   return data;
 };
 
-export const getMiddleRanking = async (contestId: number, sessionNumber: number, userId: number): Promise<MiddleRanking> => {
-  const { data } = await api.get<MiddleRanking>(`/api/contests/${contestId}/${sessionNumber}/${userId}`);
+export const getMiddleRanking = async (contestId: number, sessionNumber: number, userId: number): Promise<MyMatchInfo[]> => {
+  const { data } = await api.get<MyMatchInfo[]>(`/api/contests/${contestId}/${sessionNumber}/${userId}`);
   return data;
 };
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   getSessionLeaderboard, getMiddleRanking, getContestSessions, getSwissMatchLog,
-  SessionLeaderboard, LeaderboardStanding, MiddleRanking, MyMatchInfo,
+  SessionLeaderboard, LeaderboardStanding, MyMatchInfo,
 } from "../api/codeBattleApi";
 import "./LeaderboardTab.css";
 
@@ -32,48 +32,70 @@ function getOpponent(match: MyMatchInfo, userId: number): number | null {
 
 interface DetailPanelProps {
   contestId: number;
+  sessionNumber: number | null;
   viewUserId: number;
   isMe: boolean;
   hasVisualization: boolean;
-  data: MiddleRanking | null;
+  matches: MyMatchInfo[] | null;
   loading: boolean;
   error: string | null;
   onLogView?: (log: string) => void;
 }
 
 const MatchDetailPanel: React.FC<DetailPanelProps> = ({
-  contestId, viewUserId, isMe, hasVisualization, data, loading, error, onLogView,
+  contestId, sessionNumber, viewUserId, isMe, hasVisualization, matches, loading, error, onLogView,
 }) => {
-  const [logMap,       setLogMap]       = useState<Map<number, string>>(new Map());
-  const [logLoadingId, setLogLoadingId] = useState<number | null>(null);
-  const [logErrorId,   setLogErrorId]   = useState<number | null>(null);
+  const [logMap,        setLogMap]        = useState<Map<number, string>>(new Map());
+  const [logLoadingId,  setLogLoadingId]  = useState<number | null>(null);
+  const [logErrorId,    setLogErrorId]    = useState<number | null>(null);
+  const [openLogId,     setOpenLogId]     = useState<number | null>(null);
 
   const handleLogCheck = (matchId: number) => {
-    if (logMap.has(matchId) || logLoadingId === matchId) return;
+    // 이미 로드된 경우 토글만
+    if (logMap.has(matchId)) {
+      setOpenLogId(prev => prev === matchId ? null : matchId);
+      return;
+    }
+    if (logLoadingId === matchId) return;
     setLogLoadingId(matchId);
     setLogErrorId(null);
     getSwissMatchLog(contestId, matchId)
-      .then(res => setLogMap(prev => new Map(prev).set(matchId, res.log)))
-      .catch(() => setLogErrorId(matchId))
+      .then(res => {
+        const raw: any = res;
+        console.group(`[LeaderboardTab] matchLog — contest=${contestId} match=${matchId}`);
+        console.log("raw response :", raw);
+        console.log("typeof       :", typeof raw);
+        console.groupEnd();
+        const display: string =
+          typeof raw === "string" ? raw :
+          (typeof raw?.log === "string" ? raw.log : JSON.stringify(raw, null, 2));
+        setLogMap(prev => new Map(prev).set(matchId, display));
+        setOpenLogId(matchId);
+      })
+      .catch(err => {
+        console.error(`[LeaderboardTab] matchLog 오류 — contest=${contestId} match=${matchId}`, err?.response ?? err);
+        setLogErrorId(matchId);
+      })
       .finally(() => setLogLoadingId(null));
   };
 
   if (loading) return <div className="lb-detail-panel"><span className="lb-detail-spinner" />불러오는 중...</div>;
   if (error)   return <div className="lb-detail-panel lb-detail-panel--error">{error}</div>;
-  if (!data)   return null;
+  if (!matches) return null;
 
   return (
     <div className="lb-detail-panel">
       <div className="lb-detail-header">
-        세션 {data.session_number} · {isMe ? "내" : `User ${viewUserId}의`} 매치 기록
+        세션 {sessionNumber} · {isMe ? "내" : `User ${viewUserId}의`} 매치 기록
       </div>
       <div className="lb-match-list">
-        {data.my_matches.map(match => {
+        {matches.map(match => {
           const { label, cls } = getResultForUser(match, viewUserId);
           const opponent       = getOpponent(match, viewUserId);
-          const log            = logMap.get(match.match_id);
-          const isLogLoading   = logLoadingId === match.match_id;
-          const isLogError     = logErrorId   === match.match_id;
+          const log          = logMap.get(match.match_id);
+          const isLogLoading = logLoadingId === match.match_id;
+          const isLogError   = logErrorId   === match.match_id;
+          const isLogOpen    = openLogId    === match.match_id;
 
           return (
             <div key={match.match_id} className="lb-match-item">
@@ -85,11 +107,11 @@ const MatchDetailPanel: React.FC<DetailPanelProps> = ({
                 <span className={`lb-match-result ${cls}`}>{label}</span>
                 <div className="lb-match-actions">
                   <button
-                    className={`lb-log-btn${isLogLoading ? " lb-log-btn--loading" : ""}${log ? " lb-log-btn--done" : ""}`}
+                    className={`lb-log-btn${isLogLoading ? " lb-log-btn--loading" : ""}${log ? " lb-log-btn--active" : ""}`}
                     disabled={isLogLoading}
                     onClick={() => handleLogCheck(match.match_id)}
                   >
-                    {isLogLoading ? "로딩 중…" : log ? "로그 확인됨" : "로그 확인"}
+                    {isLogLoading ? "로딩 중…" : log ? (isLogOpen ? "로그 닫기 ▲" : "로그 열기 ▼") : "로그 확인"}
                   </button>
                   {hasVisualization && onLogView && log && (
                     <button className="lb-viz-btn" onClick={() => onLogView(log)}>
@@ -102,8 +124,10 @@ const MatchDetailPanel: React.FC<DetailPanelProps> = ({
               {isLogError && (
                 <div className="lb-log-error">로그를 불러오지 못했습니다.</div>
               )}
-              {log && (
-                <pre className="lb-log-preview">{log}</pre>
+              {isLogOpen && (
+                log
+                  ? <pre className="lb-log-preview">{log}</pre>
+                  : <div className="lb-log-error">로그 내용이 없습니다.</div>
               )}
             </div>
           );
@@ -126,7 +150,7 @@ const LeaderboardTab: React.FC<Props> = ({
   const [error,   setError]   = useState<string | null>(null);
 
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
-  const [middleCache,    setMiddleCache]    = useState<Map<number, MiddleRanking>>(new Map());
+  const [middleCache,    setMiddleCache]    = useState<Map<number, MyMatchInfo[]>>(new Map());
   const [detailLoading,  setDetailLoading]  = useState(false);
   const [detailError,    setDetailError]    = useState<string | null>(null);
 
@@ -172,8 +196,16 @@ const LeaderboardTab: React.FC<Props> = ({
     if (middleCache.has(userId) || detailLoading || selectedSession === null) return;
     setDetailLoading(true);
     getMiddleRanking(contestId, selectedSession, userId)
-      .then(res => setMiddleCache(prev => new Map(prev).set(userId, res)))
-      .catch(() => setDetailError("매치 정보를 불러오지 못했습니다."))
+      .then(res => {
+        console.group(`[LeaderboardTab] middleRanking — contest=${contestId} session=${selectedSession} user=${userId}`);
+        console.log("raw response :", res);
+        console.groupEnd();
+        setMiddleCache(prev => new Map(prev).set(userId, res));
+      })
+      .catch(err => {
+        console.error(`[LeaderboardTab] middleRanking 오류 — contest=${contestId} session=${selectedSession} user=${userId}`, err?.response ?? err);
+        setDetailError("매치 정보를 불러오지 못했습니다.");
+      })
       .finally(() => setDetailLoading(false));
   };
 
@@ -249,10 +281,11 @@ const LeaderboardTab: React.FC<Props> = ({
                 {isExpanded && (
                   <MatchDetailPanel
                     contestId={contestId}
+                    sessionNumber={selectedSession}
                     viewUserId={s.user_id}
                     isMe={isMe}
                     hasVisualization={hasVisualization}
-                    data={middleCache.get(s.user_id) ?? null}
+                    matches={middleCache.get(s.user_id) ?? null}
                     loading={detailLoading && !middleCache.has(s.user_id)}
                     error={detailError}
                     onLogView={onLogView}
