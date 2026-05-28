@@ -1,0 +1,141 @@
+.lb-container {
+  padding: 24px 20px;
+  width: 100%;
+  max-width: 640px;
+}
+
+.lb-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.lb-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e0e0e0;
+  margin: 0;
+}
+
+.lb-meta {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.lb-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+.lb-empty--error { color: #f87171; }
+
+/* ── 카드 목록 ── */
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lb-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: #16213e;
+  border: 1.5px solid #2a2a4a;
+  border-radius: 12px;
+  transition: border-color 0.2s;
+}
+
+.lb-card--rank1 { border-color: #f59e0b; background: #1c1a10; }
+.lb-card--rank2 { border-color: #9ca3af; background: #161618; }
+.lb-card--rank3 { border-color: #b45309; background: #1a1410; }
+
+.lb-card--me {
+  border-color: #89b4fa !important;
+  background: #0f1e35 !important;
+  box-shadow: 0 0 0 1px rgba(137, 180, 250, 0.25), 0 0 16px rgba(137, 180, 250, 0.12);
+}
+
+/* ── 순위 ── */
+.lb-rank {
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lb-medal    { font-size: 1.6rem; line-height: 1; }
+.lb-rank-num { font-size: 1.2rem; font-weight: 800; color: #6b7280; }
+
+/* ── 유저 정보 ── */
+.lb-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lb-user-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.lb-me-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 20px;
+  background: rgba(137, 180, 250, 0.15);
+  color: #89b4fa;
+  border: 1px solid rgba(137, 180, 250, 0.35);
+}
+
+.lb-record {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+
+.lb-wins   { color: #87ceeb; font-weight: 600; }
+.lb-draws  { color: #facc15; font-weight: 600; }
+.lb-losses { color: #f87171; font-weight: 600; }
+.lb-total  { color: #6b7280; }
+
+/* ── 승점 ── */
+.lb-points {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.lb-points-num {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #e0e0e0;
+  line-height: 1;
+}
+
+.lb-card--rank1 .lb-points-num { color: #f59e0b; }
+.lb-card--rank2 .lb-points-num { color: #9ca3af; }
+.lb-card--rank3 .lb-points-num { color: #cd7f32; }
+.lb-card--me    .lb-points-num { color: #89b4fa; }
+
+.lb-points-label {
+  font-size: 0.65rem;
+  color: #6b7280;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}

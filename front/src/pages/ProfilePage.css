@@ -1,0 +1,219 @@
+.pp-root {
+  min-height: 100vh;
+  background: #1e1e2e;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 16px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.pp-center {
+  min-height: 100vh;
+  background: #1e1e2e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* ── 카드 ── */
+.pp-card {
+  width: 100%;
+  max-width: 520px;
+  background: #181825;
+  border: 1px solid #313244;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.pp-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 28px;
+  border-bottom: 1px solid #313244;
+}
+
+.pp-card-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #cdd6f4;
+}
+
+.pp-back-btn {
+  background: none;
+  border: none;
+  color: #6c7086;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+.pp-back-btn:hover { color: #a6adc8; }
+
+.pp-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── 버튼 ── */
+.pp-btn {
+  padding: 7px 18px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.pp-btn--primary {
+  background: #89b4fa;
+  color: #1e1e2e;
+  border-color: #89b4fa;
+  font-weight: 600;
+}
+.pp-btn--primary:hover { background: #74a8f5; }
+.pp-btn--primary:disabled { opacity: 0.5; cursor: default; }
+.pp-btn--ghost {
+  background: none;
+  color: #a6adc8;
+  border-color: #45475a;
+}
+.pp-btn--ghost:hover { border-color: #6c7086; color: #cdd6f4; }
+.pp-btn--ghost:disabled { opacity: 0.5; cursor: default; }
+
+/* ── 상태 메시지 ── */
+.pp-status {
+  padding: 60px 28px;
+  text-align: center;
+  color: #6c7086;
+  font-size: 0.9rem;
+}
+.pp-status--error { color: #f38ba8; }
+.pp-error { color: #f38ba8; font-size: 0.9rem; }
+
+/* ── 본문 ── */
+.pp-body {
+  padding: 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 24px;
+}
+
+/* ── 아바타 ── */
+.pp-avatar-wrap {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+.pp-avatar-img {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #313244;
+}
+.pp-avatar-default {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: #313244;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+}
+
+/* ── 필드 ── */
+.pp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pp-field--full { grid-column: 1 / -1; }
+
+.pp-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #6c7086;
+  text-transform: uppercase;
+}
+
+.pp-value {
+  font-size: 0.92rem;
+  color: #cdd6f4;
+}
+.pp-value--name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #cdd6f4;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.pp-tag {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #6c7086;
+}
+.pp-value--muted { color: #6c7086; }
+.pp-value--bio {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  color: #a6adc8;
+}
+
+/* ── 입력 ── */
+.pp-input {
+  background: #1e1e2e;
+  border: 1px solid #45475a;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #cdd6f4;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.pp-input:focus { border-color: #89b4fa; }
+
+.pp-textarea {
+  background: #1e1e2e;
+  border: 1px solid #45475a;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #cdd6f4;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  line-height: 1.6;
+}
+.pp-textarea:focus { border-color: #89b4fa; }
+
+.pp-fetch-notice {
+  grid-column: 1 / -1;
+  color: #f9e2af;
+  font-size: 0.82rem;
+  margin: 0 0 4px;
+  padding: 8px 12px;
+  background: rgba(249, 226, 175, 0.08);
+  border: 1px solid rgba(249, 226, 175, 0.2);
+  border-radius: 8px;
+}
+
+.pp-save-error {
+  grid-column: 1 / -1;
+  color: #f38ba8;
+  font-size: 0.82rem;
+  margin: 0;
+}
