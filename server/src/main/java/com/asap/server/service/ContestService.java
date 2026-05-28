@@ -44,7 +44,6 @@ import com.asap.server.repository.usersRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @Service
 @RequiredArgsConstructor
@@ -151,7 +150,7 @@ public class ContestService {
             throw new IllegalArgumentException("인증 대회는 visualizationHtml과 soloPlayHtml이 필수입니다.");
         }
 
-        if (request.getSampleCode() == null || request.getSampleCode().isBlank()
+        if (request.getSampleCodes() == null || request.getSampleCodes().isEmpty()
                 || request.getJudgeCode() == null || request.getJudgeCode().isBlank()
                 || request.getExampleAiCodes() == null || request.getExampleAiCodes().isEmpty()) {
             throw new IllegalArgumentException(
@@ -194,18 +193,8 @@ public class ContestService {
             }
         }
 
-        // Legacy multipart upload flow kept for reference during the DTO migration.
-        // visualUrl = s3Service.uploadContestResourceFile(savedContest.getId(),
-        // S3Service.ContestResourceType.VISUAL_HTML, visualFile);
-        // soloUrl = s3Service.uploadContestResourceFile(savedContest.getId(),
-        // S3Service.ContestResourceType.SOLO_HTML, soloFile);
-        // judgeCodeUrl = s3Service.uploadJudgeCodeFile(savedContest.getId(),
-        // judgeCodeFile);
-        // sampleCodeUrl = s3Service.uploadSampleCodeFile(savedContest.getId(),
-        // resolvedSampleCodeName, sampleCodeFile);
-        // saveExampleAiCodes(savedContest, uploadedExampleAiUrls);
-
         saveExampleAiCodes(savedContest, request.getExampleAiCodes());
+        saveSampleCodes(savedContest, request.getSampleCodes());
 
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -217,7 +206,7 @@ public class ContestService {
         } else {
             contestRun.registerContest(savedContest);
         }
-        return ContestResponse.from(savedContest, request.getExampleAiCodes());
+        return ContestResponse.from(savedContest, request.getExampleAiCodes(), request.getSampleCodes());
     }
 
     @Transactional
@@ -350,40 +339,29 @@ public class ContestService {
         return keyOrUrl;
     }
 
-    private IllegalStateException convertUploadException(String operation, Exception e) {
-        Throwable root = rootCause(e);
-
-        if (root instanceof S3Exception s3Exception) {
-            if (s3Exception.statusCode() == 403) {
-                return new IllegalStateException(
-                        operation + " 중 S3 인증 오류(403)가 발생했습니다. AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY 및 버킷 권한을 확인하세요.",
-                        e);
-            }
-            return new IllegalStateException(operation + " 중 S3 오류가 발생했습니다. status=" + s3Exception.statusCode(), e);
-        }
-
-        return new IllegalStateException(operation + " 중 리소스 업로드 실패", e);
-    }
-
-    private Throwable rootCause(Throwable throwable) {
-        Throwable current = throwable;
-        while (current.getCause() != null && current.getCause() != current) {
-            current = current.getCause();
-        }
-        return current;
-    }
-
     @Transactional(readOnly = true)
     public ContestResponse getContestResponse(Long contestId) {
         CodeBattleContest contest = getContestById(contestId);
         applyResourceUrlsIfMissing(contest);
-        return ContestResponse.from(contest, getExampleAiUrls(contestId));
+        return ContestResponse.from(contest, getExampleAiCodes(contestId), getSampleCodes(contestId));
     }
 
-    private List<String> getExampleAiUrls(Long contestId) {
+    private List<String> getExampleAiCodes(Long contestId) {
         return exampleAIRepository.findByContestIdOrderByExampleOrderAsc(contestId)
                 .stream()
                 .map(CodeBattleExampleAI::getCode)
+                .toList();
+    }
+
+    private List<SampleCodeRequest> getSampleCodes(Long contestId) {
+        return sampleCodeRepository.findByContestIdOrderBySampleOrderAsc(contestId)
+                .stream()
+                .map(s -> {
+                    SampleCodeRequest dto = new SampleCodeRequest();
+                    dto.setCode(s.getCode());
+                    dto.setLanguage(s.getLanguage());
+                    return dto;
+                })
                 .toList();
     }
 
@@ -591,18 +569,6 @@ public class ContestService {
         validateDatePair(startDate, endDate);
         validateStatusByPeriod(status, startDate, endDate, now);
         return new DatePolicy(startDate, endDate);
-    }
-
-    private void validatePatchValues(UpdateContestRequest request) {
-        if (request.getTimeLimitSec() != null && request.getTimeLimitSec() <= 0) {
-            throw new IllegalArgumentException("시간 제한은 1 이상이어야 합니다.");
-        }
-        if (request.getMemoryLimitMb() != null && request.getMemoryLimitMb() <= 0) {
-            throw new IllegalArgumentException("메모리 제한은 1 이상이어야 합니다.");
-        }
-        if (request.getMaxParticipants() != null && request.getMaxParticipants() <= 0) {
-            throw new IllegalArgumentException("최대 참가자 수는 1 이상이어야 합니다.");
-        }
     }
 
     private String trimToNull(String value) {
