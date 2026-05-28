@@ -588,11 +588,11 @@ public class ContestController {
         }
     }
 
-    @GetMapping("/{contestId}/{sessionNumber}/middleRanking")
-    @Operation(summary = "세션 랭킹 조회", description = "최근 종료된 중간 대회의 결과를 조회합니다.")
+    @GetMapping("/{contestId}/{sessionNumber}/{userId}")
+    @Operation(summary = "세션 매치 조회", description = "최근 종료된 중간 대회의 매치를 조회합니다.")
     public ResponseEntity<?> getMiddleRanking(@PathVariable Long contestId,
             @PathVariable int sessionNumber,
-            @AuthenticationPrincipal Long userId) {
+            @PathVariable Long userId) {
         try {
             String key = s3Service.buildSessionResultKey(contestId, sessionNumber);
             String json;
@@ -604,16 +604,9 @@ public class ContestController {
                         .body(Map.of("message", "아직 집계 중이거나 데이터가 존재하지 않습니다."));
             }
             SwissResultResponse full = objectMapper.readValue(json, SwissResultResponse.class);
-            SwissResultResponse.StandingDto myStanding = full.getFinalStandings()
-                    .stream()
-                    .filter(s -> s.getUserId().equals(userId))
-                    .findFirst()
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 유저의 결과가 없습니다."));
-            List<Long> myMatchIds = myStanding.getMatchIds();
-            // rounds에서 내 매치 추출
             List<SwissMiddleRankResponse.MatchDto> myMatches = full.getRounds().stream()
                     .flatMap(round -> round.getMatches().stream()
-                            .filter(m -> myMatchIds.contains(m.getMatchId()))
+                            .filter(m -> userId.equals(m.getUser1Id()) || userId.equals(m.getUser2Id()))
                             .map(m -> SwissMiddleRankResponse.MatchDto.builder()
                                     .matchId(m.getMatchId())
                                     .roundNumber(round.getRoundNumber())
@@ -624,22 +617,7 @@ public class ContestController {
                                     .build()))
                     .collect(Collectors.toList());
 
-            SwissMiddleRankResponse response = SwissMiddleRankResponse.builder()
-                    .sessionNumber(full.getSessionNumber())
-                    .totalParticipants(full.getTotalParticipants())
-                    .totalRounds(full.getTotalRounds())
-                    .myStanding(SwissMiddleRankResponse.StandingDto.builder()
-                            .userId(myStanding.getUserId())
-                            .wins(myStanding.getWins())
-                            .draws(myStanding.getDraws())
-                            .losses(myStanding.getLosses())
-                            .points(myStanding.getPoints())
-                            .rank(myStanding.getRank())
-                            .build())
-                    .myMatches(myMatches)
-                    .build();
-
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(myMatches);
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode())
                     .body(Map.of("message", e.getReason()));
@@ -664,7 +642,7 @@ public class ContestController {
 
     @GetMapping("/{contestId}/fullLeague/viewMatchLog/{matchId}")
     @Operation(summary = "풀리그 매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
-    public String geContesttMatchLog(
+    public String getContesttMatchLog(
             @PathVariable Long contestId,
             @PathVariable Long matchId) {
         CodeBattleMatch match = matchRepository.findById(matchId)
