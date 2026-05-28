@@ -42,6 +42,7 @@ import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestResponse;
 import com.asap.server.dto.response.ContestSessionListResponse;
 import com.asap.server.dto.response.FinalResultResponse;
+import com.asap.server.dto.response.SwissMiddleRankResponse;
 import com.asap.server.dto.response.SwissResultResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
@@ -503,6 +504,51 @@ public class ContestController {
                 return ResponseEntity.internalServerError()
                         .body(Map.of("message", "결과 데이터 파싱 중 오류가 발생했습니다."));
             }
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode())
+                    .body(Map.of("message", e.getReason()));
+        } catch (Exception e) {
+            log.error("[스위스리그] 세션 결과 조회 실패. contestId={}, sessionNumber={}", contestId, sessionNumber, e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "결과 조회 중 오류가 발생했습니다."));
+        }
+    }
+
+    @GetMapping("/{contestId}/middleRanking")
+    @Operation(summary = "세션 결과 조회", description = "세션 종료 후 기록된 스위스리그 결과를 Json 형식으로 반환합니다.")
+    public ResponseEntity<?> getmiddleRank(@PathVariable Long contestId,
+            @RequestParam int sessionNumber) {
+        try {
+            ContestSwissSession session = sessionRepository
+                    .findTopByContestIdAndSessionNumberOrderByIdDesc(contestId, sessionNumber)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND,
+                            "세션을 찾을 수 없습니다."));
+
+            if (session.getStatus() != ContestStatus.END) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message", "아직 종료되지 않은 세션입니다."));
+            }
+
+            String key = s3Service.buildSessionResultKey(contestId, sessionNumber);
+            String json;
+            try {
+                json = s3Service.readFileAsString(key);
+            } catch (Exception e) {
+                // S3 파일 없음 = 종료는 됐지만 아직 집계 중
+                return ResponseEntity.accepted()
+                        .body(Map.of("message", "아직 집계 중이거나 데이터가 존재하지 않습니다."));
+            }
+
+            try {
+                SwissMiddleRankResponse response = objectMapper.readValue(json, SwissMiddleRankResponse.class);
+                return ResponseEntity.ok(response);
+            } catch (JsonProcessingException e) {
+                log.error("[스위스리그] JSON 파싱 실패. key={}", key, e);
+                return ResponseEntity.internalServerError()
+                        .body(Map.of("message", "결과 데이터 파싱 중 오류가 발생했습니다."));
+            }
+
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode())
                     .body(Map.of("message", e.getReason()));
