@@ -634,9 +634,11 @@ public class ContestController {
         }
     }
 
-    @GetMapping("/swiss/viewMatchLog")
+    @GetMapping("/{contestId}/swiss/viewMatchLog")
     @Operation(summary = "스위스 대회 매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
-    public String getSwissMatchLog(@RequestParam Long matchId) {
+    public String getSwissMatchLog(
+            @PathVariable Long contestId,
+            @RequestParam Long matchId) {
 
         ContestSwissMatch match = swissMatchRepository.findById(matchId)
                 .orElseThrow(() -> new EntityNotFoundException("Match not found: " + matchId));
@@ -644,9 +646,11 @@ public class ContestController {
         return match.getLog();
     }
 
-    @GetMapping("/viewMatchLog")
-    @Operation(summary = "대회 매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
-    public String geContesttMatchLog(@RequestParam Long matchId) {
+    @GetMapping("/{contestId}/fullLeague/viewMatchLog")
+    @Operation(summary = "풀리그 매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
+    public String geContesttMatchLog(
+            @PathVariable Long contestId,
+            @RequestParam Long matchId) {
 
         CodeBattleMatch match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new EntityNotFoundException("Match not found: " + matchId));
