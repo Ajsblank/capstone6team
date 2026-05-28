@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.asap.server.domain.CodeBattleContest;
-import com.asap.server.dto.request.SampleCodeRequest;
 import com.asap.server.global.type.ContestStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -38,7 +37,7 @@ public class ContestResponse {
 
   private Integer maxParticipants;
   private LocalDateTime createdAt;
-  private List<SampleCodeRequest> sampleCodes;
+  private List<SampleCodeResponse> sampleCodes;
   private List<String> exampleAiCodes;
 
   public static ContestResponse from(CodeBattleContest contest) {
@@ -46,7 +45,7 @@ public class ContestResponse {
   }
 
   public static ContestResponse from(CodeBattleContest contest, List<String> exampleAiCodes,
-      List<SampleCodeRequest> sampleCodes) {
+      List<SampleCodeResponse> sampleCodes) {
     return ContestResponse.builder()
         .id(contest.getId())
         .creatorId(contest.getCreator() != null ? contest.getCreator().getId() : null)
