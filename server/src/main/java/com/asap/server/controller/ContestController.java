@@ -2,6 +2,8 @@ package com.asap.server.controller;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -324,7 +326,8 @@ public class ContestController {
         }
     }
 
-    @PostMapping("/{contestId}/swiss-session-test")
+    @PostMapping("/{contestId}/temporarySessionTest")
+    @Operation(summary = "세션을 생성 실행합니다.", description = "대회에 세션을 새로 생성하고 강제 실행합니다.")
     public ResponseEntity<String> testSwissSession(
             @PathVariable Long contestId,
             @RequestParam int sessionNumber) {
@@ -647,11 +650,11 @@ public class ContestController {
         }
     }
 
-    @GetMapping("/{contestId}/swiss/viewMatchLog")
+    @GetMapping("/{contestId}/swiss/viewMatchLog/{matchId}")
     @Operation(summary = "스위스 대회 매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
     public String getSwissMatchLog(
             @PathVariable Long contestId,
-            @RequestParam Long matchId) {
+            @PathVariable Long matchId) {
 
         ContestSwissMatch match = swissMatchRepository.findById(matchId)
                 .orElseThrow(() -> new EntityNotFoundException("Match not found: " + matchId));
@@ -659,18 +662,71 @@ public class ContestController {
         return match.getLog();
     }
 
-    @GetMapping("/{contestId}/fullLeague/viewMatchLog")
+    @GetMapping("/{contestId}/fullLeague/viewMatchLog/{matchId}")
     @Operation(summary = "풀리그 매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
     public String geContesttMatchLog(
             @PathVariable Long contestId,
-            @RequestParam Long matchId) {
-
+            @PathVariable Long matchId) {
         CodeBattleMatch match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new EntityNotFoundException("Match not found: " + matchId));
         if (match.getContest().getId() != contestId) {
             log.info("요청한 매치의 대회 ID={}와 입력된 대회 ID={}가 일치하지 않습니다.", match.getId(), contestId);
         }
         return match.getLog();
+    }
+
+    @PostMapping("/{contestId}/scheduleSwissLeague")
+    @Operation(summary = "스위스 리그를 예약합니다.", description = "스케줄을 받아 스위스 세션을 예약합니다.")
+    public ResponseEntity<?> createSwissSession(
+            @PathVariable Long contestId,
+            @RequestBody List<LocalDateTime> scheduledTimes) {
+
+        CodeBattleContest contest = contestRepository.findById(contestId)
+                .orElseThrow(() -> new EntityNotFoundException("Contest not found: " + contestId));
+        List<ContestSwissSession> sessions = new ArrayList<>();
+        List<LocalDateTime> sorted = scheduledTimes.stream()
+                .sorted()
+                .toList();
+        for (int i = 0; i < sorted.size(); i++) {
+            ContestSwissSession session = new ContestSwissSession();
+            session.setContest(contest);
+            session.setScheduledAt(sorted.get(i));
+            // 임시로 1부터 세션 번호를 매김
+            // 현재 테스트를 위해 생성, 자동 예약이 되지 않음
+            session.setStatus(ContestStatus.PLANNED);
+            session.setSessionNumber(i + 1);
+            sessions.add(session);
+        }
+
+        sessionRepository.saveAll(sessions);
+
+        return ResponseEntity.ok(Map.of("세션 리스트 생성됨", sessions.size()));
+    }
+
+    @PostMapping("/{contestId}/runSwissSession")
+    @Operation(summary = "스위스 세션을 실행합니다. (구현중)", description = "예약된 세션을 찾아 실행하고 완료 처리합니다.")
+    public ResponseEntity<String> runSwissSession(
+            @PathVariable Long contestId,
+            @RequestParam int sessionNumber) {
+        try {
+            ContestSwissSession session = sessionRepository
+                    .findByContestIdAndSessionNumber(contestId, sessionNumber)
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "세션을 찾을 수 없습니다. contestId=" + contestId + ", sessionNumber=" + sessionNumber));
+
+            swissService.generateSwissSession(contestId, sessionNumber, session.getId());
+
+            session.setStatus(ContestStatus.END);
+            session.setFinishedAt(LocalDateTime.now());
+            sessionRepository.save(session);
+
+            return ResponseEntity.ok("스위스 세션 " + sessionNumber + " 실행 완료. sessionId=" + session.getId());
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            log.error("[스위스 세션 실행] 예외 발생", e);
+            return ResponseEntity.badRequest().body(e.getClass().getSimpleName() + ": " + e.getMessage());
+        }
     }
 
 }
