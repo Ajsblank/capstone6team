@@ -653,15 +653,11 @@ public class ContestController {
             @RequestParam int sessionNumber) {
         try {
             ContestSwissSession session = sessionRepository
-                    .findByContestIdAndSessionNumber(contestId, sessionNumber)
+                    .findTopByContestIdAndSessionNumberOrderByIdDesc(contestId, sessionNumber)
                     .orElseThrow(() -> new EntityNotFoundException(
                             "세션을 찾을 수 없습니다. contestId=" + contestId + ", sessionNumber=" + sessionNumber));
 
             swissService.generateSwissSession(contestId, sessionNumber, session.getId());
-
-            session.setStatus(ContestStatus.END);
-            session.setFinishedAt(LocalDateTime.now());
-            sessionRepository.save(session);
 
             return ResponseEntity.ok("스위스 세션 " + sessionNumber + " 실행 완료. sessionId=" + session.getId());
         } catch (EntityNotFoundException e) {
