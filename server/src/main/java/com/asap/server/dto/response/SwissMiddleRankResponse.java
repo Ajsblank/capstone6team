@@ -12,9 +12,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonPropertyOrder({ "session_number", "total_participants", "total_rounds", "final_standings" })
+@JsonPropertyOrder({ "session_number", "total_participants", "total_rounds", "my_standing", "my_matches" })
 public class SwissMiddleRankResponse {
   @JsonProperty("session_number")
   private int sessionNumber;
@@ -22,15 +24,15 @@ public class SwissMiddleRankResponse {
   private int totalParticipants;
   @JsonProperty("total_rounds")
   private int totalRounds;
-  @JsonProperty("final_standings")
-  private List<StandingDto> finalStandings;
+  @JsonProperty("my_standing")
+  private StandingDto myStanding;
+  @JsonProperty("my_matches")
+  private List<MatchDto> myMatches;
 
   @Getter
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  @JsonIgnoreProperties(ignoreUnknown = true)
-
   public static class StandingDto {
     @JsonProperty("user_id")
     private Long userId;
@@ -39,5 +41,22 @@ public class SwissMiddleRankResponse {
     private int losses;
     private int points;
     private int rank;
+  }
+
+  @Getter
+  @Builder
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class MatchDto {
+    @JsonProperty("match_id")
+    private Long matchId;
+    @JsonProperty("round_number")
+    private int roundNumber;
+    @JsonProperty("user1_id")
+    private Long user1Id;
+    @JsonProperty("user2_id")
+    private Long user2Id;
+    private Integer winner;
+    private String result;
   }
 }

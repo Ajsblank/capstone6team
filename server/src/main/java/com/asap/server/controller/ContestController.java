@@ -31,6 +31,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.asap.server.config.CustomUserDetails;
 import com.asap.server.domain.CodeBattleContest;
+import com.asap.server.domain.CodeBattleMatch;
+import com.asap.server.domain.ContestSwissMatch;
 import com.asap.server.domain.ContestSwissSession;
 import com.asap.server.dto.request.CreateCertifiedContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
@@ -42,10 +44,13 @@ import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestResponse;
 import com.asap.server.dto.response.ContestSessionListResponse;
 import com.asap.server.dto.response.FinalResultResponse;
+import com.asap.server.dto.response.SwissLeaderBoardResponse;
 import com.asap.server.dto.response.SwissMiddleRankResponse;
 import com.asap.server.dto.response.SwissResultResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
+import com.asap.server.repository.CodeBattleMatchRepository;
+import com.asap.server.repository.ContestSwissMatchRepository;
 import com.asap.server.repository.ContestSwissSessionRepository;
 import com.asap.server.service.ContestService;
 import com.asap.server.service.FullLeagueService;
@@ -63,6 +68,7 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -82,6 +88,8 @@ public class ContestController {
     private final SwissLeagueService swissService;
     private final ContestSwissSessionRepository sessionRepository;
     private final SseService sseService;
+    private final ContestSwissMatchRepository swissMatchRepository;
+    private final CodeBattleMatchRepository matchRepository;
 
     @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
     @PostMapping(value = "/create/uncertified", consumes = "application/json")
@@ -514,9 +522,9 @@ public class ContestController {
         }
     }
 
-    @GetMapping("/{contestId}/middleRanking")
-    @Operation(summary = "세션 결과 조회", description = "세션 종료 후 기록된 스위스리그 결과를 Json 형식으로 반환합니다.")
-    public ResponseEntity<?> getmiddleRank(@PathVariable Long contestId,
+    @GetMapping("/{contestId}/sessionLeaderBoard")
+    @Operation(summary = "세션 리더보드 조회", description = "세션 종료 후 기록된 스위스리그 결과를 Json 형식으로 반환합니다.")
+    public ResponseEntity<?> getsessionLeaderBoard(@PathVariable Long contestId,
             @RequestParam int sessionNumber) {
         try {
             ContestSwissSession session = sessionRepository
@@ -541,7 +549,7 @@ public class ContestController {
             }
 
             try {
-                SwissMiddleRankResponse response = objectMapper.readValue(json, SwissMiddleRankResponse.class);
+                SwissLeaderBoardResponse response = objectMapper.readValue(json, SwissLeaderBoardResponse.class);
                 return ResponseEntity.ok(response);
             } catch (JsonProcessingException e) {
                 log.error("[스위스리그] JSON 파싱 실패. key={}", key, e);
@@ -557,5 +565,92 @@ public class ContestController {
             return ResponseEntity.internalServerError()
                     .body(Map.of("message", "결과 조회 중 오류가 발생했습니다."));
         }
+    }
+
+    @GetMapping("/{contestId}/middleRanking")
+    @Operation(summary = "세션 랭킹 조회", description = "최근 종료된 중간 대회의 결과를 조회합니다.")
+    public ResponseEntity<?> getmiddleRanking(@PathVariable Long contestId,
+            @AuthenticationPrincipal Long userId) {
+        try {
+            ContestSwissSession session = sessionRepository.findByContestId(contestId)
+                    .stream()
+                    .filter(s -> s.getSessionNumber() != null)
+                    .filter(s -> s.getStatus() == ContestStatus.END)
+                    .max(Comparator.comparing(ContestSwissSession::getSessionNumber))
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "종료된 세션이 없습니다."));
+            String key = s3Service.buildSessionResultKey(contestId, session.getSessionNumber());
+            String json;
+            try {
+                json = s3Service.readFileAsString(key);
+            } catch (Exception e) {
+                // S3 파일 없음 = 종료는 됐지만 아직 집계 중
+                return ResponseEntity.accepted()
+                        .body(Map.of("message", "아직 집계 중이거나 데이터가 존재하지 않습니다."));
+            }
+            SwissResultResponse full = objectMapper.readValue(json, SwissResultResponse.class);
+            SwissResultResponse.StandingDto myStanding = full.getFinalStandings()
+                    .stream()
+                    .filter(s -> s.getUserId().equals(userId))
+                    .findFirst()
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "해당 유저의 결과가 없습니다."));
+            List<Long> myMatchIds = myStanding.getMatchIds();
+            // rounds에서 내 매치 추출
+            List<SwissMiddleRankResponse.MatchDto> myMatches = full.getRounds().stream()
+                    .flatMap(round -> round.getMatches().stream()
+                            .filter(m -> myMatchIds.contains(m.getMatchId()))
+                            .map(m -> SwissMiddleRankResponse.MatchDto.builder()
+                                    .matchId(m.getMatchId())
+                                    .roundNumber(round.getRoundNumber())
+                                    .user1Id(m.getUser1Id())
+                                    .user2Id(m.getUser2Id())
+                                    .winner(m.getWinner())
+                                    .result(m.getResult())
+                                    .build()))
+                    .collect(Collectors.toList());
+
+            SwissMiddleRankResponse response = SwissMiddleRankResponse.builder()
+                    .sessionNumber(full.getSessionNumber())
+                    .totalParticipants(full.getTotalParticipants())
+                    .totalRounds(full.getTotalRounds())
+                    .myStanding(SwissMiddleRankResponse.StandingDto.builder()
+                            .userId(myStanding.getUserId())
+                            .wins(myStanding.getWins())
+                            .draws(myStanding.getDraws())
+                            .losses(myStanding.getLosses())
+                            .points(myStanding.getPoints())
+                            .rank(myStanding.getRank())
+                            .build())
+                    .myMatches(myMatches)
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode())
+                    .body(Map.of("message", e.getReason()));
+        } catch (Exception e) {
+            log.error("[스위스리그] 나의 세션 랭킹 조회 실패. contestId={}", contestId, e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", "나의 결과 조회 중 오류가 발생했습니다."));
+        }
+    }
+
+    @GetMapping("/swiss/viewMatchLog")
+    @Operation(summary = "매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
+    public String getSwissMatchLog(@RequestParam Long matchId) {
+
+        ContestSwissMatch match = swissMatchRepository.findById(matchId)
+                .orElseThrow(() -> new EntityNotFoundException("Match not found: " + matchId));
+
+        return match.getLog();
+    }
+
+    @GetMapping("/viewMatchLog")
+    @Operation(summary = "매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
+    public String geContesttMatchLog(@RequestParam Long matchId) {
+
+        CodeBattleMatch match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new EntityNotFoundException("Match not found: " + matchId));
+
+        return match.getLog();
     }
 }

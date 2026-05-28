@@ -155,7 +155,7 @@ public class CodeController {
             codesNode.put("player2", request.getSourceCode2());
 
             ObjectNode languagesNode = rootNode.putObject("languages");
-            languagesNode.put("judge", request.getLanguage1().name());
+            languagesNode.put("judge", request.getLanguage1().name().toLowerCase());
             languagesNode.put("player1", request.getLanguage2().name().toLowerCase());
             languagesNode.put("player2", request.getLanguage3().name().toLowerCase());
 
