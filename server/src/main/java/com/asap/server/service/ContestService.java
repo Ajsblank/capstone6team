@@ -1,7 +1,6 @@
 package com.asap.server.service;
 
 import java.io.IOException;
-import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleExampleAI;
@@ -33,6 +31,7 @@ import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestParticipantResponse;
 import com.asap.server.dto.response.ContestResponse;
+import com.asap.server.dto.response.SampleCodeResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
@@ -125,7 +124,13 @@ public class ContestService {
         } else {
             contestRun.registerContest(savedContest);
         }
-        return ContestResponse.from(savedContest, request.getExampleAiCodes(), request.getSampleCodes());
+        List<SampleCodeResponse> sampleCodes = request.getSampleCodes().stream()
+                .map(s -> SampleCodeResponse.builder()
+                        .code(s.getCode())
+                        .language(s.getLanguage())
+                        .build())
+                .toList();
+        return ContestResponse.from(savedContest, request.getExampleAiCodes(), sampleCodes);
     }
 
     /**
@@ -206,90 +211,13 @@ public class ContestService {
         } else {
             contestRun.registerContest(savedContest);
         }
-        return ContestResponse.from(savedContest, request.getExampleAiCodes(), request.getSampleCodes());
-    }
-
-    @Transactional
-    public ContestDetailResponse updateContestResources(
-            Long contestId,
-            MultipartFile visualFile,
-            MultipartFile soloFile,
-            MultipartFile judgeCodeFile,
-            MultipartFile sampleCodeFile,
-            List<MultipartFile> exampleAiFiles) throws IOException {
-        CodeBattleContest contest = contestRepository.findById(contestId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 대회를 찾을 수 없습니다: " + contestId));
-
-        if (visualFile != null && !visualFile.isEmpty()) {
-            String visualUrl = s3Service.uploadContestResourceFile(contestId, S3Service.ContestResourceType.VISUAL_HTML,
-                    visualFile);
-            contest.setVisualizationHtml(visualUrl);
-        }
-
-        if (soloFile != null && !soloFile.isEmpty()) {
-            String soloUrl = s3Service.uploadContestResourceFile(contestId, S3Service.ContestResourceType.SOLO_HTML,
-                    soloFile);
-            contest.setSoloPlayHtml(soloUrl);
-        }
-
-        if (judgeCodeFile != null && !judgeCodeFile.isEmpty()) {
-            String judgeUrl = s3Service.uploadJudgeCodeFile(contestId, judgeCodeFile);
-            contest.setJudgeCode(judgeUrl);
-        }
-
-        if (sampleCodeFile != null && !sampleCodeFile.isEmpty()) {
-            String sampleUrl = s3Service.uploadSampleCodeFile(contestId, FIXED_SAMPLE_CODE_NAME, sampleCodeFile);
-            contest.setSampleCode(sampleUrl);
-        }
-
-        List<MultipartFile> nonEmptyExampleAiFiles = filterNonEmptyFiles(exampleAiFiles);
-        if (!nonEmptyExampleAiFiles.isEmpty()) {
-            replaceExampleAiCodes(contest, nonEmptyExampleAiFiles);
-        }
-
-        return ContestDetailResponse.from(contest);
-    }
-
-    private void replaceExampleAiCodes(CodeBattleContest contest, List<MultipartFile> exampleAiFiles)
-            throws IOException {
-        List<String> uploadedNames = new ArrayList<>();
-        List<String> uploadedUrls = new ArrayList<>();
-
-        int exampleOrder = 1;
-        try {
-            for (MultipartFile exampleAiFile : exampleAiFiles) {
-                String exampleAiName = resolveExampleAiCodeName(exampleOrder);
-                String exampleAiUrl = s3Service.uploadExampleAiCodeFile(contest.getId(), exampleAiName, exampleAiFile);
-                uploadedNames.add(exampleAiName);
-                uploadedUrls.add(exampleAiUrl);
-                exampleOrder++;
-            }
-        } catch (Exception e) {
-            for (String uploadedName : uploadedNames) {
-                try {
-                    s3Service.deleteExampleAiCodeFile(contest.getId(), uploadedName);
-                } catch (Exception ignored) {
-                    log.warn("보상 삭제 실패 - exampleAiCode, contestId: {}, name: {}", contest.getId(), uploadedName,
-                            ignored);
-                }
-            }
-            throw new IllegalStateException("예제 AI 코드 업로드 실패", e);
-        }
-
-        List<CodeBattleExampleAI> existing = exampleAIRepository.findByContestIdOrderByExampleOrderAsc(contest.getId());
-        for (CodeBattleExampleAI current : existing) {
-            String key = extractS3Key(current.getCode());
-            if (key != null && !key.isBlank()) {
-                try {
-                    s3Service.deleteObjectByKey(key);
-                } catch (Exception ex) {
-                    log.warn("기존 예제 AI 코드 삭제 실패 - contestId: {}, key: {}", contest.getId(), key, ex);
-                }
-            }
-        }
-
-        exampleAIRepository.deleteAll(existing);
-        saveExampleAiCodes(contest, uploadedUrls);
+        List<SampleCodeResponse> sampleCodes = request.getSampleCodes().stream()
+                .map(s -> SampleCodeResponse.builder()
+                        .code(s.getCode())
+                        .language(s.getLanguage())
+                        .build())
+                .toList();
+        return ContestResponse.from(savedContest, request.getExampleAiCodes(), sampleCodes);
     }
 
     private void saveExampleAiCodes(CodeBattleContest contest, List<String> exampleAiCodes) {
@@ -312,38 +240,16 @@ public class ContestService {
         sampleCodeRepository.saveAll(entities);
     }
 
-    private List<MultipartFile> filterNonEmptyFiles(List<MultipartFile> files) {
-        List<MultipartFile> result = new ArrayList<>();
-        if (files == null) {
-            return result;
-        }
-        for (MultipartFile file : files) {
-            if (file != null && !file.isEmpty()) {
-                result.add(file);
-            }
-        }
-        return result;
-    }
-
-    private String resolveExampleAiCodeName(int order) {
-        return "example_ai_" + order;
-    }
-
-    private String extractS3Key(String keyOrUrl) {
-        if (keyOrUrl == null || keyOrUrl.isBlank()) {
-            return null;
-        }
-        if (keyOrUrl.startsWith("http")) {
-            return URI.create(keyOrUrl).getPath().replaceFirst("^/", "");
-        }
-        return keyOrUrl;
-    }
-
     @Transactional(readOnly = true)
     public ContestResponse getContestResponse(Long contestId) {
         CodeBattleContest contest = getContestById(contestId);
-        applyResourceUrlsIfMissing(contest);
         return ContestResponse.from(contest, getExampleAiCodes(contestId), getSampleCodes(contestId));
+    }
+
+    @Transactional(readOnly = true)
+    public ContestDetailResponse getContestDetailResponse(Long contestId) {
+        CodeBattleContest contest = getContestById(contestId);
+        return ContestDetailResponse.from(contest, getExampleAiCodes(contestId), getSampleCodes(contestId));
     }
 
     private List<String> getExampleAiCodes(Long contestId) {
@@ -353,23 +259,14 @@ public class ContestService {
                 .toList();
     }
 
-    private List<SampleCodeRequest> getSampleCodes(Long contestId) {
+    private List<SampleCodeResponse> getSampleCodes(Long contestId) {
         return sampleCodeRepository.findByContestIdOrderBySampleOrderAsc(contestId)
                 .stream()
-                .map(s -> {
-                    SampleCodeRequest dto = new SampleCodeRequest();
-                    dto.setCode(s.getCode());
-                    dto.setLanguage(s.getLanguage());
-                    return dto;
-                })
+                .map(s -> SampleCodeResponse.builder()
+                        .code(s.getCode())
+                        .language(s.getLanguage())
+                        .build())
                 .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public ContestDetailResponse getContestDetailResponse(Long contestId) {
-        CodeBattleContest contest = getContestById(contestId);
-        applyResourceUrlsIfMissing(contest);
-        return ContestDetailResponse.from(contest);
     }
 
     @Transactional
@@ -406,7 +303,7 @@ public class ContestService {
             registerScheduleAfterCommit(contest);
         }
 
-        return ContestDetailResponse.from(contest);
+        return ContestDetailResponse.from(contest, getExampleAiCodes(contestId), getSampleCodes(contestId));
     }
 
     // 메소드 오버라이드, 인증 대회용
@@ -452,7 +349,7 @@ public class ContestService {
             registerScheduleAfterCommit(contest);
         }
 
-        return ContestDetailResponse.from(contest);
+        return ContestDetailResponse.from(contest, getExampleAiCodes(contestId), getSampleCodes(contestId));
     }
 
     private ContestStatus resolveStatus(LocalDateTime startDate, LocalDateTime endDate, LocalDateTime now) {
@@ -577,11 +474,6 @@ public class ContestService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    // DB에 저장된 URL만 반환. 업로드 전이면 null 반환 (하드코딩 URL 반환 X)
-    private void applyResourceUrlsIfMissing(CodeBattleContest contest) {
-        // no-op: URL은 리소스 업로드 API에서 업로드 후에만 DB에 저장됨
     }
 
     private void validateDatePair(LocalDateTime startDate, LocalDateTime endDate) {

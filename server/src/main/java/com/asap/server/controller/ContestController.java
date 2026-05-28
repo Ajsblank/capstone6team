@@ -25,9 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -67,8 +65,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletResponse;
@@ -217,38 +213,7 @@ public class ContestController {
         }
     }
 
-    @Operation(summary = "대회 리소스 수정", description = "PATCH /api/contests/{contestId}/resource multipart/form-data로 리소스를 선택적으로 덮어씁니다. 업로드한 파트만 수정됩니다.")
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true, content = @Content(mediaType = "multipart/form-data", encoding = {
-            @Encoding(name = "visualFile", contentType = "text/html"),
-            @Encoding(name = "soloFile", contentType = "text/html"),
-            @Encoding(name = "judgeCodeFile", contentType = "text/x-c++src"),
-            @Encoding(name = "sampleCodeFile", contentType = "text/x-c++src"),
-            @Encoding(name = "exampleAiFiles", contentType = "text/x-c++src")
-    }))
-    @PatchMapping(value = "/{contestId}/resource", consumes = "multipart/form-data")
-    public ResponseEntity<ContestDetailResponse> updateContestResources(
-            @PathVariable Long contestId,
-            @RequestPart(value = "visualFile", required = false) MultipartFile visualFile,
-            @RequestPart(value = "soloFile", required = false) MultipartFile soloFile,
-            @RequestPart(value = "judgeCodeFile", required = false) MultipartFile judgeCodeFile,
-            @RequestPart(value = "sampleCodeFile", required = false) MultipartFile sampleCodeFile,
-            @RequestPart(value = "exampleAiFiles", required = false) List<MultipartFile> exampleAiFiles) {
-        try {
-            ContestDetailResponse response = contestService.updateContestResources(
-                    contestId,
-                    visualFile,
-                    soloFile,
-                    judgeCodeFile,
-                    sampleCodeFile,
-                    exampleAiFiles);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(null);
-        } catch (Exception e) {
-            log.error("대회 리소스 수정 실패 - contestId: {}", contestId, e);
-            return ResponseEntity.internalServerError().body(null);
-        }
-    }
+    // 대회 리소스 수정 부분 추가 필요
 
     @GetMapping("/{contestId}/{targetUserId}")
     @Operation(summary = "내 제출 및 AI 결과 조회", description = "내가 해당 대회에 제출한 코드와 샘플 AI와의 대결 결과를 조회합니다.")
