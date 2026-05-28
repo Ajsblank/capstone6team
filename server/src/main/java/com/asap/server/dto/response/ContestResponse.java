@@ -38,13 +38,13 @@ public class ContestResponse {
   private Integer maxParticipants;
   private LocalDateTime createdAt;
   private List<SampleCodeResponse> sampleCodes;
-  private List<String> exampleAiCodes;
+  private List<ExampleAiResponse> exampleAiCodes;
 
   public static ContestResponse from(CodeBattleContest contest) {
     return from(contest, List.of(), List.of());
   }
 
-  public static ContestResponse from(CodeBattleContest contest, List<String> exampleAiCodes,
+  public static ContestResponse from(CodeBattleContest contest, List<ExampleAiResponse> exampleAiCodes,
       List<SampleCodeResponse> sampleCodes) {
     return ContestResponse.builder()
         .id(contest.getId())

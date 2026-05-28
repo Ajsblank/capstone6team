@@ -22,7 +22,7 @@ public class ContestDetailResponse {
   private Integer memoryLimitMb;
   private String judgeCode;
   private List<SampleCodeResponse> sampleCodes;
-  private List<String> exampleAiCodes;
+  private List<ExampleAiResponse> exampleAiCodes;
   private ContestStatus status;
   private String visualizationHtml;
   private String soloPlayHtml;
@@ -36,7 +36,7 @@ public class ContestDetailResponse {
   private Integer maxParticipants;
   private LocalDateTime createdAt;
 
-  public static ContestDetailResponse from(CodeBattleContest contest, List<String> exampleAiCodes,
+  public static ContestDetailResponse from(CodeBattleContest contest, List<ExampleAiResponse> exampleAiCodes,
       List<SampleCodeResponse> sampleCodes) {
     return ContestDetailResponse.builder()
         .id(contest.getId())

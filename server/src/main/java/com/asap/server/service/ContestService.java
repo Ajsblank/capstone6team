@@ -22,6 +22,7 @@ import com.asap.server.domain.ContestReviewer;
 import com.asap.server.domain.Users;
 import com.asap.server.dto.request.CreateCertifiedContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
+import com.asap.server.dto.request.ExampleAiRequest;
 import com.asap.server.dto.request.SampleCodeRequest;
 import com.asap.server.dto.request.UpdateContestCertifiedRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
@@ -31,6 +32,7 @@ import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
 import com.asap.server.dto.response.ContestParticipantResponse;
 import com.asap.server.dto.response.ContestResponse;
+import com.asap.server.dto.response.ExampleAiResponse;
 import com.asap.server.dto.response.SampleCodeResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
@@ -48,8 +50,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class ContestService {
-
-    private static final String FIXED_SAMPLE_CODE_NAME = "sample_code";
 
     private final CodeBattleContestRepository contestRepository;
     private final CodeBattleExampleAIRepository exampleAIRepository;
@@ -124,13 +124,20 @@ public class ContestService {
         } else {
             contestRun.registerContest(savedContest);
         }
+        List<ExampleAiResponse> exampleAiCodes = request.getExampleAiCodes().stream()
+                .map(e -> ExampleAiResponse.builder()
+                        .code(e.getCode())
+                        .description(e.getDescription())
+                        .language(e.getLanguage())
+                        .build())
+                .toList();
         List<SampleCodeResponse> sampleCodes = request.getSampleCodes().stream()
                 .map(s -> SampleCodeResponse.builder()
                         .code(s.getCode())
                         .language(s.getLanguage())
                         .build())
                 .toList();
-        return ContestResponse.from(savedContest, request.getExampleAiCodes(), sampleCodes);
+        return ContestResponse.from(savedContest, exampleAiCodes, sampleCodes);
     }
 
     /**
@@ -211,20 +218,27 @@ public class ContestService {
         } else {
             contestRun.registerContest(savedContest);
         }
+        List<ExampleAiResponse> exampleAiCodes = request.getExampleAiCodes().stream()
+                .map(e -> ExampleAiResponse.builder()
+                        .code(e.getCode())
+                        .description(e.getDescription())
+                        .language(e.getLanguage())
+                        .build())
+                .toList();
         List<SampleCodeResponse> sampleCodes = request.getSampleCodes().stream()
                 .map(s -> SampleCodeResponse.builder()
                         .code(s.getCode())
                         .language(s.getLanguage())
                         .build())
                 .toList();
-        return ContestResponse.from(savedContest, request.getExampleAiCodes(), sampleCodes);
+        return ContestResponse.from(savedContest, exampleAiCodes, sampleCodes);
     }
 
-    private void saveExampleAiCodes(CodeBattleContest contest, List<String> exampleAiCodes) {
+    private void saveExampleAiCodes(CodeBattleContest contest, List<ExampleAiRequest> exampleAiCodes) {
         List<CodeBattleExampleAI> entities = new ArrayList<>();
         Long order = 1L;
-        for (String exampleAiCode : exampleAiCodes) {
-            entities.add(new CodeBattleExampleAI(contest, order, exampleAiCode));
+        for (ExampleAiRequest request : exampleAiCodes) {
+            entities.add(new CodeBattleExampleAI(contest, order, request.getDescription(), request.getCode()));
             order++;
         }
         exampleAIRepository.saveAll(entities);
@@ -252,10 +266,14 @@ public class ContestService {
         return ContestDetailResponse.from(contest, getExampleAiCodes(contestId), getSampleCodes(contestId));
     }
 
-    private List<String> getExampleAiCodes(Long contestId) {
+    private List<ExampleAiResponse> getExampleAiCodes(Long contestId) {
         return exampleAIRepository.findByContestIdOrderByExampleOrderAsc(contestId)
                 .stream()
-                .map(CodeBattleExampleAI::getCode)
+                .map(e -> ExampleAiResponse.builder()
+                        .code(e.getCode())
+                        .description(e.getDescription())
+                        .language(e.getLanguage())
+                        .build())
                 .toList();
     }
 
