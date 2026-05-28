@@ -95,12 +95,12 @@ public class CreateCertifiedContestRequest {
   @Schema(description = "채점 코드 파일 내용", example = "int main() { return 0; }")
   private String judgeCode;
 
-  @NotBlank(message = "sampleCode는 최소 1개 이상 필요입니다.")
-  @Schema(description = "샘플 코드 파일 내용", example = "\"int main() { return 0; }\"")
+  @NotEmpty(message = "sampleCode는 최소 1개 이상 필요입니다.")
+  @Schema(description = "샘플 코드 파일 내용", example = "[{\"code\": \"int main() { return 0; }\", \"language\": \"CPP\"}]")
   private List<SampleCodeRequest> sampleCodes;
   @NotEmpty(message = "exampleAiCodes는 최소 1개 이상 필요합니다.")
   @Schema(description = "예제 AI 코드 목록", example = "[\"int main() { return 0; }\"]")
-  private List<String> exampleAiCodes;
+  private List<ExampleAiRequest> exampleAiCodes;
 
   @NotBlank(message = "visualizationHtml은 필수입니다.")
   @Schema(description = "시각화 HTML 내용", example = "<html><body>visualization</body></html>")
