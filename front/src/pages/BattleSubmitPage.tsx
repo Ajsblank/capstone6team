@@ -43,7 +43,7 @@ const BASE_TAB_LIST: TabDef[] = [
   { id: "viz1",           label: "로그 분석" },
   { id: "viz2",           label: "혼자서 하기" },
   { id: "leaderboard",    label: "리더보드" },
-  { id: "battle-results", label: "대결" },
+  { id: "battle-results", label: "중간 결과" },
   { id: "final-result",   label: "최종 결과" },
 ];
 
