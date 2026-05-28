@@ -2,9 +2,9 @@ package com.asap.server.dto.response;
 
 import java.util.List;
 
-import com.asap.server.global.type.MatchStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,10 +12,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
-@AllArgsConstructor
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SwissResultResponse {
+@JsonPropertyOrder({ "session_number", "total_participants", "total_rounds", "final_standings" })
+public class SwissLeaderBoardResponse {
   @JsonProperty("session_number")
   private int sessionNumber;
   @JsonProperty("total_participants")
@@ -24,58 +24,20 @@ public class SwissResultResponse {
   private int totalRounds;
   @JsonProperty("final_standings")
   private List<StandingDto> finalStandings;
-  @JsonProperty("rounds")
-  private List<RoundDto> rounds;
 
   @Getter
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
-  public static class RoundDto {
-    @JsonProperty("round_number")
-    private int roundNumber;
+  @JsonIgnoreProperties(ignoreUnknown = true)
 
-    private MatchStatus status;
-
-    private List<MatchDto> matches;
-  }
-
-  @Getter
-  @Builder
-  @NoArgsConstructor
-  @AllArgsConstructor
-  public static class MatchDto {
-    @JsonProperty("match_id")
-    private Long matchId;
-
-    @JsonProperty("user1_id")
-    private Long user1Id;
-
-    @JsonProperty("user2_id")
-    private Long user2Id;
-
-    private Integer winner;
-
-    private String result;
-  }
-
-  @Getter
-  @Builder
-  @NoArgsConstructor
-  @AllArgsConstructor
   public static class StandingDto {
     @JsonProperty("user_id")
     private Long userId;
-
     private int wins;
     private int draws;
     private int losses;
     private int points;
     private int rank;
-
-    private List<Long> opponents;
-
-    @JsonProperty("match_ids")
-    private List<Long> matchIds;
   }
 }
