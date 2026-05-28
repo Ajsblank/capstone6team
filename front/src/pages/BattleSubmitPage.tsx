@@ -495,6 +495,8 @@ const SubmitPage: React.FC = () => {
             <LeaderboardTab
               contestId={problemId}
               myUserId={user?.id ? Number(user.id) : undefined}
+              hasVisualization={viz1Available}
+              onLogView={handleLogClick}
             />
           </div>
         )}
