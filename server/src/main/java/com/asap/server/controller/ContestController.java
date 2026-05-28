@@ -646,11 +646,11 @@ public class ContestController {
         return ResponseEntity.ok(Map.of("세션 리스트 생성됨", sessions.size()));
     }
 
-    @PostMapping("/{contestId}/runSwissSession")
+    @PostMapping("/{contestId}/{sessionNumber}/runSwissSession")
     @Operation(summary = "스위스 세션을 실행합니다. (구현중)", description = "예약된 세션을 찾아 실행하고 완료 처리합니다.")
     public ResponseEntity<String> runSwissSession(
             @PathVariable Long contestId,
-            @RequestParam int sessionNumber) {
+            @PathVariable int sessionNumber) {
         try {
             ContestSwissSession session = sessionRepository
                     .findTopByContestIdAndSessionNumberOrderByIdDesc(contestId, sessionNumber)
