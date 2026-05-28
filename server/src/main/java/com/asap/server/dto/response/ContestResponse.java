@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.asap.server.domain.CodeBattleContest;
+import com.asap.server.dto.request.SampleCodeRequest;
 import com.asap.server.global.type.ContestStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -24,7 +25,6 @@ public class ContestResponse {
   private Integer timeLimitSec;
   private Integer memoryLimitMb;
   // 보안 조치 private String judgeCode;
-  private String sampleCode;
   private ContestStatus status;
 
   private String visualizationHtml;
@@ -38,13 +38,15 @@ public class ContestResponse {
 
   private Integer maxParticipants;
   private LocalDateTime createdAt;
+  private List<SampleCodeRequest> sampleCodes;
   private List<String> exampleAiCodes;
 
   public static ContestResponse from(CodeBattleContest contest) {
-    return from(contest, List.of());
+    return from(contest, List.of(), List.of());
   }
 
-  public static ContestResponse from(CodeBattleContest contest, List<String> exampleAiCodes) {
+  public static ContestResponse from(CodeBattleContest contest, List<String> exampleAiCodes,
+      List<SampleCodeRequest> sampleCodes) {
     return ContestResponse.builder()
         .id(contest.getId())
         .creatorId(contest.getCreator() != null ? contest.getCreator().getId() : null)
@@ -54,7 +56,6 @@ public class ContestResponse {
         .timeLimitSec(contest.getTimeLimitSec())
         .memoryLimitMb(contest.getMemoryLimitMB())
         // .judgeCode(contest.getJudgeCode())
-        .sampleCode(contest.getSampleCode())
         .status(contest.getStatus())
         .startDate(contest.getStartDate())
         .endDate(contest.getEndDate())
@@ -62,6 +63,7 @@ public class ContestResponse {
         .createdAt(contest.getCreatedAt())
         .visualizationHtml(contest.getVisualizationHtml())
         .soloPlayHtml(contest.getSoloPlayHtml())
+        .sampleCodes(sampleCodes)
         .exampleAiCodes(exampleAiCodes)
         .build();
   }

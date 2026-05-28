@@ -91,7 +91,7 @@ public class CodeBattleContest {
   private Users creator;
 
   public static CodeBattleContest create(String title, String description, ContestStatus status, Boolean certification,
-      Integer timeLimitSec, Integer memoryLimitMB, String judgeCode, String sampleCode,
+      Integer timeLimitSec, Integer memoryLimitMB, String judgeCode,
       Integer maxParticipants, LocalDateTime startDate, LocalDateTime endDate,
       String visualizationHtml, String soloPlayHtml, Users creator) {
     CodeBattleContest contest = new CodeBattleContest();
@@ -102,7 +102,6 @@ public class CodeBattleContest {
     contest.timeLimitSec = timeLimitSec;
     contest.memoryLimitMB = memoryLimitMB;
     contest.judgeCode = judgeCode;
-    contest.sampleCode = sampleCode;
     contest.maxParticipants = maxParticipants;
     contest.startDate = startDate;
     contest.endDate = endDate;
