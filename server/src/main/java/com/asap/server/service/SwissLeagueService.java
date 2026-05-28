@@ -2,6 +2,7 @@ package com.asap.server.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -142,7 +143,8 @@ public class SwissLeagueService {
   @Transactional
   public void generateSwissRound(CodeBattleContest contest, ContestSwissSession session,
       List<CodeBattleParticipant> participants, int roundNumber) {
-
+    // 참가자 셔플
+    Collections.shuffle(participants);
     // 점수순 내림차순 정렬
     participants.sort(Comparator.comparingInt(
         (CodeBattleParticipant p) -> p.getScore() == null ? 0 : p.getScore()).reversed());
