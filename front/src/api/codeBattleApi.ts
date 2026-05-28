@@ -38,6 +38,41 @@ export interface ContestListResponse {
   number: number;
 }
 
+export interface UserProfile {
+  userId: number;
+  nickname: string;
+  tag: number;
+  tagCode: string;
+  nicknameTag: string;
+  profileUrl: string;
+  bio: string;
+  affiliation: string;
+  imageUrl: string;
+}
+
+export interface UserProfilePatch {
+  nickname?: string;
+  bio?: string;
+  affiliation?: string;
+  imageUrl?: string;
+}
+
+export interface LeaderboardStanding {
+  user_id: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  points: number;
+  rank: number;
+}
+
+export interface SessionLeaderboard {
+  session_number: number;
+  total_participants: number;
+  total_rounds: number;
+  final_standings: LeaderboardStanding[];
+}
+
 
 // 끝 슬래시 제거로 BASE_URL + "/path" 조합 시 // 방지
 const BASE_URL = (process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
@@ -136,6 +171,24 @@ export interface FinalResult {
 
 export const getFinalResult = async (contestId: number): Promise<FinalResult> => {
   const { data } = await api.get<FinalResult>(`/api/contests/${contestId}/final-result`);
+  return data;
+};
+
+// ── 프로필 조회 — GET /api/profile/me ──
+export const getMyProfile = async (): Promise<UserProfile> => {
+  const { data } = await api.get<UserProfile>("/api/profile/me");
+  return data;
+};
+
+// ── 프로필 수정 — PATCH /api/profile/me ──
+export const updateMyProfile = async (patch: UserProfilePatch): Promise<UserProfile> => {
+  const { data } = await api.patch<UserProfile>("/api/profile/me", patch);
+  return data;
+};
+
+// ── 세션 리더보드 — GET /api/contests/{contestId}/sessionLeaderBoard ──
+export const getSessionLeaderboard = async (contestId: number): Promise<SessionLeaderboard> => {
+  const { data } = await api.get<SessionLeaderboard>(`/api/contests/${contestId}/sessionLeaderBoard`);
   return data;
 };
 

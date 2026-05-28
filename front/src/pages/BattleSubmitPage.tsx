@@ -9,6 +9,7 @@ import ReviewTab from "../components/ReviewTab";
 import BattleSessionsTab from "../components/BattleSessionsTab";
 import SessionDetailPanel from "../components/SessionDetailPanel";
 import FinalResultTab from "../components/FinalResultTab";
+import LeaderboardTab from "../components/LeaderboardTab";
 import { submitCode, getContestDetail, joinContest, ContestDetail } from "../api/codeBattleApi";
 import { setMatchCallback, setSummaryCallback, setReconnectCallback, BattleMatchResult, SubmissionSummary, debugSse } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
@@ -41,7 +42,7 @@ const BASE_TAB_LIST: TabDef[] = [
   { id: "my-submissions", label: "내 제출" },
   { id: "viz1",           label: "로그 분석" },
   { id: "viz2",           label: "혼자서 하기" },
-  { id: "leaderboard",    label: "리더보드",   disabled: true, tooltip: "준비 중인 기능입니다" },
+  { id: "leaderboard",    label: "리더보드" },
   { id: "battle-results", label: "대결" },
   { id: "final-result",   label: "최종 결과" },
 ];
@@ -490,8 +491,11 @@ const SubmitPage: React.FC = () => {
         )}
 
         {activeTab === "leaderboard" && (
-          <div className="placeholder-panel">
-            <span className="placeholder-text">리더보드 — 준비 중입니다.</span>
+          <div className="full-panel" style={{ overflowY: "auto" }}>
+            <LeaderboardTab
+              contestId={problemId}
+              myUserId={user?.id ? Number(user.id) : undefined}
+            />
           </div>
         )}
 
