@@ -640,7 +640,10 @@ public class ContestController {
             // 자동 예약 추가
             session.setStatus(ContestStatus.PLANNED);
             session.setSessionNumber(i + 1);
+
             contestRunService.registSwissContest(contest, session);
+            log.info("[스위스 리그 예약] contestId={}, sessionId={}, 시작 시간={}", contestId, session.getId(),
+                    session.getScheduledAt());
             sessions.add(session);
         }
 
