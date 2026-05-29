@@ -15,17 +15,41 @@ api.interceptors.request.use((config) => {
 });
 applyAuthInterceptor(api);
 
+// ── 파일 확장자 → 언어 코드 ──────────────────────────────────────────────────
+export function extToLanguage(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+  const map: Record<string, string> = {
+    cpp: "CPP", cc: "CPP", cxx: "CPP", c: "CPP",
+    java: "JAVA",
+    py: "PYTHON",
+    js: "JAVASCRIPT",
+    ts: "TYPESCRIPT",
+    cs: "CSHARP",
+    go: "GO",
+    rs: "RUST",
+    kt: "KOTLIN",
+    lua: "LUA",
+  };
+  return map[ext] ?? ext.toUpperCase();
+}
+
+// ── 예시 AI 코드 항목 (파일 + 설명) ─────────────────────────────────────────
+export interface AiCodeEntry {
+  file: File;
+  description: string;
+}
+
 export interface CreateContestData {
   title: string;
   description: string;
   certification: boolean;
   timeLimitSec: number;
   memoryLimitMb: number;
-  sampleCode: File;           // 참가자 예시 코드 (구 exampleCode)
+  sampleCodes: File[];                  // 여러 샘플 코드
   judgeCode: File;
-  exampleAiCodes: File[];     // 참가자 코드가 대결할 예시 AI 코드 목록
-  visualizationHtml: File | null;  // 비인증 시 선택, 인증 시 필수
-  soloPlayHtml: File | null;       // 비인증 시 선택, 인증 시 필수
+  exampleAiCodes: AiCodeEntry[];        // 파일 + 설명
+  visualizationHtml: File | null;
+  soloPlayHtml: File | null;
   status: ContestStatus;
   startDate: string;
   endDate: string;
@@ -105,14 +129,22 @@ export const modifyCertifiedContest = async (contestId: number, data: ModifyCont
   await api.patch(`/api/contests/${contestId}/modify/certified`, await buildModifyBody(data));
 };
 
-
 // ── 비인증 대회 생성 — POST /api/contests/create/uncertified ──
 export const createContest = async (data: CreateContestData): Promise<ContestResponse> => {
-  const [sampleCode, judgeCode] = await Promise.all([
-    data.sampleCode.text(),
-    data.judgeCode.text(),
-  ]);
-  const exampleAiCodes = await Promise.all(data.exampleAiCodes.map(f => f.text()));
+  const sampleCodes = await Promise.all(
+    data.sampleCodes.map(async f => ({
+      code: await f.text(),
+      language: extToLanguage(f.name),
+    }))
+  );
+  const judgeCode = await data.judgeCode.text();
+  const exampleAiCodes = await Promise.all(
+    data.exampleAiCodes.map(async ({ file, description }) => ({
+      code: await file.text(),
+      description,
+      language: extToLanguage(file.name),
+    }))
+  );
   const visualizationHtml = data.visualizationHtml ? await data.visualizationHtml.text() : undefined;
   const soloPlayHtml      = data.soloPlayHtml      ? await data.soloPlayHtml.text()      : undefined;
 
@@ -127,7 +159,7 @@ export const createContest = async (data: CreateContestData): Promise<ContestRes
     endDate:         data.endDate   ? data.endDate.replace("T", " ").slice(0, 16)   : undefined,
     maxParticipants: data.maxParticipants,
     creatorId:       data.creatorId,
-    sampleCode,
+    sampleCodes,
     judgeCode,
     exampleAiCodes,
     visualizationHtml,
@@ -141,11 +173,20 @@ export const createCertifiedContest = async (
   data: CreateContestData,
   reviewerEmails: string[]
 ): Promise<ContestResponse> => {
-  const [sampleCode, judgeCode] = await Promise.all([
-    data.sampleCode.text(),
-    data.judgeCode.text(),
-  ]);
-  const exampleAiCodes    = await Promise.all(data.exampleAiCodes.map(f => f.text()));
+  const sampleCodes = await Promise.all(
+    data.sampleCodes.map(async f => ({
+      code: await f.text(),
+      language: extToLanguage(f.name),
+    }))
+  );
+  const judgeCode = await data.judgeCode.text();
+  const exampleAiCodes = await Promise.all(
+    data.exampleAiCodes.map(async ({ file, description }) => ({
+      code: await file.text(),
+      description,
+      language: extToLanguage(file.name),
+    }))
+  );
   const visualizationHtml = data.visualizationHtml ? await data.visualizationHtml.text() : undefined;
   const soloPlayHtml      = data.soloPlayHtml      ? await data.soloPlayHtml.text()      : undefined;
 
@@ -160,7 +201,7 @@ export const createCertifiedContest = async (
     endDate:         data.endDate   ? data.endDate.replace("T", " ").slice(0, 16)   : undefined,
     maxParticipants: data.maxParticipants,
     creatorId:       data.creatorId,
-    sampleCode,
+    sampleCodes,
     judgeCode,
     exampleAiCodes,
     visualizationHtml,

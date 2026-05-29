@@ -11,6 +11,17 @@ export interface ContestItem {
   maxParticipants?: number;
 }
 
+export interface SampleCodeEntry {
+  code: string;
+  language: string;
+}
+
+export interface ExampleAiCodeEntry {
+  code: string;
+  description: string;
+  language: string;
+}
+
 export interface ContestDetail {
   id: number;
   title: string;
@@ -18,7 +29,7 @@ export interface ContestDetail {
   certification: boolean;
   timeLimitSec: number;
   memoryLimitMb: number;
-  sampleCode: string;
+  sampleCodes: SampleCodeEntry[];
   status: string;
   visualizationHtml: string;
   soloPlayHtml: string;
@@ -26,7 +37,7 @@ export interface ContestDetail {
   endDate: string;
   maxParticipants: number;
   createdAt: string;
-  exampleAiCodes: string[];
+  exampleAiCodes: ExampleAiCodeEntry[];
   creator_id: number;
 }
 
@@ -213,6 +224,11 @@ export const getMiddleRanking = async (contestId: number, sessionNumber: number,
 export interface MatchLogDetail {
   log: string;
 }
+
+// ── 스위스 세션 예약 — POST /api/contests/{contestId}/scheduleSwissLeague ──
+export const scheduleSwissLeague = async (contestId: number, scheduledAts: string[]): Promise<void> => {
+  await api.post(`/api/contests/${contestId}/scheduleSwissLeague`, scheduledAts);
+};
 
 export const getSwissMatchLog = async (contestId: number, matchId: number): Promise<MatchLogDetail> => {
   const { data } = await api.get<MatchLogDetail>(`/api/contests/${contestId}/swiss/viewMatchLog/${matchId}`);
