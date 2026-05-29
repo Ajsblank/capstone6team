@@ -28,11 +28,11 @@
 }
 
 .prob-section h2 {
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   font-weight: 800;
   color: #ea580c;
-  margin: 0 0 12px 0;
-  padding-bottom: 5px;
+  margin: 0 0 14px 0;
+  padding-bottom: 6px;
   border-bottom: 2px solid #fed7aa;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -236,8 +236,8 @@ td.row-output {
 
 /* ── 문제 설명 마크다운 렌더링 ── */
 .prob-md {
-  font-size: 0.9rem;
-  line-height: 1.75;
+  font-size: 1rem;
+  line-height: 1.8;
   color: #374151;
 }
 
@@ -341,3 +341,74 @@ td.row-output {
   text-decoration: underline;
 }
 .prob-md a:hover { color: #c2410c; }
+
+/* ── 예제 코드 다운로드 링크 ── */
+.prob-sample-code-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1rem;
+}
+.prob-sample-code-link strong { font-weight: 700; color: #111827; }
+.prob-sample-code-link a {
+  color: #ea580c;
+  text-decoration: underline;
+}
+.prob-sample-code-link a:hover { color: #c2410c; }
+
+/* ── 샘플 AI와 대결 섹션 ── */
+.prob-ai-battle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.prob-ai-battle-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 6px 0;
+}
+
+.prob-ai-battle-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ea580c;
+  background: #fed7aa;
+  border-radius: 4px;
+  padding: 2px 7px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.prob-ai-battle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prob-ai-battle-lang {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #9a3412;
+}
+
+.prob-ai-battle-desc {
+  font-size: 1rem;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.prob-ai-result {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  align-self: center;
+}
+.prob-ai-result--win     { background: #dcfce7; color: #16a34a; }
+.prob-ai-result--lose    { background: #fee2e2; color: #dc2626; }
+.prob-ai-result--draw    { background: #fef9c3; color: #ca8a04; }
+.prob-ai-result--pending { background: #f3f4f6; color: #9ca3af; }

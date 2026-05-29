@@ -11,7 +11,7 @@ interface Props {
   joinStatus?: "idle" | "joining" | "joined" | "error";
   joinError?: string;
   isReviewer?: boolean;
-  onEdit?: () => void;  // 개최자 본인일 때만 전달됨
+  onEdit?: () => void;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -59,7 +59,9 @@ function makeDownloadUrl(code: string): string {
   return `data:text/plain;charset=utf-8,${encodeURIComponent(code)}`;
 }
 
-const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin, joinStatus = "idle", joinError, isReviewer, onEdit }) => {
+const ContestProblemDetail: React.FC<Props> = ({
+  detail, loading, error, onJoin, joinStatus = "idle", joinError, isReviewer, onEdit,
+}) => {
   const [descHtml, setDescHtml] = useState("");
 
   useEffect(() => {
@@ -173,26 +175,52 @@ const ContestProblemDetail: React.FC<Props> = ({ detail, loading, error, onJoin,
       )}
 
       {/* 예제 코드 */}
-      {detail.sampleCode && (() => {
-        const ext  = detectExt(detail.sampleCode);
-        const lang = EXT_LANG[ext] ?? ext.toUpperCase();
-        const name = `sample_code.${ext}`;
-        return (
-          <section className="prob-section">
-            <h2>예제 코드</h2>
-            <span style={{ fontSize: "0.9rem" }}>
-              <strong>{lang}</strong>:{" "}
-              <a
-                href={makeDownloadUrl(detail.sampleCode)}
-                download={name}
-                style={{ textDecoration: "underline", color: "inherit" }}
-              >
-                {name}
-              </a>
-            </span>
-          </section>
-        );
-      })()}
+      {detail.sampleCodes?.length > 0 && (
+        <section className="prob-section">
+          <h2>예제 코드</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {detail.sampleCodes.map((sc, i) => {
+              const ext  = sc.language ? sc.language.toLowerCase() : detectExt(sc.code);
+              const lang = EXT_LANG[ext] ?? sc.language ?? ext.toUpperCase();
+              const extMap: Record<string, string> = {
+                python: "py", javascript: "js", typescript: "ts", csharp: "cs",
+              };
+              const fileExt = extMap[ext] ?? ext.toLowerCase();
+              const name = `sample_code_${i + 1}.${fileExt}`;
+              return (
+                <span key={i} className="prob-sample-code-link">
+                  <strong>{lang}</strong>:
+                  <a href={makeDownloadUrl(sc.code)} download={name}>{name}</a>
+                </span>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 샘플 AI와 대결 */}
+      {detail.exampleAiCodes?.length > 0 && (
+        <section className="prob-section">
+          <h2>샘플 AI와 대결</h2>
+          <div className="prob-ai-battle-list">
+            {detail.exampleAiCodes.map((ai, i) => {
+              const ext  = ai.language ? ai.language.toLowerCase() : detectExt(ai.code);
+              const lang = EXT_LANG[ext] ?? ai.language ?? ext.toUpperCase();
+              return (
+                <div key={i} className="prob-ai-battle-card">
+                  <span className="prob-ai-battle-num">AI {i + 1}</span>
+                  <div className="prob-ai-battle-info">
+                    <span className="prob-ai-battle-lang">{lang}</span>
+                    {ai.description && (
+                      <span className="prob-ai-battle-desc">{ai.description}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 };

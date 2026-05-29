@@ -720,6 +720,12 @@
   margin-bottom: 8px;
 }
 
+.cc-ai-code-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .cc-ai-code-row {
   display: flex;
   align-items: center;
@@ -728,6 +734,24 @@
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   padding: 6px 10px;
+}
+
+.cc-lang-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #ede9fe;
+  color: #6d28d9;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cc-ai-code-desc {
+  font-size: 0.8rem !important;
+  padding: 5px 10px !important;
+  margin: 0 !important;
+  background: #f3f4f6 !important;
 }
 
 .cc-ai-code-name {

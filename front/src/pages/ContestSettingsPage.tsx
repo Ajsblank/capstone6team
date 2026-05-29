@@ -117,7 +117,7 @@ const ContestSettingsPage: React.FC = () => {
         setMaxParticipants(detail.maxParticipants);
         if (detail.startDate) setStartDate(detail.startDate.replace(" ", "T").slice(0, 16));
         if (detail.endDate)   setEndDate(detail.endDate.replace(" ", "T").slice(0, 16));
-        setHasSampleCode(!!detail.sampleCode);
+        setHasSampleCode((detail.sampleCodes?.length ?? 0) > 0);
         setHasVisHtml(!!detail.visualizationHtml);
         setHasSoloHtml(!!detail.soloPlayHtml);
         setExistingAiCount(detail.exampleAiCodes?.length ?? 0);

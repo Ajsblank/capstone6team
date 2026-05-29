@@ -22,6 +22,151 @@
   color: #6b7280;
 }
 
+/* ── 세션 예약 버튼 ── */
+.bst-schedule-btn {
+  margin-left: auto;
+  background: none;
+  border: 1px solid #4b3a6a;
+  color: #c084fc;
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.bst-schedule-btn:hover    { background: #2d1f45; border-color: #c084fc; }
+.bst-schedule-btn--active  { background: #2d1f45; border-color: #c084fc; }
+
+/* ── 예약 패널 ── */
+.bst-schedule-panel {
+  background: #0d1525;
+  border: 1px solid #2a2a4a;
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bst-schedule-panel-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #9ca3af;
+  letter-spacing: 0.04em;
+}
+
+.bst-date-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bst-date-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bst-date-num {
+  font-size: 0.72rem;
+  color: #4b5563;
+  width: 18px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.bst-date-input {
+  flex: 1;
+  background: #111827;
+  border: 1px solid #2a2a4a;
+  border-radius: 7px;
+  color: #e0e0e0;
+  font-size: 0.82rem;
+  padding: 6px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+  color-scheme: dark;
+}
+.bst-date-input:focus { border-color: #c084fc; }
+
+.bst-date-remove {
+  background: none;
+  border: 1px solid #2a2a4a;
+  color: #6b7280;
+  font-size: 0.72rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.bst-date-remove:hover:not(:disabled) { background: #1e1a2a; color: #f87171; border-color: #f87171; }
+.bst-date-remove:disabled { opacity: 0.3; cursor: default; }
+
+.bst-schedule-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bst-date-add {
+  background: none;
+  border: 1px dashed #374151;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.bst-date-add:hover { background: #1e2535; border-color: #6b7280; color: #e0e0e0; }
+
+.bst-schedule-cancel {
+  background: none;
+  border: 1px solid #374151;
+  color: #6b7280;
+  font-size: 0.78rem;
+  padding: 5px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bst-schedule-cancel:hover { background: #1e2535; color: #d1d5db; }
+
+.bst-schedule-submit {
+  background: #4b3a6a;
+  border: 1px solid #6d4fa0;
+  color: #e9d8ff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 5px 16px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bst-schedule-submit:hover:not(:disabled) { background: #5d4a80; }
+.bst-schedule-submit:disabled { opacity: 0.5; cursor: default; }
+
+.bst-schedule-feedback {
+  font-size: 0.8rem;
+  padding: 8px 12px;
+  border-radius: 7px;
+  margin-bottom: 4px;
+}
+.bst-schedule-feedback--success {
+  background: rgba(74,222,128,0.1);
+  color: #4ade80;
+  border: 1px solid rgba(74,222,128,0.25);
+}
+.bst-schedule-feedback--error {
+  background: rgba(248,113,113,0.1);
+  color: #f87171;
+  border: 1px solid rgba(248,113,113,0.25);
+}
+
 .bst-empty {
   display: flex;
   align-items: center;

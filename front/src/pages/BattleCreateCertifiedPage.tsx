@@ -191,7 +191,7 @@ const BattleCreateCertifiedPage: React.FC = () => {
                   { label: "대회 이름",               done: !!draft.title },
                   { label: "문제 설명",               done: !!draft.description?.trim() },
                   { label: "채점 코드",               done: !!draft.judgeCode },
-                  { label: "샘플 코드",               done: !!draft.sampleCode },
+                  { label: "샘플 코드 (1개 이상)",     done: draft.sampleCodes.length > 0 },
                   { label: "예시 AI 코드 (1개 이상)", done: draft.exampleAiCodes.length > 0 },
                   { label: "시각화 HTML",             done: !!draft.visualizationHtml },
                   { label: "혼자서 하기 HTML",        done: !!draft.soloPlayHtml },

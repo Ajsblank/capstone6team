@@ -3,7 +3,7 @@ import axios from "axios";
 import { marked } from "marked";
 import mammoth from "mammoth";
 import { useApp } from "../context/AppContext";
-import { createContest, ContestResponse, ContestStatus } from "../api/contestApi";
+import { createContest, ContestResponse, ContestStatus, AiCodeEntry, extToLanguage } from "../api/contestApi";
 import { setContestDraft } from "../contestDraft";
 import ContestSidebar from "../components/ContestSidebar";
 import RichTextEditor from "../components/RichTextEditor";
@@ -58,9 +58,9 @@ const BattleCreateContestPage: React.FC = () => {
   const [description, setDescription]       = useState("");
   const [timeLimitSec, setTimeLimitSec]     = useState<number>(1);
   const [memoryLimitMb, setMemoryLimitMb]   = useState<number>(256);
-  const [sampleCode, setSampleCode]         = useState<File | null>(null);
+  const [sampleCodes, setSampleCodes]       = useState<File[]>([]);
   const [judgeCode, setJudgeCode]           = useState<File | null>(null);
-  const [exampleAiCodes, setExampleAICodes] = useState<File[]>([]);
+  const [exampleAiCodes, setExampleAiCodes] = useState<AiCodeEntry[]>([]);
   const [visualizationHtml, setVisualizationHtml] = useState<File | null>(null);
   const [soloPlayHtml, setSoloPlayHtml]     = useState<File | null>(null);
   const [startDate, setStartDate]           = useState("");
@@ -75,6 +75,7 @@ const BattleCreateContestPage: React.FC = () => {
   const [createdContest, setCreatedContest] = useState<ContestResponse | null>(null);
   const [showPreview, setShowPreview]   = useState(false);
 
+  const [sampleCodeInputKey, setSampleCodeInputKey] = useState(0);
   const [aiCodeInputKey, setAiCodeInputKey] = useState(0);
   const [importing, setImporting] = useState(false);
   const docImportRef = useRef<HTMLInputElement>(null);
@@ -104,25 +105,38 @@ const BattleCreateContestPage: React.FC = () => {
     }
   };
 
+  const handleSampleCodeAdd = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setSampleCodes(prev => [...prev, ...Array.from(files)]);
+    setSampleCodeInputKey(k => k + 1);
+  };
+  const handleSampleCodeRemove = (i: number) =>
+    setSampleCodes(prev => prev.filter((_, idx) => idx !== i));
+
   const handleAICodeAdd = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    setExampleAICodes(prev => [...prev, ...Array.from(files)]);
+    setExampleAiCodes(prev => [
+      ...prev,
+      ...Array.from(files).map(file => ({ file, description: "" })),
+    ]);
     setAiCodeInputKey(k => k + 1);
   };
   const handleAICodeRemove = (i: number) =>
-    setExampleAICodes(prev => prev.filter((_, idx) => idx !== i));
+    setExampleAiCodes(prev => prev.filter((_, idx) => idx !== i));
+  const handleAICodeDescChange = (i: number, desc: string) =>
+    setExampleAiCodes(prev => prev.map((e, idx) => idx === i ? { ...e, description: desc } : e));
 
   // 비인증 제출
   const handleSubmit = async () => {
     const missing: string[] = [];
-    if (!title.trim())           missing.push("대회 이름");
-    if (isDescEmpty(description)) missing.push("문제 설명");
-    if (!sampleCode)             missing.push("샘플 코드");
-    if (!judgeCode)              missing.push("채점 코드");
+    if (!title.trim())              missing.push("대회 이름");
+    if (isDescEmpty(description))   missing.push("문제 설명");
+    if (sampleCodes.length === 0)   missing.push("샘플 코드");
+    if (!judgeCode)                 missing.push("채점 코드");
     if (exampleAiCodes.length === 0) missing.push("예시 AI 코드");
-    if (!startDate)              missing.push("시작 일시");
-    if (!endDate)                missing.push("종료 일시");
-    if (missing.length > 0)      { setToastMessages(missing); return; }
+    if (!startDate)                 missing.push("시작 일시");
+    if (!endDate)                   missing.push("종료 일시");
+    if (missing.length > 0)         { setToastMessages(missing); return; }
 
     setSubmitStatus("submitting");
     setErrorMsg("");
@@ -130,7 +144,7 @@ const BattleCreateContestPage: React.FC = () => {
       const result = await createContest({
         title: title.trim(), description: description.trim(),
         certification, timeLimitSec, memoryLimitMb,
-        sampleCode: sampleCode!, judgeCode: judgeCode!,
+        sampleCodes, judgeCode: judgeCode!,
         exampleAiCodes, visualizationHtml, soloPlayHtml,
         status, startDate, endDate, maxParticipants,
         creatorId: Number(user?.id ?? 0),
@@ -153,21 +167,21 @@ const BattleCreateContestPage: React.FC = () => {
   // 인증 — 다음 단계
   const handleNextStep = () => {
     const missing: string[] = [];
-    if (!title.trim())           missing.push("대회 이름");
-    if (isDescEmpty(description)) missing.push("문제 설명");
-    if (!sampleCode)             missing.push("샘플 코드");
-    if (!judgeCode)              missing.push("채점 코드");
+    if (!title.trim())              missing.push("대회 이름");
+    if (isDescEmpty(description))   missing.push("문제 설명");
+    if (sampleCodes.length === 0)   missing.push("샘플 코드");
+    if (!judgeCode)                 missing.push("채점 코드");
     if (exampleAiCodes.length === 0) missing.push("예시 AI 코드");
-    if (!visualizationHtml)      missing.push("시각화 HTML 파일");
-    if (!soloPlayHtml)           missing.push("혼자서 하기 HTML 파일");
-    if (!startDate)              missing.push("시작 일시");
-    if (!endDate)                missing.push("종료 일시");
-    if (missing.length > 0)      { setToastMessages(missing); return; }
+    if (!visualizationHtml)         missing.push("시각화 HTML 파일");
+    if (!soloPlayHtml)              missing.push("혼자서 하기 HTML 파일");
+    if (!startDate)                 missing.push("시작 일시");
+    if (!endDate)                   missing.push("종료 일시");
+    if (missing.length > 0)         { setToastMessages(missing); return; }
 
     setContestDraft({
       title: title.trim(), description: description.trim(),
       certification: true, timeLimitSec, memoryLimitMb,
-      sampleCode: sampleCode!, judgeCode: judgeCode!,
+      sampleCodes, judgeCode: judgeCode!,
       exampleAiCodes, visualizationHtml, soloPlayHtml,
       status, startDate, endDate, maxParticipants,
       creatorId: Number(user?.id ?? 0),
@@ -180,7 +194,7 @@ const BattleCreateContestPage: React.FC = () => {
     { label: "대회 이름",               done: !!title.trim(),             optional: false },
     { label: "문제 설명",               done: !isDescEmpty(description),  optional: false },
     { label: "채점 코드",               done: !!judgeCode,                optional: false },
-    { label: "샘플 코드",               done: !!sampleCode,               optional: false },
+    { label: "샘플 코드 (1개 이상)",     done: sampleCodes.length > 0,     optional: false },
     { label: "예시 AI 코드 (1개 이상)", done: exampleAiCodes.length > 0,  optional: false },
     { label: "시각화 HTML",             done: !!visualizationHtml,        optional: !certification },
     { label: "혼자서 하기 HTML",        done: !!soloPlayHtml,             optional: !certification },
@@ -268,10 +282,10 @@ const BattleCreateContestPage: React.FC = () => {
             <div className="cc-ai-col">
               <AiAssistPanel
                 description={description}
-                sampleCode={sampleCode}
-                onApplySampleCode={setSampleCode}
+                sampleCode={sampleCodes[0] ?? null}
+                onApplySampleCode={(f) => setSampleCodes(prev => [...prev, f])}
                 onApplyJudgeCode={setJudgeCode}
-                onAddExampleAICode={(f) => setExampleAICodes(prev => [...prev, f])}
+                onAddExampleAICode={(f) => setExampleAiCodes(prev => [...prev, { file: f, description: "" }])}
                 onApplyVisualization={setVisualizationHtml}
                 onApplySoloPlay={setSoloPlayHtml}
               />
@@ -339,25 +353,53 @@ const BattleCreateContestPage: React.FC = () => {
                 {/* 파일 첨부 */}
                 <section className="cc-section">
                   <h3 className="cc-section-title">파일 첨부</h3>
-                  <FileInput label="샘플 코드" required accept=".py,.cpp,.java,.js,.ts" value={sampleCode} onChange={setSampleCode} />
+                  {/* 샘플 코드 (다중) */}
+                  <div className="cc-field">
+                    <label className="cc-label">샘플 코드 <Req show={sampleCodes.length === 0} /></label>
+                    <p className="cc-field-hint">참가자에게 제공할 예시 코드입니다. 여러 파일을 추가할 수 있습니다.</p>
+                    {sampleCodes.length > 0 && (
+                      <div className="cc-ai-code-list">
+                        {sampleCodes.map((f, i) => (
+                          <div key={i} className="cc-ai-code-row">
+                            <span className="cc-lang-badge">{extToLanguage(f.name)}</span>
+                            <span className="cc-ai-code-name">{f.name}</span>
+                            <button type="button" className="cc-reviewer-remove" onClick={() => handleSampleCodeRemove(i)} aria-label="삭제">✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <label htmlFor="cc-sample-code-input" className="cc-reviewer-add">+ 샘플 코드 추가</label>
+                    <input key={sampleCodeInputKey} id="cc-sample-code-input" type="file" accept=".py,.cpp,.java,.js,.ts,.c,.cs,.go,.rs,.kt,.lua" multiple style={{ display: "none" }} onChange={(e) => handleSampleCodeAdd(e.target.files)} />
+                  </div>
+
                   <FileInput label="채점 코드" required accept=".py,.cpp,.java,.js,.ts" value={judgeCode} onChange={setJudgeCode} />
 
-                  {/* 예시 AI 코드 (다중) */}
+                  {/* 예시 AI 코드 (다중 + 설명) */}
                   <div className="cc-field">
                     <label className="cc-label">예시 AI 코드 <Req show={exampleAiCodes.length === 0} /></label>
                     <p className="cc-field-hint">참가자의 코드가 대결할 예시 AI 코드를 추가하세요.</p>
                     {exampleAiCodes.length > 0 && (
                       <div className="cc-ai-code-list">
-                        {exampleAiCodes.map((f, i) => (
-                          <div key={i} className="cc-ai-code-row">
-                            <span className="cc-ai-code-name">{f.name}</span>
-                            <button type="button" className="cc-reviewer-remove" onClick={() => handleAICodeRemove(i)} aria-label="삭제">✕</button>
+                        {exampleAiCodes.map((entry, i) => (
+                          <div key={i} className="cc-ai-code-item">
+                            <div className="cc-ai-code-row">
+                              <span className="cc-lang-badge">{extToLanguage(entry.file.name)}</span>
+                              <span className="cc-ai-code-name">{entry.file.name}</span>
+                              <button type="button" className="cc-reviewer-remove" onClick={() => handleAICodeRemove(i)} aria-label="삭제">✕</button>
+                            </div>
+                            <input
+                              type="text"
+                              className="cc-input cc-ai-code-desc"
+                              placeholder="설명 입력 (선택)"
+                              value={entry.description}
+                              onChange={e => handleAICodeDescChange(i, e.target.value)}
+                            />
                           </div>
                         ))}
                       </div>
                     )}
                     <label htmlFor="cc-ai-code-input" className="cc-reviewer-add">+ AI 코드 추가</label>
-                    <input key={aiCodeInputKey} id="cc-ai-code-input" type="file" accept=".py,.cpp,.java,.js,.ts" multiple style={{ display: "none" }} onChange={(e) => handleAICodeAdd(e.target.files)} />
+                    <input key={aiCodeInputKey} id="cc-ai-code-input" type="file" accept=".py,.cpp,.java,.js,.ts,.c,.cs,.go,.rs,.kt,.lua" multiple style={{ display: "none" }} onChange={(e) => handleAICodeAdd(e.target.files)} />
                   </div>
 
                   <FileInput label="시각화 HTML 파일" accept=".html" value={visualizationHtml} onChange={setVisualizationHtml} required={certification} hint={!certification ? " (선택)" : undefined} />

@@ -39,7 +39,7 @@ const EditContestModal: React.FC<Props> = ({ contestId, initial, onClose, onSave
   const [status, setStatus]               = useState<ContestStatus>(initial.status as ContestStatus);
   const [startDate, setStartDate]         = useState(toInputDatetime(initial.startDate));
   const [endDate, setEndDate]             = useState(toInputDatetime(initial.endDate));
-  const [sampleCode, setExampleCode]     = useState(initial.sampleCode ?? "");
+  const [sampleCode, setExampleCode]     = useState(initial.sampleCodes?.[0]?.code ?? "");
   const [judgeCode, setJudgeCode]         = useState("");
 
   const [saving, setSaving] = useState(false);
@@ -85,7 +85,9 @@ const EditContestModal: React.FC<Props> = ({ contestId, initial, onClose, onSave
         status:          payload.status,
         startDate:       payload.startDate,
         endDate:         payload.endDate,
-        sampleCode:     payload.sampleCode,
+        sampleCodes: payload.sampleCode
+          ? [{ code: payload.sampleCode, language: "" }]
+          : undefined,
       });
       onClose();
     } catch (err: any) {
