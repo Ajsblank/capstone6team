@@ -244,6 +244,11 @@
   font-weight: 700;
   white-space: nowrap;
 }
+.ms-match-ai {
+  color: #6b7280;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
 .ms-winner--me   { color: #1a8a45; font-weight: 700; }
 .ms-winner--ai   { color: #c02040; font-weight: 700; }
 .ms-winner--draw { color: #b06010; font-weight: 700; }
