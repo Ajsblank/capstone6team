@@ -4,7 +4,7 @@
   padding: 28px 32px;
   background: #ffffff;
   color: #111827;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   box-sizing: border-box;
 }
 
@@ -156,7 +156,7 @@
   border-radius: 8px;
   color: #ffffff;
   cursor: pointer;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.95rem;
   font-weight: 700;
   padding: 11px 32px;

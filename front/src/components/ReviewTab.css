@@ -47,7 +47,7 @@
   color: #ea580c;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   white-space: nowrap;
 }
 
@@ -56,7 +56,7 @@
   border: 1px solid #5a5a5a;
   border-radius: 4px;
   color: #d4d4d4;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.82rem;
   padding: 4px 8px;
   cursor: pointer;
@@ -102,7 +102,7 @@
   font-weight: 900;
   color: #ea580c;
   letter-spacing: 0.08em;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   text-shadow: 0 0 10px rgba(234, 88, 12, 0.5);
   flex-shrink: 0;
 }
@@ -124,7 +124,7 @@
   border-radius: 7px;
   color: #ffffff;
   cursor: pointer;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.95rem;
   font-weight: 700;
   padding: 10px 28px;
@@ -157,7 +157,7 @@
 .rv-loading-text {
   font-size: 0.88rem;
   color: #9ca3af;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
 }
 .rv-loading-text strong { color: #ea580c; }
 
@@ -167,7 +167,7 @@
   border-radius: 6px;
   color: #9ca3af;
   cursor: pointer;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.85rem;
   padding: 6px 14px;
   transition: border-color 0.15s, color 0.15s;
@@ -177,7 +177,7 @@
 .rv-error-msg {
   font-size: 0.85rem;
   color: #f87171;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
 }
 
 /* ── 결과 로그 패널 ── */
@@ -207,7 +207,7 @@
   color: #ea580c;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
 }
 
 .rv-log-header-actions {
@@ -222,7 +222,7 @@
   border-radius: 5px;
   color: #fff;
   cursor: pointer;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
   padding: 4px 12px;
@@ -236,7 +236,7 @@
   border-radius: 5px;
   color: #8b949e;
   cursor: pointer;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.8rem;
   padding: 4px 10px;
   transition: border-color 0.15s, color 0.15s;

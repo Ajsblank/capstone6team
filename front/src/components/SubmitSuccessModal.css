@@ -41,14 +41,14 @@
   font-weight: 700;
   color: #cdd6f4;
   margin: 0;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
 }
 
 .modal-desc {
   font-size: 0.85rem;
   color: #a6adc8;
   margin: 0;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
 }
 
 .modal-btn {
