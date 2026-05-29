@@ -8,7 +8,7 @@
   min-height: 100vh;
   background: #ffffff;
   color: #111827;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   position: relative;
 }
 
@@ -64,7 +64,7 @@
   border: 1px solid #fed7aa;
   color: #ea580c;
   cursor: pointer;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.85rem;
   font-weight: 600;
   padding: 7px 16px;
@@ -123,7 +123,7 @@
   border-radius: 6px;
   color: #6b7280;
   cursor: pointer;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.8rem;
   padding: 4px 10px;
   transition: border-color 0.15s, color 0.15s;
@@ -149,7 +149,7 @@
   border: 1px solid #d1d5db;
   border-radius: 6px;
   color: #111827;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.9rem;
   padding: 10px 12px;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -184,7 +184,7 @@
   border-bottom: 2px solid transparent;
   color: #6b7280;
   cursor: pointer;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.8rem; font-weight: 600;
   padding: 7px 14px;
   transition: color 0.15s, border-color 0.15s;
@@ -241,7 +241,7 @@
 .cc-file-btn {
   background: #f9fafb; border: 1px solid #d1d5db; border-radius: 6px;
   color: #374151; cursor: pointer;
-  font-family: "Segoe UI", sans-serif; font-size: 0.85rem; font-weight: 600;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; font-size: 0.85rem; font-weight: 600;
   padding: 8px 14px; flex-shrink: 0;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
@@ -252,7 +252,7 @@
   font-family: "Consolas", monospace;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
 }
-.cc-file-name--empty { color: #9ca3af; font-family: "Segoe UI", sans-serif; font-style: italic; }
+.cc-file-name--empty { color: #9ca3af; font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; font-style: italic; }
 
 .cc-file-clear {
   background: none; border: 1px solid #e5e7eb; border-radius: 4px;
@@ -268,7 +268,7 @@
 }
 .cc-cert-btn {
   background: #f9fafb; border: none; color: #6b7280;
-  cursor: pointer; font-family: "Segoe UI", sans-serif;
+  cursor: pointer; font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.9rem; font-weight: 600; padding: 10px 32px;
   transition: background 0.15s, color 0.15s;
 }
@@ -287,7 +287,7 @@
 .cc-next-btn {
   background: #dcfce7; border: none; border-radius: 8px;
   color: #15803d; cursor: pointer;
-  font-family: "Segoe UI", sans-serif; font-size: 0.95rem; font-weight: 700;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; font-size: 0.95rem; font-weight: 700;
   padding: 12px 28px; transition: background 0.15s; order: -1;
 }
 .cc-next-btn:hover { background: #bbf7d0; }
@@ -295,7 +295,7 @@
 .cc-submit-btn {
   background: #ea580c; border: none; border-radius: 8px;
   color: #ffffff; cursor: pointer;
-  font-family: "Segoe UI", sans-serif; font-size: 0.95rem; font-weight: 700;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; font-size: 0.95rem; font-weight: 700;
   padding: 12px 32px; transition: background 0.15s;
 }
 .cc-submit-btn:hover:not(:disabled) { background: #c2410c; }
@@ -304,7 +304,7 @@
 .cc-cancel-btn {
   background: none; border: 1px solid #d1d5db; border-radius: 8px;
   color: #6b7280; cursor: pointer;
-  font-family: "Segoe UI", sans-serif; font-size: 0.95rem; padding: 12px 24px;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; font-size: 0.95rem; padding: 12px 24px;
   transition: background 0.15s, color 0.15s;
 }
 .cc-cancel-btn:hover { background: #f3f4f6; color: #374151; }
@@ -378,7 +378,7 @@
   border-radius: 8px;
   color: #6b7280;
   cursor: pointer;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.88rem;
   font-weight: 600;
   padding: 9px 20px;
@@ -397,7 +397,7 @@
   border-radius: 8px;
   color: #ea580c;
   cursor: pointer;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.95rem;
   font-weight: 700;
   padding: 12px 24px;
@@ -411,7 +411,7 @@
   display: flex; align-items: flex-start; gap: 12px;
   background: #ffffff; border: 1px solid #fca5a5; border-radius: 10px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.12);
-  color: #111827; font-family: "Segoe UI", sans-serif; font-size: 0.9rem;
+  color: #111827; font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; font-size: 0.9rem;
   max-width: 420px; padding: 14px 16px; z-index: 9999;
   animation: cc-toast-in 0.2s ease;
 }
@@ -504,7 +504,7 @@
 .cc-preview-back-btn {
   background: #f9fafb; border: 1px solid #e5e7eb;
   border-radius: 6px; color: #374151; cursor: pointer;
-  font-family: "Segoe UI", sans-serif; font-size: 0.85rem;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; font-size: 0.85rem;
   font-weight: 600; padding: 7px 16px;
   transition: background 0.15s;
 }

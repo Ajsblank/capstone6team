@@ -6,7 +6,7 @@
   justify-content: center;
   min-height: 100vh;
   background: #f9fafb;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   padding: 32px 16px;
   position: relative;
   overflow: hidden;
@@ -71,7 +71,7 @@
   border-radius: 8px;
   color: #111827;
   font-size: 0.9rem;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   padding: 10px 14px;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -110,7 +110,7 @@
 /* Submit */
 .signup-btn {
   width: 100%; padding: 11px; border-radius: 8px;
-  font-size: 0.95rem; font-family: "Segoe UI", sans-serif;
+  font-size: 0.95rem; font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-weight: 700; cursor: pointer; transition: background 0.15s; border: none;
 }
 .signup-btn--primary { background: #16a34a; color: #ffffff; }
@@ -123,13 +123,13 @@
 .signup-footer-text { font-size: 0.85rem; color: #9ca3af; }
 .signup-link-btn {
   background: none; border: none; color: #16a34a;
-  font-size: 0.85rem; font-family: "Segoe UI", sans-serif;
+  font-size: 0.85rem; font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   cursor: pointer; padding: 0; text-decoration: underline; font-weight: 600;
 }
 .signup-link-btn:hover { color: #15803d; }
 .signup-back-btn {
   background: none; border: none; color: #9ca3af; font-size: 0.82rem;
-  font-family: "Segoe UI", sans-serif; cursor: pointer; padding: 0; text-align: center;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; cursor: pointer; padding: 0; text-align: center;
   transition: color 0.15s;
 }
 .signup-back-btn:hover { color: #6b7280; }
@@ -188,7 +188,7 @@
 
 .verify-btn {
   width: 100%; padding: 11px; border-radius: 8px;
-  font-size: 0.95rem; font-family: "Segoe UI", sans-serif; font-weight: 700;
+  font-size: 0.95rem; font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; font-weight: 700;
   cursor: pointer; transition: background 0.15s; border: none;
   background: #16a34a; color: #ffffff;
 }
@@ -201,14 +201,14 @@
 }
 .verify-resend-btn {
   background: none; border: none; color: #16a34a; font-size: 0.82rem;
-  font-family: "Segoe UI", sans-serif; cursor: pointer; padding: 0;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; cursor: pointer; padding: 0;
   text-decoration: underline; transition: color 0.15s; font-weight: 600;
 }
 .verify-resend-btn:hover:not(:disabled) { color: #15803d; }
 .verify-resend-btn:disabled { color: #9ca3af; cursor: not-allowed; text-decoration: none; }
 .verify-cancel {
   background: none; border: none; color: #9ca3af; font-size: 0.82rem;
-  font-family: "Segoe UI", sans-serif; cursor: pointer; padding: 0; transition: color 0.15s;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; cursor: pointer; padding: 0; transition: color 0.15s;
 }
 .verify-cancel:hover { color: #6b7280; }
 

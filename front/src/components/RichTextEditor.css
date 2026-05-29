@@ -30,7 +30,7 @@
   border: 1px solid #d1d5db;
   border-radius: 4px;
   color: #374151;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.82rem;
   padding: 3px 6px;
   cursor: pointer;
@@ -63,7 +63,7 @@
   border-radius: 4px;
   color: #374151;
   cursor: pointer;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.82rem;
   transition: background 0.1s, border-color 0.1s, color 0.1s;
   white-space: nowrap;
@@ -125,7 +125,7 @@
   border-radius: 4px;
   color: #ea580c;
   cursor: pointer;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.82rem;
   font-weight: 600;
   white-space: nowrap;
@@ -165,7 +165,7 @@
   min-height: inherit;
   padding: 14px 16px;
   outline: none;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.92rem;
   line-height: 1.75;
   color: #111827;
