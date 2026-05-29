@@ -119,15 +119,14 @@ public class ContestRunService {
     Long contestId = contest.getId();
     // 중간 대회 일정 조회 → 스위스 세션 예약
     LocalDateTime scheduledAt = session.getScheduledAt();
-    if (!scheduledAt.isAfter(LocalDateTime.now())) {
+    if (!scheduledAt.isAfter(LocalDateTime.now(ZoneId.of("Asia/Seoul")))) {
       log.info("[Scheduler] 스위스 세션 예약 contestId={} 시작 시간이 이미 지났으므로 예약을 스킵합니다. 시작 시간: {}",
           contestId, scheduledAt);
       return;
     }
-    final Long sessionId = session.getId();
 
     Runnable sessionTask = () -> swissLeagueService.generateSwissSession(contestId, session.getSessionNumber(),
-        sessionId);
+        session.getId());
     Instant sessionInstant = session.getScheduledAt()
         .atZone(ZoneId.of("Asia/Seoul")).toInstant();
 
@@ -213,6 +212,7 @@ public class ContestRunService {
       // 참가자 2명 미만 이거나 제출이 2개 미만이면 grading 종료
       if (participantCount < 2 || submissionCount < 2) {
         contest.setStatus(ContestStatus.CANCELED);
+        contestRepository.save(contest);
         log.warn("참가자/제출 부족으로 grading을 스킵합니다. participantCount: {}, submissionCount: {}\n대회 상태 = {}", participantCount,
             submissionCount, ContestStatus.CANCELED);
         return;
