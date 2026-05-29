@@ -120,7 +120,7 @@ public class ContestRunService {
     // 중간 대회 일정 조회 → 스위스 세션 예약
     LocalDateTime scheduledAt = session.getScheduledAt();
     if (!scheduledAt.isAfter(LocalDateTime.now())) {
-      log.debug("[Scheduler] 스위스 세션 예약 contestId={} 시작 시간이 이미 지났으므로 예약을 스킵합니다. 시작 시간: {}",
+      log.info("[Scheduler] 스위스 세션 예약 contestId={} 시작 시간이 이미 지났으므로 예약을 스킵합니다. 시작 시간: {}",
           contestId, scheduledAt);
       return;
     }

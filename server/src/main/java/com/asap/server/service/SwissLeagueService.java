@@ -74,6 +74,10 @@ public class SwissLeagueService {
       // 1. 세션 값 초기화
       ContestSwissSession session = swissSessionRepository.findById(sessionId)
           .orElseThrow(() -> new EntityNotFoundException("Session not found"));
+      if (session.getStatus() == ContestStatus.END) {
+        log.info("이미 실행된 세션이므로 스킵합니다.");
+        return;
+      }
       session.setSessionNumber(sessionNumber);
       session.setStartedAt(LocalDateTime.now());
       session.setStatus(ContestStatus.RUNNING);
