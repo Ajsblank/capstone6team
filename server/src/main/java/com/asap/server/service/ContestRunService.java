@@ -115,6 +115,35 @@ public class ContestRunService {
     }
   }
 
+  public void registSwissContest(CodeBattleContest contest, ContestSwissSession session) {
+    Long contestId = contest.getId();
+    // 중간 대회 일정 조회 → 스위스 세션 예약
+    LocalDateTime scheduledAt = session.getScheduledAt();
+    if (!scheduledAt.isAfter(LocalDateTime.now())) {
+      log.debug("[Scheduler] 스위스 세션 예약 contestId={} 시작 시간이 이미 지났으므로 예약을 스킵합니다. 시작 시간: {}",
+          contestId, scheduledAt);
+      return;
+    }
+    final Long sessionId = session.getId();
+
+    Runnable sessionTask = () -> swissLeagueService.generateSwissSession(contestId, session.getSessionNumber(),
+        sessionId);
+    Instant sessionInstant = session.getScheduledAt()
+        .atZone(ZoneId.of("Asia/Seoul")).toInstant();
+
+    ScheduledFuture<?> sessionScheduled = taskScheduler.schedule(sessionTask, triggerContext -> {
+      if (triggerContext.lastCompletion() != null)
+        return null;
+      return sessionInstant;
+    });
+    // 에약이 없으면 넣음
+    if (sessionScheduled != null) {
+      swissScheduledTasks.computeIfAbsent(contestId, k -> new ArrayList<>()).add(sessionScheduled);
+    }
+    log.info("[Scheduler] contestId={} 스위스 세션 {} 예약 완료. 시작 시간={}",
+        contestId, session.getSessionNumber(), session.getScheduledAt());
+  }
+
   public void upsertContestSchedule(CodeBattleContest contest) {
     log.info("[Scheduler] contestId={} 스케줄 업데이트 시작", contest.getId());
     cancelContestSchedule(contest.getId());
