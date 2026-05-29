@@ -505,3 +505,26 @@
   color: #6b7280;
   border-color: #e5e7eb;
 }
+
+/* ── 상태 영역 (배지 + 경고 아이콘) ── */
+.bp-status-area {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bp-canceled-warn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  color: #b45309;
+  font-size: 0.7rem;
+  font-weight: 900;
+  cursor: default;
+  flex-shrink: 0;
+}

@@ -11,10 +11,11 @@ const FETCH_SIZE = 100;
 const VALID_BATTLE_TABS: BattleTab[] = ["contest", "ranking", "help"];
 
 const STATUS_LABEL: Record<string, string> = {
-  RUNNING: "개최 중",
-  PLANNED: "개최 예정",
-  END:     "종료",
-  TEST:    "TEST",
+  RUNNING:  "개최 중",
+  PLANNED:  "개최 예정",
+  END:      "종료",
+  CANCELED: "종료",
+  TEST:     "TEST",
 };
 
 function formatDate(iso: string): string {
@@ -23,10 +24,11 @@ function formatDate(iso: string): string {
 }
 
 function statusCardClass(status?: string): string {
-  if (status === "RUNNING") return " bp-problem-card--running";
-  if (status === "PLANNED") return " bp-problem-card--planned";
-  if (status === "END")     return " bp-problem-card--ended";
-  if (status === "TEST")    return " bp-problem-card--test";
+  if (status === "RUNNING")  return " bp-problem-card--running";
+  if (status === "PLANNED")  return " bp-problem-card--planned";
+  if (status === "END")      return " bp-problem-card--ended";
+  if (status === "CANCELED") return " bp-problem-card--ended";
+  if (status === "TEST")     return " bp-problem-card--test";
   return "";
 }
 
@@ -295,15 +297,24 @@ const BattlePage: React.FC = () => {
                           </div>
                           <div className="bp-problem-card-right">
                             {c.status && (
-                              <span className={`bp-problem-difficulty${
-                                c.status === "TEST"    ? " bp-problem-difficulty--test"    :
-                                c.status === "PLANNED" ? " bp-problem-difficulty--planned" :
-                                c.status === "RUNNING" ? " bp-problem-difficulty--running" :
-                                c.status === "END"     ? " bp-problem-difficulty--ended"   : ""
-                              }`}>
-                                {c.status === "RUNNING" && <span className="bp-status-dot" />}
-                                {STATUS_LABEL[c.status] ?? c.status}
-                              </span>
+                              <div className="bp-status-area">
+                                {c.status === "CANCELED" && (
+                                  <span
+                                    className="bp-canceled-warn"
+                                    title="참가자 수 부족으로 최종 결과가 집계되지 않았습니다"
+                                  >!</span>
+                                )}
+                                <span className={`bp-problem-difficulty${
+                                  c.status === "TEST"                ? " bp-problem-difficulty--test"    :
+                                  c.status === "PLANNED"             ? " bp-problem-difficulty--planned" :
+                                  c.status === "RUNNING"             ? " bp-problem-difficulty--running" :
+                                  c.status === "END" ||
+                                  c.status === "CANCELED"            ? " bp-problem-difficulty--ended"   : ""
+                                }`}>
+                                  {c.status === "RUNNING" && <span className="bp-status-dot" />}
+                                  {STATUS_LABEL[c.status] ?? c.status}
+                                </span>
+                              </div>
                             )}
                             {createdContestIds.includes(c.id) && (c.status === "PLANNED" || c.status === "RUNNING") && (
                               <button

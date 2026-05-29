@@ -80,6 +80,7 @@ function MatchRow({ match, index, userId, onLogClick }: {
   return (
     <tr className="ms-match-row">
       <td className="ms-match-num">#{index + 1}</td>
+      <td className="ms-match-ai">AI #{index + 1}</td>
       <td>
         <span className={isDraw ? "ms-winner--draw" : isMe ? "ms-winner--me" : "ms-winner--ai"}>
           {isDraw ? "무승부" : isMe ? "나" : "샘플 AI"}
@@ -193,6 +194,7 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
             <thead>
               <tr>
                 <th>매치</th>
+                <th>상대 AI</th>
                 <th>결과</th>
                 <th>로그</th>
               </tr>
