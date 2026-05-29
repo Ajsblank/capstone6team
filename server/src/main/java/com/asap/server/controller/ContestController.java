@@ -3,6 +3,8 @@ package com.asap.server.controller;
 import java.io.IOException;
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -631,6 +633,9 @@ public class ContestController {
         List<ContestSwissSession> sessions = new ArrayList<>();
         List<LocalDateTime> sorted = scheduledTimes.stream()
                 .sorted()
+                .map(dt -> dt.atZone(ZoneOffset.UTC)
+                        .withZoneSameInstant(ZoneId.of("Asia/Seoul"))
+                        .toLocalDateTime())
                 .toList();
         for (int i = 0; i < sorted.size(); i++) {
             ContestSwissSession session = new ContestSwissSession();
@@ -641,14 +646,15 @@ public class ContestController {
             session.setStatus(ContestStatus.PLANNED);
             session.setSessionNumber(i + 1);
 
-            contestRunService.registSwissContest(contest, session);
-            log.info("[스위스 리그 예약] contestId={}, sessionId={}, 시작 시간={}", contestId, session.getId(),
-                    session.getScheduledAt());
             sessions.add(session);
         }
 
         sessionRepository.saveAll(sessions);
-
+        for (ContestSwissSession session : sessions) {
+            contestRunService.registSwissContest(contest, session);
+            log.info("[스위스 리그 예약] contestId={}, sessionId={}, 시작 시간={}", contestId, session.getId(),
+                    session.getScheduledAt());
+        }
         return ResponseEntity.ok(Map.of("세션 리스트 생성됨", sessions.size()));
     }
 
