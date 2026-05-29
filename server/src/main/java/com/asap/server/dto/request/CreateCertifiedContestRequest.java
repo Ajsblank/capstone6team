@@ -99,7 +99,7 @@ public class CreateCertifiedContestRequest {
   @Schema(description = "샘플 코드 파일 내용", example = "[{\"code\": \"int main() { return 0; }\", \"language\": \"CPP\"}]")
   private List<SampleCodeRequest> sampleCodes;
   @NotEmpty(message = "exampleAiCodes는 최소 1개 이상 필요합니다.")
-  @Schema(description = "예제 AI 코드 목록", example = "[\"int main() { return 0; }\"]")
+  @Schema(description = "예제 AI 코드 목록")
   private List<ExampleAiRequest> exampleAiCodes;
 
   @NotBlank(message = "visualizationHtml은 필수입니다.")

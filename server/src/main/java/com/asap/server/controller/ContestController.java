@@ -52,6 +52,7 @@ import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.ContestSwissMatchRepository;
 import com.asap.server.repository.ContestSwissSessionRepository;
+import com.asap.server.service.ContestRunService;
 import com.asap.server.service.ContestService;
 import com.asap.server.service.FullLeagueService;
 import com.asap.server.service.S3Service;
@@ -79,6 +80,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ContestController {
 
     private final ContestService contestService;
+    private final ContestRunService contestRunService;
     private final S3Service s3Service;
     private final ObjectMapper objectMapper;
     private final CodeBattleContestRepository contestRepository;
@@ -635,9 +637,10 @@ public class ContestController {
             session.setContest(contest);
             session.setScheduledAt(sorted.get(i));
             // 임시로 1부터 세션 번호를 매김
-            // 현재 테스트를 위해 생성, 자동 예약이 되지 않음
+            // 자동 예약 추가
             session.setStatus(ContestStatus.PLANNED);
             session.setSessionNumber(i + 1);
+            contestRunService.registSwissContest(contest, session);
             sessions.add(session);
         }
 
