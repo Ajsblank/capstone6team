@@ -5,6 +5,7 @@ import mammoth from "mammoth";
 import { useApp } from "../context/AppContext";
 import { getContestDetail } from "../api/codeBattleApi";
 import { modifyContest, modifyCertifiedContest } from "../api/contestApi";
+import Breadcrumb from "../components/Breadcrumb";
 import RichTextEditor from "../components/RichTextEditor";
 import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
@@ -232,7 +233,10 @@ const ContestSettingsPage: React.FC = () => {
         <main className="home-body">
           <div className="cc-content" style={{ padding: "48px" }}>
             <p style={{ color: "#dc2626", marginBottom: "16px" }}>{loadError}</p>
-            <button className="cc-back-link" onClick={() => navigate("battle")}>← 대회 목록</button>
+            <Breadcrumb items={[
+              { label: "대회 목록", onClick: () => navigate("battle") },
+              { label: "대회 설정" },
+            ]} />
           </div>
         </main>
       </div>
@@ -278,7 +282,10 @@ const ContestSettingsPage: React.FC = () => {
         <div className="cc-content">
           <div className="cc-layout">
             <div className="cc-form-col">
-              <button className="cc-back-link" onClick={() => navigate("battle")}>← 대회 목록</button>
+              <Breadcrumb items={[
+              { label: "대회 목록", onClick: () => navigate("battle") },
+              { label: "대회 설정" },
+            ]} />
               <h2 className="cc-page-title">대회 설정</h2>
 
               <div className="cc-form">

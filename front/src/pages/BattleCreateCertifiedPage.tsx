@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useApp } from "../context/AppContext";
+import Breadcrumb from "../components/Breadcrumb";
 import { createCertifiedContest, ContestResponse } from "../api/contestApi";
 import { getContestDraft, clearContestDraft } from "../contestDraft";
 import ContestSidebar from "../components/ContestSidebar";
@@ -116,7 +117,11 @@ const BattleCreateCertifiedPage: React.FC = () => {
 
             {/* ── 폼 컬럼 ── */}
             <div className="cc-form-col">
-              <button className="cc-back-link" onClick={() => navigate("create-contest")}>← 이전 단계</button>
+              <Breadcrumb items={[
+                { label: "대회 목록", onClick: () => navigate("battle") },
+                { label: "대회 개최", onClick: () => navigate("create-contest") },
+                { label: "검수자 설정" },
+              ]} />
               <h2 className="cc-page-title">대회 개최 — 검수자 설정</h2>
 
               <div className="cc-form">

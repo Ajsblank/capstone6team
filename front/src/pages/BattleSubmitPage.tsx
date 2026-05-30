@@ -10,6 +10,7 @@ import BattleSessionsTab from "../components/BattleSessionsTab";
 import SessionDetailPanel from "../components/SessionDetailPanel";
 import FinalResultTab from "../components/FinalResultTab";
 import LeaderboardTab from "../components/LeaderboardTab";
+import Breadcrumb from "../components/Breadcrumb";
 import { submitCode, getContestDetail, joinContest, ContestDetail } from "../api/codeBattleApi";
 import { setMatchCallback, setSummaryCallback, setReconnectCallback, BattleMatchResult, SubmissionSummary, debugSse } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
@@ -394,11 +395,10 @@ const SubmitPage: React.FC = () => {
 
       {/* 문제 제목 바 */}
       <div className="sp-problem-bar">
-        <button className="sp-back-btn" onClick={() => navigate("battle")}>← 대회 목록</button>
-        <span className="sp-problem-bar-divider" />
-        <span className="sp-problem-title">
-          {contestDetailLoading ? "불러오는 중..." : (contestDetail?.title ?? "대회")}
-        </span>
+        <Breadcrumb items={[
+          { label: "대회 목록", onClick: () => navigate("battle") },
+          { label: contestDetailLoading ? "..." : (contestDetail?.title ?? "대회") },
+        ]} />
       </div>
 
       {/* 서브탭 */}
