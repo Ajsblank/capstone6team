@@ -18,8 +18,6 @@ public class CodeBattleTestRequest {
     private Language language1;
     @Column(columnDefinition = "language2", nullable = false)
     private Language language2;
-    @Column(columnDefinition = "language3", nullable = false)
-    private Language language3;
     @NotBlank
     private String sourceCode1;
     @NotBlank

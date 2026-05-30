@@ -261,8 +261,8 @@ public class SwissLeagueService {
     codesNode.put("player2", player2Code);
     ObjectNode languagesNode = rootNode.putObject("languages");
     languagesNode.put("judge", "cpp");
-    languagesNode.put("language1", s1.getLanguage().name().toLowerCase());
-    languagesNode.put("language2", s2.getLanguage().name().toLowerCase());
+    languagesNode.put("player1", s1.getLanguage().name().toLowerCase());
+    languagesNode.put("player2", s2.getLanguage().name().toLowerCase());
 
     String payload = objectMapper.writeValueAsString(rootNode);
     Long queueSize = redisTemplate.opsForList().leftPush(CODE_BATTLE_SWISS_LEAGUE_QUEUE_KEY, payload);
