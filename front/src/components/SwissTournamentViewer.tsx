@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { SessionPayload, SessionRound, SessionMatch } from "./SessionDetailPanel";
 import "../pages/SwissTournamentPage.css";
 
@@ -82,11 +82,7 @@ function buildVRounds(rounds: SessionRound[], animKeyMap: Map<number, number>): 
       }
 
       const key = `${pw}-${pl}`;
-      if (!poolMap.has(key)) {
-        poolMap.set(key, {
-          wins: pw, losses: pl, matches: [],
-        });
-      }
+      if (!poolMap.has(key)) poolMap.set(key, { wins: pw, losses: pl, matches: [] });
 
       poolMap.get(key)!.matches.push({
         id: `m${m.match_id}`,
@@ -141,16 +137,21 @@ interface VMatchRowProps {
   trackedId: number | null;
   selected: boolean;
   onSelect: () => void;
+  setRef: (id: string, el: HTMLDivElement | null) => void;
 }
-const VMatchRow: React.FC<VMatchRowProps> = ({ match, trackedId, selected, onSelect }) => {
-  const { result, isBye, p1Id, p2Id } = match;
+
+const VMatchRow: React.FC<VMatchRowProps> = ({ match, trackedId, selected, onSelect, setRef }) => {
+  const { result, isBye, p1Id, p2Id, id } = match;
   const p1Win  = result === "p1";
   const p2Win  = result === "p2";
   const isDraw = result === "draw";
 
   if (isBye) {
     return (
-      <div className={`st-bye-row${trackedId === p1Id ? " st-bye-row--tracked" : ""}`}>
+      <div
+        ref={el => setRef(id, el)}
+        className={`st-bye-row${trackedId === p1Id ? " st-bye-row--tracked" : ""}`}
+      >
         <span className={`st-bye-name${trackedId === p1Id ? " st-bye-name--tracked" : ""}`}>
           {pName(p1Id)}
         </span>
@@ -159,36 +160,55 @@ const VMatchRow: React.FC<VMatchRowProps> = ({ match, trackedId, selected, onSel
     );
   }
 
-  const p1Class = [
-    "st-match-player",
-    p1Win ? "st-match-player--win" : isDraw ? "st-match-player--draw" : result ? "st-match-player--loss" : "",
-    trackedId === p1Id ? "st-match-player--tracked" : "",
-  ].filter(Boolean).join(" ");
+  const isTracked = trackedId === p1Id || trackedId === p2Id;
 
-  const p2Class = [
-    "st-match-player",
-    p2Win ? "st-match-player--win" : isDraw ? "st-match-player--draw" : result ? "st-match-player--loss" : "",
-    trackedId === p2Id ? "st-match-player--tracked" : "",
-  ].filter(Boolean).join(" ");
-
-  const rowClass = [
+  const rowCls = [
     "st-match",
-    selected ? "st-match--selected" : "",
-    result  ? "st-match--resolved" : "",
-    result  ? `st-match--${result}` : "st-match--pending",
-    (trackedId === p1Id || trackedId === p2Id) ? "st-match--tracked" : "",
+    selected       ? "st-match--selected"  : "",
+    result         ? "st-match--resolved"  : "st-match--pending",
+    result         ? `st-match--${result}` : "",
+    isTracked      ? "st-match--tracked"   : "",
+  ].filter(Boolean).join(" ");
+
+  const p1HalfCls = [
+    "st-match-half st-match-half--left",
+    p1Win ? "st-match-half--win" : p2Win ? "st-match-half--lose" : isDraw ? "st-match-half--draw" : "",
+    trackedId === p1Id ? "st-match-half--tracked" : "",
+  ].filter(Boolean).join(" ");
+
+  const p2HalfCls = [
+    "st-match-half st-match-half--right",
+    p2Win ? "st-match-half--win" : p1Win ? "st-match-half--lose" : isDraw ? "st-match-half--draw" : "",
+    trackedId === p2Id ? "st-match-half--tracked" : "",
   ].filter(Boolean).join(" ");
 
   return (
-    <div className={rowClass} onClick={onSelect}>
-      <span className={p1Class}>{pName(p1Id)}</span>
-      <span className={`st-match-vs${selected ? " st-match-vs--active" : ""}`}>vs</span>
-      <span className={p2Class}>{pName(p2Id)}</span>
-      {result && (
-        <span key={match.animKey} className={`st-result-badge st-result-badge--${result}`}>
-          {p1Win ? "← 승" : p2Win ? "승 →" : "무"}
+    <div ref={el => setRef(id, el)} className={rowCls} onClick={onSelect}>
+      {/* 좌측 — 플레이어 1 */}
+      <div className={p1HalfCls}>
+        <span className="st-match-pname">{pName(p1Id)}</span>
+        <span className="st-result-slot">
+          {p1Win  && <span className="st-win-icon">W</span>}
+          {p2Win  && <span className="st-lose-icon">L</span>}
+          {isDraw && <span className="st-draw-icon">D</span>}
         </span>
-      )}
+      </div>
+
+      {/* VS 구분선 */}
+      <div className={`st-match-vs-divider${selected ? " st-match-vs-divider--active" : ""}`}>
+        <span>VS</span>
+        {selected && <span className="st-vs-pulse" />}
+      </div>
+
+      {/* 우측 — 플레이어 2 */}
+      <div className={p2HalfCls}>
+        <span className="st-result-slot">
+          {p1Win  && <span className="st-lose-icon">L</span>}
+          {p2Win  && <span className="st-win-icon">W</span>}
+          {isDraw && <span className="st-draw-icon">D</span>}
+        </span>
+        <span className="st-match-pname">{pName(p2Id)}</span>
+      </div>
     </div>
   );
 };
@@ -198,8 +218,10 @@ interface VPoolCardProps {
   trackedId: number | null;
   selectedMatchId: string | null;
   onSelect: (id: string) => void;
+  setRef: (id: string, el: HTMLDivElement | null) => void;
 }
-const VPoolCard: React.FC<VPoolCardProps> = ({ pool, trackedId, selectedMatchId, onSelect }) => {
+
+const VPoolCard: React.FC<VPoolCardProps> = ({ pool, trackedId, selectedMatchId, onSelect, setRef }) => {
   const hasTracked = trackedId !== null &&
     pool.matches.some(m => m.p1Id === trackedId || m.p2Id === trackedId);
 
@@ -217,6 +239,7 @@ const VPoolCard: React.FC<VPoolCardProps> = ({ pool, trackedId, selectedMatchId,
             trackedId={trackedId}
             selected={selectedMatchId === m.id}
             onSelect={() => onSelect(m.id)}
+            setRef={setRef}
           />
         ))}
       </div>
@@ -287,21 +310,24 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload }) => {
   const prevRoundCount  = useRef(0);
   const scrollRef       = useRef<HTMLDivElement>(null);
 
-  // ── Incremental diff: animKey only for newly resolved matches ────────────────
+  // 매치 DOM 참조 맵 (자동 스크롤용)
+  const matchRefsMap = useRef<Map<string, HTMLDivElement>>(new Map());
+  const setMatchRef  = useCallback((id: string, el: HTMLDivElement | null) => {
+    if (el) matchRefsMap.current.set(id, el);
+    else    matchRefsMap.current.delete(id);
+  }, []);
+
+  // ── 신규 결과 animKey 갱신 ────────────────────────────────────────────────────
   useEffect(() => {
     if (!payload) return;
     const changed: number[] = [];
-
     for (const r of payload.rounds) {
       for (const m of r.matches) {
         const prev = prevWinnersRef.current.get(m.match_id);
-        if ((prev === undefined || prev === null) && m.winner !== null) {
-          changed.push(m.match_id);
-        }
+        if ((prev === undefined || prev === null) && m.winner !== null) changed.push(m.match_id);
         prevWinnersRef.current.set(m.match_id, m.winner);
       }
     }
-
     if (changed.length > 0) {
       setAnimKeyMap(prev => {
         const next = new Map(prev);
@@ -334,15 +360,14 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload }) => {
     [payload, playerIds],
   );
 
-  // ── Rank delta tracking ───────────────────────────────────────────────────────
+  // ── 순위 변동 추적 ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (standings.length === 0) return;
     const updates: Array<[number, { delta: number; key: number }]> = [];
     standings.forEach(s => {
       const prev = prevRankRef.current.get(s.playerId);
-      if (prev !== undefined && prev !== s.rank) {
+      if (prev !== undefined && prev !== s.rank)
         updates.push([s.playerId, { delta: prev - s.rank, key: Date.now() + s.playerId }]);
-      }
     });
     if (updates.length > 0) {
       setRankDeltaMap(prev => {
@@ -356,13 +381,30 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload }) => {
     prevRankRef.current = next;
   }, [standings]);
 
-  // ── Auto-scroll right when new round appears ─────────────────────────────────
+  // ── 새 라운드 등장 시 우측 자동 스크롤 ─────────────────────────────────────
   useEffect(() => {
-    if (vRounds.length > prevRoundCount.current && scrollRef.current) {
+    if (vRounds.length > prevRoundCount.current && scrollRef.current)
       scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
-    }
     prevRoundCount.current = vRounds.length;
   }, [vRounds.length]);
+
+  // ── 추적 플레이어 첫 매치로 자동 스크롤 ─────────────────────────────────────
+  useEffect(() => {
+    if (trackedId === null) return;
+    for (const r of vRounds) {
+      for (const pool of r.pools) {
+        for (const m of pool.matches) {
+          if (m.p1Id === trackedId || m.p2Id === trackedId) {
+            const el = matchRefsMap.current.get(m.id);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+              return;
+            }
+          }
+        }
+      }
+    }
+  }, [trackedId, vRounds]);
 
   if (!payload || vRounds.length === 0) {
     return (
@@ -372,10 +414,9 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload }) => {
     );
   }
 
-  const completedCount = vRounds.filter(r => r.completed).length;
-  const sessionDone    = payload.status === "FINISHED";
-
-  const totalMatches   = payload.rounds.flatMap(r => r.matches).length;
+  const completedCount  = vRounds.filter(r => r.completed).length;
+  const sessionDone     = payload.status === "FINISHED";
+  const totalMatches    = payload.rounds.flatMap(r => r.matches).length;
   const resolvedMatches = payload.rounds.flatMap(r => r.matches).filter(m => m.winner !== null).length;
 
   return (
@@ -400,9 +441,8 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload }) => {
         />
       </div>
 
-      {/* Main area: bracket + sidebar */}
+      {/* Main area */}
       <div className="st-main-area">
-
         <div className="st-bracket-scroll" ref={scrollRef}>
           <div className="st-bracket">
             {vRounds.map((r, idx) => (
@@ -426,6 +466,7 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload }) => {
                           trackedId={trackedId}
                           selectedMatchId={selectedMatchId}
                           onSelect={setSelectedMatchId}
+                          setRef={setMatchRef}
                         />
                       ))
                     )}
@@ -439,7 +480,6 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload }) => {
               </React.Fragment>
             ))}
 
-            {/* Next round placeholder */}
             {!sessionDone && vRounds.length < payload.total_rounds && (
               <>
                 <div className="st-connector">
@@ -459,7 +499,6 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload }) => {
             )}
           </div>
 
-          {/* Final standings (session done) */}
           {sessionDone && (
             <div className="st-standings">
               <h3 className="st-standings-title">최종 결과</h3>
