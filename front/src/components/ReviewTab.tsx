@@ -86,6 +86,8 @@ const ReviewTab: React.FC<Props> = ({ contestId, onLogClick }) => {
       await reviewContest(
         String(user?.id ?? ""),
         String(contestId),
+        lang1.toUpperCase(),
+        lang2.toUpperCase(),
         code1,
         code2,
         controller.signal
