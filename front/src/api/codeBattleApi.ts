@@ -245,13 +245,15 @@ export const getFullLeagueMatchLog = async (contestId: number, matchId: number):
 export const reviewContest = async (
   userId: string,
   problemId: string,
+  language1: string,
+  language2: string,
   sourceCode1: string,
   sourceCode2: string,
   signal?: AbortSignal
 ): Promise<void> => {
   await api.post(
     `/api/code/submit/test`,
-    { userId, problemId, sourceCode1, sourceCode2 },
+    { userId, problemId, language1, language2, sourceCode1, sourceCode2 },
     { signal }
   );
 };
