@@ -47,6 +47,15 @@ public class ContestRunService {
 
     for (CodeBattleContest contest : contests) {
 
+      if (!contest.getStartDate().isAfter(LocalDateTime.now()) && contest.getStatus() == ContestStatus.PLANNED) {
+        processMatching(contest.getId());
+        log.info("시작 처리가 안된 대회 Id={} 처리 완료", contest.getId());
+        continue;
+      } else if (!contest.getEndDate().isAfter(LocalDateTime.now()) && contest.getStatus() == ContestStatus.RUNNING) {
+        processEnd(contest.getId());
+        log.info("종료 처리가 안된 대회 Id={} 처리 완료", contest.getId());
+        continue;
+      }
       // 현재 대회 진행 중 끊긴 대회에 대해서 재 실행 처리가 없음
       if (!contest.getStartDate().isAfter(LocalDateTime.now())) {
         log.debug("[Scheduler] contestId={} 시작 시간이 이미 지났으므로 스킵합니다. 시작 시간: {}", contest.getId(), contest.getStartDate());
