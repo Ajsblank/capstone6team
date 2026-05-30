@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { getAccessToken } from "../api/authApi";
+import Breadcrumb from "./Breadcrumb";
 import SwissTournamentViewer from "./SwissTournamentViewer";
 import "./SessionDetailPanel.css";
 
@@ -112,7 +113,10 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack 
 
       {/* 헤더 */}
       <div className="sdp-header">
-        <button className="sdp-back-btn" onClick={onBack}>← 세션 목록</button>
+        <Breadcrumb dark items={[
+          { label: "세션 목록", onClick: onBack },
+          { label: `Session ${sessionNumber}` },
+        ]} />
         <span className="sdp-header-title">
           Session {sessionNumber}
           {payload && (
