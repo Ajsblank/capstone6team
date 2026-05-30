@@ -97,12 +97,17 @@ const BattlePage: React.FC = () => {
     if (activeTab === "contest") fetchContests();
   }, [activeTab, fetchContests]);
 
-  const STATUS_PRIORITY: Record<string, number> = { RUNNING: 2, PLANNED: 3, END: 4, TEST: 5, CANCELED: 6 };
-
   function sortPriority(c: ContestItem): number {
-    if (hostedContestIds.includes(c.id))  return 0;
-    if (joinedContestIds.includes(c.id))  return 1;
-    return STATUS_PRIORITY[c.status ?? ""] ?? 4;
+    const isHosted = hostedContestIds.includes(c.id);
+    const isJoined = joinedContestIds.includes(c.id);
+    switch (c.status) {
+      case "RUNNING":  return isHosted ? 0 : isJoined ? 1 : 2;
+      case "PLANNED":  return isHosted ? 3 : isJoined ? 4 : 5;
+      case "END":      return isHosted ? 6 : isJoined ? 7 : 8;
+      case "TEST":     return 9;
+      case "CANCELED": return isHosted ? 10 : isJoined ? 11 : 12;
+      default:         return 8;
+    }
   }
 
   // 필터 + 우선순위 정렬
@@ -275,10 +280,14 @@ const BattlePage: React.FC = () => {
                               <p className="bp-problem-title">
                                 {c.title}
                                 {joinedContestIds.includes(c.id) && (
-                                  <span className="bp-contest-badge bp-contest-badge--joined">참가중</span>
+                                  <span className="bp-contest-badge bp-contest-badge--joined">
+                                    {(c.status === "END" || c.status === "CANCELED") ? "참가" : "참가중"}
+                                  </span>
                                 )}
                                 {hostedContestIds.includes(c.id) && (
-                                  <span className="bp-contest-badge bp-contest-badge--hosted">검수중</span>
+                                  <span className="bp-contest-badge bp-contest-badge--hosted">
+                                    {(c.status === "END" || c.status === "CANCELED") ? "검수" : "검수중"}
+                                  </span>
                                 )}
                                 {createdContestIds.includes(c.id) && (
                                   <span className="bp-contest-badge bp-contest-badge--created">개최</span>
