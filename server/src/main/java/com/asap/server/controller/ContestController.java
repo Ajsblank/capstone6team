@@ -637,6 +637,11 @@ public class ContestController {
                         .withZoneSameInstant(ZoneId.of("Asia/Seoul"))
                         .toLocalDateTime())
                 .toList();
+        int lastSessionNumber = sessionRepository.findByContestId(contestId)
+                .stream()
+                .mapToInt(ContestSwissSession::getSessionNumber)
+                .max()
+                .orElse(0);
         for (int i = 0; i < sorted.size(); i++) {
             ContestSwissSession session = new ContestSwissSession();
             session.setContest(contest);
@@ -644,7 +649,7 @@ public class ContestController {
             // 임시로 1부터 세션 번호를 매김
             // 자동 예약 추가
             session.setStatus(ContestStatus.PLANNED);
-            session.setSessionNumber(i + 1);
+            session.setSessionNumber(lastSessionNumber + i + 1);
 
             sessions.add(session);
         }

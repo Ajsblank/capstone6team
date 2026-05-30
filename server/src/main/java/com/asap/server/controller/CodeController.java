@@ -142,17 +142,20 @@ public class CodeController {
 
             Users user = userRepository.findById(Long.parseLong(request.getUserId()))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
-
+            if (request.getUserId() == null) {
+                return ResponseEntity.badRequest().body("userId는 필수입니다.");
+            }
             ObjectNode rootNode = objectMapper.createObjectNode();
             rootNode.put("submissionId", contest.getId());
             rootNode.put("timeLimitSec", contest.getTimeLimitSec());
             rootNode.put("memoryLimitMb", contest.getMemoryLimitMB());
             rootNode.put("aiOrder", 0L);
+            rootNode.put("userId", request.getUserId());
 
-            ObjectNode codesNode = rootNode.putObject("codes");
-            codesNode.put("judge", contest.getJudgeCode());
-            codesNode.put("player1", request.getSourceCode1());
-            codesNode.put("player2", request.getSourceCode2());
+            // 검증 큐는 현재 다른 큐와 형식 불일치
+            rootNode.put("judge", contest.getJudgeCode());
+            rootNode.put("player1", request.getSourceCode1());
+            rootNode.put("player2", request.getSourceCode2());
 
             ObjectNode languagesNode = rootNode.putObject("languages");
             languagesNode.put("judge", "cpp");
