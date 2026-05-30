@@ -279,19 +279,6 @@ const BattleCreateContestPage: React.FC = () => {
         <div className="cc-content">
           <div className="cc-layout">
 
-            {/* ── AI 도우미 컬럼 (좌측) ── */}
-            <div className="cc-ai-col">
-              <AiAssistPanel
-                description={description}
-                sampleCode={sampleCodes[0] ?? null}
-                onApplySampleCode={(f) => setSampleCodes(prev => [...prev, f])}
-                onApplyJudgeCode={setJudgeCode}
-                onAddExampleAICode={(f) => setExampleAiCodes(prev => [...prev, { file: f, description: "" }])}
-                onApplyVisualization={setVisualizationHtml}
-                onApplySoloPlay={setSoloPlayHtml}
-              />
-            </div>
-
             {/* ── 폼 컬럼 ── */}
             <div className="cc-form-col">
               <Breadcrumb items={[
