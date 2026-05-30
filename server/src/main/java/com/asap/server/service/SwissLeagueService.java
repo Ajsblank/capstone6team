@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -75,11 +76,27 @@ public class SwissLeagueService {
       ContestSwissSession session = swissSessionRepository.findById(sessionId)
           .orElseThrow(() -> new EntityNotFoundException("Session not found"));
       if (session.getStatus() == ContestStatus.END) {
-        log.info("이미 실행된 세션이므로 스킵합니다.");
+        log.info("이미 종료된 세션이므로 스킵합니다.");
         return;
       }
+      // 비정상 종료 라운드 무시 로직
+      List<ContestSwissRound> runningRounds = swissRoundRepository
+          .findBySessionIdAndStatus(sessionId, MatchStatus.RUNNING);
+      for (ContestSwissRound stale : runningRounds) {
+        stale.setStatus(MatchStatus.CANCELED);
+        swissRoundRepository.save(stale);
+
+        // Redis 키 정리 (존재 시)
+        redisTemplate.delete(swissRound + stale.getId() + totalKey);
+        redisTemplate.delete(swissRound + stale.getId() + doneKey);
+        redisTemplate.delete(swissRound + stale.getId() + matchKey);
+        log.warn("[스위스리그] sessionId={} roundId={} RUNNING → CANCELLED, Redis 정리",
+            sessionId, stale.getId());
+      }
       session.setSessionNumber(sessionNumber);
-      session.setStartedAt(LocalDateTime.now());
+      if (session.getStartedAt() == null) {
+        session.setStartedAt(LocalDateTime.now());
+      }
       session.setStatus(ContestStatus.RUNNING);
       session = swissSessionRepository.save(session);
 
@@ -134,9 +151,34 @@ public class SwissLeagueService {
       sessionState.put("rounds", new ArrayList<>());
       sseService.updateSessionState(contestId, session.getId(), sessionState);
 
+      // FINISHED 라운드 넘버 수집 (1~n 순서대로 확인)
+      List<ContestSwissRound> finishedRounds = swissRoundRepository
+          .findBySessionIdAndStatus(sessionId, MatchStatus.FINISHED);
+      Set<Integer> finishedRoundNumbers = finishedRounds.stream()
+          .map(ContestSwissRound::getRoundNumber)
+          .collect(Collectors.toSet());
+
+      // 1번부터 순서대로 체크해서 첫 번째 미완료 라운드 찾기
+      int nextRound = 1;
+      for (int i = 1; i <= roundsPerSession; i++) {
+        if (finishedRoundNumbers.contains(i)) {
+          nextRound = i + 1;
+        } else {
+          nextRound = i;
+          break;
+        }
+      }
       redisTemplate.opsForValue().set("swiss:session:" + session.getId() + totalKey, String.valueOf(roundsPerSession));
-      redisTemplate.opsForValue().set("swiss:session:" + session.getId() + doneKey, "0");
-      generateSwissRound(contest, session, participants, 1);
+      redisTemplate.opsForValue().set("swiss:session:" + session.getId() + doneKey,
+          String.valueOf(finishedRoundNumbers.size()));
+
+      if (nextRound > roundsPerSession) {
+        log.info("[스위스리그] sessionId={} 모든 라운드 이미 완료 → 세션 집계", sessionId);
+        aggregateSwissSession(sessionId);
+        return;
+      }
+
+      generateSwissRound(contest, session, participants, nextRound);
       log.info("[스위스리그] contestId={} session={} 시작 완료", contestId, sessionNumber);
 
     } catch (Exception e) {
@@ -171,7 +213,9 @@ public class SwissLeagueService {
     roundState.put("status", "RUNNING");
     roundState.put("matches", new ArrayList<>());
     sseService.addRound(contest.getId(), session.getId(), roundState);
-
+    // 라운드 Redis 초기화 - total을 마지막에 세팅 (경합 방지)
+    redisTemplate.opsForValue().set(swissRound + round.getId() + totalKey, String.valueOf(matchsPerRound));
+    redisTemplate.opsForValue().set(swissRound + round.getId() + doneKey, "0");
     int matchCount = 0;
     for (int j = 0; j + 1 < participants.size(); j += 2) {
       CodeBattleParticipant p1 = participants.get(j);
@@ -205,10 +249,6 @@ public class SwissLeagueService {
         throw new RuntimeException("스위스 큐 적재 실패", e);
       }
     }
-
-    // 라운드 Redis 초기화 - total을 마지막에 세팅 (경합 방지)
-    redisTemplate.opsForValue().set(swissRound + round.getId() + totalKey, String.valueOf(matchsPerRound));
-    redisTemplate.opsForValue().set(swissRound + round.getId() + doneKey, "0");
 
     // 홀수 부전승 처리
     if (participants.size() % 2 == 1) {
@@ -356,7 +396,7 @@ public class SwissLeagueService {
 
       // 매치 목록을 DB 조회 (최종)
       List<ContestSwissMatch> allMatches = swissMatchRepository
-          .findByRound_Session_Id(sessionId);
+          .findByRound_Session_IdAndRound_Status(sessionId, MatchStatus.FINISHED);
 
       // 승/무/패 집계 현재 부전승은 집계 안함
       Map<Long, Integer> winsMap = new HashMap<>();
@@ -427,7 +467,8 @@ public class SwissLeagueService {
         s.put("match_ids", userMatchIds.getOrDefault(userId, List.of()));
         standings.add(s);
       }
-      List<ContestSwissRound> allRounds = swissRoundRepository.findBySessionIdOrderByRoundNumber(sessionId);
+      List<ContestSwissRound> allRounds = swissRoundRepository.findBySessionIdAndStatusOrderByRoundNumber(sessionId,
+          MatchStatus.FINISHED);
       List<Map<String, Object>> roundList = new ArrayList<>();
       for (ContestSwissRound round : allRounds) {
         List<Map<String, Object>> matchList = new ArrayList<>();
@@ -439,8 +480,8 @@ public class SwissLeagueService {
           matchMap.put("user1_id", m.getUser1().getId());
           matchMap.put("user2_id", m.getUser2() != null ? m.getUser2().getId() : null);
           matchMap.put("winner", m.getWinner() != null
-              ? (m.getWinner().getId().equals(m.getUser1().getId()) ? 1 : 2)
-              : (m.getResult() == ResultType.DRAW ? 0 : null));
+              ? (m.getWinner().getId().equals(m.getUser1().getId()) ? (Integer) 1 : (Integer) 2)
+              : (m.getResult() == ResultType.DRAW ? (Integer) 0 : null));
           matchMap.put("result", m.getResult() != null ? m.getResult().name() : null);
           matchList.add(matchMap);
         }
@@ -496,7 +537,10 @@ public class SwissLeagueService {
       } else if (comp == 2) {
         match.setWinner(match.getUser2());
         match.setResult(ResultType.WIN2);
-      } else if (comp == 0) {
+
+      } else if (comp == 0 || comp == -1)
+      // 타임아웃 임시 무승부 처리
+      {
         match.setWinner(null);
         match.setResult(ResultType.DRAW);
       }
@@ -512,7 +556,9 @@ public class SwissLeagueService {
           result.getWinner(),
           match.getResult());
 
-    } else {
+    } else
+
+    {
       sseService.sendToUser(match.getUser1().getId(), result);
     }
 
@@ -527,7 +573,7 @@ public class SwissLeagueService {
     long roundTotal = Long.parseLong(roundTotalStr);
     log.info("[스위스리그] roundId={} {}/{}", roundId, roundDone, roundTotal);
 
-    if (roundDone == roundTotal) {
+    if (roundDone.equals(roundTotal)) {
       aggregateSwissRound(roundId);
     }
   }
