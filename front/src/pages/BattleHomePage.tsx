@@ -97,7 +97,7 @@ const BattlePage: React.FC = () => {
     if (activeTab === "contest") fetchContests();
   }, [activeTab, fetchContests]);
 
-  const STATUS_PRIORITY: Record<string, number> = { RUNNING: 2, PLANNED: 3, END: 4, TEST: 5 };
+  const STATUS_PRIORITY: Record<string, number> = { RUNNING: 2, PLANNED: 3, END: 4, TEST: 5, CANCELED: 6 };
 
   function sortPriority(c: ContestItem): number {
     if (hostedContestIds.includes(c.id))  return 0;
