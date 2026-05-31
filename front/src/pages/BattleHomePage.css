@@ -3,6 +3,158 @@
    AppLayout.css의 green 삼각형을 orange로 override
    ══════════════════════════════════════════ */
 
+/* ── 최종 결과 알림 버튼 ── */
+@keyframes bp-notify-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(234,88,12,0.5), 0 4px 20px rgba(234,88,12,0.2); }
+  50%       { box-shadow: 0 0 0 8px rgba(234,88,12,0), 0 4px 28px rgba(234,88,12,0.4); }
+}
+
+@keyframes bp-notify-slide-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bp-dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.5); opacity: 0.6; }
+}
+
+@keyframes bp-arrow-nudge {
+  0%, 100% { transform: translateX(0); }
+  50%       { transform: translateX(4px); }
+}
+
+.bp-result-notify {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 14px 14px 20px;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border: 1.5px solid #fb923c;
+  border-radius: 12px;
+  font-family: 'IBM Plex Sans KR', 'IBM Plex Sans', sans-serif;
+  animation:
+    bp-notify-slide-in 0.4s ease forwards,
+    bp-notify-glow 2s ease-in-out 0.4s infinite;
+  margin-bottom: 4px;
+}
+
+/* ── 좌측 텍스트 영역 (클릭 불가) ── */
+.bp-result-notify-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.bp-result-notify-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ea580c;
+  flex-shrink: 0;
+  animation: bp-dot-pulse 1.4s ease-in-out infinite;
+}
+
+.bp-result-notify-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bp-result-notify-headline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #9a3412;
+}
+
+.bp-result-notify-sub {
+  font-size: 0.78rem;
+  color: #c2410c;
+  font-weight: 500;
+}
+
+.bp-result-notify-arrow {
+  font-size: 1rem;
+  color: #ea580c;
+  flex-shrink: 0;
+  animation: bp-arrow-nudge 1.2s ease-in-out infinite;
+  display: inline-block;
+}
+
+/* ── 우측 미니 카드 영역 (inset 패널) ── */
+.bp-result-notify-cards {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 340px;
+  border-radius: 9px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 10px rgba(234, 88, 12, 0.12), 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.bp-result-mini-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: none;
+  border-bottom: 1px solid #fed7aa;
+  cursor: pointer;
+  font-family: 'IBM Plex Sans KR', 'IBM Plex Sans', sans-serif;
+  text-align: left;
+  transition: background 0.15s;
+  min-height: 54px;
+}
+.bp-result-mini-card:last-child { border-bottom: none; }
+.bp-result-mini-card:hover { background: #fff7ed; }
+
+.bp-result-mini-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.bp-result-mini-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #c2410c;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+}
+
+.bp-result-mini-dates {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #9a3412;
+  margin: 0;
+}
+
+.bp-result-mini-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 /* ── 접근 차단 팝업 ── */
 .bp-popup-overlay {
   position: fixed;
