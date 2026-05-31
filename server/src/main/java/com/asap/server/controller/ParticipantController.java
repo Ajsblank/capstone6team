@@ -12,14 +12,15 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.asap.server.domain.Users;
 import com.asap.server.dto.request.CodeSubmitRequest;
+import com.asap.server.dto.request.TestSubmitRequest;
 import com.asap.server.dto.response.ContestParticipantResponse;
-import com.asap.server.global.type.Language;
 import com.asap.server.repository.usersRepository;
 import com.asap.server.service.ContestService;
 
@@ -40,7 +41,7 @@ public class ParticipantController {
 
   private final ContestService contestService;
   private final usersRepository userRepository;
-  private final CodeController condeCodeController;
+  private final CodeController codeController;
 
   @PostMapping("/{contestId}/join")
   @Operation(summary = "대회 참가 신청")
@@ -73,10 +74,9 @@ public class ParticipantController {
   @Operation(summary = "테스트 코드 자동 제출", description = "test_01@test.com 형식의 유저들이 자동으로 코드를 제출합니다.")
   public ResponseEntity<String> multipleSubmitContest(
       @PathVariable Long contestId,
-      @RequestParam int from,
-      @RequestParam int to,
-      @RequestParam Language language,
-      @RequestParam String sourceCode) {
+      @RequestBody TestSubmitRequest req) {
+    int from = req.getFrom();
+    int to = req.getTo();
     if (from < 1 || to > 50 || from > to) {
       log.info("잘못된 범위의 숫자입니다.");
       return ResponseEntity.badRequest().body("1~50 사이의 숫자를 입력해주세요. (from <= to)");
@@ -94,10 +94,10 @@ public class ParticipantController {
         CodeSubmitRequest request = new CodeSubmitRequest();
         request.setUserId(String.valueOf(user.getId()));
         request.setProblemId(String.valueOf(contestId));
-        request.setLanguage(language);
-        request.setSourceCode(sourceCode);
+        request.setLanguage(req.getLanguage());
+        request.setSourceCode(req.getSourceCode());
 
-        condeCodeController.submitBattle(request);
+        codeController.submitBattle(request);
         log.info("test_{} 제출 완료", String.format("%02d", i));
       } catch (Exception e) {
         log.warn("test_{} 제출 실패: {}", String.format("%02d", i), e.getMessage());
