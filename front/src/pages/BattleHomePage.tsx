@@ -249,9 +249,7 @@ const BattlePage: React.FC = () => {
                         {c.status === "CANCELED" && (
                           <span className="bp-canceled-warn" title="참가자 수 부족으로 최종 결과가 집계되지 않았습니다">!</span>
                         )}
-                        <span className={`bp-problem-difficulty bp-problem-difficulty--ended`}>
-                          {c.status === "CANCELED" ? "취소 종료" : "종료"}
-                        </span>
+                        <span className="bp-problem-difficulty bp-problem-difficulty--ended">종료</span>
                         <span className="bp-problem-arrow">›</span>
                       </div>
                     </button>
