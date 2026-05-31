@@ -61,8 +61,12 @@ function statsBeforeRound(rounds: SessionRound[], playerId: number, beforeRoundN
 }
 
 function toVResult(m: SessionMatch): VResult {
+  if (m.result === "DRAW")             return "draw";
+  if (m.result === "WIN1" || m.result === "BYE") return "p1";
+  if (m.result === "WIN2")             return "p2";
+  // result가 없을 경우 winner 필드로 폴백
   if (m.winner === null) return null;
-  if (m.winner === 0)   return "draw";
+  if (m.winner === 0)    return "draw";
   return m.winner === 1 ? "p1" : "p2";
 }
 
@@ -113,14 +117,15 @@ function computeVStandings(rounds: SessionRound[], playerIds: number[]): VStandi
     let wins = 0, losses = 0, draws = 0;
     for (const r of rounds) {
       for (const m of r.matches) {
+        const isDraw = m.winner === 0 || m.result === "DRAW";
         if (m.user1_id === id) {
-          if (m.winner === 1 || m.result === "BYE") wins++;
-          else if (m.winner === 2) losses++;
-          else if (m.winner === 0) draws++;
+          if (isDraw) draws++;
+          else if (m.winner === 1 || m.result === "WIN1" || m.result === "BYE") wins++;
+          else if (m.winner === 2 || m.result === "WIN2") losses++;
         } else if (m.user2_id === id) {
-          if (m.winner === 2) wins++;
-          else if (m.winner === 1) losses++;
-          else if (m.winner === 0) draws++;
+          if (isDraw) draws++;
+          else if (m.winner === 2 || m.result === "WIN2") wins++;
+          else if (m.winner === 1 || m.result === "WIN1") losses++;
         }
       }
     }
@@ -254,8 +259,9 @@ interface VSidebarProps {
   trackedId: number | null;
   onTrack: (id: number | null) => void;
   rankDeltaMap: Map<number, { delta: number; key: number }>;
+  myUserId?: number;
 }
-const VSidebar: React.FC<VSidebarProps> = ({ standings, trackedId, onTrack, rankDeltaMap }) => (
+const VSidebar: React.FC<VSidebarProps> = ({ standings, trackedId, onTrack, rankDeltaMap, myUserId }) => (
   <div className="st-ranking-sidebar">
     <div className="st-sidebar-header">
       <span className="st-sidebar-title">실시간 순위</span>
@@ -267,19 +273,29 @@ const VSidebar: React.FC<VSidebarProps> = ({ standings, trackedId, onTrack, rank
       {standings.map(s => {
         const delta = rankDeltaMap.get(s.playerId);
         const isTracked = trackedId === s.playerId;
+        const isMe      = myUserId !== undefined && s.playerId === myUserId;
         const rankColor = s.rank <= 3 ? RANK_COLORS[s.rank - 1] : undefined;
         return (
           <div
             key={s.playerId}
-            className={`st-sidebar-row${isTracked ? " st-sidebar-row--tracked" : ""}`}
+            className={[
+              "st-sidebar-row",
+              isTracked ? "st-sidebar-row--tracked" : "",
+              isMe      ? "st-sidebar-row--me"      : "",
+            ].filter(Boolean).join(" ")}
             onClick={() => onTrack(isTracked ? null : s.playerId)}
           >
             <span className="st-sidebar-rank" style={rankColor ? { color: rankColor } : undefined}>
               #{s.rank}
             </span>
-            <span className="st-sidebar-name">{pName(s.playerId)}</span>
+            <span className="st-sidebar-name">
+              {pName(s.playerId)}
+              {isMe && <span className="st-sidebar-me-badge">나</span>}
+            </span>
             <span className="st-sidebar-record">
-              {s.wins}W{s.draws > 0 ? ` ${s.draws}D` : ""} {s.losses}L
+              <span className="st-rec-w">{s.wins}W</span>
+              {s.draws > 0 && <span className="st-rec-d"> {s.draws}D</span>}
+              <span className="st-rec-l"> {s.losses}L</span>
             </span>
             {delta && (
               <span key={delta.key} className={`st-rank-delta st-rank-delta--${delta.delta > 0 ? "up" : "down"}`}>
@@ -297,9 +313,10 @@ const VSidebar: React.FC<VSidebarProps> = ({ standings, trackedId, onTrack, rank
 
 interface Props {
   payload: SessionPayload | null;
+  myUserId?: number;
 }
 
-const SwissTournamentViewer: React.FC<Props> = ({ payload }) => {
+const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId }) => {
   const [trackedId,      setTrackedId]      = useState<number | null>(null);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [animKeyMap,     setAnimKeyMap]     = useState<Map<number, number>>(new Map());
@@ -524,6 +541,7 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload }) => {
           trackedId={trackedId}
           onTrack={setTrackedId}
           rankDeltaMap={rankDeltaMap}
+          myUserId={myUserId}
         />
       </div>
     </div>

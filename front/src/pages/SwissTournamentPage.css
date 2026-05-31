@@ -406,6 +406,16 @@
 
 .st-match-half--tracked .st-match-pname { color: #93c5fd !important; font-weight: 800; }
 
+/* 미진행 tracked 매치 — 전체 카드 (두 반쪽 모두) 연한 파란 틴트 */
+.st-match--tracked .st-match-half:not(.st-match-half--win):not(.st-match-half--lose):not(.st-match-half--draw) {
+  background: rgba(29, 78, 216, 0.07);
+}
+
+/* 추적 중인 플레이어 반쪽 — 더 강한 강조 */
+.st-match-half--tracked:not(.st-match-half--win):not(.st-match-half--lose):not(.st-match-half--draw) {
+  background: rgba(29, 78, 216, 0.20);
+}
+
 /* 플레이어 이름 */
 .st-match-pname {
   font-size: 0.8rem;
@@ -469,6 +479,11 @@
 .st-match-vs-divider--active {
   color: #00f5c4;
   background: #0a1a1a;
+}
+
+.st-match--tracked .st-match-vs-divider {
+  background: rgba(29, 78, 216, 0.08);
+  color: #93c5fd;
 }
 
 /* Result reveal flash */
@@ -751,9 +766,34 @@
 
 .st-sidebar-record {
   font-size: 0.68rem;
-  color: #374151;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
+  display: flex;
+  gap: 1px;
+}
+
+.st-rec-w { color: #4ade80; font-weight: 700; }
+.st-rec-d { color: #fbbf24; font-weight: 700; }
+.st-rec-l { color: #f87171; font-weight: 700; }
+
+/* ── 본인 행 하이라이트 ── */
+.st-sidebar-row--me {
+  background: rgba(0, 245, 196, 0.06);
+  border: 1px solid rgba(0, 245, 196, 0.2) !important;
+}
+.st-sidebar-row--me .st-sidebar-name { color: #00f5c4; }
+.st-sidebar-row--me .st-sidebar-rank { color: #00f5c4; }
+
+.st-sidebar-me-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: rgba(0, 245, 196, 0.15);
+  color: #00f5c4;
+  border: 1px solid rgba(0, 245, 196, 0.35);
+  border-radius: 4px;
+  padding: 0px 5px;
+  margin-left: 4px;
+  vertical-align: middle;
 }
 
 /* 순위 변동 배지 */

@@ -35,9 +35,10 @@ interface Props {
   contestId: number;
   sessionNumber: number;
   onBack: () => void;
+  myUserId?: number;
 }
 
-const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack }) => {
+const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack, myUserId }) => {
   const [payload,   setPayload]   = useState<SessionPayload | null>(null);
   const [sseStatus, setSseStatus] = useState<SseStatus>("connecting");
   const esRef = useRef<EventSource | null>(null);
@@ -152,7 +153,7 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack 
       {/* 토너먼트 시각화 */}
       {payload && (
         <div style={{ flex: 1, minHeight: 0 }}>
-          <SwissTournamentViewer payload={payload} />
+          <SwissTournamentViewer payload={payload} myUserId={myUserId} />
         </div>
       )}
 

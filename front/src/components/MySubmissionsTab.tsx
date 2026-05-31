@@ -29,7 +29,10 @@ function formatDate(d: Date | string): string {
 }
 
 function parseServerDate(s: string): Date {
-  return new Date(s);
+  if (!s) return new Date(NaN);
+  // 서버가 UTC를 타임존 표시 없이 보냄 → Z 추가해 UTC로 명시적 파싱
+  if (s.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(s)) return new Date(s);
+  return new Date(s + "Z");
 }
 
 // 동일 submissionId를 가진 항목 그룹을 하나의 LocalSubmission으로 변환
@@ -151,9 +154,7 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
       >
         <span className="ms-item-seq">#{seqNum}</span>
         <span className="ms-item-date">{formatDate(sub.submittedAt)}</span>
-        {sub.language && (
-          <span className="ms-item-lang">{LANGUAGE_LABELS[sub.language] ?? sub.language.toUpperCase()}</span>
-        )}
+
 
         <span className="ms-item-record">
           {sub.error ? (

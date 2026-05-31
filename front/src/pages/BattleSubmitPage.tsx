@@ -519,6 +519,7 @@ const SubmitPage: React.FC = () => {
                 contestId={problemId}
                 sessionNumber={selectedSession}
                 onBack={() => setSelectedSession(null)}
+                myUserId={user?.id ? Number(user.id) : undefined}
               />
             )}
           </div>
