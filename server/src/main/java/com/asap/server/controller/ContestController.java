@@ -3,8 +3,6 @@ package com.asap.server.controller;
 import java.io.IOException;
 import java.net.URI;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -633,15 +631,13 @@ public class ContestController {
         List<ContestSwissSession> sessions = new ArrayList<>();
         List<LocalDateTime> sorted = scheduledTimes.stream()
                 .sorted()
-                .map(dt -> dt.atZone(ZoneOffset.UTC)
-                        .withZoneSameInstant(ZoneId.of("Asia/Seoul"))
-                        .toLocalDateTime())
                 .toList();
         int lastSessionNumber = sessionRepository.findByContestId(contestId)
                 .stream()
                 .mapToInt(ContestSwissSession::getSessionNumber)
                 .max()
                 .orElse(0);
+        // 현재 예약된 세션 넘버 다음 세션부터 예약
         for (int i = 0; i < sorted.size(); i++) {
             ContestSwissSession session = new ContestSwissSession();
             session.setContest(contest);
@@ -650,7 +646,6 @@ public class ContestController {
             // 자동 예약 추가
             session.setStatus(ContestStatus.PLANNED);
             session.setSessionNumber(lastSessionNumber + i + 1);
-
             sessions.add(session);
         }
 
