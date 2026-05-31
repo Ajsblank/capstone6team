@@ -110,6 +110,17 @@ const BattlePage: React.FC = () => {
     }
   }
 
+  // 최근 1일 이내 종료된 참가 대회
+  const recentEndedContests = contests.filter(c =>
+    (c.status === "END" || c.status === "CANCELED") &&
+    joinedContestIds.includes(c.id) &&
+    c.endDate &&
+    (() => {
+      const diff = Date.now() - new Date(c.endDate!).getTime();
+      return diff >= 0 && diff <= 24 * 60 * 60 * 1000;
+    })()
+  );
+
   // 필터 + 우선순위 정렬
   const filteredContests = [...contests]
     .sort((a, b) => sortPriority(a) - sortPriority(b))
@@ -190,6 +201,65 @@ const BattlePage: React.FC = () => {
         {/* 대회 탭 */}
         {activeTab === "contest" && (
           <div className="bp-contest">
+            {recentEndedContests.length > 0 && (
+              <div className="bp-result-notify">
+                {/* 좌측: 안내 텍스트 */}
+                <div className="bp-result-notify-left">
+                  <span className="bp-result-notify-dot" />
+                  <div className="bp-result-notify-content">
+                    <span className="bp-result-notify-headline">
+                      최근 참가하신 대회가 종료되었습니다.
+                      <span className="bp-result-notify-arrow">→</span>
+                    </span>
+                    <span className="bp-result-notify-sub">클릭하여 최종 결과를 확인하세요.</span>
+                  </div>
+                </div>
+
+                {/* 우측: 대회 미니 카드 (클릭 영역) */}
+                <div className="bp-result-notify-cards">
+                  {recentEndedContests.map(c => (
+                    <button
+                      key={c.id}
+                      className="bp-result-mini-card"
+                      onClick={() => { window.location.hash = `submit/${c.id}/final-result`; }}
+                    >
+                      <div className="bp-result-mini-left">
+                        <p className="bp-result-mini-title">
+                          {c.title}
+                          {joinedContestIds.includes(c.id) && (
+                            <span className="bp-contest-badge bp-contest-badge--joined">참가</span>
+                          )}
+                          {hostedContestIds.includes(c.id) && (
+                            <span className="bp-contest-badge bp-contest-badge--hosted">검수</span>
+                          )}
+                          {createdContestIds.includes(c.id) && (
+                            <span className="bp-contest-badge bp-contest-badge--created">개최</span>
+                          )}
+                        </p>
+                        {(c.startDate || c.endDate) && (
+                          <p className="bp-result-mini-dates">
+                            <span>📅</span>
+                            {c.startDate && <span>{formatDate(c.startDate)}</span>}
+                            {c.startDate && c.endDate && <span>~</span>}
+                            {c.endDate && <span>{formatDate(c.endDate)}</span>}
+                          </p>
+                        )}
+                      </div>
+                      <div className="bp-result-mini-right">
+                        {c.status === "CANCELED" && (
+                          <span className="bp-canceled-warn" title="참가자 수 부족으로 최종 결과가 집계되지 않았습니다">!</span>
+                        )}
+                        <span className={`bp-problem-difficulty bp-problem-difficulty--ended`}>
+                          {c.status === "CANCELED" ? "취소 종료" : "종료"}
+                        </span>
+                        <span className="bp-problem-arrow">›</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="bp-contest-header">
               <h2 className="bp-contest-title">대회 목록</h2>
               <button className="bp-create-contest-btn" onClick={() => navigate("create-contest")}>
