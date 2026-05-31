@@ -28,10 +28,8 @@ function formatDate(d: Date | string): string {
   });
 }
 
-// 서버는 타임존 없이 UTC 시각을 보냄("2026-05-17T16:19:10") → 브라우저가 로컬 시간으로 잘못 파싱하는 것을 방지
 function parseServerDate(s: string): Date {
-  if (s.endsWith("Z") || /[+-]\d{2}:\d{2}$/.test(s)) return new Date(s);
-  return new Date(s + "Z");
+  return new Date(s);
 }
 
 // 동일 submissionId를 가진 항목 그룹을 하나의 LocalSubmission으로 변환
