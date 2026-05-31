@@ -277,10 +277,15 @@ const SubmitPage: React.FC = () => {
   }, [contestDetail]);
 
   const handleTabChange = useCallback((tab: Tab) => {
+    // 중간 결과 탭 떠날 때 세션 선택 초기화
+    if (activeTab === "battle-results") setSelectedSession(null);
+    // 제출 탭 떠날 때 상태 텍스트 초기화 (코드는 유지)
+    if (activeTab === "submit") { setSubmitStatus("idle"); setErrorMessage(""); }
+
     window.location.hash = `submit/${problemId}/${tab}`;
     setHashState(prev => ({ ...prev, tab }));
     if (tab === "my-submissions") setSubmissionsRefreshKey(k => k + 1);
-  }, [problemId]);
+  }, [problemId, activeTab]);
 
   // 로그 클릭 → viz1 탭으로 이동 후 iframe에 로그 전달
   const handleLogClick = useCallback((log: string) => {
