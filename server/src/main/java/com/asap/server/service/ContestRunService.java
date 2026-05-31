@@ -4,23 +4,24 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleParticipant;
+import com.asap.server.domain.ContestSwissRound;
 import com.asap.server.domain.ContestSwissSession;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
-import com.asap.server.repository.ContestSwissSessionRepository;
+import com.asap.server.repository.ContestSwissRoundRepository;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -36,35 +37,50 @@ public class ContestRunService {
   private final Map<Long, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();
   private final Map<Long, List<ScheduledFuture<?>>> swissScheduledTasks = new ConcurrentHashMap<>();
   private final FullLeagueService fullLeagueService;
-  private final ContestSwissSessionRepository swissRepository;
   private final SwissLeagueService swissLeagueService;
+  private final StringRedisTemplate redisTemplate;
+  private final ContestSwissRoundRepository roundRepository;
 
   // 서버 실행 시 대회 예약
   @PostConstruct
   public void initContestSchedules() {
     List<CodeBattleContest> contests = contestRepository.findAll();
     log.info("[Scheduler] 전체 대회 개수: {}", contests.size());
-
+    LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
     for (CodeBattleContest contest : contests) {
-
-      if (!contest.getStartDate().isAfter(LocalDateTime.now()) && contest.getStatus() == ContestStatus.PLANNED) {
-        processMatching(contest.getId());
-        log.info("시작 처리가 안된 대회 Id={} 처리 완료", contest.getId());
-        continue;
-      } else if (!contest.getEndDate().isAfter(LocalDateTime.now()) && contest.getStatus() == ContestStatus.RUNNING) {
-        processEnd(contest.getId());
-        log.info("종료 처리가 안된 대회 Id={} 처리 완료", contest.getId());
+      if (contest.getStatus() == ContestStatus.END || contest.getStatus() == ContestStatus.CANCELED) {
+        log.debug("종료/취소된 대회 이므로 스킵 contestId={}", contest.getId());
         continue;
       }
-      // 현재 대회 진행 중 끊긴 대회에 대해서 재 실행 처리가 없음
-      if (!contest.getStartDate().isAfter(LocalDateTime.now())) {
-        log.debug("[Scheduler] contestId={} 시작 시간이 이미 지났으므로 스킵합니다. 시작 시간: {}", contest.getId(), contest.getStartDate());
+      // 시작 처리가 안된 부분
+      if (contest.getStartDate().isBefore(now)) {
+        if (contest.getStatus() == ContestStatus.PLANNED) {
+
+          processMatching(contest.getId());
+          log.info("시작 처리가 안된 대회, 대회 Id={} 처리 완료", contest.getId());
+          continue;
+        }
+        // 키 정리 필요한 부분 찾기
+        else if (contest.getStatus() == ContestStatus.RUNNING) {
+          if (contest.getEndDate().isBefore(now)) {
+            // 즉시 종료
+            processEnd(contest.getId());
+            log.info("종료일 지난 RUNNING 대회 즉시 종료 처리. contestId={}", contest.getId());
+          } else {
+            // 예약 종료
+            processMatching(contest.getId());
+            log.info("서버 재시작으로 끊긴 RUNNING 대회 종료 재예약. contestId={}", contest.getId());
+          }
+          continue;
+        }
+        log.info("비정상 상태, 확인 필요 대회 id={} #1", contest.getId());
         continue;
       }
       if (contest.getStatus() != ContestStatus.PLANNED) {
-        log.debug("[Scheduler] contestId={} PLANNED 상태가 아니므로 스킵합니다. 현재 상태: {}", contest.getId(), contest.getStatus());
+        log.info("비정상 상태, 확인 필요 대회 id={} status={}", contest.getId(), contest.getStatus());
         continue;
       }
+      // 정상 대회 시작 예약
       registerContest(contest);
     }
     log.info("[Scheduler] 초기화 완료. 스케줄된 대회 개수: {}", scheduledTasks.size());
@@ -78,6 +94,7 @@ public class ContestRunService {
 
     ScheduledFuture<?> scheduled = taskScheduler.schedule(task, triggerContext -> {
       if (triggerContext.lastCompletion() != null) {
+        log.info("이미 실행된 대회 오류 #2 contestId={}", contest.getId());
         return null; // 1회 실행 후 종료
       }
       return startInstant;
@@ -88,55 +105,55 @@ public class ContestRunService {
     }
     log.info("[Scheduler] contestId={} 대회의 시작 시간이 등록되었습니다. 등록 시간={}", contestId, contest.getStartDate());
 
-    // 중간 대회 일정 조회 → 스위스 세션 예약
-    List<ContestSwissSession> schedules = swissRepository.findByContestId(contestId);
-    schedules.sort(Comparator.comparing(ContestSwissSession::getScheduledAt));
+    // 중간 대회 일정 조회 → 스위스 세션 예약 (존재 시)
 
-    int sessionCount = 1;
-    for (int i = 0; i < schedules.size(); i++) {
-      // 예약 시점 확인
-      LocalDateTime scheduledAt = schedules.get(i).getScheduledAt();
-      if (!scheduledAt.isAfter(LocalDateTime.now())) {
-        log.debug("[Scheduler] 스위스 세션 예약 contestId={} 시작 시간이 이미 지났으므로 스킵합니다. 시작 시간: {}",
-            contestId, scheduledAt);
-        continue;
-      }
-      // 종료 시점 이후 대회 판단 필요
-      sessionCount++;
-      // 세션 번호 (0-based → +1해서 저장)
-      final int sessionIndex = sessionCount;
-      final Long sessionId = schedules.get(i).getId();
-      Runnable sessionTask = () -> swissLeagueService.generateSwissSession(contestId, sessionIndex, sessionId);
-      Instant sessionInstant = schedules.get(i).getScheduledAt()
-          .atZone(ZoneId.of("Asia/Seoul")).toInstant();
-
-      ScheduledFuture<?> sessionScheduled = taskScheduler.schedule(sessionTask, triggerContext -> {
-        if (triggerContext.lastCompletion() != null)
-          return null;
-        return sessionInstant;
-      });
-      // 여기 부분 풀리그와 비교 다른 부분 처리
-      if (sessionScheduled != null) {
-        swissScheduledTasks.computeIfAbsent(contestId, k -> new ArrayList<>()).add(sessionScheduled);
-      }
-      log.info("[Scheduler] contestId={} 스위스 세션 {} 예약 완료. 시작 시간={}",
-          contestId, sessionIndex, schedules.get(i).getScheduledAt());
-    }
   }
 
   public void registSwissContest(CodeBattleContest contest, ContestSwissSession session) {
     Long contestId = contest.getId();
     // 중간 대회 일정 조회 → 스위스 세션 예약
     LocalDateTime scheduledAt = session.getScheduledAt();
-    if (!scheduledAt.isAfter(LocalDateTime.now(ZoneId.of("Asia/Seoul")))) {
-      log.info("[Scheduler] 스위스 세션 예약 contestId={} 시작 시간이 이미 지났으므로 예약을 스킵합니다. 시작 시간: {}",
-          contestId, scheduledAt);
+    LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
+    Long sessionId = session.getId();
+    if (scheduledAt.isBefore(now)) {
+      // 종료된 스케줄이 아닐 경우
+      if (session.getStatus() != ContestStatus.END) {
+        // 시작처리 안된 세션 실행 (현재 세션 중복 검사 없음)
+        if (session.getStatus() == ContestStatus.PLANNED) {
+          swissLeagueService.generateSwissSession(contestId, session.getSessionNumber(), session.getId());
+          log.info("[Scheduler] 시작 안된 스위스 세션 즉시 실행. contestId={} sessionId={}", contestId, session.getId());
+          return;
+        }
+        // 진행 중이던 세션, 키 정리 후 새로 시작 (현재 재 시작은 나중에 고려)
+        else if (session.getStatus() == ContestStatus.RUNNING) {
+          // 임시로 모든 라운드 초기화 및 새로 세션 시작
+          redisTemplate.delete("swiss:session:" + sessionId + ":total");
+          redisTemplate.delete("swiss:session:" + sessionId + ":done");
+          // 모든 라운드 키 초기화
+          List<ContestSwissRound> rounds = roundRepository.findBySessionId(sessionId);
+          for (ContestSwissRound round : rounds) {
+            redisTemplate.delete("swiss:round:" + round.getId() + ":total");
+            redisTemplate.delete("swiss:round:" + round.getId() + ":done");
+            redisTemplate.delete("swiss:round:" + round.getId() + ":matchIds");
+          }
+          swissLeagueService.generateSwissSession(contestId, session.getSessionNumber(), sessionId);
+          log.info("[Scheduler] 시작 안된 스위스 세션 즉시 다시 실행.(임시 방편) contestId={} sessionId={}", contestId, session.getId());
+          return;
+        }
+        // 비정상 상태 처리
+        else {
+          log.info("비정상 상태이므로 스킵합니다. sessionId={}, Status={}", sessionId, session.getStatus());
+          return;
+        }
+      }
+      log.info("[Scheduler] 이미 종료된 세션이므로 스킵합니다. contestId={}, sessionId={}",
+          contestId, sessionId);
       return;
     }
 
     Runnable sessionTask = () -> swissLeagueService.generateSwissSession(contestId, session.getSessionNumber(),
         session.getId());
-    Instant sessionInstant = session.getScheduledAt()
+    Instant sessionInstant = scheduledAt
         .atZone(ZoneId.of("Asia/Seoul")).toInstant();
 
     ScheduledFuture<?> sessionScheduled = taskScheduler.schedule(sessionTask, triggerContext -> {
@@ -144,7 +161,7 @@ public class ContestRunService {
         return null;
       return sessionInstant;
     });
-    // 에약이 없으면 넣음
+    // 예약이 없으면 넣음
     if (sessionScheduled != null) {
       swissScheduledTasks.computeIfAbsent(contestId, k -> new ArrayList<>()).add(sessionScheduled);
     }

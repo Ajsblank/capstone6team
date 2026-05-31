@@ -136,7 +136,7 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
     }
 
     private void processAiResult(String rawData) throws JsonProcessingException {
-        log.info("❌ AI 결과 처리 Log \n {}", rawData);
+        log.info("🤖 AI 결과 처리 Log \n {}", rawData);
         CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
         Long submissionId = result.getMatchId();
 

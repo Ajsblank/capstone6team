@@ -96,9 +96,9 @@ public class ParticipantController {
         request.setProblemId(String.valueOf(contestId));
         request.setLanguage(req.getLanguage());
         request.setSourceCode(req.getSourceCode());
-
         codeController.submitBattle(request);
         log.info("test_{} 제출 완료", String.format("%02d", i));
+        Thread.sleep(200);
       } catch (Exception e) {
         log.warn("test_{} 제출 실패: {}", String.format("%02d", i), e.getMessage());
       }
