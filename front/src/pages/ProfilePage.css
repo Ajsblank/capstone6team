@@ -1,59 +1,84 @@
 .pp-root {
   min-height: 100vh;
-  background: #1e1e2e;
+  background: #ffffff;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 48px 16px;
+  padding: 48px 16px 64px;
   font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  position: relative;
+}
+
+/* 우상단 오렌지 장식 */
+.pp-root::before {
+  content: '';
+  position: fixed;
+  top: 0; right: 0;
+  width: 40vmin; height: 40vmin;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  background: radial-gradient(ellipse at 100% 0%,
+    rgba(234, 88, 12, 0.13) 0%,
+    rgba(234, 88, 12, 0.04) 50%,
+    transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .pp-center {
   min-height: 100vh;
-  background: #1e1e2e;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 16px;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
 }
 
 /* ── 카드 ── */
 .pp-card {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 520px;
-  background: #181825;
-  border: 1px solid #313244;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-top: 3px solid #ea580c;
   border-radius: 16px;
   overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
 }
 
 .pp-card-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px 28px;
-  border-bottom: 1px solid #313244;
+  padding: 18px 24px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fffbf8;
 }
 
 .pp-card-title {
   flex: 1;
   margin: 0;
   font-size: 1.05rem;
-  font-weight: 700;
-  color: #cdd6f4;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.01em;
 }
 
 .pp-back-btn {
   background: none;
   border: none;
-  color: #6c7086;
-  font-size: 0.85rem;
+  color: #9ca3af;
+  font-size: 0.82rem;
+  font-family: inherit;
   cursor: pointer;
   padding: 0;
   white-space: nowrap;
+  transition: color 0.15s;
 }
-.pp-back-btn:hover { color: #a6adc8; }
+.pp-back-btn:hover { color: #ea580c; }
 
 .pp-edit-actions {
   display: flex;
@@ -69,36 +94,37 @@
   cursor: pointer;
   border: 1px solid transparent;
   white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 .pp-btn--primary {
-  background: #89b4fa;
-  color: #1e1e2e;
-  border-color: #89b4fa;
+  background: #ea580c;
+  color: #ffffff;
+  border-color: #ea580c;
   font-weight: 600;
 }
-.pp-btn--primary:hover { background: #74a8f5; }
+.pp-btn--primary:hover { background: #c2410c; border-color: #c2410c; }
 .pp-btn--primary:disabled { opacity: 0.5; cursor: default; }
 .pp-btn--ghost {
   background: none;
-  color: #a6adc8;
-  border-color: #45475a;
+  color: #6b7280;
+  border-color: #e5e7eb;
 }
-.pp-btn--ghost:hover { border-color: #6c7086; color: #cdd6f4; }
+.pp-btn--ghost:hover { border-color: #9ca3af; color: #374151; }
 .pp-btn--ghost:disabled { opacity: 0.5; cursor: default; }
 
 /* ── 상태 메시지 ── */
 .pp-status {
   padding: 60px 28px;
   text-align: center;
-  color: #6c7086;
+  color: #9ca3af;
   font-size: 0.9rem;
 }
-.pp-status--error { color: #f38ba8; }
-.pp-error { color: #f38ba8; font-size: 0.9rem; }
+.pp-status--error { color: #ef4444; }
+.pp-error { color: #ef4444; font-size: 0.9rem; }
 
 /* ── 본문 ── */
 .pp-body {
-  padding: 28px;
+  padding: 28px 24px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px 24px;
@@ -116,13 +142,14 @@
   height: 88px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #313244;
+  border: 2px solid #fed7aa;
 }
 .pp-avatar-default {
   width: 88px;
   height: 88px;
   border-radius: 50%;
-  background: #313244;
+  background: #fff7ed;
+  border: 2px solid #fed7aa;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,21 +165,21 @@
 .pp-field--full { grid-column: 1 / -1; }
 
 .pp-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: #6c7086;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: #9ca3af;
   text-transform: uppercase;
 }
 
 .pp-value {
   font-size: 0.92rem;
-  color: #cdd6f4;
+  color: #111827;
 }
 .pp-value--name {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #cdd6f4;
+  color: #111827;
   display: flex;
   align-items: baseline;
   gap: 6px;
@@ -160,36 +187,49 @@
 .pp-tag {
   font-size: 0.8rem;
   font-weight: 400;
-  color: #6c7086;
+  color: #9ca3af;
 }
-.pp-value--muted { color: #6c7086; }
+.pp-value--muted { color: #6b7280; }
 .pp-value--bio {
   white-space: pre-wrap;
   line-height: 1.6;
-  color: #a6adc8;
+  color: #4b5563;
+}
+
+/* ── 구분선 ── */
+.pp-divider {
+  grid-column: 1 / -1;
+  border: none;
+  border-top: 1px solid #f3f4f6;
+  margin: 4px 0;
 }
 
 /* ── 입력 ── */
 .pp-input {
-  background: #1e1e2e;
-  border: 1px solid #45475a;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 8px 12px;
-  color: #cdd6f4;
+  padding: 9px 12px;
+  color: #111827;
   font-size: 0.9rem;
   font-family: inherit;
   outline: none;
   width: 100%;
   box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
-.pp-input:focus { border-color: #89b4fa; }
+.pp-input:focus {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+}
+.pp-input::placeholder { color: #d1d5db; }
 
 .pp-textarea {
-  background: #1e1e2e;
-  border: 1px solid #45475a;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  padding: 8px 12px;
-  color: #cdd6f4;
+  padding: 9px 12px;
+  color: #111827;
   font-size: 0.9rem;
   font-family: inherit;
   outline: none;
@@ -197,23 +237,28 @@
   box-sizing: border-box;
   resize: vertical;
   line-height: 1.6;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
-.pp-textarea:focus { border-color: #89b4fa; }
+.pp-textarea:focus {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+}
+.pp-textarea::placeholder { color: #d1d5db; }
 
 .pp-fetch-notice {
   grid-column: 1 / -1;
-  color: #f9e2af;
+  color: #92400e;
   font-size: 0.82rem;
   margin: 0 0 4px;
-  padding: 8px 12px;
-  background: rgba(249, 226, 175, 0.08);
-  border: 1px solid rgba(249, 226, 175, 0.2);
+  padding: 10px 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
   border-radius: 8px;
 }
 
 .pp-save-error {
   grid-column: 1 / -1;
-  color: #f38ba8;
+  color: #ef4444;
   font-size: 0.82rem;
   margin: 0;
 }

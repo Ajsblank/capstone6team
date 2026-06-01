@@ -5,6 +5,7 @@ import "./BattleSessionsTab.css";
 interface Props {
   contestId: number;
   onSessionClick: (sessionNumber: number) => void;
+  contestEnded?: boolean;
 }
 
 function parseDate(s: string): Date {
@@ -49,7 +50,7 @@ const STATUS_LABEL: Record<string, string> = {
   PAUSED:  "일시 정지",
 };
 
-const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick }) => {
+const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick, contestEnded = false }) => {
   const [sessions, setSessions] = useState<ContestSession[]>([]);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
@@ -59,6 +60,7 @@ const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick }) => {
   const [dateList,        setDateList]        = useState<string[]>([nowLocalIso()]);
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleResult,  setScheduleResult]  = useState<"success" | "error" | null>(null);
+  const [endedPopup,      setEndedPopup]      = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,13 +112,27 @@ const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick }) => {
 
   return (
     <div className="bst-container">
+      {endedPopup && (
+        <div className="bst-popup-overlay" onClick={() => setEndedPopup(false)}>
+          <div className="bst-popup" onClick={e => e.stopPropagation()}>
+            <div className="bst-popup-icon">🔒</div>
+            <p className="bst-popup-title">세션 예약 불가</p>
+            <p className="bst-popup-desc">대회가 종료되어 새 세션을 예약할 수 없습니다.</p>
+            <button className="bst-popup-confirm" onClick={() => setEndedPopup(false)}>확인</button>
+          </div>
+        </div>
+      )}
       {/* ── 헤더 ── */}
       <div className="bst-header">
         <h2 className="bst-title">대결 세션</h2>
         {sessions.length > 0 && <span className="bst-count">총 {sessions.length}세션</span>}
         <button
-          className={`bst-schedule-btn${scheduleOpen ? " bst-schedule-btn--active" : ""}`}
-          onClick={() => { setScheduleOpen(o => !o); setScheduleResult(null); }}
+          className={`bst-schedule-btn${scheduleOpen ? " bst-schedule-btn--active" : ""}${contestEnded ? " bst-schedule-btn--disabled" : ""}`}
+          onClick={() => {
+            if (contestEnded) { setEndedPopup(true); return; }
+            setScheduleOpen(o => !o);
+            setScheduleResult(null);
+          }}
         >
           ⚗ 세션 예약
         </button>
