@@ -124,6 +124,45 @@
   color: #64748b;
 }
 
+/* ── 줌 버튼 ── */
+.st-zoom-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #1a1f2e;
+  border: 1px solid #2a3045;
+  border-radius: 8px;
+  padding: 2px 4px;
+}
+
+.st-zoom-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1rem;
+  font-weight: 700;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 5px;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+.st-zoom-btn:hover:not(:disabled) { background: #252d42; color: #e0e0e0; }
+.st-zoom-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.st-zoom-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  min-width: 34px;
+  text-align: center;
+  user-select: none;
+}
+
 .st-controls-right {
   display: flex;
   align-items: center;
@@ -303,7 +342,8 @@
 
 .st-pool-count {
   font-size: 0.7rem;
-  color: #475569;
+  font-weight: 600;
+  color: #94a3b8;
 }
 
 .st-pool-matches {

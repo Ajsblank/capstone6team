@@ -18,9 +18,9 @@ interface VMatch {
 
 interface VPool {
   id: string;
-  wins: number;
-  losses: number;
+  points: number;
   label: string;
+  colorT: number;   // 0 = 최하위(빨강) ~ 1 = 최상위(초록)
   matches: VMatch[];
 }
 
@@ -43,21 +43,24 @@ interface VStanding {
 
 function pName(id: number) { return `U${id}`; }
 
-function statsBeforeRound(rounds: SessionRound[], playerId: number, beforeRoundNumber: number) {
-  let wins = 0, losses = 0;
+function pointsBeforeRound(rounds: SessionRound[], playerId: number, beforeRoundNumber: number): number {
+  let pts = 0;
   for (const r of rounds) {
     if (r.round_number >= beforeRoundNumber) continue;
     for (const m of r.matches) {
+      const isDraw = m.winner === 0 || m.result === "DRAW";
       if (m.user1_id === playerId) {
-        if (m.winner === 1 || m.result === "BYE") wins++;
-        else if (m.winner === 2) losses++;
+        if (isDraw) { /* 0점 */ }
+        else if (m.winner === 1 || m.result === "BYE") pts += 1;
+        else if (m.winner === 2) pts -= 1;
       } else if (m.user2_id === playerId) {
-        if (m.winner === 2) wins++;
-        else if (m.winner === 1) losses++;
+        if (isDraw) { /* 0점 */ }
+        else if (m.winner === 2) pts += 1;
+        else if (m.winner === 1) pts -= 1;
       }
     }
   }
-  return { wins, losses };
+  return pts;
 }
 
 function toVResult(m: SessionMatch): VResult {
@@ -72,23 +75,19 @@ function toVResult(m: SessionMatch): VResult {
 
 function buildVRounds(rounds: SessionRound[], animKeyMap: Map<number, number>): VRound[] {
   return rounds.map(br => {
-    const poolMap = new Map<string, { wins: number; losses: number; matches: VMatch[] }>();
+    const poolMap = new Map<number, { points: number; matches: VMatch[] }>();
 
     for (const m of br.matches) {
-      const s1 = statsBeforeRound(rounds, m.user1_id, br.round_number);
-      let pw = s1.wins, pl = s1.losses;
+      const p1pts = pointsBeforeRound(rounds, m.user1_id, br.round_number);
+      let poolPts = p1pts;
 
       if (m.user2_id !== null) {
-        const s2 = statsBeforeRound(rounds, m.user2_id, br.round_number);
-        if (s2.wins > s1.wins || (s2.wins === s1.wins && s2.losses < s1.losses)) {
-          pw = s2.wins; pl = s2.losses;
-        }
+        const p2pts = pointsBeforeRound(rounds, m.user2_id, br.round_number);
+        if (p2pts > p1pts) poolPts = p2pts;
       }
 
-      const key = `${pw}-${pl}`;
-      if (!poolMap.has(key)) poolMap.set(key, { wins: pw, losses: pl, matches: [] });
-
-      poolMap.get(key)!.matches.push({
+      if (!poolMap.has(poolPts)) poolMap.set(poolPts, { points: poolPts, matches: [] });
+      poolMap.get(poolPts)!.matches.push({
         id: `m${m.match_id}`,
         matchId: m.match_id,
         p1Id: m.user1_id,
@@ -99,14 +98,20 @@ function buildVRounds(rounds: SessionRound[], animKeyMap: Map<number, number>): 
       });
     }
 
-    const pools: VPool[] = Array.from(poolMap.values()).map((p, i) => ({
+    const pointLabel = (pts: number) =>
+      br.round_number === 1 ? "전체" : pts > 0 ? `+${pts}점` : `${pts}점`;
+
+    const sorted = Array.from(poolMap.values())
+      .sort((a, b) => b.points - a.points);
+
+    const n = sorted.length;
+    const pools: VPool[] = sorted.map((p, i) => ({
       id: `r${br.round_number}-pool-${i}`,
-      wins: p.wins,
-      losses: p.losses,
-      label: (p.wins === 0 && p.losses === 0) ? "전체" : `${p.wins}승 ${p.losses}패`,
+      points: p.points,
+      label: pointLabel(p.points),
+      colorT: n === 1 ? 0.6 : (n - 1 - i) / (n - 1),
       matches: p.matches,
     }));
-    pools.sort((a, b) => b.wins - a.wins || a.losses - b.losses);
 
     return { roundNumber: br.round_number, pools, completed: br.status === "FINISHED" };
   });
@@ -129,9 +134,9 @@ function computeVStandings(rounds: SessionRound[], playerIds: number[]): VStandi
         }
       }
     }
-    return { playerId: id, wins, losses, draws, points: wins + draws * 0.5 };
+    return { playerId: id, wins, losses, draws, points: wins - losses };
   });
-  list.sort((a, b) => b.points - a.points || a.losses - b.losses);
+  list.sort((a, b) => b.points - a.points || b.wins - a.wins);
   return list.map((s, i) => ({ ...s, rank: i + 1 }));
 }
 
@@ -226,14 +231,25 @@ interface VPoolCardProps {
   setRef: (id: string, el: HTMLDivElement | null) => void;
 }
 
+function poolHsl(t: number, lightness = 62, sat = 80): string {
+  const hue = Math.round(t * 120);   // 0° 빨강 → 120° 초록
+  return `hsl(${hue}, ${sat}%, ${lightness}%)`;
+}
+
 const VPoolCard: React.FC<VPoolCardProps> = ({ pool, trackedId, selectedMatchId, onSelect, setRef }) => {
   const hasTracked = trackedId !== null &&
     pool.matches.some(m => m.p1Id === trackedId || m.p2Id === trackedId);
 
+  const color      = poolHsl(pool.colorT);
+  const colorDim   = poolHsl(pool.colorT, 18, 60);   // 헤더 배경 tint
+
   return (
-    <div className={`st-pool st-pool--visible${hasTracked ? " st-pool--tracked" : ""}`}>
-      <div className="st-pool-header">
-        <span className="st-pool-label">{pool.label}</span>
+    <div
+      className={`st-pool st-pool--visible${hasTracked ? " st-pool--tracked" : ""}`}
+      style={{ borderLeftColor: color, borderLeftWidth: 3 }}
+    >
+      <div className="st-pool-header" style={{ background: colorDim }}>
+        <span className="st-pool-label" style={{ color, textShadow: `0 0 10px ${color}` }}>{pool.label}</span>
         <span className="st-pool-count">{pool.matches.length}경기</span>
       </div>
       <div className="st-pool-matches">
@@ -321,6 +337,11 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId }) => {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [animKeyMap,     setAnimKeyMap]     = useState<Map<number, number>>(new Map());
   const [rankDeltaMap,   setRankDeltaMap]   = useState<Map<number, { delta: number; key: number }>>(new Map());
+  const [zoom,           setZoom]           = useState(1.0);
+
+  const ZOOM_STEP = 0.1;
+  const ZOOM_MIN  = 0.5;
+  const ZOOM_MAX  = 1.5;
 
   const prevWinnersRef  = useRef<Map<number, 0 | 1 | 2 | null>>(new Map());
   const prevRankRef     = useRef<Map<number, number>>(new Map());
@@ -443,6 +464,21 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId }) => {
       <div className="st-controls" style={{ flexShrink: 0 }}>
         <div className="st-controls-left">
           <span className="st-controls-title">스위스 토너먼트</span>
+          <div className="st-zoom-group">
+            <button
+              className="st-zoom-btn"
+              onClick={() => setZoom(z => Math.max(ZOOM_MIN, parseFloat((z - ZOOM_STEP).toFixed(1))))}
+              disabled={zoom <= ZOOM_MIN}
+              title="축소"
+            >−</button>
+            <span className="st-zoom-label">{Math.round(zoom * 100)}%</span>
+            <button
+              className="st-zoom-btn"
+              onClick={() => setZoom(z => Math.min(ZOOM_MAX, parseFloat((z + ZOOM_STEP).toFixed(1))))}
+              disabled={zoom >= ZOOM_MAX}
+              title="확대"
+            >+</button>
+          </div>
           <span className="st-controls-info">
             {completedCount}/{payload.total_rounds}라운드 · 매치 {resolvedMatches}/{totalMatches}
           </span>
@@ -461,7 +497,7 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId }) => {
       {/* Main area */}
       <div className="st-main-area">
         <div className="st-bracket-scroll" ref={scrollRef}>
-          <div className="st-bracket">
+          <div className="st-bracket" style={{ zoom }}>
             {vRounds.map((r, idx) => (
               <React.Fragment key={r.roundNumber}>
                 <div className="st-round-col">
