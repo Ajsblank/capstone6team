@@ -4,11 +4,97 @@ import { getContestList, ContestItem } from "../api/codeBattleApi";
 import "./AppLayout.css";
 import "./BattleHomePage.css";
 
-type BattleTab = "contest" | "ranking" | "help";
+type BattleTab = "contest" | "ranking" | "help" | "contact";
 type StatusFilter = "" | "RUNNING" | "PLANNED" | "END";
 
 const FETCH_SIZE = 100;
-const VALID_BATTLE_TABS: BattleTab[] = ["contest", "ranking", "help"];
+const VALID_BATTLE_TABS: BattleTab[] = ["contest", "ranking", "help", "contact"];
+
+const HELP_ITEMS: { title: string; summary: string; body: React.ReactNode }[] = [
+  {
+    title: "Tactical Code Battle란?",
+    summary: "플랫폼 개요 및 핵심 개념",
+    body: (
+      <>
+        <p className="bp-info-text">
+          Tactical Code Battle(TCB)는 참가자가 작성한 <strong>AI 코드끼리 자동으로 대결</strong>하는 알고리즘 경쟁 플랫폼입니다.
+          전략을 코드로 구현해 제출하면 서버가 예시 AI와 매치를 진행하고, 스위스 토너먼트 세션을 통해 참가자들의 순위를 결정합니다.
+        </p>
+        <p className="bp-info-text">
+          로그 분석 뷰어로 매치 과정을 시각적으로 재현하거나, 혼자서 하기 기능으로 자신의 전략을 직접 시험해볼 수 있습니다.
+        </p>
+        <div className="bp-info-badges" style={{ marginTop: 4 }}>
+          {["C++20", "Java 21", "Python3 / PyPy3"].map(lang => (
+            <span key={lang} className="bp-info-badge">{lang}</span>
+          ))}
+        </div>
+      </>
+    ),
+  },
+  {
+    title: "대회 진행 방식",
+    summary: "참가 신청부터 최종 결과까지",
+    body: (
+      <ol className="bp-info-list">
+        <li>대회 목록에서 원하는 대회를 선택하고 <strong>대회 참가</strong> 버튼을 클릭합니다.</li>
+        <li><strong>문제</strong> 탭에서 게임 규칙과 입출력 형식을 확인합니다.</li>
+        <li><strong>제출</strong> 탭에서 전략 코드를 작성하고 제출합니다. 횟수 제한은 없으며, 세션 시작 시점의 최신 코드가 사용됩니다.</li>
+        <li>세션이 시작되면 <strong>스위스 토너먼트</strong> 방식으로 라운드가 진행됩니다. 비슷한 점수대 참가자끼리 매칭되며,
+          승리 <strong>+1점</strong> / 무승부 <strong>0점</strong> / 패배 <strong>-1점</strong>이 부여됩니다.</li>
+        <li><strong>중간 결과</strong> 탭에서 세션 진행 상황과 실시간 순위를 확인할 수 있습니다.</li>
+        <li>대회 종료 시간이 되면, <strong>풀리그 방식</strong> 으로 최종 결과를 산출합니다. <strong>최종 결과</strong> 탭에서 대회 최종 순위를 확인합니다.</li>
+      </ol>
+    ),
+  },
+  {
+    title: "인증 · 비인증 대회의 차이",
+    summary: "공식 인증 대회와 일반 대회 비교",
+    body: (
+      <div className="bp-help-compare">
+        <div className="bp-help-compare-col bp-help-compare-col--uncert">
+          <div className="bp-help-compare-head">비인증 대회</div>
+          <ul className="bp-info-list">
+            <li>로그인한 누구나 즉시 개설 가능</li>
+            <li>시각화 · 혼자서 하기 파일 선택 사항</li>
+            <li>테스트 · 연습 목적에 적합</li>
+          </ul>
+        </div>
+        <div className="bp-help-compare-col bp-help-compare-col--cert">
+          <div className="bp-help-compare-head">인증 대회</div>
+          <ul className="bp-info-list">
+            <li>플랫폼 운영팀의 공식 검수 필요</li>
+            <li>시각화 · 혼자서 하기 파일 <strong>필수</strong></li>
+            <li>공식 경쟁 · 수료 목적에 적합</li>
+          </ul>
+        </div>
+      </div>
+    ),
+  },
+  {
+    title: "대회 개최 방법",
+    summary: "필수 항목 및 개설 절차 안내",
+    body: (
+      <>
+        <p className="bp-info-text">로그인 후 대회 목록 페이지 우측 상단의 <strong>대회 개최</strong> 버튼을 클릭합니다.</p>
+        <ol className="bp-info-list" style={{ marginTop: 10 }}>
+          <li><strong>대회 이름</strong>과 <strong>인증 여부</strong>를 설정합니다.</li>
+          <li><strong>문제 설명</strong>을 작성합니다. HTML · Markdown · Word 파일 불러오기를 지원합니다.</li>
+          <li>필수 파일을 첨부합니다.
+            <ul className="bp-info-list" style={{ marginTop: 6 }}>
+              <li><strong>샘플 코드</strong> — 참가자에게 제공할 시작 코드 (여러 파일 가능)</li>
+              <li><strong>채점 코드</strong> — 두 코드의 대결을 실행하고 승패를 판정하는 코드</li>
+              <li><strong>예시 AI 코드</strong> — 제출 코드와 대결할 기준 AI (여러 파일 가능)</li>
+              <li><strong>시각화 HTML</strong> — 로그 분석 뷰어 (인증 대회 필수)</li>
+              <li><strong>혼자서 하기 HTML</strong> — 단독 플레이 뷰어 (인증 대회 필수)</li>
+            </ul>
+          </li>
+          <li>시작 · 종료 일시와 최대 참가자 수를 설정합니다.</li>
+          <li>비인증이면 <strong>대회 생성</strong>으로 즉시 개설, 인증이면 <strong>다음 단계로</strong>를 클릭해 검수 신청을 진행합니다.</li>
+        </ol>
+      </>
+    ),
+  },
+];
 
 const STATUS_LABEL: Record<string, string> = {
   RUNNING:  "개최 중",
@@ -41,6 +127,7 @@ function getTabFromHash(): BattleTab {
 const BattlePage: React.FC = () => {
   const { user, logout, navigate, joinedContestIds, hostedContestIds, createdContestIds } = useApp();
   const [activeTab, setActiveTab] = useState<BattleTab>(getTabFromHash);
+  const [expandedHelp, setExpandedHelp] = useState<number | null>(null);
 
   // 대회 목록 상태
   const [contests, setContests] = useState<ContestItem[]>([]);
@@ -78,6 +165,7 @@ const BattlePage: React.FC = () => {
   const handleTabChange = (tab: BattleTab) => {
     window.location.hash = `battle/${tab}`;
     setActiveTab(tab);
+    if (tab !== "help") setExpandedHelp(null);
   };
 
   const fetchContests = useCallback(async () => {
@@ -166,14 +254,14 @@ const BattlePage: React.FC = () => {
             랭킹
           </button>
           <button
-            className="home-tab-btn home-tab-btn--disabled"
-            title="준비 중인 기능입니다"
+            className={`home-tab-btn${activeTab === "help" ? " home-tab-btn--active" : ""}`}
+            onClick={() => handleTabChange("help")}
           >
             도움말
           </button>
           <button
-            className="home-tab-btn home-tab-btn--disabled"
-            title="준비 중인 기능입니다"
+            className={`home-tab-btn${activeTab === "contact" ? " home-tab-btn--active" : ""}`}
+            onClick={() => handleTabChange("contact")}
           >
             문의
           </button>
@@ -426,8 +514,83 @@ const BattlePage: React.FC = () => {
 
         {/* 도움말 탭 */}
         {activeTab === "help" && (
-          <div className="home-placeholder">
-            <span className="home-placeholder-text">도움말 — 준비 중입니다.</span>
+          <div className="bp-help-page">
+            <div className="bp-help-layout">
+              {/* 좌측 목록 */}
+              <nav className="bp-help-nav">
+                <div className="bp-help-nav-heading">도움말</div>
+                {HELP_ITEMS.map((item, i) => (
+                  <button
+                    key={i}
+                    className={`bp-help-nav-item${expandedHelp === i ? " bp-help-nav-item--active" : ""}`}
+                    onClick={() => setExpandedHelp(expandedHelp === i ? null : i)}
+                  >
+                    <span className="bp-help-nav-num">{String(i + 1).padStart(2, "0")}</span>
+                    <div className="bp-help-nav-text">
+                      <span className="bp-help-nav-label">{item.title}</span>
+                      <span className="bp-help-nav-desc">{item.summary}</span>
+                    </div>
+                    <span className="bp-help-nav-arrow">›</span>
+                  </button>
+                ))}
+              </nav>
+              {/* 우측 상세 */}
+              <div className="bp-help-detail-wrap">
+                {expandedHelp !== null ? (
+                  <div key={expandedHelp} className="bp-help-detail">
+                    <div className="bp-help-detail-header">
+                      <span className="bp-help-detail-num">{String(expandedHelp + 1).padStart(2, "0")}</span>
+                      <h3 className="bp-help-detail-title">{HELP_ITEMS[expandedHelp].title}</h3>
+                    </div>
+                    <div className="bp-help-detail-body">{HELP_ITEMS[expandedHelp].body}</div>
+                  </div>
+                ) : (
+                  <div className="bp-help-detail-empty">
+                    좌측 목록에서 항목을 선택하면 자세한 내용이 표시됩니다.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 문의 탭 */}
+        {activeTab === "contact" && (
+          <div className="bp-info-page">
+            <h2 className="bp-info-title">문의</h2>
+
+            <section className="bp-info-section">
+              <h3 className="bp-info-section-title">개발팀 연락처</h3>
+              <p className="bp-info-text">
+                버그 제보, 기능 제안, 대회 개설 문의는 아래 채널로 연락해 주세요.
+              </p>
+              <div className="bp-contact-cards">
+                <div className="bp-contact-card">
+                  <span className="bp-contact-icon">✉</span>
+                  <div>
+                    <div className="bp-contact-label">이메일</div>
+                    <div className="bp-contact-value">team06asap@ajou.ac.kr</div>
+                  </div>
+                </div>
+                <div className="bp-contact-card">
+                  <span className="bp-contact-icon">🏫</span>
+                  <div>
+                    <div className="bp-contact-label">소속</div>
+                    <div className="bp-contact-value">아주대학교 소프트웨어학과 캡스톤 프로젝트</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="bp-info-section">
+              <h3 className="bp-info-section-title">버그 리포트 시 포함 사항</h3>
+              <ol className="bp-info-list">
+                <li>발생한 페이지 및 탭 이름</li>
+                <li>재현 방법 (어떤 동작을 했는지)</li>
+                <li>브라우저 개발자 도구 콘솔 오류 메시지 (있는 경우)</li>
+                <li>스크린샷 또는 화면 녹화</li>
+              </ol>
+            </section>
           </div>
         )}
       </main>
