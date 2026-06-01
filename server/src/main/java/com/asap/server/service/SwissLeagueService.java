@@ -340,8 +340,10 @@ public class SwissLeagueService {
 
         if (m.getResult() == ResultType.WIN1) {
           p1.setScore(p1.getScore() + 1);
+          p2.setScore(p2.getScore() - 1);
         } else if (m.getResult() == ResultType.WIN2) {
           p2.setScore(p2.getScore() + 1);
+          p1.setScore(p1.getScore() - 1);
         }
         participantRepository.save(p1);
         participantRepository.save(p2);
@@ -420,32 +422,36 @@ public class SwissLeagueService {
         opponentsMap.computeIfAbsent(u1, k -> new ArrayList<>()).add(u2);
         opponentsMap.computeIfAbsent(u2, k -> new ArrayList<>()).add(u1);
 
-        if (ResultType.WIN1.equals(m.getResult() != null ? m.getResult() : "")) {
+        if (m.getResult() == ResultType.WIN1) {
           winsMap.merge(u1, 1, Integer::sum);
           lossesMap.merge(u2, 1, Integer::sum);
-        } else if (ResultType.WIN2.equals(m.getResult() != null ? m.getResult() : "")) {
+        } else if (m.getResult() == ResultType.WIN2) {
           winsMap.merge(u2, 1, Integer::sum);
           lossesMap.merge(u1, 1, Integer::sum);
-        } else if (ResultType.DRAW.equals(m.getResult() != null ? m.getResult() : "")) {
+        } else if (m.getResult() == ResultType.DRAW) {
           drawsMap.merge(u1, 1, Integer::sum);
           drawsMap.merge(u2, 1, Integer::sum);
         }
       }
+      // pointsMap: 승+1, 패-1, 무0
+      Map<Long, Integer> pointsMap = new HashMap<>();
+      for (Long userId : userMatchIds.keySet()) {
+        int points = winsMap.getOrDefault(userId, 0)
+            - lossesMap.getOrDefault(userId, 0);
+        pointsMap.put(userId, points);
+      }
 
       Map<Long, LocalDateTime> submissionTimeMap = new HashMap<>();
-      Map<Long, Integer> scoreMap = new HashMap<>();
       participantRepository.findByContestId(contestId).forEach(p -> {
-        scoreMap.put(p.getUser().getId(), p.getScore() == null ? 0 : p.getScore());
         if (p.getSubmission() != null && p.getSubmission().getCreatedAt() != null) {
           submissionTimeMap.put(p.getUser().getId(), p.getSubmission().getCreatedAt());
         }
       });
-
       List<Long> userIds = new ArrayList<>(userMatchIds.keySet());
       userIds.sort((a, b) -> {
         int cmp = Integer.compare(
-            scoreMap.getOrDefault(b, 0),
-            scoreMap.getOrDefault(a, 0));
+            pointsMap.getOrDefault(b, 0),
+            pointsMap.getOrDefault(a, 0));
         if (cmp != 0)
           return cmp;
         LocalDateTime ta = submissionTimeMap.getOrDefault(a, LocalDateTime.MAX);
@@ -461,7 +467,7 @@ public class SwissLeagueService {
         s.put("wins", winsMap.getOrDefault(userId, 0));
         s.put("draws", drawsMap.getOrDefault(userId, 0));
         s.put("losses", lossesMap.getOrDefault(userId, 0));
-        s.put("points", scoreMap.getOrDefault(userId, 0));
+        s.put("points", pointsMap.getOrDefault(userId, 0));
         s.put("rank", i + 1);
         s.put("opponents", opponentsMap.getOrDefault(userId, List.of()));
         s.put("match_ids", userMatchIds.getOrDefault(userId, List.of()));
