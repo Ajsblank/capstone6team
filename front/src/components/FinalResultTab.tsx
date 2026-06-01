@@ -61,7 +61,7 @@ const FinalResultTab: React.FC<Props> = ({ contestId }) => {
                 <span className="fr-user-id">User {s.user_id}</span>
                 <span className="fr-record">
                   <span className="fr-wins">{s.wins}승</span>
-                  {s.draws > 0 && <span className="fr-draws">{s.draws}무</span>}
+                  <span className="fr-draws">{s.draws}무</span>
                   <span className="fr-losses">{s.losses}패</span>
                   {total > 0 && <span className="fr-total"> / {total}전</span>}
                 </span>

@@ -229,7 +229,11 @@ const LeaderboardTab: React.FC<Props> = ({
             onClick={() => setSelectedSession(availableSessions[currentIdx + 1])}>▶</button>
         </div>
         {data && (
-          <span className="lb-meta">{data.total_participants}명 · {data.total_rounds}라운드</span>
+          <span className="lb-meta">
+            <span className="lb-meta-participants">{data.total_participants}<em>명</em></span>
+            <span className="lb-meta-sep">·</span>
+            <span className="lb-meta-rounds">{data.total_rounds}<em>라운드</em></span>
+          </span>
         )}
       </div>
 
@@ -266,8 +270,8 @@ const LeaderboardTab: React.FC<Props> = ({
                     </span>
                     <span className="lb-record">
                       <span className="lb-wins">{s.wins}승</span>
-                      {s.draws  > 0 && <span className="lb-draws">{s.draws}무</span>}
-                      {s.losses > 0 && <span className="lb-losses">{s.losses}패</span>}
+                      <span className="lb-draws">{s.draws}무</span>
+                      <span className="lb-losses">{s.losses}패</span>
                       <span className="lb-total">· {data.total_rounds}전</span>
                     </span>
                   </div>

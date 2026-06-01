@@ -16,13 +16,13 @@ export interface SessionMatch {
 
 export interface SessionRound {
   round_number: number;
-  status: "RUNNING" | "FINISHED";
+  status: "RUNNING" | "FINISHED" | "END";
   matches: SessionMatch[];
 }
 
 export interface SessionPayload {
   session_number: number;
-  status: "RUNNING" | "FINISHED";
+  status: "RUNNING" | "FINISHED" | "END";
   total_rounds: number;
   rounds: SessionRound[];
 }
@@ -91,6 +91,11 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack,
         console.log("payload       :", parsed);
         console.groupEnd();
         setPayload(parsed);
+        if (parsed.status === "END" || parsed.status === "FINISHED") {
+          console.info(`${tag} 세션 종료 수신 → SSE 연결 해제`);
+          es.close();
+          setSseStatus("disconnected");
+        }
       } catch (err) {
         console.warn("파싱 실패:", e.data);
         console.groupEnd();
@@ -122,7 +127,7 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack,
           Session {sessionNumber}
           {payload && (
             <span style={{ fontSize: "0.8rem", color: "#6b7280", marginLeft: 8 }}>
-              ({payload.status === "FINISHED" ? "종료" : "진행 중"} · {payload.total_rounds}라운드)
+              ({(payload.status === "END" || payload.status === "FINISHED") ? "종료" : "진행 중"} · {payload.total_rounds}라운드)
             </span>
           )}
         </span>

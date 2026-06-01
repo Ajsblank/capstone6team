@@ -13,14 +13,51 @@
 
 .lb-title {
   font-size: 1rem;
-  font-weight: 700;
-  color: #e0e0e0;
+  font-weight: 800;
+  color: #111827;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .lb-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0;
+}
+
+.lb-meta-participants {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #87ceeb;
+  letter-spacing: -0.01em;
+}
+.lb-meta-participants em {
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6baec9;
+  margin-left: 1px;
+}
+
+.lb-meta-sep {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.lb-meta-rounds {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #a78bfa;
+  letter-spacing: -0.01em;
+}
+.lb-meta-rounds em {
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #8b73d6;
+  margin-left: 1px;
 }
 
 .lb-empty {
@@ -103,41 +140,49 @@
 .lb-record {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.78rem;
+  gap: 5px;
+  font-size: 0.75rem;
 }
 
-.lb-wins   { color: #87ceeb; font-weight: 600; }
-.lb-draws  { color: #facc15; font-weight: 600; }
-.lb-losses { color: #f87171; font-weight: 600; }
-.lb-total  { color: #6b7280; }
+.lb-wins   { color: #87ceeb; font-weight: 700; }
+.lb-draws  { color: #facc15; font-weight: 700; }
+.lb-losses { color: #f87171; font-weight: 700; }
+.lb-total  { color: #4b5563; }
 
 /* ── 승점 ── */
 .lb-points {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   flex-shrink: 0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 8px 14px;
+  min-width: 58px;
 }
+
 
 .lb-points-num {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #e0e0e0;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #c9d1db;
   line-height: 1;
+  letter-spacing: -0.02em;
 }
 
-.lb-card--rank1 .lb-points-num { color: #f59e0b; }
-.lb-card--rank2 .lb-points-num { color: #9ca3af; }
-.lb-card--rank3 .lb-points-num { color: #cd7f32; }
-.lb-card--me    .lb-points-num { color: #89b4fa; }
+.lb-card--rank1 .lb-points-num { color: #f59e0b; text-shadow: 0 0 12px rgba(245,158,11,0.4); }
+.lb-card--rank2 .lb-points-num { color: #c0c8d4; text-shadow: 0 0 10px rgba(156,163,175,0.3); }
+.lb-card--rank3 .lb-points-num { color: #cd7f32; text-shadow: 0 0 12px rgba(180,83,9,0.35); }
+.lb-card--me    .lb-points-num { color: #89b4fa; text-shadow: 0 0 10px rgba(137,180,250,0.35); }
 
 .lb-points-label {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: #6b7280;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* ── 세션 네비게이션 ── */
@@ -165,11 +210,12 @@
 .lb-nav-btn:disabled { opacity: 0.3; cursor: default; }
 
 .lb-nav-label {
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 700;
-  color: #e0e0e0;
+  color: #ea580c;
   min-width: 52px;
   text-align: center;
+  letter-spacing: -0.01em;
 }
 
 /* ── 내 카드 확장 ── */

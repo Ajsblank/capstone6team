@@ -13,14 +13,17 @@
 
 .fr-title {
   font-size: 1rem;
-  font-weight: 700;
-  color: #e0e0e0;
+  font-weight: 800;
+  color: #111827;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
 .fr-meta {
-  font-size: 0.8rem;
-  color: #6b7280;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ea580c;
+  letter-spacing: -0.01em;
 }
 
 .fr-empty {
@@ -84,38 +87,46 @@
 .fr-record {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.78rem;
+  gap: 5px;
+  font-size: 0.75rem;
 }
 
-.fr-wins   { color: #87ceeb; font-weight: 600; }
-.fr-draws  { color: #facc15; font-weight: 600; }
-.fr-losses { color: #f87171; font-weight: 600; }
-.fr-total  { color: #6b7280; }
+.fr-wins   { color: #87ceeb; font-weight: 700; }
+.fr-draws  { color: #facc15; font-weight: 700; }
+.fr-losses { color: #f87171; font-weight: 700; }
+.fr-total  { color: #4b5563; }
 
 /* ── 승점 ── */
 .fr-points {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   flex-shrink: 0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 8px 14px;
+  min-width: 58px;
 }
+
 
 .fr-points-num {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #e0e0e0;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #c9d1db;
   line-height: 1;
+  letter-spacing: -0.02em;
 }
 
-.fr-card--rank1 .fr-points-num { color: #f59e0b; }
-.fr-card--rank2 .fr-points-num { color: #9ca3af; }
-.fr-card--rank3 .fr-points-num { color: #b45309; }
+.fr-card--rank1 .fr-points-num { color: #f59e0b; text-shadow: 0 0 12px rgba(245,158,11,0.4); }
+.fr-card--rank2 .fr-points-num { color: #c0c8d4; text-shadow: 0 0 10px rgba(156,163,175,0.3); }
+.fr-card--rank3 .fr-points-num { color: #cd7f32; text-shadow: 0 0 12px rgba(180,83,9,0.35); }
 
 .fr-points-label {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: #6b7280;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
