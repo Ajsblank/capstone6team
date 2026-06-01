@@ -169,7 +169,8 @@ public class S3Service {
     return buildPublicUrl(key);
   }
 
-  public String uploadExampleAiCodeFile(Long contestId, String exampleAiCodeName, MultipartFile file) throws IOException {
+  public String uploadExampleAiCodeFile(Long contestId, String exampleAiCodeName, MultipartFile file)
+      throws IOException {
     validateCppFile(file, "exampleAiFiles");
     String key = buildExampleAiCodeKey(contestId, exampleAiCodeName);
 
@@ -409,5 +410,25 @@ public class S3Service {
         .build();
     s3Client.deleteObject(deleteRequest);
     log.info("S3 객체 삭제 완료 - key: {}", key);
+  }
+
+  public void uploadJsonResult(String key, String json) {
+    PutObjectRequest putRequest = PutObjectRequest.builder()
+        .bucket(bucket)
+        .key(key)
+        .contentType("application/json; charset=UTF-8")
+        .build();
+
+    s3Client.putObject(putRequest,
+        RequestBody.fromBytes(json.getBytes(StandardCharsets.UTF_8)));
+    log.info("JSON 결과 업로드 완료 - key: {}", key);
+  }
+
+  public String buildFinalResultKey(Long contestId) {
+    return String.format("%s/%d/final-result", normalizeContestCodePrefix(), contestId);
+  }
+
+  public String buildSessionResultKey(Long contestId, int sessionNumber) {
+    return String.format("%s/%d/swiss-result/session-%d", normalizeContestCodePrefix(), contestId, sessionNumber);
   }
 }

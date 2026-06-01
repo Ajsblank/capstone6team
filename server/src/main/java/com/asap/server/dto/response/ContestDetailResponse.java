@@ -1,6 +1,7 @@
 package com.asap.server.dto.response;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.global.type.ContestStatus;
@@ -20,7 +21,8 @@ public class ContestDetailResponse {
   private Integer timeLimitSec;
   private Integer memoryLimitMb;
   private String judgeCode;
-  private String sampleCode;
+  private List<SampleCodeResponse> sampleCodes;
+  private List<ExampleAiResponse> exampleAiCodes;
   private ContestStatus status;
   private String visualizationHtml;
   private String soloPlayHtml;
@@ -34,7 +36,8 @@ public class ContestDetailResponse {
   private Integer maxParticipants;
   private LocalDateTime createdAt;
 
-  public static ContestDetailResponse from(CodeBattleContest contest) {
+  public static ContestDetailResponse from(CodeBattleContest contest, List<ExampleAiResponse> exampleAiCodes,
+      List<SampleCodeResponse> sampleCodes) {
     return ContestDetailResponse.builder()
         .id(contest.getId())
         .title(contest.getTitle())
@@ -43,7 +46,8 @@ public class ContestDetailResponse {
         .timeLimitSec(contest.getTimeLimitSec())
         .memoryLimitMb(contest.getMemoryLimitMB())
         .judgeCode(contest.getJudgeCode())
-        .sampleCode(contest.getSampleCode())
+        .exampleAiCodes(exampleAiCodes)
+        .sampleCodes(sampleCodes)
         .status(contest.getStatus())
         .startDate(contest.getStartDate())
         .endDate(contest.getEndDate())

@@ -23,21 +23,21 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "code_battle_example_ai")
+@Table(name = "code_battle_sample_code")
 @Getter
 @NoArgsConstructor
-public class CodeBattleExampleAI {
+public class CodeBattleSampleCode {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
   @ManyToOne
-  @JoinColumn(name = "contest_id", foreignKey = @ForeignKey(name = "fk_contest_example_ai_contest"))
+  @JoinColumn(name = "contest_id", foreignKey = @ForeignKey(name = "fk_contest_sample_code_contest"))
   private CodeBattleContest contest;
 
-  @Column(name = "example_order")
-  private Long exampleOrder;
+  @Column(name = "sample_order")
+  private Long sampleOrder;
 
   @Enumerated(EnumType.STRING)
   @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -45,25 +45,16 @@ public class CodeBattleExampleAI {
   private Language language = Language.CPP;
 
   @Column(columnDefinition = "TEXT")
-  private String description;
-
-  @Column(columnDefinition = "TEXT")
   private String code;
 
   @Column(nullable = false)
   private LocalDateTime created_at;
 
-  public CodeBattleExampleAI(CodeBattleContest contest, Long exampleOrder, String description, String code) {
+  public CodeBattleSampleCode(CodeBattleContest contest, Long sampleOrder, String code, Language language) {
     this.contest = contest;
-    this.exampleOrder = exampleOrder;
-    this.description = description;
+    this.sampleOrder = sampleOrder;
     this.code = code;
-  }
-
-  public CodeBattleExampleAI(CodeBattleContest contest, Long exampleOrder, String code) {
-    this.contest = contest;
-    this.exampleOrder = exampleOrder;
-    this.code = code;
+    this.language = language;
   }
 
   @PrePersist

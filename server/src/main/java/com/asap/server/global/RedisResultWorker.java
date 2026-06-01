@@ -1,171 +1,184 @@
 package com.asap.server.global;
 
-import com.asap.server.dto.response.CodeBattleMatchResult;
-import com.asap.server.dto.response.CodeBattleAiMatchResult;
-import org.springframework.transaction.annotation.Transactional;
-import com.asap.server.repository.CodeBattleMatchRepository;
-import com.asap.server.repository.CodeBattleSubmissionRepository;
-import com.asap.server.domain.CodeBattleMatch;
-import com.asap.server.domain.CodeBattleSubmission;
-import com.asap.server.service.SseService;
-import com.asap.server.service.SwissMatchMaker;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.concurrent.TimeUnit;
+
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
-import java.util.concurrent.TimeUnit;
-import com.asap.server.domain.CodeBattleParticipant;
-import java.util.List;
-import com.asap.server.repository.CodeBattleParticipantRepository;
+
+import com.asap.server.domain.CodeBattleMatch;
+import com.asap.server.dto.response.CodeBattleAiMatchResult;
+import com.asap.server.dto.response.CodeBattleMatchResult;
+import com.asap.server.repository.CodeBattleMatchRepository;
+import com.asap.server.service.FullLeagueService;
+import com.asap.server.service.SseService;
+import com.asap.server.service.SwissLeagueService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
-@Transactional
-public class RedisResultWorker implements CommandLineRunner {
+public class RedisResultWorker implements CommandLineRunner, DisposableBean {
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final SseService sseService;
-    private final SwissMatchMaker swissMatchMaker;
+    private final FullLeagueService fullLeagueService;
 
     private final CodeBattleMatchRepository matchRepository;
-    private final CodeBattleSubmissionRepository submissionRepository;
-    private final CodeBattleParticipantRepository participantRepository;
-
+    private final SwissLeagueService swissService;
     private final TaskExecutor taskExecutor;
+    private static final String CODE_BATTLE_SWISS_LEAGUE_QUEUE_RESULT_KEY = "code_battle_swiss_league_result_queue";
+    private static final String CODE_BATTLE_FULL_LEAGUE_QUEUE__RESULT_KEY = "code_battle_full_league_result_queue";
+
+    public RedisResultWorker(
+            StringRedisTemplate redisTemplate,
+            ObjectMapper objectMapper,
+            SseService sseService,
+            FullLeagueService fullLeagueService,
+            CodeBattleMatchRepository matchRepository,
+            SwissLeagueService swissService,
+            @Qualifier("workerTaskExecutor") TaskExecutor taskExecutor) {
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
+        this.sseService = sseService;
+        this.fullLeagueService = fullLeagueService;
+        this.matchRepository = matchRepository;
+        this.swissService = swissService;
+        this.taskExecutor = taskExecutor;
+    }
+
+    private volatile boolean running = true;
+
+    @Override
+    public void destroy() {
+        log.info("[RedisResultWorker] 종료 시그널 수신");
+        running = false; // 종료 시그널
+    }
 
     @Override
     public void run(String... args) {
-        taskExecutor.execute(this::pollNormalQueue);
+        taskExecutor.execute(this::pollFullQueue);
         taskExecutor.execute(this::pollAiQueue);
         taskExecutor.execute(this::pollTestQueue);
+        taskExecutor.execute(this::pollSwissResult);
     }
 
-    private void pollNormalQueue() {
-        log.info("🚀 [대회용] Redis 결과 워커 가동...");
-        while (!Thread.currentThread().isInterrupted()) {
+    private void pollFullQueue() {
+        log.info("🚀 [풀리그 대회용] Redis 결과 워커 가동...");
+        while (running && !Thread.currentThread().isInterrupted()) {
             String rawData = null;
             try {
-                rawData = redisTemplate.opsForList().rightPop("code_battle_result_queue", 5, TimeUnit.SECONDS);
-                if (rawData == null) continue;
+                rawData = redisTemplate.opsForList().rightPop(CODE_BATTLE_FULL_LEAGUE_QUEUE__RESULT_KEY, 5,
+                        TimeUnit.SECONDS);
+                if (rawData == null)
+                    continue;
+
                 log.info("🤖 [대회용] Redis 결과 처리...");
-                processNormalResult(rawData);
+                fullLeagueService.processNormalFullResult(rawData);
             } catch (Exception e) {
-                if (Thread.currentThread().isInterrupted()) break;
+                if (!running || Thread.currentThread().isInterrupted())
+                    break;
                 log.error("❌ 대회 결과 처리 중 에러: {}", e.getMessage());
-                if (rawData != null) redisTemplate.opsForList().leftPush("code_battle_result_error_queue", rawData);
+                if (rawData != null)
+                    redisTemplate.opsForList().leftPush("code_battle_result_error_queue", rawData);
+            }
+        }
+        log.info("🚀 [풀리그 대회용] Redis 결과 워커 종료");
+    }
+
+    // 스위서 결과 집계
+    private void pollSwissResult() {
+        log.info("🚀 [스위스 대회용] Redis 결과 워커 가동...");
+        while (running && !Thread.currentThread().isInterrupted()) {
+            String rawData = null;
+            try {
+                rawData = redisTemplate.opsForList().rightPop(CODE_BATTLE_SWISS_LEAGUE_QUEUE_RESULT_KEY, 5,
+                        TimeUnit.SECONDS);
+                if (rawData == null)
+                    continue;
+                log.info("[스위스리그] Redis 결과 처리...");
+                swissService.processSwissResult(rawData);
+            } catch (Exception e) {
+                if (!running || Thread.currentThread().isInterrupted())
+                    break;
+                log.error("❌ 대회 결과 처리 중 에러: {}", e.getMessage());
+                if (rawData != null)
+                    redisTemplate.opsForList().leftPush("code_battle_result_error_queue", rawData);
             }
         }
     }
 
-    private void processNormalResult(String rawData) throws JsonProcessingException {
-        CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
-        CodeBattleMatch match = matchRepository.findById(result.getMatchId())
-                .orElseThrow(() -> new RuntimeException("Match not found (ID: " + result.getMatchId() + ")"));
-
-        int comp = result.getWinner();
-        if (comp == 1) match.setWinner(match.getUser1());
-        else if (comp == 2) match.setWinner(match.getUser2());
-        else match.setWinner(null);
-
-        match.setLog(result.getLog());
-        matchRepository.save(match);
-
-        sseService.sendToUser(match.getUser1().getId(), result);
-        sseService.sendToUser(match.getUser2().getId(), result);
-
-        Long contestId = match.getContest().getId();
-        CodeBattleParticipant p1 = participantRepository.findByContestIdAndUserId(contestId, match.getUser1().getId());
-        CodeBattleParticipant p2 = participantRepository.findByContestIdAndUserId(contestId, match.getUser2().getId());
-
-        if (comp == 1) {
-            p1.setScore(p1.getScore() + 1);
-            p2.setScore(p2.getScore() - 1);
-        } else if (comp == 2) {
-            p2.setScore(p2.getScore() + 1);
-            p1.setScore(p1.getScore() - 1);
-        }
-        
-        participantRepository.save(p1);
-        participantRepository.save(p2);
-
-        // 라운드 종료 체크
-        List<CodeBattleParticipant> allParticipants = participantRepository.findByContestId(contestId);
-        int matchesPerRound = allParticipants.size() / 2;
-        long totalCreated = matchRepository.countByContestId(contestId);
-        long totalFinished = matchRepository.countFinishedMatchesByContestId(contestId);
-
-        if (totalCreated > 0 && totalCreated == totalFinished) {
-            int currentRound = (int) (totalFinished / matchesPerRound);
-            if (currentRound < 10) swissMatchMaker.generateNextRound(contestId);
-            else log.info("[Worker] 대회 ID: {} 10라운드 완료!", contestId);
-        }
-    }
-    
     private void pollAiQueue() {
         log.info("🤖 [AI 전용] Redis 결과 워커 가동...");
-        while (!Thread.currentThread().isInterrupted()) {
+        while (running && !Thread.currentThread().isInterrupted()) {
             String rawData = null;
             try {
                 rawData = redisTemplate.opsForList().rightPop("code_battle_ai_result_queue", 5, TimeUnit.SECONDS);
-                if (rawData == null) continue;
+                if (rawData == null)
+                    continue;
                 log.info("🤖 [AI 전용] Redis 결과 처리...");
                 processAiResult(rawData);
             } catch (Exception e) {
-                if (Thread.currentThread().isInterrupted()) break;
+                if (!running || Thread.currentThread().isInterrupted())
+                    break;
                 log.error("❌ AI 결과 처리 중 에러: {}", e.getMessage());
-                if (rawData != null) redisTemplate.opsForList().leftPush("code_battle_ai_result_error_queue", rawData);
+                if (rawData != null)
+                    redisTemplate.opsForList().leftPush("code_battle_ai_result_error_queue", rawData);
             }
         }
     }
 
     private void processAiResult(String rawData) throws JsonProcessingException {
-        log.info("❌ AI 결과 처리 Log \n {}", rawData);
+        log.info("🤖 AI 결과 처리 Log \n {}", rawData);
         CodeBattleMatchResult result = objectMapper.readValue(rawData, CodeBattleMatchResult.class);
         Long submissionId = result.getMatchId();
 
-        CodeBattleSubmission submission = submissionRepository.findById(submissionId)
-                .orElseThrow(() -> new RuntimeException("Submission not found (ID: " + submissionId + ")"));
-
         CodeBattleMatch aiMatch = matchRepository.findBySubmissionIdAndAiOrder(submissionId, result.getAiOrder())
-        .orElse(null);
-
+                .orElse(null);
+        // submission 조회 삭제
         if (aiMatch != null) {
             int comp = result.getWinner();
-            if (comp == 1) aiMatch.setWinner(aiMatch.getUser1());
-            else if (comp == 2) aiMatch.setWinner(aiMatch.getUser2());
-            else aiMatch.setWinner(null);
+            if (comp == 1)
+                aiMatch.setWinner(aiMatch.getUser1());
+            else if (comp == 2)
+                aiMatch.setWinner(aiMatch.getUser2());
+            else
+                aiMatch.setWinner(null);
 
             aiMatch.setLog(result.getLog());
             matchRepository.save(aiMatch);
-            
+
             Long targetUserId = aiMatch.getUser1().getId();
-            
+
             CodeBattleAiMatchResult sseResponse = CodeBattleAiMatchResult.from(aiMatch, targetUserId);
-            
+
             sseService.sendToUser(targetUserId, sseResponse);
         }
     }
 
     private void pollTestQueue() {
         log.info("🤖 [검수자 전용] Redis 결과 워커 가동...");
-        while (!Thread.currentThread().isInterrupted()) {
+        while (running && !Thread.currentThread().isInterrupted()) {
             String rawData = null;
             try {
                 rawData = redisTemplate.opsForList().rightPop("code_battle_test_result_queue", 5, TimeUnit.SECONDS);
-                if (rawData == null) continue;
+                if (rawData == null)
+                    continue;
                 log.info("🤖 [검수자 전용] Redis 결과 처리...");
                 processTestResult(rawData);
             } catch (Exception e) {
-                if (Thread.currentThread().isInterrupted()) break;
+                if (!running || Thread.currentThread().isInterrupted())
+                    break;
                 log.error("❌ 검수자 결과 처리 중 에러: {}", e.getMessage());
-                if (rawData != null) redisTemplate.opsForList().leftPush("code_battle_test_result_error_queue", rawData);
+                if (rawData != null)
+                    redisTemplate.opsForList().leftPush("code_battle_test_result_error_queue", rawData);
             }
         }
     }
@@ -173,19 +186,19 @@ public class RedisResultWorker implements CommandLineRunner {
     private void processTestResult(String rawData) throws JsonProcessingException {
         try {
             log.info("❌ 검수 결과 처리 Log \n {}", rawData);
-            
+
             JsonNode rootNode = objectMapper.readTree(rawData);
-            
+
             // 채점 서버가 보내주는 데이터 타입에 맞게 파싱 방법을 선택하세요 (String vs Long)
             String userIdStr = rootNode.get("userId").asText();
             Long targetUserId = Long.parseLong(userIdStr);
-            
+
             String resultLog = rootNode.get("log").asText();
-    
+
             sseService.sendToUser(targetUserId, resultLog, "test_result");
-            
+
             log.info("🎯 유저(ID: {})에게 SSE 로그 전송 완료 완료", targetUserId);
-    
+
         } catch (JsonProcessingException e) {
             log.error("Redis 메시지 JSON 파싱 실패: {}", rawData, e);
         } catch (NumberFormatException e) {

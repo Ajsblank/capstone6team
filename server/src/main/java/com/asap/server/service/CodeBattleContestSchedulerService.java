@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 public class CodeBattleContestSchedulerService {
 
     private final TaskScheduler taskScheduler;
-    private final SwissMatchMaker swissMatchMaker;
+    private final FullLeagueService swissMatchMaker;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final CodeBattleContestRepository contestRepository;
