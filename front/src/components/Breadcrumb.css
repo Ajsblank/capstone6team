@@ -1,18 +1,24 @@
 .breadcrumb {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 2px;
   font-family: 'IBM Plex Sans KR', 'IBM Plex Sans', sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   flex-wrap: wrap;
+  background: #f9fafb;
+  border: 1px solid #f0f0f0;
+  border-radius: 20px;
+  padding: 5px 12px;
 }
 
 /* ── 구분자 ── */
 .bc-sep {
-  color: #d1d5db;
-  font-size: 0.78rem;
-  padding: 0 4px;
+  color: #ea580c;
+  font-size: 0.72rem;
+  padding: 0 5px;
   user-select: none;
+  font-weight: 700;
+  opacity: 0.6;
 }
 
 /* ── 클릭 가능한 항목 ── */
@@ -20,7 +26,7 @@
   background: none;
   border: none;
   padding: 0;
-  color: #9ca3af;
+  color: #6b7280;
   font-family: inherit;
   font-size: inherit;
   font-weight: 500;
@@ -28,6 +34,9 @@
   position: relative;
   transition: color 0.15s;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .bc-link::after {
@@ -37,26 +46,26 @@
   bottom: -1px;
   width: 0;
   height: 1px;
-  background: currentColor;
+  background: #ea580c;
   transition: width 0.2s ease;
 }
 
-.bc-link:hover {
-  color: #6b7280;
-}
-.bc-link:hover::after {
-  width: 100%;
-}
+.bc-link:hover { color: #ea580c; }
+.bc-link:hover::after { width: 100%; }
 
 /* ── 현재 페이지 ── */
 .bc-current {
-  color: #111827;
-  font-weight: 600;
+  color: #ea580c;
+  font-weight: 700;
   white-space: nowrap;
 }
 
 /* ── 다크 테마 ── */
-.breadcrumb--dark .bc-sep    { color: #374151; }
+.breadcrumb--dark {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.08);
+}
+.breadcrumb--dark .bc-sep    { color: #f97316; opacity: 0.5; }
 .breadcrumb--dark .bc-link   { color: #6b7280; }
-.breadcrumb--dark .bc-link:hover { color: #9ca3af; }
+.breadcrumb--dark .bc-link:hover { color: #f97316; }
 .breadcrumb--dark .bc-current { color: #e0e0e0; }

@@ -17,7 +17,10 @@ const Breadcrumb: React.FC<Props> = ({ items, dark = false }) => (
       <React.Fragment key={i}>
         {i > 0 && <span className="bc-sep" aria-hidden>›</span>}
         {item.onClick ? (
-          <button className="bc-link" onClick={item.onClick}>{item.label}</button>
+          <button className="bc-link" onClick={item.onClick}>
+            {i === 0 && <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" aria-hidden><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7A1 1 0 003 11h1v6a1 1 0 001 1h4v-4h2v4h4a1 1 0 001-1v-6h1a1 1 0 00.707-1.707l-7-7z"/></svg>}
+            {item.label}
+          </button>
         ) : (
           <span className="bc-current" aria-current="page">{item.label}</span>
         )}
