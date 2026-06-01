@@ -164,6 +164,46 @@
 .cc-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .cc-input[type="number"]::-webkit-inner-spin-button,
 .cc-input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+/* 2의 거듭제곱 스텝 입력 — 네이티브 스피너 숨김, 커스텀 버튼 사용 */
+.cc-input--pow2::-webkit-inner-spin-button,
+.cc-input--pow2::-webkit-outer-spin-button { display: none; }
+.cc-input--pow2 { -moz-appearance: textfield; padding-right: 26px; }
+
+.cc-pow2-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.cc-pow2-btns {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  width: 22px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #e5e7eb;
+  border-radius: 0 7px 7px 0;
+  overflow: hidden;
+}
+.cc-pow2-btn {
+  flex: 1;
+  background: #f9fafb;
+  border: none;
+  color: #6b7280;
+  font-size: 0.48rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+  user-select: none;
+}
+.cc-pow2-btn:hover { background: #e5e7eb; color: #111827; }
+.cc-pow2-btn:active { background: #d1d5db; }
+.cc-pow2-btn + .cc-pow2-btn { border-top: 1px solid #e5e7eb; }
 
 .cc-row { display: flex; gap: 24px; }
 .cc-row .cc-field { flex: 1; }
