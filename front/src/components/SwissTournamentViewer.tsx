@@ -276,11 +276,12 @@ interface VSidebarProps {
   onTrack: (id: number | null) => void;
   rankDeltaMap: Map<number, { delta: number; key: number }>;
   myUserId?: number;
+  sessionDone?: boolean;
 }
-const VSidebar: React.FC<VSidebarProps> = ({ standings, trackedId, onTrack, rankDeltaMap, myUserId }) => (
+const VSidebar: React.FC<VSidebarProps> = ({ standings, trackedId, onTrack, rankDeltaMap, myUserId, sessionDone }) => (
   <div className="st-ranking-sidebar">
     <div className="st-sidebar-header">
-      <span className="st-sidebar-title">실시간 순위</span>
+      <span className="st-sidebar-title">{sessionDone ? "최종 결과" : "실시간 순위"}</span>
       {trackedId !== null && (
         <button className="st-sidebar-clear-btn" onClick={() => onTrack(null)}>추적 해제</button>
       )}
@@ -552,24 +553,6 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId }) => {
             )}
           </div>
 
-          {sessionDone && (
-            <div className="st-standings">
-              <h3 className="st-standings-title">최종 결과</h3>
-              <div className="st-standings-list">
-                {standings.map((s, i) => (
-                  <div key={s.playerId} className="st-standing-row">
-                    <span className="st-standing-rank" style={i < 3 ? { color: RANK_COLORS[i] } : undefined}>
-                      #{s.rank}
-                    </span>
-                    <span className="st-standing-name">{pName(s.playerId)}</span>
-                    <span className="st-standing-record">
-                      {s.wins}승{s.draws > 0 ? ` ${s.draws}무` : ""} {s.losses}패
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         <VSidebar
@@ -578,6 +561,7 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId }) => {
           onTrack={setTrackedId}
           rankDeltaMap={rankDeltaMap}
           myUserId={myUserId}
+          sessionDone={sessionDone}
         />
       </div>
     </div>
