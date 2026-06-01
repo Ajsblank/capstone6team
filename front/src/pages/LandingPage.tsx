@@ -42,8 +42,8 @@ const LandingPage: React.FC = () => {
         <nav className="lp-nav">
           <button className="lp-nav-btn" onClick={() => navigate("battle")}>대회</button>
           <button className="lp-nav-btn lp-nav-btn--disabled" title="준비 중인 기능입니다">랭킹</button>
-          <button className="lp-nav-btn" onClick={() => { window.location.hash = "battle/help"; navigate("battle"); }}>도움말</button>
-          <button className="lp-nav-btn" onClick={() => { window.location.hash = "battle/contact"; navigate("battle"); }}>문의</button>
+          <button className="lp-nav-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/help"; }}>도움말</button>
+          <button className="lp-nav-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/contact"; }}>문의</button>
         </nav>
         <div className="lp-auth">
           {user ? (
