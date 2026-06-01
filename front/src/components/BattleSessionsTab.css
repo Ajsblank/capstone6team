@@ -29,22 +29,29 @@
 .bst-schedule-btn {
   margin-left: auto;
   background: none;
-  border: 1px solid #4b3a6a;
-  color: #c084fc;
+  border: 1px solid #fed7aa;
+  color: #ea580c;
   font-size: 0.75rem;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
-.bst-schedule-btn:hover    { background: #2d1f45; border-color: #c084fc; }
-.bst-schedule-btn--active  { background: #2d1f45; border-color: #c084fc; }
+.bst-schedule-btn:hover    { background: #fff7ed; border-color: #ea580c; }
+.bst-schedule-btn--active  { background: #fff7ed; border-color: #ea580c; }
+.bst-schedule-btn--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+}
+.bst-schedule-btn--disabled:hover { background: none; border-color: #e5e7eb; }
 
 /* ── 예약 패널 ── */
 .bst-schedule-panel {
-  background: #0d1525;
-  border: 1px solid #2a2a4a;
+  background: #fffbf8;
+  border: 1px solid #fed7aa;
   border-radius: 12px;
   padding: 16px 18px;
   margin-bottom: 16px;
@@ -56,7 +63,7 @@
 .bst-schedule-panel-title {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #9ca3af;
+  color: #92400e;
   letter-spacing: 0.04em;
 }
 
@@ -74,7 +81,7 @@
 
 .bst-date-num {
   font-size: 0.72rem;
-  color: #4b5563;
+  color: #9ca3af;
   width: 18px;
   text-align: right;
   flex-shrink: 0;
@@ -82,31 +89,33 @@
 
 .bst-date-input {
   flex: 1;
-  background: #111827;
-  border: 1px solid #2a2a4a;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 7px;
-  color: #e0e0e0;
+  color: #111827;
   font-size: 0.82rem;
   padding: 6px 10px;
   outline: none;
-  transition: border-color 0.15s;
-  color-scheme: dark;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
-.bst-date-input:focus { border-color: #c084fc; }
+.bst-date-input:focus {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+}
 
 .bst-date-remove {
   background: none;
-  border: 1px solid #2a2a4a;
-  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  color: #9ca3af;
   font-size: 0.72rem;
   width: 26px;
   height: 26px;
   border-radius: 6px;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.bst-date-remove:hover:not(:disabled) { background: #1e1a2a; color: #f87171; border-color: #f87171; }
+.bst-date-remove:hover:not(:disabled) { background: #fef2f2; color: #ef4444; border-color: #fca5a5; }
 .bst-date-remove:disabled { opacity: 0.3; cursor: default; }
 
 .bst-schedule-actions {
@@ -117,32 +126,32 @@
 
 .bst-date-add {
   background: none;
-  border: 1px dashed #374151;
-  color: #9ca3af;
+  border: 1px dashed #fed7aa;
+  color: #ea580c;
   font-size: 0.75rem;
   padding: 4px 12px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
-.bst-date-add:hover { background: #1e2535; border-color: #6b7280; color: #e0e0e0; }
+.bst-date-add:hover { background: #fff7ed; }
 
 .bst-schedule-cancel {
   background: none;
-  border: 1px solid #374151;
+  border: 1px solid #e5e7eb;
   color: #6b7280;
   font-size: 0.78rem;
   padding: 5px 14px;
   border-radius: 7px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
-.bst-schedule-cancel:hover { background: #1e2535; color: #d1d5db; }
+.bst-schedule-cancel:hover { background: #f9fafb; border-color: #9ca3af; color: #374151; }
 
 .bst-schedule-submit {
-  background: #4b3a6a;
-  border: 1px solid #6d4fa0;
-  color: #e9d8ff;
+  background: #ea580c;
+  border: 1px solid #ea580c;
+  color: #ffffff;
   font-size: 0.78rem;
   font-weight: 600;
   padding: 5px 16px;
@@ -150,7 +159,7 @@
   cursor: pointer;
   transition: background 0.15s;
 }
-.bst-schedule-submit:hover:not(:disabled) { background: #5d4a80; }
+.bst-schedule-submit:hover:not(:disabled) { background: #c2410c; border-color: #c2410c; }
 .bst-schedule-submit:disabled { opacity: 0.5; cursor: default; }
 
 .bst-schedule-feedback {
@@ -160,14 +169,14 @@
   margin-bottom: 4px;
 }
 .bst-schedule-feedback--success {
-  background: rgba(74,222,128,0.1);
-  color: #4ade80;
-  border: 1px solid rgba(74,222,128,0.25);
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
 }
 .bst-schedule-feedback--error {
-  background: rgba(248,113,113,0.1);
-  color: #f87171;
-  border: 1px solid rgba(248,113,113,0.25);
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
 }
 
 .bst-empty {
@@ -175,11 +184,11 @@
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #6b7280;
+  color: #9ca3af;
   font-size: 0.9rem;
 }
 
-.bst-empty--error { color: #f87171; }
+.bst-empty--error { color: #ef4444; }
 
 /* ── 카드 목록 ── */
 .bst-cards {
@@ -195,8 +204,8 @@
   width: 150px;
   min-height: 360px;
   border-radius: 14px;
-  background: #16213e;
-  border: 1.5px solid #2a2a4a;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -204,44 +213,43 @@
   overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s;
   cursor: default;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .bst-card--running {
-  border-color: #87ceeb;
-  border-width: 1.5px;
+  border-color: #ea580c;
   cursor: pointer;
   animation: bst-card-glow 2s ease-in-out infinite;
 }
 
 .bst-card--running:hover {
-  border-color: #a8d8f0;
-  box-shadow: 0 0 28px rgba(135, 206, 235, 0.55), 0 0 8px rgba(135, 206, 235, 0.3);
+  border-color: #c2410c;
+  box-shadow: 0 0 24px rgba(234, 88, 12, 0.3), 0 4px 12px rgba(234, 88, 12, 0.15);
   transform: translateY(-2px);
   animation: none;
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
 }
 
 .bst-card--ended {
-  border-color: #3d4b5c;
-  border-width: 1.5px;
+  border-color: #e5e7eb;
   cursor: pointer;
 }
 
 .bst-card--ended:hover {
-  border-color: #6b7280;
-  box-shadow: 0 0 12px rgba(107, 114, 128, 0.2);
+  border-color: #9ca3af;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
 }
 
 @keyframes bst-card-glow {
   0%, 100% {
-    box-shadow: 0 0 8px rgba(135, 206, 235, 0.2), 0 0 2px rgba(135, 206, 235, 0.1);
-    border-color: rgba(135, 206, 235, 0.6);
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.1), 0 0 0 0 rgba(234, 88, 12, 0);
+    border-color: rgba(234, 88, 12, 0.6);
   }
   50% {
-    box-shadow: 0 0 22px rgba(135, 206, 235, 0.5), 0 0 8px rgba(135, 206, 235, 0.25);
-    border-color: rgba(135, 206, 235, 1);
+    box-shadow: 0 4px 20px rgba(234, 88, 12, 0.25), 0 0 12px rgba(234, 88, 12, 0.15);
+    border-color: rgba(234, 88, 12, 1);
   }
 }
 
@@ -282,28 +290,29 @@
   font-size: 0.6rem;
   font-weight: 700;
   letter-spacing: 0.18em;
-  color: #4b5563;
+  color: #d1d5db;
   text-transform: uppercase;
 }
 
 .bst-num-area--running .bst-round-label {
-  color: rgba(135, 206, 235, 0.5);
+  color: rgba(234, 88, 12, 0.5);
 }
 
 .bst-round-num {
   font-size: 2.8rem;
   font-weight: 900;
-  color: #374151;
+  color: #e5e7eb;
   line-height: 1;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
 
 .bst-round-num--running {
-  color: #87ceeb;
-  text-shadow: 0 0 18px rgba(135, 206, 235, 0.5), 0 0 40px rgba(135, 206, 235, 0.2);
+  color: #ea580c;
+  text-shadow: 0 0 16px rgba(234, 88, 12, 0.35), 0 0 32px rgba(234, 88, 12, 0.15);
 }
 
+/* ── 뱃지 ── */
 .bst-badge {
   font-size: 0.75rem;
   font-weight: 700;
@@ -313,22 +322,22 @@
 }
 
 .bst-badge--running {
-  background: rgba(135, 206, 235, 0.18);
-  color: #a8d8f0;
-  border: 1px solid rgba(135, 206, 235, 0.5);
-  box-shadow: 0 0 10px rgba(135, 206, 235, 0.3), inset 0 0 6px rgba(135, 206, 235, 0.08);
+  background: rgba(234, 88, 12, 0.1);
+  color: #ea580c;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  box-shadow: 0 0 8px rgba(234, 88, 12, 0.15);
   animation: bst-pulse 2s ease-in-out infinite;
 }
 
 .bst-badge--ended {
-  background: rgba(75, 85, 99, 0.35);
-  color: #d1d5db;
-  border: 1px solid rgba(156, 163, 175, 0.4);
+  background: #f9fafb;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
 }
 
 @keyframes bst-pulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(135, 206, 235, 0.25), inset 0 0 6px rgba(135, 206, 235, 0.06); }
-  50%       { box-shadow: 0 0 16px rgba(135, 206, 235, 0.5), inset 0 0 10px rgba(135, 206, 235, 0.12); }
+  0%, 100% { box-shadow: 0 0 6px rgba(234, 88, 12, 0.1); }
+  50%       { box-shadow: 0 0 14px rgba(234, 88, 12, 0.3); }
 }
 
 .bst-date {
@@ -342,7 +351,7 @@
 .bst-lock-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(10, 12, 30, 0.72);
+  background: rgba(255, 255, 255, 0.88);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -354,12 +363,73 @@
 
 .bst-lock-icon {
   font-size: 1.3rem;
-  opacity: 0.55;
+  opacity: 0.4;
 }
 
 .bst-lock-text {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: #6b7280;
   text-align: center;
   line-height: 1.6;
 }
+
+/* ── 종료 팝업 ── */
+.bst-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.bst-popup {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-top: 3px solid #ea580c;
+  border-radius: 16px;
+  padding: 32px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 260px;
+  max-width: 320px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.bst-popup-icon {
+  font-size: 2rem;
+  margin-bottom: 4px;
+}
+
+.bst-popup-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.bst-popup-desc {
+  font-size: 0.82rem;
+  color: #6b7280;
+  text-align: center;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.bst-popup-confirm {
+  margin-top: 8px;
+  background: #ea580c;
+  border: 1px solid #ea580c;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.bst-popup-confirm:hover { background: #c2410c; border-color: #c2410c; }
