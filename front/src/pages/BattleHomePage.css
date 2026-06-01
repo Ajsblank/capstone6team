@@ -683,3 +683,340 @@
   cursor: default;
   flex-shrink: 0;
 }
+
+/* ── 도움말 2열 레이아웃 ── */
+.bp-help-page {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.bp-help-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+/* 좌측 목록 패널 */
+.bp-help-nav {
+  width: 260px;
+  flex-shrink: 0;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 28px 0 28px 28px;
+}
+
+.bp-help-nav-heading {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ea580c;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #fed7aa;
+  padding-right: 28px;
+}
+
+.bp-help-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 28px 13px 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  text-align: left;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  transition: background 0.15s;
+}
+.bp-help-nav-item:hover { background: #fffbf8; }
+.bp-help-nav-item--active { background: #fffbf8; }
+
+.bp-help-nav-num {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #e5e7eb;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.bp-help-nav-item--active .bp-help-nav-num { color: #ea580c; }
+
+.bp-help-nav-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  
+}
+
+.bp-help-nav-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+.bp-help-nav-item--active .bp-help-nav-label { color: #111827; font-weight: 700; }
+
+.bp-help-nav-desc {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bp-help-nav-arrow {
+  font-size: 1rem;
+  color: #d1d5db;
+  flex-shrink: 0;
+  transition: transform 0.2s, color 0.15s;
+}
+.bp-help-nav-item--active .bp-help-nav-arrow {
+  transform: rotate(90deg);
+  color: #ea580c;
+}
+
+/* 우측 상세 패널 */
+.bp-help-detail-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 36px 40px;
+}
+
+.bp-help-detail-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d1d5db;
+  font-size: 0.88rem;
+}
+
+/* 상세 내용 — 말풍선 슬라이드인 애니메이션 */
+.bp-help-detail {
+  animation: bp-detail-in 0.28s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes bp-detail-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.bp-help-detail-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #fed7aa;
+}
+
+.bp-help-detail-num {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #fed7aa;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.bp-help-detail-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.bp-help-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 인증/비인증 비교 레이아웃 */
+.bp-help-compare {
+  display: flex;
+  gap: 12px;
+}
+.bp-help-compare-col {
+  flex: 1;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bp-help-compare-col--uncert {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+.bp-help-compare-col--cert {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+.bp-help-compare-head {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.bp-help-compare-col--uncert .bp-help-compare-head { color: #ea580c; }
+.bp-help-compare-col--cert  .bp-help-compare-head { color: #16a34a; }
+
+/* ── 도움말 / 문의 탭 ── */
+.bp-info-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.bp-info-title {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.02em;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #fed7aa;
+}
+
+.bp-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bp-info-section-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #ea580c;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #fed7aa;
+}
+
+.bp-info-text {
+  font-size: 0.92rem;
+  color: #374151;
+  line-height: 1.75;
+  margin: 0;
+}
+
+.bp-info-text strong { font-weight: 700; color: #111827; }
+
+.bp-info-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bp-info-list li {
+  font-size: 0.9rem;
+  color: #374151;
+  line-height: 1.7;
+}
+
+.bp-info-list li strong { font-weight: 700; color: #111827; }
+
+.bp-info-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bp-info-badge {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.bp-info-faq {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+
+.bp-info-faq dt {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #111827;
+  padding: 12px 0 4px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.bp-info-faq dt:first-child { border-top: none; padding-top: 0; }
+
+.bp-info-faq dd {
+  font-size: 0.88rem;
+  color: #4b5563;
+  line-height: 1.7;
+  margin: 0 0 4px 0;
+  padding-left: 12px;
+  border-left: 3px solid #fed7aa;
+}
+
+/* 문의 카드 */
+.bp-contact-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bp-contact-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #fffbf8;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+
+.bp-contact-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.bp-contact-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 3px;
+}
+
+.bp-contact-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+}
+
