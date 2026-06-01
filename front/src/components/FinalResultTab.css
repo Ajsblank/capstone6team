@@ -130,3 +130,128 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+/* ── 자세히 보기 버튼 ── */
+.fr-detail-btn {
+  flex-shrink: 0;
+  padding: 6px 13px;
+  border-radius: 8px;
+  border: 1px solid #2a2a4a;
+  background: transparent;
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.fr-detail-btn:hover        { background: rgba(255,255,255,0.06); color: #e0e0e0; border-color: #ea580c; }
+.fr-detail-btn--open        { color: #ea580c; border-color: #ea580c; }
+
+/* ── 카드 래퍼 (카드 + 상세 패널 묶음) ── */
+.fr-card-wrap { display: flex; flex-direction: column; }
+
+.fr-card--expanded {
+  border-radius: 12px 12px 0 0;
+  border-bottom-color: transparent !important;
+}
+
+/* ── 상세 패널 ── */
+.fr-detail-panel {
+  background: #0d0d1a;
+  border: 1.5px solid #2a2a4a;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fr-match-heading {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #4b5563;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── 매치 ID 목록 ── */
+.fr-match-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.fr-match-pill {
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: 1px solid #2a2a4a;
+  background: #151528;
+  color: #9ca3af;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.fr-match-pill:hover           { background: #1e1e38; color: #e0e0e0; border-color: #ea580c; }
+.fr-match-pill--active         { background: rgba(234,88,12,0.15); color: #ea580c; border-color: #ea580c; }
+
+/* ── 로그 상태 메시지 ── */
+.fr-log-status { font-size: 0.82rem; color: #6b7280; }
+.fr-log-status--error { color: #f87171; }
+
+/* ── 로그 섹션 ── */
+.fr-log-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fr-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fr-log-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.fr-go-viz-btn {
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1px solid #ea580c;
+  background: rgba(234,88,12,0.1);
+  color: #ea580c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.fr-go-viz-btn:hover { background: rgba(234,88,12,0.22); }
+
+/* ── 로그 텍스트 ── */
+.fr-log-text {
+  background: #08080f;
+  border: 1px solid #1e1e32;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.73rem;
+  color: #a8b4c8;
+  line-height: 1.65;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+}
