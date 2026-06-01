@@ -35,6 +35,12 @@ const Toast: React.FC<ToastProps> = ({ messages, onClose }) => {
 const isDescEmpty = (html: string) =>
   !html || html === "<p></p>" || html.replace(/<[^>]*>/g, "").trim() === "";
 
+function stepPow2(n: number, dir: 1 | -1, min = 128, max = 2048): number {
+  const log = Math.log2(n);
+  const newExp = dir === 1 ? Math.floor(log + 1e-9) + 1 : Math.ceil(log - 1e-9) - 1;
+  return Math.max(min, Math.min(max, Math.pow(2, newExp)));
+}
+
 interface FileInputProps { label: string; required?: boolean; accept?: string; value: File | null; onChange: (f: File | null) => void; hint?: string; }
 const FileInput: React.FC<FileInputProps> = ({ label, required, accept, value, onChange, hint }) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -324,7 +330,28 @@ const BattleCreateContestPage: React.FC = () => {
                     </div>
                     <div className="cc-field">
                       <label className="cc-label">메모리 제한 (MB) <span className="cc-required">*</span></label>
-                      <input className="cc-input" type="number" min={16} max={2048} value={memoryLimitMb} onChange={(e) => setMemoryLimitMb(Number(e.target.value))} />
+                      <div className="cc-pow2-wrap">
+                        <input
+                          className="cc-input cc-input--pow2"
+                          type="number"
+                          min={128}
+                          max={2048}
+                          value={memoryLimitMb}
+                          onChange={(e) => setMemoryLimitMb(Number(e.target.value))}
+                          onKeyDown={(e) => {
+                            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                              e.preventDefault();
+                              setMemoryLimitMb(prev => stepPow2(prev, e.key === "ArrowUp" ? 1 : -1));
+                            }
+                          }}
+                        />
+                        <div className="cc-pow2-btns">
+                          <button type="button" className="cc-pow2-btn" tabIndex={-1}
+                            onClick={() => setMemoryLimitMb(prev => stepPow2(prev, 1))}>▲</button>
+                          <button type="button" className="cc-pow2-btn" tabIndex={-1}
+                            onClick={() => setMemoryLimitMb(prev => stepPow2(prev, -1))}>▼</button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </section>
