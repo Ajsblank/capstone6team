@@ -23,10 +23,23 @@ function formatDate(s: string): string {
 
 function nowLocalIso(): string {
   const d = new Date();
-  d.setSeconds(0, 0);
-  const offset = d.getTimezoneOffset();                       // UTC - local (min), KST = -540
-  const local  = new Date(d.getTime() - offset * 60 * 1000); // shift to local wall time
-  return local.toISOString().slice(0, 16);                    // "YYYY-MM-DDTHH:mm"
+  // datetime-local input value format: "YYYY-MM-DDTHH:mm" as local wall clock
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+// datetime-local 값("YYYY-MM-DDTHH:mm")을 서버 전송용 로컬 ISO 문자열로 변환
+// 서버가 KST 설정 + LocalDateTime 타입이므로 타임존 suffix 없이 로컬 시간 그대로 전송
+// (Z를 붙이면 서버가 Z를 무시하고 UTC 숫자를 KST로 해석해 9시간 오차 발생)
+function localInputToServerIso(val: string): string {
+  const [datePart, timePart = "00:00"] = val.split("T");
+  const [y, mo, d] = datePart.split("-").map(Number);
+  const [h, min]   = timePart.split(":").map(Number);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${y}-${pad(mo)}-${pad(d)}T${pad(h)}:${pad(min)}:00`;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -68,10 +81,21 @@ const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick }) => {
     setScheduleLoading(true);
     setScheduleResult(null);
     try {
-      const isoList = dateList
-        .filter(d => d.trim())
-        .map(d => new Date(d).toISOString());
-      console.log("[BattleSessionsTab] scheduleSwissLeague →", isoList);
+      const now = new Date();
+      const isoList = dateList.filter(d => d.trim()).map(localInputToServerIso);
+
+      console.group("[BattleSessionsTab] 세션 예약 전송 진단");
+      console.log("브라우저 타임존  :", Intl.DateTimeFormat().resolvedOptions().timeZone);
+      console.log("현재 브라우저 시각:", now.toLocaleString("ko-KR"));
+      isoList.forEach((sent, i) => {
+        const local = dateList.filter(d => d.trim())[i];
+        const diff  = (new Date(sent).getTime() - now.getTime()) / 1000 / 60;
+        console.log(
+          `[${i + 1}] 입력(로컬): ${local}  →  전송(KST 그대로): ${sent}` +
+          `  (현재로부터 ${diff >= 0 ? "+" : ""}${diff.toFixed(1)}분)`
+        );
+      });
+      console.groupEnd();
       await scheduleSwissLeague(contestId, isoList);
       setScheduleResult("success");
       setScheduleOpen(false);

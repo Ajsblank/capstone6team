@@ -183,7 +183,19 @@ const LeaderboardTab: React.FC<Props> = ({
     setMiddleCache(new Map());
     setDetailError(null);
     getSessionLeaderboard(contestId, selectedSession)
-      .then(res => { if (!cancelled) setData(res); })
+      .then(res => {
+        if (cancelled) return;
+        console.group(`[LeaderboardTab] 세션 ${selectedSession} 리더보드 수신`);
+        console.log("session_number     :", res.session_number);
+        console.log("total_participants :", res.total_participants);
+        console.log("total_rounds       :", res.total_rounds);
+        console.table(res.final_standings.map(s => ({
+          rank: s.rank, user_id: s.user_id,
+          wins: s.wins, draws: s.draws, losses: s.losses, points: s.points,
+        })));
+        console.groupEnd();
+        setData(res);
+      })
       .catch(() => { if (!cancelled) setError("리더보드를 불러오지 못했습니다."); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
