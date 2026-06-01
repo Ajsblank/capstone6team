@@ -24,7 +24,9 @@ function formatDate(s: string): string {
 function nowLocalIso(): string {
   const d = new Date();
   d.setSeconds(0, 0);
-  return d.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:mm"
+  const offset = d.getTimezoneOffset();                       // UTC - local (min), KST = -540
+  const local  = new Date(d.getTime() - offset * 60 * 1000); // shift to local wall time
+  return local.toISOString().slice(0, 16);                    // "YYYY-MM-DDTHH:mm"
 }
 
 const STATUS_LABEL: Record<string, string> = {

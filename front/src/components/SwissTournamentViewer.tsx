@@ -113,7 +113,7 @@ function buildVRounds(rounds: SessionRound[], animKeyMap: Map<number, number>): 
       matches: p.matches,
     }));
 
-    return { roundNumber: br.round_number, pools, completed: br.status === "FINISHED" };
+    return { roundNumber: br.round_number, pools, completed: br.status === "FINISHED" || br.status === "END" };
   });
 }
 
@@ -453,7 +453,7 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId }) => {
   }
 
   const completedCount  = vRounds.filter(r => r.completed).length;
-  const sessionDone     = payload.status === "FINISHED";
+  const sessionDone     = payload.status === "FINISHED" || payload.status === "END";
   const totalMatches    = payload.rounds.flatMap(r => r.matches).length;
   const resolvedMatches = payload.rounds.flatMap(r => r.matches).filter(m => m.winner !== null).length;
 
