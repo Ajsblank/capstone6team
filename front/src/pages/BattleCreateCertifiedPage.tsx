@@ -9,7 +9,7 @@ import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
 const BattleCreateCertifiedPage: React.FC = () => {
-  const { user, logout, navigate } = useApp();
+  const { user, logout, navigate, addCreatedContest } = useApp();
 
   const hostEmail = user?.email ?? "";
   const [emails, setEmails] = useState<string[]>([]);
@@ -47,6 +47,7 @@ const BattleCreateCertifiedPage: React.FC = () => {
     try {
       const result = await createCertifiedContest(draft, validEmails);
       clearContestDraft();
+      addCreatedContest(result.id);
       setCreatedContest(result);
     } catch (err: unknown) {
       setSubmitStatus("error");
