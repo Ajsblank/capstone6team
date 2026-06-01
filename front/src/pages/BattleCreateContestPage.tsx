@@ -9,6 +9,7 @@ import { setContestDraft } from "../contestDraft";
 import ContestSidebar from "../components/ContestSidebar";
 import RichTextEditor from "../components/RichTextEditor";
 import AiAssistPanel from "../components/AiAssistPanel";
+import ContestPreviewModal from "../components/ContestPreviewModal";
 import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
@@ -225,34 +226,20 @@ const BattleCreateContestPage: React.FC = () => {
       )}
 
       {showPreview && (
-        <div className="cc-preview-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowPreview(false); }}>
-          <div className="cc-preview-panel">
-            <div className="cc-preview-header">
-              <span className="cc-preview-header-title">미리보기</span>
-              <button className="cc-preview-back-btn" onClick={() => setShowPreview(false)}>닫기</button>
-            </div>
-            <div className="cc-preview-body">
-              <h1 className="cc-preview-title">{title || "(제목 없음)"}</h1>
-              <div className="cc-preview-badges">
-                <span className={`cc-preview-badge ${certification ? "cc-preview-badge--cert" : "cc-preview-badge--uncert"}`}>{certification ? "인증" : "비인증"}</span>
-                <span className="cc-preview-badge cc-preview-badge--status">{status}</span>
-              </div>
-              <div className="cc-preview-meta">
-                <div className="cc-preview-meta-item"><span className="cc-preview-meta-label">시작</span><span className="cc-preview-meta-value">{startDate || "—"}</span></div>
-                <div className="cc-preview-meta-item"><span className="cc-preview-meta-label">종료</span><span className="cc-preview-meta-value">{endDate || "—"}</span></div>
-                <div className="cc-preview-meta-item"><span className="cc-preview-meta-label">최대 참가자</span><span className="cc-preview-meta-value">{maxParticipants}명</span></div>
-                <div className="cc-preview-meta-item"><span className="cc-preview-meta-label">시간 제한</span><span className="cc-preview-meta-value">{timeLimitSec}초/턴</span></div>
-                <div className="cc-preview-meta-item"><span className="cc-preview-meta-label">메모리 제한</span><span className="cc-preview-meta-value">{memoryLimitMb} MB</span></div>
-              </div>
-              <div>
-                <div className="cc-preview-desc-label">문제 설명</div>
-                {!isDescEmpty(description)
-                  ? <div className="cc-md-preview" dangerouslySetInnerHTML={{ __html: description }} />
-                  : <div className="cc-md-empty">문제 설명이 없습니다.</div>}
-              </div>
-            </div>
-          </div>
-        </div>
+        <ContestPreviewModal
+          title={title}
+          description={description}
+          timeLimitSec={timeLimitSec}
+          memoryLimitMb={memoryLimitMb}
+          maxParticipants={maxParticipants}
+          certification={certification}
+          status={status}
+          startDate={startDate}
+          endDate={endDate}
+          visualizationHtml={visualizationHtml}
+          soloPlayHtml={soloPlayHtml}
+          onClose={() => setShowPreview(false)}
+        />
       )}
 
       <header className="home-header">
