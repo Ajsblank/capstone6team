@@ -183,6 +183,7 @@ export interface FinalStanding {
   losses: number;
   rank: number;
   points: number;
+  match_ids?: number[];
 }
 
 export interface FinalResult {
@@ -236,9 +237,10 @@ export const getSwissMatchLog = async (contestId: number, matchId: number): Prom
 };
 
 // ── 풀리그 매치 로그 — GET /api/contests/{contestId}/fullLeague/viewMatchLog/{matchId} ──
-export const getFullLeagueMatchLog = async (contestId: number, matchId: number): Promise<MatchLogDetail> => {
-  const { data } = await api.get<MatchLogDetail>(`/api/contests/${contestId}/fullLeague/viewMatchLog/${matchId}`);
-  return data;
+// 서버가 plain string 또는 { log: string } 두 형태로 응답할 수 있어 양쪽을 모두 처리
+export const getFullLeagueMatchLog = async (contestId: number, matchId: number): Promise<string> => {
+  const { data } = await api.get<any>(`/api/contests/${contestId}/fullLeague/viewMatchLog/${matchId}`);
+  return typeof data === "string" ? data : (data?.log ?? "");
 };
 
 // ── 검수 코드 대결 — POST /api/code/submit/test (결과는 SSE test_result 이벤트로 수신) ──
