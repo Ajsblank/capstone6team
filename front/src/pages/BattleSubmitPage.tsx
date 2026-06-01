@@ -374,10 +374,10 @@ const SubmitPage: React.FC = () => {
           <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
         </span>
         <nav className="home-tab-nav">
-          <button className="home-tab-btn home-tab-btn--active" onClick={() => { window.location.hash = "battle/contest"; }}>대회</button>
-          <button className="home-tab-btn home-tab-btn--disabled" title="준비 중인 기능입니다">랭킹</button>
-          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle/help"; }}>도움말</button>
-          <button className="home-tab-btn" onClick={() => { window.location.hash = "battle/contact"; }}>문의</button>
+          <button className="home-tab-btn" onClick={() => navigate("battle")}>대회</button>
+          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/ranking"; }}>랭킹</button>
+          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/help"; }}>도움말</button>
+          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/contact"; }}>문의</button>
         </nav>
         <div className="home-auth-area">
           {user ? (
