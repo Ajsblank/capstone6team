@@ -17,10 +17,14 @@ public enum Language {
         .replace("-", "_");
 
     switch (normalized) {
-      case "0": return CPP;
-      case "1": return JAVA;
-      case "2": return PYTHON;
-      case "3": return C;
+      case "0":
+        return CPP;
+      case "1":
+        return JAVA;
+      case "2":
+        return PYTHON;
+      case "3":
+        return C;
     }
 
     if ("C++".equalsIgnoreCase(value) || "CPP".equals(normalized)) {

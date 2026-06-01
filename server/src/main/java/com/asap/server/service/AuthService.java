@@ -19,6 +19,7 @@ import com.asap.server.dto.request.SmsCodeVerifyRequest;
 import com.asap.server.dto.request.SmsVerifyRequest;
 import com.asap.server.dto.request.WithdrawRequest;
 import com.asap.server.dto.response.LoginResponse;
+import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.ContestReviewerRepository;
 import com.asap.server.repository.usersRepository;
@@ -44,6 +45,7 @@ public class AuthService {
     private final CodeBattleParticipantRepository participantRepository;
     private final ContestReviewerRepository contestReviewerRepository;
     private final Map<String, PendingSignup> pendingSignupStore = new ConcurrentHashMap<>();
+    private final CodeBattleContestRepository contestRepository;
 
     @Transactional
     public void signup(SignupRequest request) {
@@ -122,8 +124,11 @@ public class AuthService {
         log.info("참가 대회 조회 - userId: {}, joinedContests: {}", user.getId(), joinedContests);
 
         List<Long> hostedContests = contestReviewerRepository.findContestIdsByReviewerEmail(user.getEmail());
-        log.info("개최 대회 조회(reviewer_email 기준) - userId: {}, email: {}, hostedContests: {}", user.getId(),
+        log.info("검증 대회 조회(reviewer_email 기준) - userId: {}, email: {}, hostedContests: {}", user.getId(),
                 user.getEmail(), hostedContests);
+        List<Long> createdContests = contestRepository.findContestIdsByCreatorId(user.getId());
+        log.info("개최 대회 조회(reviewer_email 기준) - userId: {}, email: {}, hostedContests: {}", user.getId(),
+                user.getEmail(), createdContests);
 
         LoginResponse response = LoginResponse.builder()
                 .userId(user.getId())
@@ -132,11 +137,14 @@ public class AuthService {
                 .sessionId(sessionId)
                 .joinedContests(joinedContests)
                 .hostedContests(hostedContests)
+                .createdContests(createdContests)
+
                 .build();
         log.info(
-                "로그인 응답 - userId: {}, accessToken: {}, refreshToken: {}, sessionId: {}, joinedContests: {}, hostedContests: {}",
+                "로그인 응답 - userId: {}, accessToken: {}, refreshToken: {}, sessionId: {}, joinedContests: {}, hostedContests: {}, createdContests: {}",
                 response.getUserId(), response.getAccessToken(), response.getRefreshToken(),
-                response.getSessionId(), response.getJoinedContests(), response.getHostedContests());
+                response.getSessionId(), response.getJoinedContests(), response.getHostedContests(),
+                response.getCreatedContests());
         return response;
     }
 
