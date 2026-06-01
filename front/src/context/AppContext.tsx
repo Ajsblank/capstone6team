@@ -35,7 +35,8 @@ interface AppContextValue {
   joinedContestIds: number[];
   hostedContestIds: number[];
   createdContestIds: number[];
-  addJoinedContest: (contestId: number) => void;
+  addJoinedContest:  (contestId: number) => void;
+  addCreatedContest: (contestId: number) => void;
 }
 
 const VALID_PAGES: Page[] = ["landing", "home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "create-contest", "create-certified-contest", "contest-settings", "tournament", "profile", "account-settings"];
@@ -129,6 +130,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, []);
 
+  const addCreatedContest = useCallback((contestId: number) => {
+    setCreatedContestIds(prev => {
+      if (prev.includes(contestId)) return prev;
+      const next = [...prev, contestId];
+      localStorage.setItem("createdContests", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const logout = useCallback(async () => {
     await logoutApi();
     setUser(null);
@@ -143,8 +153,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const value = useMemo(
-    () => ({ currentPage, navigate, user, login, logout, joinedContestIds, hostedContestIds, createdContestIds, addJoinedContest }),
-    [currentPage, user, navigate, login, logout, joinedContestIds, hostedContestIds, createdContestIds, addJoinedContest]
+    () => ({ currentPage, navigate, user, login, logout, joinedContestIds, hostedContestIds, createdContestIds, addJoinedContest, addCreatedContest }),
+    [currentPage, user, navigate, login, logout, joinedContestIds, hostedContestIds, createdContestIds, addJoinedContest, addCreatedContest]
   );
 
   return (

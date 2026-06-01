@@ -53,7 +53,7 @@ const FileInput: React.FC<FileInputProps> = ({ label, required, accept, value, o
 };
 
 const BattleCreateContestPage: React.FC = () => {
-  const { user, logout, navigate } = useApp();
+  const { user, logout, navigate, addCreatedContest } = useApp();
 
   const [title, setTitle]                   = useState("");
   const [description, setDescription]       = useState("");
@@ -151,6 +151,7 @@ const BattleCreateContestPage: React.FC = () => {
         creatorId: Number(user?.id ?? 0),
       });
       setSubmitStatus("idle");
+      addCreatedContest(result.id);
       setCreatedContest(result);
     } catch (err: unknown) {
       setSubmitStatus("error");
