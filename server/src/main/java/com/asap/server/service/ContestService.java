@@ -411,10 +411,10 @@ public class ContestService {
     @Transactional(readOnly = true)
     public Page<ContestListResponse> getContestPage(ContestStatus status, Pageable pageable) {
         if (status != null) {
-            return contestRepository.findByStatus(status, pageable)
+            return contestRepository.findByStatusAndDeletedAtIsNull(status, pageable)
                     .map(ContestListResponse::from);
         }
-        return contestRepository.findAll(pageable)
+        return contestRepository.findAllByDeletedAtIsNull(pageable)
                 .map(ContestListResponse::from);
     }
 

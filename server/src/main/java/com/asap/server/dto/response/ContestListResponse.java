@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.global.type.ContestStatus;
+import com.asap.server.repository.CodeBattleContestRepository.ContestListProjection;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import lombok.AllArgsConstructor;
@@ -35,6 +36,17 @@ public class ContestListResponse {
         .startDate(contest.getStartDate())
         .endDate(contest.getEndDate())
         .maxParticipants(contest.getMaxParticipants())
+        .build();
+  }
+
+  public static ContestListResponse from(ContestListProjection p) {
+    return ContestListResponse.builder()
+        .id(p.getId())
+        .title(p.getTitle())
+        .status(p.getStatus())
+        .startDate(p.getStartDate())
+        .endDate(p.getEndDate())
+        .maxParticipants(p.getMaxParticipants())
         .build();
   }
 }
