@@ -47,7 +47,6 @@ public class CodeController {
     private final CodeBattleSubmissionRepository submissionRepository;
     private final CodeBattleParticipantRepository participantRepository;
 
-    private static final String SUBMISSION_COUNT_KEY = "submission_count";
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
     private static final String CODE_BATTLE_TEST_QUEUE_KEY = "code_battle_test_queue";
 
@@ -140,8 +139,6 @@ public class CodeController {
             CodeBattleContest contest = contestRepository.findById(Long.parseLong(request.getProblemId()))
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대회입니다."));
 
-            Users user = userRepository.findById(Long.parseLong(request.getUserId()))
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
             if (request.getUserId() == null) {
                 return ResponseEntity.badRequest().body("userId는 필수입니다.");
             }

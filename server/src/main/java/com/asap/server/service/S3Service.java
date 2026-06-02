@@ -3,7 +3,6 @@ package com.asap.server.service;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -16,8 +15,6 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 @Slf4j
 @Service
@@ -25,24 +22,17 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 public class S3Service {
 
   private final S3Client s3Client;
-  private final S3Presigner s3Presigner;
 
   @Value("${cloud.aws.s3.bucket}")
   private String bucket;
 
+  @Value("$(cloud.aws.cloudfront.url}")
+  private String coudFront;
+
   @Value("${cloud.aws.region}")
   private String region;
 
-  @Value("${cloud.aws.s3.presigned-expiry-minutes}")
-  private int expiryMinutes;
-
-  @Value("${cloud.aws.s3.public-base-url:}")
-  private String publicBaseUrl;
-
-  @Value("${cloud.aws.s3.contest-html-prefix:backend-deploy/contest-resource}")
-  private String contestHtmlPrefix;
-
-  @Value("${cloud.aws.s3.contest-code-prefix:backend-deploy/contest-resource}")
+  @Value("${cloud.aws.s3.contest-code-prefix}")
   private String contestCodePrefix;
 
   /**
@@ -74,23 +64,8 @@ public class S3Service {
     }
   }
 
-  /**
-   * 기존 파일의 Pre-signed URL 재발급
-   */
-  public String generatePresignedUrl(String key) {
-    GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-        .signatureDuration(Duration.ofMinutes(expiryMinutes))
-        .getObjectRequest(r -> r.bucket(bucket).key(key))
-        .build();
-
-    String url = s3Presigner.presignGetObject(presignRequest).url().toString();
-    log.info("Pre-signed URL 발급 - key: {}, 유효시간: {}분", key, expiryMinutes);
-
-    return url;
-  }
-
-  private String normalizeContestCodePrefix() {
-    String prefix = contestCodePrefix;
+  private String normalizePathPrefix(String pathPrefix) {
+    String prefix = pathPrefix;
     if (prefix.startsWith("/")) {
       prefix = prefix.substring(1);
     }
@@ -113,10 +88,11 @@ public class S3Service {
   }
 
   public String buildFinalResultKey(Long contestId) {
-    return String.format("%s/%d/final-result", normalizeContestCodePrefix(), contestId);
+    return String.format("%s/%d/final-result", normalizePathPrefix(contestCodePrefix), contestId);
   }
 
   public String buildSessionResultKey(Long contestId, int sessionNumber) {
-    return String.format("%s/%d/swiss-result/session-%d", normalizeContestCodePrefix(), contestId, sessionNumber);
+    return String.format("%s/%d/swiss-result/session-%d", normalizePathPrefix(contestCodePrefix), contestId,
+        sessionNumber);
   }
 }
