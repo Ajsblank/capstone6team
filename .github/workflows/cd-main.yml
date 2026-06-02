@@ -68,6 +68,8 @@ jobs:
       SOL_API_KEY: ${{secrets.SOL_API_KEY}}
       SOL_API_SECRET: ${{secrets.SOL_API_SECRET}}
       SOL_SENDER_NUMBER: ${{secrets.SOL_SENDER_NUMBER}}
+      TOSS_CLIENT_KEY: ${{secrets.TOSS_CLIENT_KEY}}
+      TOSS_SECRET_KEY: ${{secrets.TOSS_CLIENT_KEY}}
     steps:
       - uses: actions/checkout@v4
       - name: set up jdk
@@ -147,6 +149,8 @@ jobs:
               "export SOL_API_KEY=${{secrets.SOL_API_KEY}}",
               "export SOL_API_SECRET=${{secrets.SOL_API_SECRET}}",
               "export SOL_SENDER_NUMBER=${{secrets.SOL_SENDER_NUMBER}}",
+              "export TOSS_CLIENT_KEY=${{secrets.TOSS_CLIENT_KEY}}",
+              "export TOSS_SECRET_KEY=${{secrets.TOSS_SECRET_KEY}}",
               "nohup java -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
               
               "echo deploy_success > /home/ubuntu/app/test.txt"
