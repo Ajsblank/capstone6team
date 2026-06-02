@@ -92,6 +92,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/logout", "/api/auth/logout-all", "/api/auth/refresh",
                                 "/api/auth/withdraw")
                         .authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/payment/**").authenticated()
                         .anyRequest().permitAll())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
