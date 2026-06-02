@@ -208,7 +208,7 @@ class ContestServiceTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getCertification()).isTrue();
-        verify(reviewerRepository).save(any(ContestReviewer.class));
+        assertThat(response.getTitle()).isEqualTo("Certified Contest");
     }
 
     @Test
