@@ -52,6 +52,8 @@ jobs:
       SOL_API_KEY: ${{secrets.SOL_API_KEY}}
       SOL_API_SECRET: ${{secrets.SOL_API_SECRET}}
       SOL_SENDER_NUMBER: ${{secrets.SOL_SENDER_NUMBER}}
+      TOSS_CLIENT_KEY: ${{secrets.TOSS_CLIENT_KEY}}
+      TOSS_SECRET_KEY: ${{secrets.TOSS_CLIENT_KEY}}
       
     steps:
       - uses: actions/checkout@v4
@@ -136,6 +138,8 @@ jobs:
               "export AWS_BUCKET_TEST=${{secrets.AWS_BUCKET_TEST}}",
               "export AWS_ACCESS_KEY_ID=${{secrets.AWS_ACCESS_KEY_ID}}",
               "export AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}}",
+              "export TOSS_CLIENT_KEY=${{secrets.TOSS_CLIENT_KEY}}",
+              "export TOSS_SECRET_KEY=${{secrets.TOSS_SECRET_KEY}}",
               "nohup java -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
               
               "echo deploy_success > /home/ubuntu/app/test.txt"
