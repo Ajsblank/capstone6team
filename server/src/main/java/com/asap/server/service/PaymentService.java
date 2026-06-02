@@ -12,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
@@ -32,6 +32,7 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final CodeBattleContestRepository contestRepository;
     private final usersRepository userRepository;
+    private final TransactionTemplate transactionTemplate;
     private final RestClient restClient;
 
     @Value("${toss.secret-key}")
@@ -39,14 +40,16 @@ public class PaymentService {
 
     public PaymentService(PaymentRepository paymentRepository,
                           CodeBattleContestRepository contestRepository,
-                          usersRepository userRepository) {
+                          usersRepository userRepository,
+                          TransactionTemplate transactionTemplate) {
         this.paymentRepository = paymentRepository;
         this.contestRepository = contestRepository;
         this.userRepository = userRepository;
+        this.transactionTemplate = transactionTemplate;
         this.restClient = RestClient.create();
     }
 
-    @Transactional
+    // 트랜잭션 없음 — 토스 API 호출 중 DB 커넥션 점유 방지
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request, Long userId) {
         if (!Long.valueOf(FIXED_AMOUNT).equals(request.getAmount())) {
             throw new IllegalArgumentException("결제 금액이 올바르지 않습니다. 결제 금액: " + FIXED_AMOUNT + "원");
@@ -56,53 +59,56 @@ public class PaymentService {
             throw new IllegalArgumentException("이미 처리된 주문입니다.");
         }
 
+        // 트랜잭션 밖에서 외부 API 호출
         TossPaymentResponse tossResponse = callTossConfirmApi(
                 request.getPaymentKey(), request.getOrderId(), request.getAmount());
 
-        Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        // DB 저장만 트랜잭션으로 분리
+        return transactionTemplate.execute(status -> {
+            Users user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        CodeBattleContest contest = null;
-        if (request.getContestId() != null) {
-            contest = contestRepository.findById(request.getContestId())
-                    .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다."));
-        }
+            CodeBattleContest contest = null;
+            if (request.getContestId() != null) {
+                contest = contestRepository.findById(request.getContestId())
+                        .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다."));
+            }
 
-        LocalDateTime paidAt = tossResponse.approvedAt() != null
-                ? OffsetDateTime.parse(tossResponse.approvedAt()).toLocalDateTime()
-                : LocalDateTime.now();
+            LocalDateTime paidAt = tossResponse.approvedAt() != null
+                    ? OffsetDateTime.parse(tossResponse.approvedAt()).toLocalDateTime()
+                    : LocalDateTime.now();
 
-        Payment payment = Payment.create(
-                request.getPaymentKey(),
-                request.getOrderId(),
-                request.getAmount(),
-                tossResponse.status(),
-                tossResponse.method(),
-                paidAt,
-                contest,
-                user);
+            Payment payment = Payment.create(
+                    request.getPaymentKey(),
+                    request.getOrderId(),
+                    request.getAmount(),
+                    tossResponse.status(),
+                    tossResponse.method(),
+                    paidAt,
+                    contest,
+                    user);
 
-        Payment saved = paymentRepository.save(payment);
-        log.info("[결제 완료] paymentKey={}, orderId={}, amount={}, userId={}",
-                request.getPaymentKey(), request.getOrderId(), request.getAmount(), userId);
-
-        return PaymentConfirmResponse.from(saved);
+            Payment saved = paymentRepository.save(payment);
+            log.info("[결제 완료] paymentKey={}, orderId={}, amount={}, userId={}",
+                    request.getPaymentKey(), request.getOrderId(), request.getAmount(), userId);
+            return PaymentConfirmResponse.from(saved);
+        });
     }
 
-    @Transactional
     public PaymentConfirmResponse confirmPaymentForTest(String paymentKey, String orderId, Long userId) {
         if (paymentRepository.existsByOrderId(orderId)) {
             throw new IllegalArgumentException("이미 처리된 주문입니다.");
         }
-        Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        Payment payment = Payment.create(
-                paymentKey, orderId, FIXED_AMOUNT,
-                "DONE", "카드", LocalDateTime.now(), null, user);
-        Payment saved = paymentRepository.save(payment);
-        log.info("[테스트 결제 완료] paymentKey={}, orderId={}, userId={}", paymentKey, orderId, userId);
-        return PaymentConfirmResponse.from(saved);
+        return transactionTemplate.execute(status -> {
+            Users user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+            Payment payment = Payment.create(
+                    paymentKey, orderId, FIXED_AMOUNT,
+                    "DONE", "카드", LocalDateTime.now(), null, user);
+            Payment saved = paymentRepository.save(payment);
+            log.info("[테스트 결제 완료] paymentKey={}, orderId={}, userId={}", paymentKey, orderId, userId);
+            return PaymentConfirmResponse.from(saved);
+        });
     }
 
     private TossPaymentResponse callTossConfirmApi(String paymentKey, String orderId, Long amount) {
