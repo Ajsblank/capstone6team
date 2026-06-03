@@ -146,7 +146,7 @@ public class CodeController {
     @PostMapping("/submit/test")
     public ResponseEntity<String> submitCodeBattleTest(@Valid @RequestBody CodeBattleTestRequest request) {
         try {
-            CodeBattleContest contest = contestRepository.findById(Long.parseLong(request.getProblemId()))
+            CodeBattleContest contest = contestRepository.findById(request.getProblemId())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대회입니다."));
 
             if (request.getUserId() == null) {
