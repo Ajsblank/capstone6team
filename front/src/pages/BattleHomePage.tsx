@@ -158,6 +158,9 @@ const BattlePage: React.FC = () => {
   const [contestError, setContestError] = useState<string | null>(null);
   const [blockedPopup, setBlockedPopup] = useState(false);
 
+  // 대회 개최 비용 안내 팝업
+  const [showCostPopup, setShowCostPopup] = useState(false);
+
   // 필터 상태
   const [filterStatus, setFilterStatus]       = useState<StatusFilter>("");
   const [filterName,   setFilterName]         = useState("");
@@ -251,6 +254,32 @@ const BattlePage: React.FC = () => {
 
   return (
     <div className="home-page battle-home-page">
+      {/* ── 대회 개최 비용 안내 팝업 ── */}
+      {showCostPopup && (
+        <div className="bp-popup-overlay" onClick={() => setShowCostPopup(false)}>
+          <div className="bp-popup bp-cost-popup" onClick={e => e.stopPropagation()}>
+            <p className="bp-popup-msg">대회 개최 비용 안내</p>
+            <div className="bp-cost-table">
+              <div className="bp-cost-row">
+                <span className="bp-cost-type bp-cost-type--uncert">비인증 대회</span>
+                <span className="bp-cost-price">10,000원</span>
+              </div>
+              <div className="bp-cost-row">
+                <span className="bp-cost-type bp-cost-type--cert">인증 대회</span>
+                <span className="bp-cost-price bp-cost-price--cert">100,000원</span>
+              </div>
+            </div>
+            <p className="bp-cost-note">
+              대회 생성 완료 시 해당 금액이 결제됩니다.<br />
+              인증/비인증은 다음 페이지에서 선택하실 수 있습니다.
+            </p>
+            <button className="bp-popup-btn" onClick={() => { setShowCostPopup(false); navigate("create-contest"); }}>
+              확인 — 대회 개최 페이지로
+            </button>
+          </div>
+        </div>
+      )}
+
       {blockedPopup && (
         <div className="bp-popup-overlay" onClick={() => setBlockedPopup(false)}>
           <div className="bp-popup" onClick={e => e.stopPropagation()}>
@@ -371,7 +400,7 @@ const BattlePage: React.FC = () => {
 
             <div className="bp-contest-header">
               <h2 className="bp-contest-title">대회 목록</h2>
-              <button className="bp-create-contest-btn" onClick={() => navigate("create-contest")}>
+              <button className="bp-create-contest-btn" onClick={() => setShowCostPopup(true)}>
                 + 대회 개최
               </button>
             </div>

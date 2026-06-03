@@ -155,6 +155,50 @@
   flex-shrink: 0;
 }
 
+/* ── 비용 안내 팝업 ── */
+.bp-cost-popup { min-width: 320px; gap: 16px; }
+
+.bp-cost-table {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bp-cost-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.bp-cost-type {
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+}
+.bp-cost-type--uncert { background: #e0f2fe; color: #0369a1; }
+.bp-cost-type--cert   { background: #fef3c7; color: #92400e; }
+
+.bp-cost-price {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #111827;
+}
+.bp-cost-price--cert { color: #ea580c; }
+
+.bp-cost-note {
+  font-size: 0.78rem;
+  color: #6b7280;
+  text-align: center;
+  line-height: 1.6;
+  margin: 0;
+}
+
 /* ── 접근 차단 팝업 ── */
 .bp-popup-overlay {
   position: fixed;
