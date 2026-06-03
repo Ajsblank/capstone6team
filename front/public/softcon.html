@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>버섯사과 — 번갈아 플레이</title>
+  <style>
+    @font-face {
+      font-family: 'Maplestory';
+      font-weight: 700;
+      src: url('assets/fonts/Maplestory-Bold.woff2') format('woff2'),
+           url('assets/fonts/Maplestory-Bold.woff') format('woff');
+    }
+    @font-face {
+      font-family: 'Maplestory';
+      font-weight: 400;
+      src: url('assets/fonts/Maplestory-Light.woff2') format('woff2'),
+           url('assets/fonts/Maplestory-Light.woff') format('woff');
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      font-weight: 400;
+      src: url('assets/Pretendard-Regular.subset-BZqc2FCe.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      font-weight: 500;
+      src: url('assets/Pretendard-Medium.subset-D07TkZcI.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      font-weight: 700;
+      src: url('assets/Pretendard-Bold.subset-NvQkMce4.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'IBMPlexMono';
+      src: url('assets/ibm-plex-mono-latin-400-normal-Dm_PoFIZ.woff2') format('woff2');
+      font-weight: 400;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+      background: #ffffff;
+      min-height: 100vh;
+      color: #333333;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ── Header ─────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 24px;
+      background: #ffffff;
+      border-bottom: 1px solid #eaeaea;
+    }
+    header h1 {
+      font-family: 'Maplestory', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #333333;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── 새 게임 버튼 (우측 상단 고정) ── */
+    .btn-new-fixed {
+      position: fixed;
+      top: 18px;
+      right: 24px;
+      z-index: 50;
+    }
+
+    /* ── Main layout ─────────────────────────────── */
+    .main {
+      display: flex;
+      justify-content: center;
+      padding: 64px 16px 32px;
+      width: 100%;
+      flex: 1;
+      position: relative;
+    }
+
+    /* ── Left: game area ─────────────────────────── */
+    .game-col {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      align-items: center;
+    }
+
+    /* ── Game row: [player-left] [board] [player-right] ── */
+    .game-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* ── Player wrap (카드 + 점수) ── */
+    .player-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* ── Player cards ────────────────────────────── */
+    .player-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 36px 32px 28px;
+      border-radius: 14px;
+      border: 2px solid transparent;
+      background: transparent;
+      transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+      position: relative;
+      min-width: 160px;
+    }
+    /* 활성(현재 턴) 카드만 배경 + 글로우 */
+    .player-card[data-player="first"].active {
+      background: #f7eed8;
+      border-color: #d9a441;
+      box-shadow: 0 0 22px 4px rgba(217,164,65,0.45);
+    }
+    .player-card[data-player="second"].active {
+      background: #d7eefb;
+      border-color: #2f7fc4;
+      box-shadow: 0 0 22px 4px rgba(47,127,196,0.45);
+    }
+    .player-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .player-card[data-player="first"].active::before {
+      background: linear-gradient(135deg, rgba(217,164,65,0.12), transparent);
+      opacity: 1;
+    }
+    .player-card[data-player="second"].active::before {
+      background: linear-gradient(135deg, rgba(47,127,196,0.12), transparent);
+      opacity: 1;
+    }
+
+    .turn-badge {
+      position: absolute;
+      top: -11px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 99px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+      white-space: nowrap;
+    }
+    .player-card[data-player="first"]  .turn-badge { background: #d9a441; color: #fff; }
+    .player-card[data-player="second"] .turn-badge { background: #2f7fc4; color: #fff; }
+    .player-card.active .turn-badge { opacity: 1; }
+
+    .player-avatar {
+      width: 160px;
+      height: 160px;
+      transform: scale(1.7) translateY(-5px); 
+      transform-origin: center;      
+      
+    }
+    /* 오른쪽(AI) 캐릭터만 2배로 — 카드 크기는 유지 */
+    .player-card[data-player="second"] .player-avatar {
+      transform: scale(3)  translateY(-30px);  
+      transform-origin: center;  
+      
+    }
+    .player-name {
+      font-family: 'Maplestory', sans-serif;
+      font-size: 0.9rem;
+    }
+    .player-card[data-player="first"]  .player-name { color: #9a6f1a; }
+    .player-card[data-player="second"] .player-name { color: #2f7fc4; }
+    .player-score {
+      font-size: 2.6rem;
+      font-weight: 800;
+      line-height: 1;
+      background: none;
+    }
+    .player-score[data-player="first"]  { color: #9a6f1a; }
+    .player-score[data-player="second"] { color: #2f7fc4; }
+
+    /* ── Board ───────────────────────────────────── */
+    .board-wrap {
+      background: #fff;
+      border-radius: 12px;
+      padding: 8px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+      border: 1px solid #eaeaea;
+      display: inline-block;
+      cursor: crosshair;
+      touch-action: none;
+      position: relative;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(17, 40px);
+      grid-template-rows: repeat(10, 40px);
+      gap: 1px;
+      background: #ccc;
+      border: 1px solid #ccc;
+    }
+    .cell {
+      width: 40px;
+      height: 40px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fafafa;
+      overflow: hidden;
+      perspective: 220px;
+    }
+    .cell-icon {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    /* 점령 타일 이미지는 진하게 + 칸을 꽉 채우고 살짝 확대 */
+    .cell.owned-first  .cell-icon,
+    .cell.owned-second .cell-icon {
+      opacity: 1;
+      object-fit: cover;
+      transform: scale(1.30);   /* 값↑ = 더 크게 */
+    }
+    /* 타일 깔리는 애니메이션 (scale 유지하며 회전) */
+    @keyframes tile-flip {
+      0%   { transform: rotateY(90deg)  scale(1.30); opacity: 0; }
+      60%  { transform: rotateY(-12deg) scale(1.30); opacity: 1; }
+      100% { transform: rotateY(0)      scale(1.30); opacity: 1; }
+    }
+    .cell-icon.flip-in { animation: tile-flip 0.5s ease forwards; }
+
+    .cell-num {
+      position: relative;
+      z-index: 1;
+      font-size: 1rem;
+      font-weight: 700;
+      pointer-events: none;
+      color: #444;
+    }
+    .cell.owned-first  { background: #f0dcab; }
+    .cell.owned-second { background: #bce4f7; }
+
+    /* ── 힌트: 칸보다 10% 작게 + 테두리 + 페이드인 ── */
+    @keyframes hint-fade {
+      from { opacity: 0; transform: scale(0.75); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .cell.hint::after {
+      content: '';
+      position: absolute;
+      inset: 2%;
+      border: 2px solid #2e9e54;
+      border-radius: 5px;
+      background: rgba(76,175,80,0.28);
+      z-index: 2;
+      pointer-events: none;
+      animation: hint-fade 0.4s ease;
+    }
+
+    /* Selection states */
+    .cell.sel { z-index: 2; outline-offset: -2px; }
+    .cell.sel.s-low   { outline: 2px solid #ffc107; background: rgba(255,193,7,0.22) !important; }
+    .cell.sel.s-over  { outline: 2px solid #f44336; background: rgba(244,67,54,0.22) !important; }
+    .cell.sel.s-bbox  { outline: 2px solid #ff9800; background: rgba(255,152,0,0.22) !important; }
+    .cell.sel.s-valid { outline: 2px solid #4caf50; background: rgba(76,175,80,0.30) !important; }
+
+    /* ── Controls ────────────────────────────────── */
+    .controls-area {
+      width: 100%;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #16213e;
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+
+    button {
+      padding: 9px 20px;
+      border: 1px solid #a9d8f0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-family: 'Pretendard', inherit;
+      font-weight: 600;
+      background: #d7eefb;
+      color: #2f7fc4;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    button:hover:not(:disabled) { background: #bce4f7; color: #1a5276; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.active-toggle { background: #2f7fc4; color: #fff; border-color: #2f7fc4; }
+
+    /* ── 보드 하단 중앙 컨트롤 ── */
+    .board-controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .board-controls button {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+    .board-controls button:hover:not(:disabled) { background: #1d4ed8; color: #fff; }
+    .board-controls button:disabled { background: #9aa7bd; border-color: #9aa7bd; color: #eee; }
+
+    /* ── AI 생각 중 오버레이 ── */
+    .ai-overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .ai-overlay.show { display: flex; }
+    .ai-overlay-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff;
+      border: 1px solid #a9d8f0;
+      border-radius: 10px;
+      padding: 12px 22px;
+      font-weight: 700;
+      color: #2f7fc4;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .ai-spinner {
+      width: 16px; height: 16px;
+      border: 3px solid #d7eefb;
+      border-top-color: #2f7fc4;
+      border-radius: 50%;
+      animation: ai-spin 0.7s linear infinite;
+    }
+    @keyframes ai-spin { to { transform: rotate(360deg); } }
+
+    /* ── 좌측 규칙 패널 (토글) ── */
+    .rules-panel {
+      position: fixed;
+      left: 24px;
+      top: 110px;
+      width: 250px;
+      z-index: 40;
+      font-family: 'Pretendard', sans-serif;
+    }
+    .rules-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f7eed8;
+      border: 1px solid #e6d3a3;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #9a6f1a;
+      cursor: pointer;
+    }
+    .rules-toggle:hover { background: #f2e6c8; }
+    .rules-arrow { transition: transform 0.3s ease; font-size: 0.8rem; }
+    .rules-arrow.open { transform: rotate(180deg); }
+    .rules-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease;
+      background: #fffdf7;
+      border-radius: 0 0 10px 10px;
+    }
+    .rules-body.open {
+      max-height: 640px;
+      border: 1px solid #e6d3a3;
+      border-top: none;
+    }
+    .rules-inner { padding: 14px 16px 16px; }
+    .rules-lead { font-weight: 700; color: #9a6f1a; font-size: 0.9rem; margin-bottom: 10px; }
+    .rules-list { padding-left: 18px; display: flex; flex-direction: column; gap: 7px; margin: 0; }
+    .rules-list li { font-size: 0.82rem; color: #555; line-height: 1.5; }
+    .rules-list li b { color: #333; }
+    .rules-tip { margin-top: 12px; font-size: 0.8rem; color: #888; line-height: 1.5; }
+
+
+    /* ── Result banner ───────────────────────────── */
+    .result-banner {
+      display: none;
+      background: none;
+      border: none;
+      padding: 14px 0;
+      text-align: center;
+      margin-top: 8px;
+      width: 100%;
+    }
+    .result-banner.show { display: block; }
+    .result-title {
+      font-family: 'Maplestory', sans-serif;
+      font-size: 2.6rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 18px;
+    }
+    .result-scores {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .result-scores span {
+      border: 2px solid currentColor;
+      border-radius: 10px;
+      padding: 8px 18px;
+    }
+
+    /* ── Log panel ───────────────────────────────── */
+    .log-col {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .log-header {
+      background: #16213e;
+      border-radius: 10px 10px 0 0;
+      padding: 8px 14px;
+      font-family: 'Maplestory', sans-serif;
+      font-size: 0.88rem;
+      color: #87ceeb;
+    }
+    .log-box {
+      background: #1e1e2e;
+      border-radius: 0 0 10px 10px;
+      overflow-y: auto;
+      max-height: calc(100vh - 110px);
+      font-family: 'IBMPlexMono', 'Consolas', monospace;
+      font-size: 0.78rem;
+    }
+    .log-entry {
+      display: flex;
+      align-items: baseline;
+    }
+    .log-entry:hover { background: #252535; }
+    .log-no {
+      flex: 0 0 3.6em;
+      text-align: right;
+      padding: 3px 8px;
+      color: #555;
+    }
+    .log-sep { color: #444; padding: 3px 0; }
+    .log-text {
+      flex: 1;
+      padding: 3px 10px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #dedfe0;
+    }
+
+    @media (max-width: 1000px) {
+      .main { flex-direction: column; }
+      .log-box { max-height: 300px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>ASAP : 사과게임 플레이해보기</h1>
+</header>
+
+<!-- 새 게임 (우측 상단 고정) -->
+<button id="btnNew" class="btn-new-fixed">새 게임</button>
+
+<div class="main">
+
+  <!-- 좌측: 게임 규칙 (토글) -->
+  <aside class="rules-panel" id="rulesPanel">
+    <button class="rules-toggle" id="rulesToggle">
+      <span>게임 규칙</span>
+      <span class="rules-arrow" id="rulesArrow">▼</span>
+    </button>
+    <div class="rules-body" id="rulesBody">
+      <div class="rules-inner">
+        <p class="rules-lead">10×17 과수원에서 사과를 더 많이 차지하면 승리!</p>
+        <ul class="rules-list">
+          <li>각 칸에는 <b>1~9개</b>의 사과가 있습니다.</li>
+          <li>드래그로 <b>직사각형 구역</b>을 선택합니다.</li>
+          <li>구역 안 사과의 합이 정확히 <b>10</b>이면 그 구역을 점령합니다.</li>
+          <li>직사각형의 <b>네 변</b>에는 각각 사과가 남은 칸이 맞닿아 있어야 합니다.</li>
+          <li>구역 안에 <b>상대가 점령한 칸</b>이 있으면 빼앗아 올 수 있습니다.</li>
+          <li>둘 곳이 없거나 원치 않으면 <b>스킵</b>으로 턴을 넘깁니다.</li>
+          
+          <li>종료 시 <b>더 많은 칸</b>을 점령한 쪽이 승리합니다.</li>
+        </ul>
+        <p class="rules-tip">힌트 켜기를 누르면 만들 수 있는 구역이 표시됩니다. (최대 3회)</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Game area -->
+  <div class="game-col">
+
+    <!-- Player cards flanking the board -->
+    <div class="game-row">
+
+      <div class="player-wrap">
+        <div class="player-card" id="card-first" data-player="first">
+          <div class="turn-badge">내 차례</div>
+          <img class="player-avatar" src="/resources/softcon/치토_기본.png" alt="플레이어">
+          <div class="player-name">플레이어</div>
+        </div>
+        <div class="player-score" id="score-first" data-player="first">0</div>
+      </div>
+
+      <div class="board-wrap" id="boardWrap">
+        <div class="board" id="board"></div>
+        <div class="ai-overlay" id="aiOverlay">
+          <div class="ai-overlay-box">
+            <span class="ai-spinner"></span>
+            <span>AI가 생각하는 중...</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="player-wrap">
+        <div class="player-card" id="card-second" data-player="second">
+          <div class="turn-badge">내 차례</div>
+          <img class="player-avatar" src="/resources/softcon/불_기본.png" alt="AI">
+          <div class="player-name">AI</div>
+        </div>
+        <div class="player-score" id="score-second" data-player="second">0</div>
+      </div>
+
+    </div>
+
+    <!-- 보드 하단 중앙 컨트롤 -->
+    <div class="board-controls">
+      <button id="btnHint">힌트 켜기</button>
+      <button id="btnSkip">스킵</button>
+    </div>
+
+    <!-- Result banner -->
+    <div class="result-banner" id="resultBanner">
+      <div class="result-title" id="resultTitle"></div>
+      <div class="result-scores" id="resultScores"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const ROWS = 10, COLS = 17;
+const CELL_IMG = {
+  number: '/resources/softcon/사과.svg',
+  first:  '/resources/softcon/player_tile.png',
+  second: '/resources/softcon/AI_tile.png',
+};
+const LOG_COLOR = {
+  INIT: '#ffb74d', FIRST: '#64b5f6', SECOND: '#ba68c8',
+  WIN: '#81c784', LOSE: '#81c784',
+};
+
+let board = null;
+let currentPlayer = 'first';
+let actionIndex = 0;
+let consecutiveSkips = 0;
+let finished = false;
+let dragStart = null, dragEnd = null, isDragging = false;
+let hintSet = null;
+let hintsLeft = 3;        // 힌트 사용 가능 횟수
+let lastMove = null;      // 방금 점령한 영역 (flip 애니메이션용)
+let aiThinking = false;      // AI 계산 중 여부
+let humanPassed = false;     // 사람이 직전 턴에 패스했는지
+
+// ── AI 로직 (ai.js 이식) ──────────────────────────────────────────
+// AI 보드 표현: 숫자(>0) / AI 점령(0) / 상대 점령(-1)
+const AILogic = (function () {
+  function isValidAI(board, r1, c1, r2, c2) {
+    let sums = 0, r1fit = false, c1fit = false, r2fit = false, c2fit = false;
+    for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) {
+      if (board[r][c] > 0) {
+        sums += board[r][c];
+        if (r === r1) r1fit = true;
+        if (r === r2) r2fit = true;
+        if (c === c1) c1fit = true;
+        if (c === c2) c2fit = true;
+      }
+    }
+    return sums === 10 && r1fit && r2fit && c1fit && c2fit;
+  }
+  function sumNumber(board, r1, c1, r2, c2) {
+    let sums = 0;
+    for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++)
+      if (board[r][c] > 0) sums += board[r][c];
+    return sums;
+  }
+  function getAllSelectableMoves(board) {
+    let result = [], moved = false;
+    for (let r1 = 0; r1 < board.length; r1++)
+      for (let c1 = 0; c1 < board[0].length; c1++)
+        for (let r2 = r1; r2 < board.length; r2++) {
+          moved = false;
+          for (let c2 = c1; c2 < board[0].length; c2++) {
+            let num = sumNumber(board, r1, c1, r2, c2);
+            if (num > 10) break;
+            else if (num < 10) moved = true;
+            else if (num === 10) {
+              if (isValidAI(board, r1, c1, r2, c2)) result.push([r1, c1, r2, c2]);
+              else break;
+            }
+          }
+          if (moved === false) break;
+        }
+    return result;
+  }
+  function getAfterMoves(board, move, newOnly) {
+    let [r1, c1, r2, c2] = move;
+    if (r1 === -1) return getAllSelectableMoves(board);
+    let beforeMoves = new Set(getAllSelectableMoves(board).map(m => m.join(',')));
+    let tmp = board.map(row => [...row]);
+    for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) tmp[r][c] = 0;
+    let after = getAllSelectableMoves(tmp);
+    let newMoves = [], newSet = new Set();
+    for (let m of after) {
+      let s = m.join(',');
+      if (!beforeMoves.has(s)) { newMoves.push(m); newSet.add(s); }
+    }
+    if (newOnly) return newMoves;
+    let affected = [...newMoves];
+    for (let m of after) {
+      let s = m.join(','), [ar1, ac1, ar2, ac2] = m;
+      if (!newSet.has(s) && !(ar2 < r1 - 1 || ar1 > r2 + 1 || ac2 < c1 - 1 || ac1 > c2 + 1))
+        affected.push(m);
+    }
+    return affected;
+  }
+  function getGameScore(board) {
+    let score = 0;
+    for (let r = 0; r < board.length; r++) for (let c = 0; c < board[0].length; c++) {
+      if (board[r][c] === 0) score += 1;
+      else if (board[r][c] < 0) score -= 1;
+    }
+    return score;
+  }
+  function update_move(board, action, isMyMove) {
+    let [r1, c1, r2, c2] = action;
+    if (r1 === -1) return;
+    for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++)
+      board[r][c] = isMyMove ? 0 : -1;
+  }
+  function flip_board(board) {
+    for (let r = 0; r < board.length; r++) for (let c = 0; c < board[0].length; c++) {
+      if (board[r][c] === 0) board[r][c] = -1;
+      else if (board[r][c] === -1) board[r][c] = 0;
+    }
+  }
+  function all_move_simultaion(board, move, newOnly, moves, allScenario) {
+    let newMoves = [...moves, move];
+    let tmp = board.map(row => [...row]);
+    update_move(tmp, move, true);
+    flip_board(tmp);
+    let next = getAfterMoves(board, move, newOnly);
+    if (next.length === 0) { allScenario.push(newMoves); return; }
+    for (let nm of next) all_move_simultaion(tmp, nm, newOnly, newMoves, allScenario);
+  }
+  function worst_case_scenario_score(board, move, newOnly) {
+    let all = [];
+    all_move_simultaion(board, move, newOnly, [], all);
+    let worst = 999;
+    for (let scenario of all) {
+      let tmp = board.map(row => [...row]), myturn = true;
+      for (let m of scenario) { update_move(tmp, m, myturn); myturn = !myturn; }
+      if (worst > getGameScore(tmp)) worst = getGameScore(tmp);
+    }
+    return worst;
+  }
+  function get_dead_moves(board) {
+    let result = [];
+    for (let move of getAllSelectableMoves(board))
+      if (getAfterMoves(board, move, true).length === 0) result.push(move);
+    return result;
+  }
+  class Game {
+    constructor(board, first) { this.board = board; this.first = first; this.passed = false; }
+    calculateMove() {
+      // 보드에 유효한 수가 남아있으면 이기고 있어도 패스하지 않음
+      if (getGameScore(this.board) > 0 && this.passed && getAllSelectableMoves(this.board).length === 0)
+        return [-1, -1, -1, -1];
+      let bestMove = [-1, -1, -1, -1], bestScore = 0, maxWorst = -999;
+      let allMoves = getAllSelectableMoves(this.board);
+      let deadMoves = get_dead_moves(this.board);
+      if (deadMoves.length > 0) {
+        for (let move of deadMoves) {
+          let [r1, c1, r2, c2] = move, dscore = 0;
+          for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) {
+            if (this.board[r][c] >= 0) dscore += 1;
+            else if (this.board[r][c] === -1) dscore += 2;
+          }
+          if (bestScore < dscore) { bestScore = dscore; bestMove = move; }
+        }
+      } else {
+        for (let move of allMoves) {
+          let worst = worst_case_scenario_score(this.board, move, allMoves.length > 4);
+          if (maxWorst < worst) {
+            maxWorst = worst;
+            if (maxWorst < 0 && getGameScore(this.board) > 0) continue;
+            let [r1, c1, r2, c2] = move, size = (r2 - r1 + 1) * (c2 - c1 + 1);
+            if (bestScore < size) { bestScore = size; bestMove = move; }
+          }
+        }
+      }
+      return bestMove;
+    }
+  }
+  return { Game };
+})();
+
+// HTML 보드(-1 사람/-2 AI/숫자) → AI 보드(-1 상대/0 AI/숫자)
+function toAiBoard(b) {
+  return b.map(row => row.map(v => v === -2 ? 0 : v === -1 ? -1 : v));
+}
+
+// ── Core logic ───────────────────────────────────────────
+function randomBoard() {
+  return Array.from({length: ROWS}, () =>
+    Array.from({length: COLS}, () => (Math.random() * 9 | 0) + 1));
+}
+
+function buildPS(b) {
+  const ps = Array.from({length: ROWS+1}, () => new Int32Array(COLS+1));
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      ps[r+1][c+1] = Math.max(0, b[r][c]) + ps[r][c+1] + ps[r+1][c] - ps[r][c];
+  return ps;
+}
+function rectQ(ps, r1, c1, r2, c2) {
+  return ps[r2+1][c2+1] - ps[r1][c2+1] - ps[r2+1][c1] + ps[r1][c1];
+}
+
+function checkSelection(r1, c1, r2, c2) {
+  let sum = 0, minR = ROWS, maxR = -1, minC = COLS, maxC = -1;
+  for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) {
+    const v = board[r][c];
+    if (v > 0) {
+      sum += v;
+      if (r < minR) minR = r; if (r > maxR) maxR = r;
+      if (c < minC) minC = c; if (c > maxC) maxC = c;
+    }
+  }
+  if (sum !== 10) return { sum, valid: false, reason: sum < 10 ? 'low' : 'over' };
+  if (minR !== r1 || maxR !== r2 || minC !== c1 || maxC !== c2)
+    return { sum, valid: false, reason: 'bbox' };
+  return { sum, valid: true, reason: 'valid' };
+}
+
+function anyRectSums10() {
+  const ps = buildPS(board);
+  for (let r1=0; r1<ROWS; r1++) for (let r2=r1; r2<ROWS; r2++)
+    for (let c1=0; c1<COLS; c1++) for (let c2=c1; c2<COLS; c2++)
+      if (rectQ(ps,r1,c1,r2,c2) === 10) return true;
+  return false;
+}
+
+// 유효한 10-합 영역 중 최대 maxN개를 골라 그 칸들을 표시
+function computeHintMoves(maxN = 3) {
+  const ps = buildPS(board);
+  const moves = [];
+  for (let r1=0; r1<ROWS; r1++) for (let r2=r1; r2<ROWS; r2++)
+    for (let c1=0; c1<COLS; c1++) for (let c2=c1; c2<COLS; c2++)
+      if (rectQ(ps,r1,c1,r2,c2) === 10 && checkSelection(r1,c1,r2,c2).valid)
+        moves.push([r1, c1, r2, c2]);
+  // 셔플 후 maxN개 선택 (없으면 있는 만큼)
+  for (let i = moves.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [moves[i], moves[j]] = [moves[j], moves[i]];
+  }
+  const picked = moves.slice(0, maxN);
+  const result = new Set();
+  for (const [r1, c1, r2, c2] of picked)
+    for (let r=r1; r<=r2; r++) for (let c=c1; c<=c2; c++)
+      if (board[r][c] > 0) result.add(r * COLS + c);
+  return result;
+}
+
+function updateHintBtn() {
+  const btn = document.getElementById('btnHint');
+  btn.textContent = `힌트 (${hintsLeft})`;
+  btn.disabled = hintsLeft <= 0 || finished;
+}
+
+function getScores() {
+  let first = 0, second = 0;
+  for (const row of board) for (const v of row)
+    if (v === -1) first++; else if (v === -2) second++;
+  return { first, second };
+}
+
+// ── Actions ──────────────────────────────────────────────
+function doMove(r1, c1, r2, c2) {
+  const tag = actionIndex % 2 === 0 ? 'FIRST' : 'SECOND';
+  const val = currentPlayer === 'first' ? -1 : -2;
+  for (let r=r1; r<=r2; r++) for (let c=c1; c<=c2; c++) board[r][c] = val;
+  lastMove = { r1, c1, r2, c2 };   // flip 애니메이션 대상
+  pushLog(`${tag} ${r1} ${c1} ${r2} ${c2} 0`);
+  actionIndex++;
+  consecutiveSkips = 0;
+  hintSet = null;
+  if (!anyRectSums10()) { endGame(); return; }
+  currentPlayer = currentPlayer === 'first' ? 'second' : 'first';
+}
+
+function doSkip() {
+  if (finished) return;
+  const tag = actionIndex % 2 === 0 ? 'FIRST' : 'SECOND';
+  pushLog(`${tag} -1 -1 -1 -1 0`);
+  actionIndex++;
+  consecutiveSkips++;
+  hintSet = null;
+  if (consecutiveSkips >= 2) { endGame(); return; }
+  currentPlayer = currentPlayer === 'first' ? 'second' : 'first';
+}
+
+// ── AI 턴 ─────────────────────────────────────────────
+function aiTurn() {
+  if (finished) return;
+  aiThinking = true;
+  const overlay = document.getElementById('aiOverlay');
+  if (overlay) overlay.classList.add('show');
+  renderBoard();
+
+  const start = performance.now();
+  // 30ms 뒤 계산 시작 — 오버레이가 먼저 그려지도록 양보
+  setTimeout(() => {
+    let move;
+    try {
+      const g = new AILogic.Game(toAiBoard(board), false);
+      g.passed = humanPassed;
+      move = g.calculateMove();
+    } catch (e) {
+      console.error('[AI] 계산 오류:', e);
+      move = [-1, -1, -1, -1];
+    }
+    // 계산이 빨라도 최소 0.7초는 "생각하는 중" 유지
+    const wait = Math.max(0, 700 - (performance.now() - start));
+    setTimeout(() => {
+      aiThinking = false;
+      if (overlay) overlay.classList.remove('show');
+      if (move[0] === -1) {
+        doSkip();           // AI 패스 (currentPlayer === 'second')
+      } else {
+        doMove(move[0], move[1], move[2], move[3]);  // AI 점령 → -2
+      }
+      renderBoard();
+    }, wait);
+  }, 30);
+}
+
+function endGame() {
+  finished = true;
+  updateHintBtn();
+  const sc = getScores();
+  let result;
+  if (sc.first > sc.second)      result = 'WIN LOSE';
+  else if (sc.second > sc.first) result = 'LOSE WIN';
+  else                            result = 'WIN WIN';
+  pushLog(result);
+  showResult(sc);
+}
+
+function showResult(sc) {
+  const banner = document.getElementById('resultBanner');
+  const title  = document.getElementById('resultTitle');
+  const scores = document.getElementById('resultScores');
+  let winText, winColor;
+  if (sc.first > sc.second)      { winText = '플레이어 승리!'; winColor = '#9a6f1a'; }
+  else if (sc.second > sc.first) { winText = 'AI 승리!';        winColor = '#2f7fc4'; }
+  else                            { winText = '무승부!';         winColor = '#d9a441'; }
+  title.textContent = winText;
+  title.style.color = winColor;
+  scores.innerHTML =
+    `<span style="color:#9a6f1a">플레이어 ${sc.first}점</span>` +
+    `<span style="color:#2f7fc4">AI ${sc.second}점</span>`;
+  banner.classList.add('show');
+}
+
+// ── Board rendering ──────────────────────────────────────
+function buildBoardDOM() {
+  const el = document.getElementById('board');
+  el.innerHTML = '';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.id = `c-${r}-${c}`;
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      const icon = document.createElement('img');
+      icon.className = 'cell-icon';
+      cell.appendChild(icon);
+      const num = document.createElement('span');
+      num.className = 'cell-num';
+      cell.appendChild(num);
+      cell.addEventListener('mousedown',  onCellDown);
+      cell.addEventListener('mouseenter', onCellEnter);
+      el.appendChild(cell);
+    }
+  }
+  document.addEventListener('mouseup', onDocMouseUp);
+}
+
+function getSel() {
+  if (!dragStart || !dragEnd) return null;
+  return {
+    r1: Math.min(dragStart.r, dragEnd.r), c1: Math.min(dragStart.c, dragEnd.c),
+    r2: Math.max(dragStart.r, dragEnd.r), c2: Math.max(dragStart.c, dragEnd.c),
+  };
+}
+
+function renderBoard() {
+  const sel = getSel();
+  const check = sel ? checkSelection(sel.r1, sel.c1, sel.r2, sel.c2) : null;
+  const sc = getScores();
+
+  document.getElementById('score-first').textContent  = sc.first;
+  document.getElementById('score-second').textContent = sc.second;
+  document.getElementById('card-first').classList.toggle('active', currentPlayer === 'first' && !finished);
+  document.getElementById('card-second').classList.toggle('active', currentPlayer === 'second' && !finished);
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const v = board[r][c];
+      const el = document.getElementById(`c-${r}-${c}`);
+      const icon = el.querySelector('.cell-icon');
+      const num  = el.querySelector('.cell-num');
+
+      let cls = 'cell';
+      icon.classList.remove('flip-in');
+      icon.style.animationDelay = '';
+
+      if (v === -1) {
+        cls += ' owned-first';
+        icon.src = CELL_IMG.first;
+        num.textContent = '';
+      } else if (v === -2) {
+        cls += ' owned-second';
+        icon.src = CELL_IMG.second;
+        num.textContent = '';
+      } else {
+        icon.src = CELL_IMG.number;
+        num.textContent = v;
+        // 빈 칸만 힌트 표시
+        if (hintSet && hintSet.has(r * COLS + c)) cls += ' hint';
+      }
+
+      // 방금 점령한 영역 → 순차 flip 애니메이션
+      if (lastMove && (v === -1 || v === -2) &&
+          r >= lastMove.r1 && r <= lastMove.r2 && c >= lastMove.c1 && c <= lastMove.c2) {
+        icon.classList.add('flip-in');
+        const dist = (r - lastMove.r1) + (c - lastMove.c1);
+        icon.style.animationDelay = (dist * 45) + 'ms';
+      }
+
+      if (sel && r >= sel.r1 && r <= sel.r2 && c >= sel.c1 && c <= sel.c2)
+        cls += ` sel s-${check.reason}`;
+
+      el.className = cls;
+    }
+  }
+  lastMove = null;   // flip은 1회성
+  updateStatus(sel, check);
+}
+
+function updateStatus() { /* 상태바 제거됨 */ }
+
+// ── Mouse events ─────────────────────────────────────────
+function onCellDown(e) {
+  if (finished || aiThinking || currentPlayer !== 'first') return;
+  e.preventDefault();
+  dragStart = { r: +e.currentTarget.dataset.r, c: +e.currentTarget.dataset.c };
+  dragEnd   = { ...dragStart };
+  isDragging = true;
+  renderBoard();
+}
+function onCellEnter(e) {
+  if (!isDragging) return;
+  dragEnd = { r: +e.currentTarget.dataset.r, c: +e.currentTarget.dataset.c };
+  renderBoard();
+}
+function onDocMouseUp() {
+  if (!isDragging) return;
+  isDragging = false;
+  const sel = getSel();
+  let moved = false;
+  if (sel) {
+    const { valid } = checkSelection(sel.r1, sel.c1, sel.r2, sel.c2);
+    if (valid) {
+      humanPassed = false;
+      doMove(sel.r1, sel.c1, sel.r2, sel.c2);   // 사람 점령 → -1
+      moved = true;
+    }
+  }
+  dragStart = dragEnd = null;
+  renderBoard();
+  // 플레이어 타일 flip 애니메이션이 모두 끝난 뒤 AI 턴 시작
+  if (moved && !finished) {
+    const flipTime = ((sel.r2 - sel.r1) + (sel.c2 - sel.c1)) * 45 + 500;
+    setTimeout(() => { if (!finished) aiTurn(); }, flipTime);
+  }
+}
+
+// ── Log panel ────────────────────────────────────────────
+function pushLog(line) {
+  const box   = document.getElementById('logBox');
+  if (!box) return;   // 로그 패널 제거됨 — no-op
+  const idx   = box.children.length + 1;
+  const parts = line.trim().split(/\s+/);
+  const cmd   = parts[0];
+  const isMove = cmd === 'FIRST' || cmd === 'SECOND';
+  const color = LOG_COLOR[cmd] || '#dedfe0';
+
+  const row = document.createElement('div');
+  row.className = 'log-entry';
+
+  const no = document.createElement('div');
+  no.className = 'log-no';
+  no.textContent = idx;
+
+  const sep = document.createElement('div');
+  sep.className = 'log-sep';
+  sep.textContent = '│';
+
+  const text = document.createElement('div');
+  text.className = 'log-text';
+
+  const s0 = document.createElement('span');
+  s0.style.color = color;
+  s0.textContent = cmd;
+  text.appendChild(s0);
+
+  parts.slice(1).forEach((p, i) => {
+    const s = document.createElement('span');
+    if (isMove && i === parts.length - 2) s.style.color = '#555';
+    s.textContent = ' ' + p;
+    text.appendChild(s);
+  });
+
+  row.appendChild(no);
+  row.appendChild(sep);
+  row.appendChild(text);
+  box.appendChild(row);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ── Controls ─────────────────────────────────────────────
+document.getElementById('btnHint').addEventListener('click', () => {
+  if (finished || aiThinking || currentPlayer !== 'first' || hintsLeft <= 0) return;
+  hintSet = computeHintMoves(3);   // 가능한 영역 중 최대 3개
+  hintsLeft--;
+  updateHintBtn();
+  renderBoard();
+});
+document.getElementById('btnSkip').addEventListener('click', () => {
+  if (finished || aiThinking || currentPlayer !== 'first') return;
+  dragStart = dragEnd = null;
+  humanPassed = true;
+  doSkip();
+  renderBoard();
+  if (!finished) aiTurn();
+});
+document.getElementById('btnNew').addEventListener('click', initGame);
+
+// ── 규칙 패널 토글 ────────────────────────────────────────
+document.getElementById('rulesToggle').addEventListener('click', () => {
+  document.getElementById('rulesBody').classList.toggle('open');
+  document.getElementById('rulesArrow').classList.toggle('open');
+});
+
+// ── Touch support ────────────────────────────────────────
+(function setupTouch() {
+  function cellAt(x, y) {
+    const el = document.elementFromPoint(x, y);
+    return el && el.dataset.r !== undefined ? el : (el && el.closest('.cell'));
+  }
+  document.getElementById('board').addEventListener('touchstart', e => {
+    if (finished) return;
+    e.preventDefault();
+    const t = e.touches[0], cell = cellAt(t.clientX, t.clientY);
+    if (!cell) return;
+    dragStart = { r: +cell.dataset.r, c: +cell.dataset.c };
+    dragEnd = { ...dragStart };
+    isDragging = true;
+    renderBoard();
+  }, { passive: false });
+  document.getElementById('board').addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const t = e.touches[0], cell = cellAt(t.clientX, t.clientY);
+    if (!cell) return;
+    dragEnd = { r: +cell.dataset.r, c: +cell.dataset.c };
+    renderBoard();
+  }, { passive: false });
+  document.getElementById('board').addEventListener('touchend', e => {
+    e.preventDefault();
+    onDocMouseUp();
+  }, { passive: false });
+})();
+
+// ── Init ─────────────────────────────────────────────────
+function initGame() {
+  board = randomBoard();
+  currentPlayer = 'first';
+  actionIndex = 0;
+  consecutiveSkips = 0;
+  finished = false;
+  dragStart = dragEnd = null;
+  isDragging = false;
+  hintSet = null;
+  hintsLeft = 3;
+  lastMove = null;
+  aiThinking = false;
+  humanPassed = false;
+  document.getElementById('aiOverlay').classList.remove('show');
+  updateHintBtn();
+  document.getElementById('resultBanner').classList.remove('show');
+  const initStr = ['INIT', ...board.map(row => row.join(''))].join(' ');
+  pushLog(initStr);
+  buildBoardDOM();
+  renderBoard();
+}
+
+initGame();
+</script>
+</body>
+</html>
