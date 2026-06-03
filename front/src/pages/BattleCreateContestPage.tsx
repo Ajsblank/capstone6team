@@ -14,6 +14,7 @@ import ContestSidebar from "../components/ContestSidebar";
 import RichTextEditor from "../components/RichTextEditor";
 import AiAssistPanel from "../components/AiAssistPanel";
 import ContestPreviewModal from "../components/ContestPreviewModal";
+import ContestTutorial, { TutSnapshot, TutFileKind } from "../components/ContestTutorial";
 import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
@@ -63,7 +64,7 @@ const FileInput: React.FC<FileInputProps> = ({ label, required, accept, value, o
   );
 };
 
-const BattleCreateContestPage: React.FC = () => {
+const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = false }) => {
   const { user, logout, navigate, addCreatedContest } = useApp();
 
   const [title, setTitle]                   = useState("");
@@ -122,6 +123,43 @@ const BattleCreateContestPage: React.FC = () => {
     setTimeout(() => setRestoreToast(false), 4000);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── 튜토리얼 모드 ──────────────────────────────────────────────────────────
+  const [tutPreviewOpened, setTutPreviewOpened] = useState(false);
+  const [tutCreated, setTutCreated]             = useState(false);
+
+  const applyTutorialFile = async (kind: TutFileKind) => {
+    const map: Record<TutFileKind, string> = {
+      desc:    "/tutorial/description.md",
+      sample:  "/tutorial/sample_ai.cpp",
+      judge:   "/tutorial/judge.cpp",
+      example: "/tutorial/example_ai.cpp",
+      logviz:  "/tutorial/log_visualization.html",
+      solo:    "/tutorial/solo_play.html",
+    };
+    try {
+      const res = await fetch(map[kind]);
+      const text = await res.text();
+      if (kind === "desc") {
+        const html = await Promise.resolve(marked.parse(text));
+        setDescription(html);
+        return;
+      }
+      const blob = new Blob([text], { type: "text/plain" });
+      const nameMap: Record<TutFileKind, string> = {
+        desc: "", sample: "sample_ai.cpp", judge: "judge.cpp",
+        example: "example_ai.cpp", logviz: "log_visualization.html", solo: "solo_play.html",
+      };
+      const file = new File([blob], nameMap[kind], { type: blob.type });
+      if (kind === "sample")  setSampleCodes([file]);
+      if (kind === "judge")   setJudgeCode(file);
+      if (kind === "example") setExampleAiCodes([{ file, description: "사과게임 기본 예시 AI" }]);
+      if (kind === "logviz")  setVisualizationHtml(file);
+      if (kind === "solo")    setSoloPlayHtml(file);
+    } catch (e) {
+      console.error("[Tutorial] 파일 로드 실패:", kind, e);
+    }
+  };
 
   // 빠른 생성 (사과게임) — 개발 편의
   const [quickLoading, setQuickLoading] = useState(false);
@@ -272,8 +310,27 @@ const BattleCreateContestPage: React.FC = () => {
 
   const allDone = checklist.filter(c => !c.optional).every(c => c.done);
 
+  // 튜토리얼 상태 스냅샷
+  const tutSnap: TutSnapshot = {
+    title,
+    certification,
+    descFilled: !isDescEmpty(description),
+    timeLimitSec,
+    memoryLimitMb,
+    sampleUploaded: sampleCodes.length > 0,
+    judgeUploaded: !!judgeCode,
+    exampleUploaded: exampleAiCodes.length > 0,
+    vizUploaded: !!visualizationHtml,
+    soloUploaded: !!soloPlayHtml,
+    startDate,
+    endDate,
+    maxParticipants,
+    previewOpened: tutPreviewOpened,
+    created: tutCreated,
+  };
+
   return (
-    <div className="cc-page">
+    <div className={`cc-page${tutorial ? " cc-page--tutorial" : ""}`}>
       {toastMessages.length > 0 && <Toast messages={toastMessages} onClose={() => setToastMessages([])} />}
       {restoreToast && (
         <div className="cc-restore-toast">
@@ -407,15 +464,17 @@ const BattleCreateContestPage: React.FC = () => {
                 { label: "대회 개최" },
               ]} />
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: 760 }}>
-                <h2 className="cc-page-title" style={{ margin: 0 }}>대회 개최</h2>
-                <button
-                  type="button"
-                  className="cc-quick-fill-btn"
-                  onClick={handleQuickFill}
-                  disabled={quickLoading}
-                >
-                  {quickLoading ? "⏳ 로딩 중..." : "⚡ 빠른 생성 (사과게임)"}
-                </button>
+                <h2 className="cc-page-title" style={{ margin: 0 }}>대회 개최{tutorial && " (튜토리얼)"}</h2>
+                {!tutorial && (
+                  <button
+                    type="button"
+                    className="cc-quick-fill-btn"
+                    onClick={handleQuickFill}
+                    disabled={quickLoading}
+                  >
+                    {quickLoading ? "⏳ 로딩 중..." : "⚡ 빠른 생성 (사과게임)"}
+                  </button>
+                )}
               </div>
 
               <div className="cc-form">
@@ -423,11 +482,11 @@ const BattleCreateContestPage: React.FC = () => {
                 <section className="cc-section">
                   <h3 className="cc-section-title">기본 정보</h3>
                   <div className="cc-title-row">
-                    <div className="cc-field cc-field--grow">
+                    <div className="cc-field cc-field--grow" data-tut="title">
                       <label className="cc-label">대회 이름 <Req show={!title.trim()} /></label>
                       <input className="cc-input" type="text" placeholder="대회 이름을 입력하세요" value={title} onChange={(e) => setTitle(e.target.value)} />
                     </div>
-                    <div className="cc-field cc-field--cert-inline">
+                    <div className="cc-field cc-field--cert-inline" data-tut="cert">
                       <label className="cc-label">인증 여부</label>
                       <div className="cc-cert-group">
                         <button type="button" className={`cc-cert-btn${!certification ? " cc-cert-btn--uncertified" : ""}`} onClick={() => setCertification(false)}>비인증</button>
@@ -438,7 +497,7 @@ const BattleCreateContestPage: React.FC = () => {
                 </section>
 
                 {/* 문제 설명 */}
-                <section className="cc-section">
+                <section className="cc-section" data-tut="desc">
                   <h3 className="cc-section-title">문제 설명</h3>
                   <div className="cc-field">
                     <div className="cc-label-row">
@@ -458,7 +517,7 @@ const BattleCreateContestPage: React.FC = () => {
                 </section>
 
                 {/* 제한 */}
-                <section className="cc-section">
+                <section className="cc-section" data-tut="limit">
                   <h3 className="cc-section-title">제한</h3>
                   <div className="cc-row">
                     <div className="cc-field">
@@ -497,7 +556,7 @@ const BattleCreateContestPage: React.FC = () => {
                 <section className="cc-section">
                   <h3 className="cc-section-title">파일 첨부</h3>
                   {/* 샘플 코드 (다중) */}
-                  <div className="cc-field">
+                  <div className="cc-field" data-tut="sample">
                     <label className="cc-label">샘플 코드 <Req show={sampleCodes.length === 0} /></label>
                     <p className="cc-field-hint">참가자에게 제공할 예시 코드입니다. 여러 파일을 추가할 수 있습니다.</p>
                     {sampleCodes.length > 0 && (
@@ -515,10 +574,12 @@ const BattleCreateContestPage: React.FC = () => {
                     <input key={sampleCodeInputKey} id="cc-sample-code-input" type="file" accept=".py,.cpp,.java,.js,.ts,.c,.cs,.go,.rs,.kt,.lua" multiple style={{ display: "none" }} onChange={(e) => handleSampleCodeAdd(e.target.files)} />
                   </div>
 
-                  <FileInput label="채점 코드" required accept=".py,.cpp,.java,.js,.ts" value={judgeCode} onChange={setJudgeCode} />
+                  <div data-tut="judge">
+                    <FileInput label="채점 코드" required accept=".py,.cpp,.java,.js,.ts" value={judgeCode} onChange={setJudgeCode} />
+                  </div>
 
                   {/* 예시 AI 코드 (다중 + 설명) */}
-                  <div className="cc-field">
+                  <div className="cc-field" data-tut="example">
                     <label className="cc-label">예시 AI 코드 <Req show={exampleAiCodes.length === 0} /></label>
                     <p className="cc-field-hint">참가자의 코드가 대결할 예시 AI 코드를 추가하세요.</p>
                     {exampleAiCodes.length > 0 && (
@@ -545,14 +606,16 @@ const BattleCreateContestPage: React.FC = () => {
                     <input key={aiCodeInputKey} id="cc-ai-code-input" type="file" accept=".py,.cpp,.java,.js,.ts,.c,.cs,.go,.rs,.kt,.lua" multiple style={{ display: "none" }} onChange={(e) => handleAICodeAdd(e.target.files)} />
                   </div>
 
-                  <FileInput label="시각화 HTML 파일" accept=".html" value={visualizationHtml} onChange={setVisualizationHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
-                  <FileInput label="혼자서 플레이 HTML 파일" accept=".html" value={soloPlayHtml} onChange={setSoloPlayHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
+                  <div data-tut="viz">
+                    <FileInput label="시각화 HTML 파일" accept=".html" value={visualizationHtml} onChange={setVisualizationHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
+                    <FileInput label="혼자서 플레이 HTML 파일" accept=".html" value={soloPlayHtml} onChange={setSoloPlayHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
+                  </div>
                 </section>
 
                 {/* 대회 설정 */}
                 <section className="cc-section">
                   <h3 className="cc-section-title">대회 설정</h3>
-                  <div className="cc-row">
+                  <div className="cc-row" data-tut="date">
                     <div className="cc-field">
                       <label className="cc-label">시작 일시 <Req show={!startDate} /></label>
                       <input className="cc-input cc-input--date" type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
@@ -562,7 +625,7 @@ const BattleCreateContestPage: React.FC = () => {
                       <input className="cc-input cc-input--date" type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                     </div>
                   </div>
-                  <div className="cc-field cc-field--narrow">
+                  <div className="cc-field cc-field--narrow" data-tut="max">
                     <label className="cc-label">최대 참가자 수 <span className="cc-required">*</span></label>
                     <input className="cc-input" type="number" min={1} max={10000} value={maxParticipants} onChange={(e) => setMaxParticipants(Number(e.target.value))} />
                   </div>
@@ -579,8 +642,17 @@ const BattleCreateContestPage: React.FC = () => {
 
                 {/* 버튼 영역 */}
                 <div className="cc-submit-area">
-                  <button type="button" className="cc-preview-btn" onClick={() => setShowPreview(true)}>미리보기</button>
-                  {certification ? (
+                  <span data-tut="preview" style={{ display: "inline-block" }}>
+                    <button type="button" className="cc-preview-btn"
+                      onClick={() => { setShowPreview(true); setTutPreviewOpened(true); }}>미리보기</button>
+                  </span>
+                  {tutorial ? (
+                    <span data-tut="create" style={{ display: "inline-block" }}>
+                      <button type="button" className="cc-submit-btn" onClick={() => setTutCreated(true)}>
+                        대회 생성
+                      </button>
+                    </span>
+                  ) : certification ? (
                     <button type="button" className="cc-next-btn" onClick={handleNextStep}>결제 확인 →</button>
                   ) : (
                     <button type="button" className="cc-submit-btn" onClick={handleSubmit}>
@@ -593,18 +665,20 @@ const BattleCreateContestPage: React.FC = () => {
             </div>
 
             {/* ── 체크리스트 + 비용 컬럼 ── */}
-            <aside className="cc-checklist-col">
-              {/* 비용 배너 */}
-              <div className="cc-cost-banner">
-                <span className="cc-cost-banner-label">결제 금액</span>
-                <span className="cc-cost-banner-amount">
-                  {(certification ? PAYMENT_AMOUNT.certified : PAYMENT_AMOUNT.uncertified).toLocaleString()}
-                  <span className="cc-cost-banner-unit">원</span>
-                </span>
-                <span className="cc-cost-banner-type">
-                  {certification ? "인증 대회" : "비인증 대회"}
-                </span>
-              </div>
+            <aside className="cc-checklist-col" data-tut="checklist">
+              {/* 비용 배너 — 튜토리얼에서는 숨김 */}
+              {!tutorial && (
+                <div className="cc-cost-banner">
+                  <span className="cc-cost-banner-label">결제 금액</span>
+                  <span className="cc-cost-banner-amount">
+                    {(certification ? PAYMENT_AMOUNT.certified : PAYMENT_AMOUNT.uncertified).toLocaleString()}
+                    <span className="cc-cost-banner-unit">원</span>
+                  </span>
+                  <span className="cc-cost-banner-type">
+                    {certification ? "인증 대회" : "비인증 대회"}
+                  </span>
+                </div>
+              )}
               <ContestSidebar
                 currentStep={1}
                 certification={certification}
@@ -616,6 +690,17 @@ const BattleCreateContestPage: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* ── 튜토리얼 오버레이 ── */}
+      {tutorial && (
+        <ContestTutorial
+          snap={tutSnap}
+          previewOpen={showPreview}
+          applyFile={applyTutorialFile}
+          setUncertified={() => setCertification(false)}
+          onFinish={() => navigate("battle")}
+        />
+      )}
     </div>
   );
 };

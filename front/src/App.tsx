@@ -232,6 +232,7 @@ const PageRouter: React.FC = () => {
     case "create-certified-contest":  return <BattleCreateCertifiedPage />;
     case "contest-settings":          return <ContestSettingsPage />;
     case "tournament":                return <SwissTournamentPage />;
+    case "tutorial-contest":          return <BattleCreateContestPage tutorial />;
     default:                 return <AlgoHomePage />;
   }
 };
