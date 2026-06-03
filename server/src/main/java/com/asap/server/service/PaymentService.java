@@ -27,7 +27,6 @@ import java.util.Map;
 public class PaymentService {
 
     private static final String TOSS_CONFIRM_URL = "https://api.tosspayments.com/v1/payments/confirm";
-    private static final long FIXED_AMOUNT = 100000L;
 
     private final PaymentRepository paymentRepository;
     private final CodeBattleContestRepository contestRepository;
@@ -51,10 +50,6 @@ public class PaymentService {
 
     // 트랜잭션 없음 — 토스 API 호출 중 DB 커넥션 점유 방지
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request, Long userId) {
-        if (!Long.valueOf(FIXED_AMOUNT).equals(request.getAmount())) {
-            throw new IllegalArgumentException("결제 금액이 올바르지 않습니다. 결제 금액: " + FIXED_AMOUNT + "원");
-        }
-
         if (paymentRepository.existsByOrderId(request.getOrderId())) {
             throw new IllegalArgumentException("이미 처리된 주문입니다.");
         }
@@ -95,7 +90,7 @@ public class PaymentService {
         });
     }
 
-    public PaymentConfirmResponse confirmPaymentForTest(String paymentKey, String orderId, Long userId) {
+    public PaymentConfirmResponse confirmPaymentForTest(String paymentKey, String orderId, Long amount, Long userId) {
         if (paymentRepository.existsByOrderId(orderId)) {
             throw new IllegalArgumentException("이미 처리된 주문입니다.");
         }
@@ -103,7 +98,7 @@ public class PaymentService {
             Users user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
             Payment payment = Payment.create(
-                    paymentKey, orderId, FIXED_AMOUNT,
+                    paymentKey, orderId, amount,
                     "DONE", "카드", LocalDateTime.now(), null, user);
             Payment saved = paymentRepository.save(payment);
             log.info("[테스트 결제 완료] paymentKey={}, orderId={}, userId={}", paymentKey, orderId, userId);
