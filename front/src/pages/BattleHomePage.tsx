@@ -10,7 +10,7 @@ type StatusFilter = "" | "RUNNING" | "PLANNED" | "END";
 const FETCH_SIZE = 100;
 const VALID_BATTLE_TABS: BattleTab[] = ["contest", "ranking", "help", "contact"];
 
-const HELP_ITEMS: { title: string; summary: string; body: React.ReactNode }[] = [
+const HELP_ITEMS: { title: string; summary: string; body: React.ReactNode; hasTutorial?: boolean }[] = [
   {
     title: "Tactical Code Battle란?",
     summary: "플랫폼 개요 및 핵심 개념",
@@ -72,25 +72,180 @@ const HELP_ITEMS: { title: string; summary: string; body: React.ReactNode }[] = 
   },
   {
     title: "대회 개최 방법",
-    summary: "필수 항목 및 개설 절차 안내",
+    summary: "Judge · Sample AI 작성부터 제출까지",
+    hasTutorial: true,
     body: (
       <>
-        <p className="bp-info-text">로그인 후 대회 목록 페이지 우측 상단의 <strong>대회 개최</strong> 버튼을 클릭합니다.</p>
-        <ol className="bp-info-list" style={{ marginTop: 10 }}>
-          <li><strong>대회 이름</strong>과 <strong>인증 여부</strong>를 설정합니다.</li>
-          <li><strong>문제 설명</strong>을 작성합니다. HTML · Markdown · Word 파일 불러오기를 지원합니다.</li>
-          <li>필수 파일을 첨부합니다.
-            <ul className="bp-info-list" style={{ marginTop: 6 }}>
-              <li><strong>샘플 코드</strong> — 참가자에게 제공할 시작 코드 (여러 파일 가능)</li>
-              <li><strong>채점 코드</strong> — 두 코드의 대결을 실행하고 승패를 판정하는 코드</li>
-              <li><strong>예시 AI 코드</strong> — 제출 코드와 대결할 기준 AI (여러 파일 가능)</li>
-              <li><strong>시각화 HTML</strong> — 로그 분석 뷰어 (인증 대회 필수)</li>
-              <li><strong>혼자서 하기 HTML</strong> — 단독 플레이 뷰어 (인증 대회 필수)</li>
-            </ul>
-          </li>
-          <li>시작 · 종료 일시와 최대 참가자 수를 설정합니다.</li>
-          <li>비인증이면 <strong>대회 생성</strong>으로 즉시 개설, 인증이면 <strong>다음 단계로</strong>를 클릭해 검수 신청을 진행합니다.</li>
+        <p className="bp-info-text">
+          처음 대회를 개최하는 분을 위한 가이드입니다. 대회 개최의 핵심은 <strong>게임 규칙을 담은 Judge 코드</strong>와
+          <strong> 참가자에게 제공할 Sample AI 코드</strong>를 작성하는 것입니다.
+        </p>
+
+        <table className="bp-tut-table">
+          <thead>
+            <tr><th>파일</th><th>필수</th><th>설명</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Judge 코드</td><td><strong>필수</strong></td><td>게임 규칙 판단</td></tr>
+            <tr><td>Sample AI 코드</td><td><strong>필수</strong></td><td>참가자에게 제공하는 예시 AI 스켈레톤</td></tr>
+            <tr><td>로그 시각화 HTML</td><td>선택</td><td>대결 로그를 브라우저에서 재생</td></tr>
+            <tr><td>혼자 플레이 HTML</td><td>선택</td><td>브라우저에서 직접 게임 체험</td></tr>
+          </tbody>
+        </table>
+
+        {/* 1 */}
+        <h4 className="bp-tut-h">1. 전체 구조 이해하기</h4>
+        <p className="bp-info-text">두 AI 봇이 대결할 때 채점 서버는 다음 순서로 동작합니다.</p>
+        <pre className="bp-tut-code">{`채점 서버
+  ├─ Judge 실행   ← 개최자가 제출한 judge 코드
+  │     ├─ Player1 실행  ← 참가자 AI
+  │     └─ Player2 실행  ← 참가자 AI (또는 Sample AI)
+  └─ Judge의 마지막 출력을 읽어 승자 판정`}</pre>
+        <ul className="bp-info-list">
+          <li><strong>Judge</strong> — 게임 규칙의 심판. 두 AI를 자식 프로세스로 실행하고 stdin/stdout으로 통신합니다.</li>
+          <li><strong>AI (Player)</strong> — Judge의 지시에 따라 stdin으로 명령을 받고 stdout으로 행동을 출력합니다.</li>
+          <li><strong>Sample AI</strong> — 참가자에게 제공하는 예시 코드. 참가자는 이를 기반으로 전략을 개선합니다.</li>
+        </ul>
+
+        {/* 2 */}
+        <h4 className="bp-tut-h">2. Judge 코드란?</h4>
+        <p className="bp-info-text">
+          Judge 코드는 <strong>게임 규칙 그 자체</strong>입니다. 보드 · 규칙 · 승패 조건을 모두 Judge 코드 안에 구현합니다.
+          Judge가 하는 일은 ① 두 AI 프로세스 실행 ② 시작 전 초기 정보 전송 ③ 매 턴 행동 요청·검증·상대 전달
+          ④ 종료 시 결과를 stdout 마지막 줄에 출력입니다.
+        </p>
+        <div className="bp-tut-callout">
+          <span className="bp-tut-callout-icon">💡</span>
+          <span><strong>핵심:</strong> Judge 실행 결과의 <strong>마지막 줄</strong>만 채점 서버가 읽습니다.</span>
+        </div>
+
+        {/* 3 */}
+        <h4 className="bp-tut-h">3. Sample AI 코드란?</h4>
+        <ul className="bp-info-list">
+          <li>완전히 동작하는 AI여야 합니다 (게임을 끝까지 진행 가능).</li>
+          <li>전략이 단순해도 괜찮습니다 (참가자가 개선하는 것이 목적).</li>
+          <li>Judge와 동일한 통신 프로토콜을 따라야 합니다.</li>
+        </ul>
+
+        {/* 4 */}
+        <h4 className="bp-tut-h">4. 통신 프로토콜</h4>
+        <p className="bp-info-text">
+          Judge와 AI는 <strong>표준 입출력(stdin/stdout)</strong>으로만 통신합니다. 메시지 형식 · 명령어 이름 · 순서는
+          <strong> 개최자가 자유롭게 설계</strong>합니다.
+        </p>
+        <div className="bp-tut-callout">
+          <span className="bp-tut-callout-icon">⚠️</span>
+          <span>디버그 메시지는 반드시 <strong>stderr</strong>에만 출력하세요. stdout에 쓰면 Judge가 오파싱합니다.</span>
+        </div>
+        <h5 className="bp-tut-sub">Judge 최종 출력 형식</h5>
+        <p className="bp-info-text">stdout 마지막 줄은 반드시 <code>{"<P1_결과> <P2_결과>"}</code> 형식이어야 합니다.</p>
+        <table className="bp-tut-table">
+          <thead><tr><th>값</th><th>의미</th></tr></thead>
+          <tbody>
+            <tr><td><code>WIN</code></td><td>이겼음</td></tr>
+            <tr><td><code>LOSE</code></td><td>졌음</td></tr>
+            <tr><td><code>TIME_LIMIT</code></td><td>시간 초과</td></tr>
+            <tr><td><code>MEMORY_LIMIT</code></td><td>메모리 초과</td></tr>
+            <tr><td><code>ERROR</code></td><td>잘못된 행동 또는 런타임 오류</td></tr>
+            <tr><td><code>NONE</code></td><td>무승부</td></tr>
+          </tbody>
+        </table>
+        <pre className="bp-tut-code">{`WIN LOSE        ← P1 승
+LOSE WIN        ← P2 승
+NONE NONE       ← 무승부
+WIN TIME_LIMIT  ← P2 시간초과로 P1 승`}</pre>
+        <p className="bp-info-text">
+          서버는 이 줄을 파싱해 P1=WIN이면 winner=1, P2=WIN이면 winner=2, 그 외는 winner=0으로 결정합니다.
+        </p>
+
+        {/* 5 */}
+        <h4 className="bp-tut-h">5. Judge 코드 작성법</h4>
+        <p className="bp-info-text">구현해야 할 핵심 흐름:</p>
+        <ol className="bp-info-list">
+          <li>게임 보드/상태 초기화</li>
+          <li>AI 프로세스 실행 (fork + pipe)</li>
+          <li>게임 시작 시 초기 정보를 AI에게 전송 (형식 자유)</li>
+          <li>매 턴 AI와 데이터 주고받기 (형식·순서 자유)</li>
+          <li>각 AI의 행동 유효성 검사</li>
+          <li>타임아웃 처리 (무응답 시 <code>TIME_LIMIT</code>)</li>
+          <li>종료 조건 판단 후 종료 신호 전송</li>
+          <li>마지막 줄에 결과 출력 (이것만 채점 서버가 읽음)</li>
         </ol>
+        <div className="bp-tut-callout">
+          <span className="bp-tut-callout-icon">📎</span>
+          <span>Judge · Sample AI의 전체 C++ 뼈대 코드는 아래 <strong>빠른 생성(사과게임)</strong> 예시 파일과 별도 튜토리얼 문서에서 제공됩니다.</span>
+        </div>
+
+        {/* 6 */}
+        <h4 className="bp-tut-h">6. Sample AI 코드 작성법</h4>
+        <p className="bp-info-text">AI가 해야 할 일은 세 가지입니다.</p>
+        <ol className="bp-info-list">
+          <li>Judge가 보내는 메시지를 stdin으로 읽는다</li>
+          <li>행동 요청 메시지에만 stdout으로 응답한다</li>
+          <li>종료 신호를 받으면 정상 종료한다</li>
+        </ol>
+        <div className="bp-tut-callout">
+          <span className="bp-tut-callout-icon">💡</span>
+          <span><strong>핵심:</strong> 행동 출력 시 반드시 <code>endl</code>/<code>flush</code>로 즉시 전송하세요. 버퍼에 남으면 Judge가 타임아웃 처리합니다.</span>
+        </div>
+
+        {/* 7 */}
+        <h4 className="bp-tut-h">7. 완성된 예시 — 사과 게임</h4>
+        <ul className="bp-info-list">
+          <li><strong>보드</strong>: 10행 × 17열, 각 칸에 1~9 숫자</li>
+          <li><strong>행동</strong>: 직사각형 영역 선택, 영역 내 합이 정확히 <strong>10</strong>이어야 하며 네 변에 각각 숫자가 1개 이상 포함</li>
+          <li><strong>패스</strong>: <code>-1 -1 -1 -1</code> 출력</li>
+          <li><strong>종료</strong>: 양쪽 연속 패스 시</li>
+          <li><strong>승자</strong>: 더 많은 칸을 소유한 플레이어</li>
+        </ul>
+        <p className="bp-info-text">사과 게임 프로토콜: <code>READY</code> → <code>INIT</code> → (<code>TIME</code> → <code>OPP</code>) 반복 → <code>FINISH</code></p>
+
+        {/* 8 */}
+        <h4 className="bp-tut-h">8. 시각화 HTML 제출하기 (선택)</h4>
+        <h5 className="bp-tut-sub">로그 시각화 HTML</h5>
+        <p className="bp-info-text">
+          Judge가 출력한 로그 파일을 업로드하면 대결을 턴별로 재생하는 뷰어입니다. 슬라이더 · 재생(0.5×~16×) · 힌트 · 키보드 단축키를 지원합니다.
+          Judge가 <code>INIT</code> / <code>FIRST</code> / <code>SECOND</code> / 마지막 <code>WIN LOSE</code> 형식으로 로그를 출력해야 합니다.
+        </p>
+        <h5 className="bp-tut-sub">혼자 플레이 HTML</h5>
+        <p className="bp-info-text">
+          참가자가 AI를 만들기 전 게임 규칙을 직접 체험하는 인터랙티브 플레이어입니다. 마우스 드래그 선택 · 실시간 합계 피드백 · 힌트를 지원합니다.
+        </p>
+        <div className="bp-tut-callout">
+          <span className="bp-tut-callout-icon">📎</span>
+          <span>시각화 HTML은 <strong>독립 실행 가능한 단일 파일</strong>이어야 합니다. iframe 삽입 시 <code>window.postMessage</code>(<code>{"{ type: \"LOAD_LOG\", log }"}</code>)로 로그를 전달받을 수 있습니다.</span>
+        </div>
+
+        {/* 9 */}
+        <h4 className="bp-tut-h">9. 제출 전 체크리스트</h4>
+        <h5 className="bp-tut-sub">Judge 코드</h5>
+        <ul className="bp-tut-check">
+          <li><code>./judge ./player1 ./player2</code> 형태로 실행 가능한가?</li>
+          <li>마지막 stdout 줄이 <code>{"<P1결과> <P2결과>"}</code> 형식인가?</li>
+          <li>타임아웃 · 잘못된 행동 · 무승부 처리가 있는가?</li>
+        </ul>
+        <h5 className="bp-tut-sub">Sample AI 코드</h5>
+        <ul className="bp-tut-check">
+          <li>행동 요청에 유효한 행동을 출력하는가?</li>
+          <li>모든 출력에 <code>endl</code>/<code>flush</code>가 있는가?</li>
+          <li>종료 신호 수신 시 정상 종료하는가?</li>
+          <li>디버그 메시지를 <code>stderr</code>에만 출력하는가?</li>
+        </ul>
+        <h5 className="bp-tut-sub">공통</h5>
+        <ul className="bp-tut-check">
+          <li>C++ 기준 <code>g++ -O2</code>로 빌드 오류 없이 컴파일되는가?</li>
+          <li>로컬에서 Judge와 Sample AI를 직접 실행해 정상 동작을 확인했는가?</li>
+        </ul>
+
+        <div className="bp-tut-cta">
+          <p className="bp-tut-cta-text">설명을 다 읽으셨나요? 이제 직접 따라하며 대회를 개최해보세요.</p>
+          <button
+            className="bp-tut-cta-btn"
+            onClick={() => { window.location.hash = "tutorial-contest"; }}
+          >
+            🚀 직접 개최해보기
+          </button>
+        </div>
       </>
     ),
   },
@@ -666,7 +821,17 @@ const BattlePage: React.FC = () => {
                   >
                     <span className="bp-help-nav-num">{String(i + 1).padStart(2, "0")}</span>
                     <div className="bp-help-nav-text">
-                      <span className="bp-help-nav-label">{item.title}</span>
+                      <span className="bp-help-nav-label">
+                        {item.title}
+                        {item.hasTutorial && (
+                          <span className="bp-tutorial-badge" title="따라하기 튜토리얼 제공">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                            튜토리얼
+                          </span>
+                        )}
+                      </span>
                       <span className="bp-help-nav-desc">{item.summary}</span>
                     </div>
                     <span className="bp-help-nav-arrow">›</span>
@@ -680,6 +845,14 @@ const BattlePage: React.FC = () => {
                     <div className="bp-help-detail-header">
                       <span className="bp-help-detail-num">{String(expandedHelp + 1).padStart(2, "0")}</span>
                       <h3 className="bp-help-detail-title">{HELP_ITEMS[expandedHelp].title}</h3>
+                      {HELP_ITEMS[expandedHelp].hasTutorial && (
+                        <span className="bp-tutorial-badge bp-tutorial-badge--lg" title="따라하기 튜토리얼 제공">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                          튜토리얼
+                        </span>
+                      )}
                     </div>
                     <div className="bp-help-detail-body">{HELP_ITEMS[expandedHelp].body}</div>
                   </div>

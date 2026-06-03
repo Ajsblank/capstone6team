@@ -803,12 +803,37 @@
   font-size: 1rem;
   font-weight: 600;
   color: #374151;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .bp-help-nav-item--active .bp-help-nav-label { color: #111827; font-weight: 700; }
+
+/* ── 튜토리얼 배지 ── */
+.bp-tutorial-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #ea580c;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 20px;
+  padding: 2px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+.bp-tutorial-badge svg { display: block; }
+
+.bp-tutorial-badge--lg {
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  gap: 4px;
+  align-self: center;
+}
 
 .bp-help-nav-desc {
   font-size: 0.7rem;
@@ -967,6 +992,135 @@
 }
 
 .bp-info-text strong { font-weight: 700; color: #111827; }
+
+/* ── 튜토리얼 본문 요소 ── */
+.bp-tut-h {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #c2410c;
+  margin: 26px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #fed7aa;
+}
+.bp-tut-h:first-child { margin-top: 0; }
+
+.bp-tut-sub {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 18px 0 8px;
+}
+
+.bp-tut-code {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  font-family: "Fira Code", "Consolas", monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  padding: 14px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 10px 0;
+  white-space: pre;
+}
+
+.bp-tut-callout {
+  display: flex;
+  gap: 10px;
+  background: #fff7ed;
+  border-left: 3px solid #fb923c;
+  border-radius: 0 8px 8px 0;
+  padding: 10px 14px;
+  margin: 12px 0;
+  font-size: 0.86rem;
+  color: #7c2d12;
+  line-height: 1.6;
+}
+.bp-tut-callout-icon { flex-shrink: 0; font-size: 1rem; }
+
+.bp-tut-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 0.85rem;
+}
+.bp-tut-table th,
+.bp-tut-table td {
+  border: 1px solid #e5e7eb;
+  padding: 7px 12px;
+  text-align: left;
+}
+.bp-tut-table th {
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 700;
+}
+.bp-tut-table td code {
+  background: #f3f4f6;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: "Fira Code", monospace;
+  font-size: 0.92em;
+  color: #c2410c;
+}
+
+.bp-tut-check {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.bp-tut-check li {
+  font-size: 0.88rem;
+  color: #374151;
+  line-height: 1.6;
+  padding-left: 24px;
+  position: relative;
+}
+.bp-tut-check li::before {
+  content: "☐";
+  position: absolute;
+  left: 0;
+  color: #ea580c;
+  font-size: 0.95rem;
+}
+
+/* ── 직접 개최해보기 CTA ── */
+.bp-tut-cta {
+  margin-top: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border: 1.5px solid #fb923c;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+.bp-tut-cta-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #9a3412;
+  margin: 0;
+}
+.bp-tut-cta-btn {
+  background: #ea580c;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 13px 32px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.3);
+}
+.bp-tut-cta-btn:hover { background: #c2410c; transform: translateY(-1px); }
+.bp-tut-cta-btn:active { transform: translateY(0); }
 
 .bp-info-list {
   margin: 0;
