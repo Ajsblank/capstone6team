@@ -91,6 +91,9 @@ public class PaymentService {
     }
 
     public PaymentConfirmResponse confirmPaymentForTest(String paymentKey, String orderId, Long amount, Long userId) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("결제 금액은 0보다 커야 합니다.");
+        }
         if (paymentRepository.existsByOrderId(orderId)) {
             throw new IllegalArgumentException("이미 처리된 주문입니다.");
         }

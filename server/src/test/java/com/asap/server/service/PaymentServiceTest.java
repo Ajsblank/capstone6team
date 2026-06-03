@@ -183,6 +183,26 @@ class PaymentServiceTest {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // amount 검증
+    // ─────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("confirmPaymentForTest - amount가 0이면 예외 발생")
+    void confirmPaymentForTest_zeroAmount() {
+        assertThatThrownBy(() -> paymentService.confirmPaymentForTest("pk_test", "order_001", 0L, 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("결제 금액은 0보다 커야 합니다.");
+    }
+
+    @Test
+    @DisplayName("confirmPaymentForTest - amount가 음수이면 예외 발생")
+    void confirmPaymentForTest_negativeAmount() {
+        assertThatThrownBy(() -> paymentService.confirmPaymentForTest("pk_test", "order_001", -1000L, 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("결제 금액은 0보다 커야 합니다.");
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // Helper
     // ─────────────────────────────────────────────────────────────
 
