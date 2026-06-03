@@ -46,7 +46,7 @@ interface Props {
 // ─── 타이핑 효과 (마크업 제외 plain 길이 기준) ──────────────────────────────────
 const stripBold = (s: string) => s.replace(/\*\*/g, "");
 
-function useTypewriter(markup: string, speed = 26) {
+function useTypewriter(markup: string, speed = 40) {
   const plain = stripBold(markup);
   const [len, setLen] = useState(0);
   const [done, setDone] = useState(false);
