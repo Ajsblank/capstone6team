@@ -243,7 +243,7 @@ WIN TIME_LIMIT  ← P2 시간초과로 P1 승`}</pre>
             className="bp-tut-cta-btn"
             onClick={() => { window.location.hash = "tutorial-contest"; }}
           >
-            🚀 직접 개최해보기
+            직접 개최해보기
           </button>
         </div>
       </>
@@ -638,8 +638,20 @@ const BattlePage: React.FC = () => {
                           }}
                         >
                           <div className="bp-problem-card-left">
-                            <span className="bp-problem-num">#{c.id}</span>
-                            <div>
+                            {createdContestIds.includes(c.id) && (c.status === "PLANNED" || c.status === "RUNNING") && (
+                              <button
+                                className="bp-settings-btn"
+                                title="대회 설정"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  window.location.hash = `contest-settings/${c.id}`;
+                                }}
+                              >
+                                ⚙
+                              </button>
+                            )}
+                            <div className="bp-problem-info">
+                              <span className="bp-problem-num">#{c.id}</span>
                               <p className="bp-problem-title">
                                 {c.title}
                                 {joinedContestIds.includes(c.id) && (
@@ -687,18 +699,6 @@ const BattlePage: React.FC = () => {
                                   {STATUS_LABEL[c.status] ?? c.status}
                                 </span>
                               </div>
-                            )}
-                            {createdContestIds.includes(c.id) && (c.status === "PLANNED" || c.status === "RUNNING") && (
-                              <button
-                                className="bp-settings-btn"
-                                title="대회 설정"
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  window.location.hash = `contest-settings/${c.id}`;
-                                }}
-                              >
-                                ⚙
-                              </button>
                             )}
                             <span className="bp-problem-arrow">→</span>
                           </div>
