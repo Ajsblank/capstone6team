@@ -4,6 +4,7 @@ name: cd-front
 run-name: "CD actor : ${{github.actor}}"
 # Controls when the workflow will run
 on:
+  workflow_dispatch:
   push:
     branches: [ "dev/front","develop"]
     paths:
