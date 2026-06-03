@@ -26,14 +26,14 @@ public class S3Service {
   @Value("${cloud.aws.s3.bucket}")
   private String bucket;
 
-  @Value("$(cloud.aws.cloudfront.url}")
+  @Value("${cloud.aws.cloudfront.url}")
   private String coudFront;
 
   @Value("${cloud.aws.region}")
   private String region;
 
   @Value("${cloud.aws.s3.contest-code-prefix}")
-  private String contestCodePrefix;
+  private String contestResourcePrefix;
 
   /**
    * S3 객체를 문자열(UTF-8)로 읽는다.
@@ -87,12 +87,30 @@ public class S3Service {
     log.info("JSON 결과 업로드 완료 - key: {}", key);
   }
 
+  public void uploadCode(String key, String content) {
+    PutObjectRequest putRequest = PutObjectRequest.builder()
+        .bucket(bucket)
+        .key(key)
+        .contentType("text/plain; charset=UTF-8")
+        .build();
+
+    s3Client.putObject(putRequest,
+        RequestBody.fromBytes(content.getBytes(StandardCharsets.UTF_8)));
+    log.info("코드 업로드 완료 - key: {}", key);
+  }
+
   public String buildFinalResultKey(Long contestId) {
-    return String.format("%s/%d/final-result", normalizePathPrefix(contestCodePrefix), contestId);
+    return String.format("%s/%d/final-result", normalizePathPrefix(contestResourcePrefix), contestId);
   }
 
   public String buildSessionResultKey(Long contestId, int sessionNumber) {
-    return String.format("%s/%d/swiss-result/session-%d", normalizePathPrefix(contestCodePrefix), contestId,
+    return String.format("%s/%d/swiss-result/session-%d", normalizePathPrefix(contestResourcePrefix), contestId,
         sessionNumber);
+  }
+
+  public String buildCodeSubmissionKey(Long contestId, Long userId, Long submissionId) {
+    return String.format("%s/%d/participant-code/user-%d/code-%d", normalizePathPrefix(contestResourcePrefix),
+        contestId,
+        userId, submissionId);
   }
 }

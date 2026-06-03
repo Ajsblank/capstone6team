@@ -24,6 +24,7 @@ import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.asap.server.repository.usersRepository;
+import com.asap.server.service.S3Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -46,6 +47,7 @@ public class CodeController {
     private final CodeBattleContestRepository contestRepository;
     private final CodeBattleSubmissionRepository submissionRepository;
     private final CodeBattleParticipantRepository participantRepository;
+    private final S3Service s3Service;
 
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
     private static final String CODE_BATTLE_TEST_QUEUE_KEY = "code_battle_test_queue";
@@ -54,10 +56,10 @@ public class CodeController {
     @Operation(description = "language는 eunm 타입입니다. (CPP,PYTHON,JAVA,C)")
     public ResponseEntity<CodeSubmitResponse> submitBattle(@Valid @RequestBody CodeSubmitRequest request) {
         try {
-            CodeBattleContest contest = contestRepository.findById(Long.parseLong(request.getProblemId()))
+            CodeBattleContest contest = contestRepository.findById(request.getProblemId())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대회입니다."));
 
-            Users user = userRepository.findById(Long.parseLong(request.getUserId()))
+            Users user = userRepository.findById(request.getUserId())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
             List<CodeBattleExampleAI> aiList = exampleAIRepository
@@ -74,6 +76,12 @@ public class CodeController {
                     request.getSourceCode(),
                     "PENDING");
             submissionRepository.save(submission);
+            // S3 업로드
+            String key = s3Service.buildCodeSubmissionKey(request.getProblemId(),
+                    request.getUserId(), submission.getId());
+            s3Service.uploadCode(key, request.getSourceCode());
+            // 코드에 키 저장은 미구현중
+
             // 참가자 테이블을 조회한다
             Long userId = submission.getUser().getId();
             Long contestId = submission.getContest().getId();
