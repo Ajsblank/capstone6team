@@ -4,8 +4,12 @@ import { marked } from "marked";
 import mammoth from "mammoth";
 import { useApp } from "../context/AppContext";
 import Breadcrumb from "../components/Breadcrumb";
-import { createContest, ContestResponse, ContestStatus, AiCodeEntry, extToLanguage } from "../api/contestApi";
+import { ContestStatus, AiCodeEntry, extToLanguage } from "../api/contestApi";
 import { setContestDraft } from "../contestDraft";
+import {
+  PAYMENT_AMOUNT, buildDraft, saveDraft, requestTossPayment,
+  loadDraft, clearDraft, deserializeFile,
+} from "../api/paymentApi";
 import ContestSidebar from "../components/ContestSidebar";
 import RichTextEditor from "../components/RichTextEditor";
 import AiAssistPanel from "../components/AiAssistPanel";
@@ -80,8 +84,74 @@ const BattleCreateContestPage: React.FC = () => {
   const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg]         = useState("");
   const [toastMessages, setToastMessages] = useState<string[]>([]);
-  const [createdContest, setCreatedContest] = useState<ContestResponse | null>(null);
   const [showPreview, setShowPreview]   = useState(false);
+
+  // 결제 확인 모달
+  const [showPayConfirm, setShowPayConfirm] = useState(false);
+  const [payLoading,     setPayLoading]     = useState(false);
+
+  // 결제 실패 후 복구 토스트
+  const [restoreToast, setRestoreToast] = useState(false);
+
+  // 결제 실패 시 draft 복구
+  useEffect(() => {
+    const flag = sessionStorage.getItem("payment_fail_restore");
+    if (!flag) return;
+    sessionStorage.removeItem("payment_fail_restore");
+    const draft = loadDraft();
+    if (!draft) return;
+    setTitle(draft.title);
+    setDescription(draft.description);
+    setCertification(draft.certification);
+    setTimeLimitSec(draft.timeLimitSec);
+    setMemoryLimitMb(draft.memoryLimitMb);
+    setStatus(draft.status);
+    setStartDate(draft.startDate);
+    setEndDate(draft.endDate);
+    setMaxParticipants(draft.maxParticipants);
+    setSampleCodes(draft.sampleCodes.map(deserializeFile));
+    setJudgeCode(deserializeFile(draft.judgeCode));
+    setExampleAiCodes(draft.exampleAiCodes.map(e => ({
+      file: deserializeFile(e.file),
+      description: e.description,
+    })));
+    if (draft.visualizationHtml) setVisualizationHtml(deserializeFile(draft.visualizationHtml));
+    if (draft.soloPlayHtml)      setSoloPlayHtml(deserializeFile(draft.soloPlayHtml));
+    clearDraft();
+    setRestoreToast(true);
+    setTimeout(() => setRestoreToast(false), 4000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 빠른 생성 (사과게임) — 개발 편의
+  const [quickLoading, setQuickLoading] = useState(false);
+  const handleQuickFill = async () => {
+    setQuickLoading(true);
+    try {
+      const base = "/dev/apple";
+      const fetchFile = async (name: string): Promise<File> => {
+        const res = await fetch(`${base}/${name}`);
+        const blob = await res.blob();
+        return new File([blob], name, { type: blob.type || "text/plain" });
+      };
+      const [sampleFile, judgeFile, exampleFile, vizFile, soloFile] = await Promise.all([
+        fetchFile("apple_sample_code.cpp"),
+        fetchFile("apple_judge.cpp"),
+        fetchFile("apple_example_code.cpp"),
+        fetchFile("apple_game_log_visualization.html"),
+        fetchFile("apple_game_soloPlay.html"),
+      ]);
+      setSampleCodes([sampleFile]);
+      setJudgeCode(judgeFile);
+      setExampleAiCodes([{ file: exampleFile, description: "사과게임 기본 예시 AI" }]);
+      setVisualizationHtml(vizFile);
+      setSoloPlayHtml(soloFile);
+    } catch (e) {
+      console.error("[QuickFill] 파일 로드 실패:", e);
+    } finally {
+      setQuickLoading(false);
+    }
+  };
 
   const [sampleCodeInputKey, setSampleCodeInputKey] = useState(0);
   const [aiCodeInputKey, setAiCodeInputKey] = useState(0);
@@ -134,68 +204,57 @@ const BattleCreateContestPage: React.FC = () => {
   const handleAICodeDescChange = (i: number, desc: string) =>
     setExampleAiCodes(prev => prev.map((e, idx) => idx === i ? { ...e, description: desc } : e));
 
-  // 비인증 제출
-  const handleSubmit = async () => {
+  // 유효성 검사 (공통)
+  const validate = (requireViz = false): string[] => {
     const missing: string[] = [];
-    if (!title.trim())              missing.push("대회 이름");
-    if (isDescEmpty(description))   missing.push("문제 설명");
-    if (sampleCodes.length === 0)   missing.push("샘플 코드");
-    if (!judgeCode)                 missing.push("채점 코드");
+    if (!title.trim())               missing.push("대회 이름");
+    if (isDescEmpty(description))    missing.push("문제 설명");
+    if (sampleCodes.length === 0)    missing.push("샘플 코드");
+    if (!judgeCode)                  missing.push("채점 코드");
     if (exampleAiCodes.length === 0) missing.push("예시 AI 코드");
-    if (!startDate)                 missing.push("시작 일시");
-    if (!endDate)                   missing.push("종료 일시");
-    if (missing.length > 0)         { setToastMessages(missing); return; }
+    if (!startDate)                  missing.push("시작 일시");
+    if (!endDate)                    missing.push("종료 일시");
+    if (requireViz && !visualizationHtml) missing.push("시각화 HTML 파일");
+    if (requireViz && !soloPlayHtml)      missing.push("혼자서 하기 HTML 파일");
+    return missing;
+  };
 
-    setSubmitStatus("submitting");
-    setErrorMsg("");
+  // 비인증 — 결제 확인 모달 열기
+  const handleSubmit = () => {
+    const missing = validate(false);
+    if (missing.length > 0) { setToastMessages(missing); return; }
+    setShowPayConfirm(true);
+  };
+
+  // 결제 진행 (임시저장 → Toss 결제 요청)
+  const handlePayment = async (isCertified: boolean, reviewerEmails?: string[]) => {
+    if (payLoading || !judgeCode) return;
+    setPayLoading(true);
     try {
-      const result = await createContest({
+      const amount = isCertified ? PAYMENT_AMOUNT.certified : PAYMENT_AMOUNT.uncertified;
+      console.log("[handlePayment] isCertified:", isCertified, "| amount:", amount);
+      const orderId = "order-" + crypto.randomUUID();
+      const draft = await buildDraft(orderId, amount, {
+        certification: isCertified, creatorId: Number(user?.id ?? 0),
         title: title.trim(), description: description.trim(),
-        certification, timeLimitSec, memoryLimitMb,
-        sampleCodes, judgeCode: judgeCode!,
-        exampleAiCodes, visualizationHtml, soloPlayHtml,
-        status, startDate, endDate, maxParticipants,
-        creatorId: Number(user?.id ?? 0),
+        timeLimitSec, memoryLimitMb, status, startDate, endDate, maxParticipants,
+        sampleCodes, judgeCode, exampleAiCodes, visualizationHtml, soloPlayHtml,
+        reviewerEmails,
       });
-      setSubmitStatus("idle");
-      addCreatedContest(result.id);
-      setCreatedContest(result);
-    } catch (err: unknown) {
-      setSubmitStatus("error");
-      if (axios.isAxiosError(err)) {
-        const msg = err.response?.data?.message ?? err.response?.statusText;
-        setErrorMsg(msg ? `[${err.response?.status}] ${msg}` : "서버에 연결할 수 없습니다.");
-      } else if (err instanceof Error) {
-        setErrorMsg(err.message);
-      } else {
-        setErrorMsg("알 수 없는 오류가 발생했습니다.");
-      }
+      saveDraft(draft);
+      const orderName = isCertified ? "인증 대회 개최" : "비인증 대회 개최";
+      await requestTossPayment(orderId, amount, orderName);
+    } catch (err: any) {
+      setPayLoading(false);
+      setErrorMsg(err?.message ?? "결제 요청 중 오류가 발생했습니다.");
     }
   };
 
   // 인증 — 다음 단계
   const handleNextStep = () => {
-    const missing: string[] = [];
-    if (!title.trim())              missing.push("대회 이름");
-    if (isDescEmpty(description))   missing.push("문제 설명");
-    if (sampleCodes.length === 0)   missing.push("샘플 코드");
-    if (!judgeCode)                 missing.push("채점 코드");
-    if (exampleAiCodes.length === 0) missing.push("예시 AI 코드");
-    if (!visualizationHtml)         missing.push("시각화 HTML 파일");
-    if (!soloPlayHtml)              missing.push("혼자서 하기 HTML 파일");
-    if (!startDate)                 missing.push("시작 일시");
-    if (!endDate)                   missing.push("종료 일시");
-    if (missing.length > 0)         { setToastMessages(missing); return; }
-
-    setContestDraft({
-      title: title.trim(), description: description.trim(),
-      certification: true, timeLimitSec, memoryLimitMb,
-      sampleCodes, judgeCode: judgeCode!,
-      exampleAiCodes, visualizationHtml, soloPlayHtml,
-      status, startDate, endDate, maxParticipants,
-      creatorId: Number(user?.id ?? 0),
-    });
-    navigate("create-certified-contest");
+    const missing = validate(true);
+    if (missing.length > 0) { setToastMessages(missing); return; }
+    setShowPayConfirm(true);
   };
 
   // 체크리스트 계산
@@ -216,17 +275,85 @@ const BattleCreateContestPage: React.FC = () => {
   return (
     <div className="cc-page">
       {toastMessages.length > 0 && <Toast messages={toastMessages} onClose={() => setToastMessages([])} />}
+      {restoreToast && (
+        <div className="cc-restore-toast">
+          결제가 취소되었습니다. 입력하신 내용이 복구되었으니 다시 시도해주세요.
+        </div>
+      )}
 
-      {createdContest !== null && (
-        <div className="cc-modal-overlay">
-          <div className="cc-modal">
-            <div className="cc-modal-icon">✓</div>
-            <p className="cc-modal-msg">대회가 성공적으로 등록되었습니다.</p>
-            <div className="cc-modal-info">
-              <div className="cc-modal-info-row"><span className="cc-modal-info-label">ID</span><span className="cc-modal-info-value">{createdContest.id}</span></div>
-              <div className="cc-modal-info-row"><span className="cc-modal-info-label">생성 일시</span><span className="cc-modal-info-value">{new Date(createdContest.createdAt).toLocaleString("ko-KR")}</span></div>
+      {/* 결제 확인 모달 */}
+      {showPayConfirm && (
+        <div className="cc-modal-overlay" onClick={() => !payLoading && setShowPayConfirm(false)}>
+          <div className="cc-modal cc-pay-modal" onClick={e => e.stopPropagation()}>
+            <div className="cc-pay-modal-header">
+              <span className="cc-pay-modal-title">결제 확인</span>
+              <span className={`cc-pay-badge${certification ? " cc-pay-badge--cert" : ""}`}>
+                {certification ? "인증 대회" : "비인증 대회"}
+              </span>
             </div>
-            <button className="cc-modal-confirm" onClick={() => { setCreatedContest(null); navigate("battle"); }}>확인</button>
+
+            <div className="cc-pay-summary">
+              <div className="cc-pay-summary-row">
+                <span>대회명</span>
+                <span className="cc-pay-summary-val">{title.trim()}</span>
+              </div>
+              <div className="cc-pay-summary-row">
+                <span>샘플 코드</span>
+                <span className="cc-pay-summary-val">{sampleCodes.length}개</span>
+              </div>
+              <div className="cc-pay-summary-row">
+                <span>예시 AI 코드</span>
+                <span className="cc-pay-summary-val">{exampleAiCodes.length}개</span>
+              </div>
+              <div className="cc-pay-summary-row">
+                <span>대회 기간</span>
+                <span className="cc-pay-summary-val">
+                  {startDate ? startDate.replace("T", " ") : "-"} ~ {endDate ? endDate.replace("T", " ") : "-"}
+                </span>
+              </div>
+            </div>
+
+            <div className="cc-pay-amount">
+              <span>결제 금액</span>
+              <span className="cc-pay-amount-value">
+                {(certification ? PAYMENT_AMOUNT.certified : PAYMENT_AMOUNT.uncertified).toLocaleString()}원
+              </span>
+            </div>
+
+            {errorMsg && <p className="cc-error-msg">{errorMsg}</p>}
+
+            <div className="cc-pay-actions">
+              <button
+                className="cc-cancel-btn"
+                onClick={() => { setShowPayConfirm(false); setErrorMsg(""); }}
+                disabled={payLoading}
+              >
+                취소
+              </button>
+              <button
+                className="cc-pay-btn"
+                disabled={payLoading}
+                onClick={() => {
+                  if (certification) {
+                    // 인증: 임시저장 후 검수자 설정 페이지로 (검수자 이메일 필요)
+                    setContestDraft({
+                      title: title.trim(), description: description.trim(),
+                      certification: true, timeLimitSec, memoryLimitMb,
+                      sampleCodes, judgeCode: judgeCode!,
+                      exampleAiCodes, visualizationHtml, soloPlayHtml,
+                      status, startDate, endDate, maxParticipants,
+                      creatorId: Number(user?.id ?? 0),
+                    });
+                    setShowPayConfirm(false);
+                    navigate("create-certified-contest");
+                  } else {
+                    handlePayment(false); // 비인증 — 클릭 시점의 certification 값을 명시적으로 전달
+                  }
+                }}
+              >
+                {payLoading ? "처리 중..." : certification ? "다음 단계 (검수자 설정) →" : "결제 진행"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -279,7 +406,17 @@ const BattleCreateContestPage: React.FC = () => {
                 { label: "대회 목록", onClick: () => navigate("battle") },
                 { label: "대회 개최" },
               ]} />
-              <h2 className="cc-page-title">대회 개최</h2>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: 760 }}>
+                <h2 className="cc-page-title" style={{ margin: 0 }}>대회 개최</h2>
+                <button
+                  type="button"
+                  className="cc-quick-fill-btn"
+                  onClick={handleQuickFill}
+                  disabled={quickLoading}
+                >
+                  {quickLoading ? "⏳ 로딩 중..." : "⚡ 빠른 생성 (사과게임)"}
+                </button>
+              </div>
 
               <div className="cc-form">
                 {/* 기본 정보 — 이름 + 인증 토글 한 행 */}
@@ -444,20 +581,30 @@ const BattleCreateContestPage: React.FC = () => {
                 <div className="cc-submit-area">
                   <button type="button" className="cc-preview-btn" onClick={() => setShowPreview(true)}>미리보기</button>
                   {certification ? (
-                    <button type="button" className="cc-next-btn" onClick={handleNextStep}>다음 단계로 →</button>
+                    <button type="button" className="cc-next-btn" onClick={handleNextStep}>결제 확인 →</button>
                   ) : (
-                    <button type="button" className="cc-submit-btn" onClick={handleSubmit} disabled={submitStatus === "submitting"}>
-                      {submitStatus === "submitting" ? "등록 중..." : "대회 생성"}
+                    <button type="button" className="cc-submit-btn" onClick={handleSubmit}>
+                      결제 후 생성
                     </button>
                   )}
                   <button type="button" className="cc-cancel-btn" onClick={() => navigate("battle")}>취소</button>
-                  {submitStatus === "error" && <span className="cc-error-msg">{errorMsg}</span>}
                 </div>
               </div>
             </div>
 
-            {/* ── 체크리스트 컬럼 ── */}
+            {/* ── 체크리스트 + 비용 컬럼 ── */}
             <aside className="cc-checklist-col">
+              {/* 비용 배너 */}
+              <div className="cc-cost-banner">
+                <span className="cc-cost-banner-label">결제 금액</span>
+                <span className="cc-cost-banner-amount">
+                  {(certification ? PAYMENT_AMOUNT.certified : PAYMENT_AMOUNT.uncertified).toLocaleString()}
+                  <span className="cc-cost-banner-unit">원</span>
+                </span>
+                <span className="cc-cost-banner-type">
+                  {certification ? "인증 대회" : "비인증 대회"}
+                </span>
+              </div>
               <ContestSidebar
                 currentStep={1}
                 certification={certification}

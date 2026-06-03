@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useApp } from "../context/AppContext";
 import Breadcrumb from "../components/Breadcrumb";
-import { createCertifiedContest, ContestResponse } from "../api/contestApi";
-import { getContestDraft, clearContestDraft } from "../contestDraft";
+import { getContestDraft } from "../contestDraft";
 import ContestSidebar from "../components/ContestSidebar";
+import { PAYMENT_AMOUNT, buildDraft, saveDraft, requestTossPayment } from "../api/paymentApi";
 import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
@@ -15,7 +14,6 @@ const BattleCreateCertifiedPage: React.FC = () => {
   const [emails, setEmails] = useState<string[]>([]);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [createdContest, setCreatedContest] = useState<ContestResponse | null>(null);
 
   const handleAddEmail = () => setEmails(prev => [...prev, ""]);
 
@@ -26,13 +24,12 @@ const BattleCreateCertifiedPage: React.FC = () => {
     setEmails(prev => prev.map((e, idx) => (idx === i ? v : e)));
 
   const handleSubmit = async () => {
-    const draft = getContestDraft();
-    if (!draft) {
+    const contestFormDraft = getContestDraft();
+    if (!contestFormDraft) {
       setSubmitStatus("error");
       setErrorMsg("폼 데이터가 없습니다. 이전 단계로 돌아가서 다시 시도해주세요.");
       return;
     }
-
     if (!hostEmail) {
       setSubmitStatus("error");
       setErrorMsg("로그인 정보에 이메일이 없습니다. 다시 로그인해주세요.");
@@ -40,56 +37,26 @@ const BattleCreateCertifiedPage: React.FC = () => {
     }
 
     const additionalEmails = emails.map(e => e.trim()).filter(e => e && e !== hostEmail);
-    const validEmails = [hostEmail, ...additionalEmails];
+    const reviewerEmails   = [hostEmail, ...additionalEmails];
 
     setSubmitStatus("submitting");
     setErrorMsg("");
     try {
-      const result = await createCertifiedContest(draft, validEmails);
-      clearContestDraft();
-      addCreatedContest(result.id);
-      setCreatedContest(result);
-    } catch (err: unknown) {
+      const orderId = "order-" + crypto.randomUUID();
+      const draft = await buildDraft(orderId, PAYMENT_AMOUNT.certified, {
+        ...contestFormDraft,
+        reviewerEmails,
+      });
+      saveDraft(draft);
+      await requestTossPayment(orderId, PAYMENT_AMOUNT.certified, "인증 대회 개최");
+    } catch (err: any) {
       setSubmitStatus("error");
-      if (axios.isAxiosError(err)) {
-        const msg = err.response?.data?.message ?? err.response?.statusText;
-        setErrorMsg(msg ? `[${err.response?.status}] ${msg}` : "서버에 연결할 수 없습니다.");
-      } else if (err instanceof Error) {
-        setErrorMsg(err.message);
-      } else {
-        setErrorMsg("알 수 없는 오류가 발생했습니다.");
-      }
+      setErrorMsg(err?.message ?? "결제 요청 중 오류가 발생했습니다.");
     }
   };
 
   return (
     <div className="cc-page">
-      {createdContest !== null && (
-        <div className="cc-modal-overlay">
-          <div className="cc-modal">
-            <div className="cc-modal-icon">✓</div>
-            <p className="cc-modal-msg">대회가 성공적으로 등록되었습니다.</p>
-            <div className="cc-modal-info">
-              <div className="cc-modal-info-row">
-                <span className="cc-modal-info-label">ID</span>
-                <span className="cc-modal-info-value">{createdContest.id}</span>
-              </div>
-              <div className="cc-modal-info-row">
-                <span className="cc-modal-info-label">생성 일시</span>
-                <span className="cc-modal-info-value">
-                  {new Date(createdContest.createdAt).toLocaleString("ko-KR")}
-                </span>
-              </div>
-            </div>
-            <button
-              className="cc-modal-confirm"
-              onClick={() => { setCreatedContest(null); navigate("battle"); }}
-            >
-              확인
-            </button>
-          </div>
-        </div>
-      )}
 
       <header className="home-header">
         <span className="home-logo" onClick={() => navigate("landing")}>

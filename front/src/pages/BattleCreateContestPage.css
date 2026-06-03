@@ -350,6 +350,183 @@
 .cc-cancel-btn:hover { background: #f3f4f6; color: #374151; }
 .cc-error-msg { font-size: 0.85rem; color: #dc2626; }
 
+/* ── 결제 복구 토스트 ── */
+.cc-restore-toast {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e3a5f;
+  color: #93c5fd;
+  border: 1px solid #3b82f6;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  z-index: 1200;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.25);
+  animation: cc-toast-in 0.3s ease;
+  white-space: nowrap;
+}
+@keyframes cc-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── 빠른 생성 버튼 (개발용) ── */
+.cc-quick-fill-btn {
+  background: #1e1e2e;
+  border: 1px dashed #4b5563;
+  border-radius: 7px;
+  color: #9ca3af;
+  cursor: pointer;
+  font-family: 'IBM Plex Sans KR', 'IBM Plex Sans', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.cc-quick-fill-btn:hover:not(:disabled) {
+  background: #2d2d44;
+  border-color: #6b7280;
+  color: #e0e0e0;
+}
+.cc-quick-fill-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── 비용 배너 (사이드바) ── */
+.cc-cost-banner {
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  border: 1.5px solid #fb923c;
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+.cc-cost-banner-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #9a3412;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.cc-cost-banner-amount {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #ea580c;
+  line-height: 1;
+}
+.cc-cost-banner-unit {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-left: 2px;
+}
+.cc-cost-banner-type {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #c2410c;
+}
+
+/* ── 결제 확인 모달 ── */
+.cc-pay-modal {
+  min-width: 360px;
+  max-width: 480px;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.cc-pay-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.cc-pay-modal-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #111827;
+  flex: 1;
+}
+.cc-pay-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #e0f2fe;
+  color: #0369a1;
+}
+.cc-pay-badge--cert {
+  background: #fef3c7;
+  color: #92400e;
+}
+.cc-pay-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 12px 24px;
+}
+.cc-pay-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+.cc-pay-summary-row:last-child { border-bottom: none; }
+.cc-pay-summary-val {
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cc-pay-amount {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  background: #fff7ed;
+  border-top: 1.5px solid #fed7aa;
+}
+.cc-pay-amount span:first-child {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #9a3412;
+}
+.cc-pay-amount-value {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #ea580c;
+}
+.cc-pay-actions {
+  display: flex;
+  gap: 10px;
+  padding: 16px 24px;
+  justify-content: flex-end;
+  border-top: 1px solid #f3f4f6;
+}
+.cc-pay-btn {
+  background: #ea580c;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 10px 22px;
+  transition: background 0.15s;
+}
+.cc-pay-btn:hover:not(:disabled) { background: #c2410c; }
+.cc-pay-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ── 검수자 이메일 (BattleCreateCertifiedPage) ── */
 .cc-reviewer-desc {
   font-size: 0.88rem;
