@@ -553,6 +553,15 @@ const BattlePage: React.FC = () => {
               </div>
             )}
 
+            <a
+              href="/softcon.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bp-softcon-btn"
+            >
+              소프트콘 페이지
+            </a>
+
             <div className="bp-contest-header">
               <h2 className="bp-contest-title">대회 목록</h2>
               <button className="bp-create-contest-btn" onClick={() => setShowCostPopup(true)}>
