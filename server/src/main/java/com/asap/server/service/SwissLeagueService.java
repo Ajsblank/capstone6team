@@ -287,8 +287,8 @@ public class SwissLeagueService {
       int aiOrder) throws Exception {
 
     String judgeCode = contest.getJudgeCode();
-    String player1Code = s1.getCodeUrl();
-    String player2Code = s2.getCodeUrl();
+    String player1Code = s3Service.readFileAsString(s1.getCodeUrl());
+    String player2Code = s3Service.readFileAsString(s2.getCodeUrl());
 
     ObjectNode rootNode = objectMapper.createObjectNode();
     rootNode.put("submissionId", matchId);

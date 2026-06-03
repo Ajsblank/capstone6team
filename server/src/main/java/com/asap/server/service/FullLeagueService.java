@@ -126,24 +126,10 @@ public class FullLeagueService {
             CodeBattleSubmission s2,
             int aiOrder) throws Exception {
 
-        // S3에서 코드 읽기 비활성화
-        // log.info("[S3] judge={}", contest.getJudgeCode());
-        // log.info("[S3] p1={}", s1.getCodeUrl());
-        // log.info("[S3] p2={}", s2.getCodeUrl());
-
-        // String judgeCode = s3Service.readFileAsString(contest.getJudgeCode());
-        // String player1Code = s3Service.readFileAsString(s1.getCodeUrl());
-        // String player2Code = s3Service.readFileAsString(s2.getCodeUrl());
-
-        // log.info("[S3] 읽기 완료. judge={}자, p1={}자, p2={}자",
-        // judgeCode.length(), player1Code.length(), player2Code.length());
         String judgeCode = contest.getJudgeCode();
-        String player1Code = s1.getCodeUrl();
-        String player2Code = s2.getCodeUrl();
-        // S3 시 사용
-        // log.info("[대회 처리] judge={}, 길이={}", judgeCode, judgeCode.length());
-        // log.info("[대회 처리] p1={}, 길이={}", player1Code, player1Code.length());
-        // log.info("[대회 처리] p2={}, 길이={}", player2Code, player2Code.length());
+        String player1Code = s3Service.readFileAsString(s1.getCodeUrl());
+        String player2Code = s3Service.readFileAsString(s2.getCodeUrl());
+
         log.info("[대회 처리] 길이={}", judgeCode.length());
         log.info("[대회 처리] 길이={}", player1Code.length());
         log.info("[대회 처리] 길이={}", player2Code.length());
