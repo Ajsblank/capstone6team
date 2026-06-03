@@ -8,6 +8,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import jakarta.validation.constraints.Positive;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.asap.server.dto.response.PaymentConfirmResponse;
@@ -15,10 +17,12 @@ import com.asap.server.service.PaymentService;
 import com.asap.server.service.SseService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 
 @RestController
 @RequestMapping({ "/api" })
 @RequiredArgsConstructor
+@Validated
 public class TestController {
 
     private final SseService sseService;
@@ -32,11 +36,12 @@ public class TestController {
     }
 
     @PostMapping("/test/payment")
-    public ResponseEntity<?> testPayment(@AuthenticationPrincipal Long userId) {
+    public ResponseEntity<?> testPayment(@RequestParam @Positive Long amount,
+                                         @AuthenticationPrincipal Long userId) {
         try {
             String paymentKey = "test_pay_" + UUID.randomUUID();
             String orderId = "test_order_" + UUID.randomUUID();
-            PaymentConfirmResponse response = paymentService.confirmPaymentForTest(paymentKey, orderId, userId);
+            PaymentConfirmResponse response = paymentService.confirmPaymentForTest(paymentKey, orderId, amount, userId);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

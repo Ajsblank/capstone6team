@@ -97,16 +97,6 @@ class PaymentServiceTest {
     // ─────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("결제 금액 불일치 시 예외 발생 (고정 금액: 100,000원)")
-    void confirmPayment_wrongAmount() {
-        PaymentConfirmRequest request = buildRequest("pk_test", "order_001", 50000L, null);
-
-        assertThatThrownBy(() -> paymentService.confirmPayment(request, 1L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("결제 금액이 올바르지 않습니다.");
-    }
-
-    @Test
     @DisplayName("이미 처리된 주문 ID 재요청 시 예외 발생")
     void confirmPayment_duplicateOrderId() {
         PaymentConfirmRequest request = buildRequest("pk_test", "order_001", 100000L, null);
@@ -159,7 +149,7 @@ class PaymentServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(paymentRepository.save(any(Payment.class))).thenReturn(saved);
 
-        PaymentConfirmResponse response = paymentService.confirmPaymentForTest("pk_test", "order_001", 1L);
+        PaymentConfirmResponse response = paymentService.confirmPaymentForTest("pk_test", "order_001", 100000L, 1L);
 
         assertThat(response).isNotNull();
         assertThat(response.getPaymentKey()).isEqualTo("pk_test");
@@ -175,7 +165,7 @@ class PaymentServiceTest {
     void confirmPaymentForTest_duplicateOrderId() {
         when(paymentRepository.existsByOrderId("order_dup")).thenReturn(true);
 
-        assertThatThrownBy(() -> paymentService.confirmPaymentForTest("pk_test", "order_dup", 1L))
+        assertThatThrownBy(() -> paymentService.confirmPaymentForTest("pk_test", "order_dup", 100000L, 1L))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("이미 처리된 주문입니다.");
     }
@@ -187,9 +177,29 @@ class PaymentServiceTest {
         when(paymentRepository.existsByOrderId("order_001")).thenReturn(false);
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> paymentService.confirmPaymentForTest("pk_test", "order_001", 99L))
+        assertThatThrownBy(() -> paymentService.confirmPaymentForTest("pk_test", "order_001", 100000L, 99L))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("사용자를 찾을 수 없습니다.");
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // amount 검증
+    // ─────────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("confirmPaymentForTest - amount가 0이면 예외 발생")
+    void confirmPaymentForTest_zeroAmount() {
+        assertThatThrownBy(() -> paymentService.confirmPaymentForTest("pk_test", "order_001", 0L, 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("결제 금액은 0보다 커야 합니다.");
+    }
+
+    @Test
+    @DisplayName("confirmPaymentForTest - amount가 음수이면 예외 발생")
+    void confirmPaymentForTest_negativeAmount() {
+        assertThatThrownBy(() -> paymentService.confirmPaymentForTest("pk_test", "order_001", -1000L, 1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("결제 금액은 0보다 커야 합니다.");
     }
 
     // ─────────────────────────────────────────────────────────────
