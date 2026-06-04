@@ -4,11 +4,11 @@ import { getContestList, ContestItem } from "../api/codeBattleApi";
 import "./AppLayout.css";
 import "./BattleHomePage.css";
 
-type BattleTab = "contest" | "ranking" | "help" | "contact";
+type BattleTab = "contest" | "previous-problems" | "ranking" | "help" | "contact";
 type StatusFilter = "" | "RUNNING" | "PLANNED" | "END";
 
 const FETCH_SIZE = 100;
-const VALID_BATTLE_TABS: BattleTab[] = ["contest", "ranking", "help", "contact"];
+const VALID_BATTLE_TABS: BattleTab[] = ["contest", "previous-problems", "ranking", "help", "contact"];
 
 const HELP_ITEMS: { title: string; summary: string; body: React.ReactNode; hasTutorial?: boolean }[] = [
   {
@@ -374,8 +374,42 @@ const BattlePage: React.FC = () => {
     }
   }
 
+  // 이전 문제: 종료된 지 3일 이상 지난 대회
+  function isPreviousProblem(c: ContestItem): boolean {
+    if (c.status !== "END" && c.status !== "CANCELED") return false;
+    const endDate = new Date(c.endDate || 0);
+    const now = new Date();
+    const daysSinceEnd = Math.floor((now.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
+    return daysSinceEnd >= 3;
+  }
+
+  // 현재 대회 탭: 3일 미만 종료 또는 계획/진행 중
+  function isCurrentProblem(c: ContestItem): boolean {
+    if (c.status === "RUNNING" || c.status === "PLANNED" || c.status === "TEST") return true;
+    if (c.status === "END" || c.status === "CANCELED") {
+      const endDate = new Date(c.endDate || 0);
+      const now = new Date();
+      const daysSinceEnd = Math.floor((now.getTime() - endDate.getTime()) / (1000 * 60 * 60 * 24));
+      return daysSinceEnd < 3;
+    }
+    return false;
+  }
+
+  // 참여 여부 확인 (참가자, 검수자, 개최자 모두 참여로 간주)
+  function isParticipant(contestId: number): boolean {
+    return joinedContestIds.includes(contestId) ||
+           hostedContestIds.includes(contestId) ||
+           createdContestIds.includes(contestId);
+  }
+
+  // 현재 대회 탭에 표시할 대회들
+  const currentProblems = contests.filter(isCurrentProblem);
+
+  // 이전 문제 탭에 표시할 대회들
+  const previousProblems = contests.filter(isPreviousProblem).sort((a, b) => a.id - b.id);
+
   // 최근 1일 이내 종료된 참가 대회
-  const recentEndedContests = contests.filter(c =>
+  const recentEndedContests = currentProblems.filter(c =>
     (c.status === "END" || c.status === "CANCELED") &&
     joinedContestIds.includes(c.id) &&
     c.endDate &&
@@ -385,8 +419,8 @@ const BattlePage: React.FC = () => {
     })()
   );
 
-  // 필터 + 우선순위 정렬
-  const filteredContests = [...contests]
+  // 필터 + 우선순위 정렬 (현재 대회 탭용)
+  const filteredContests = [...currentProblems]
     .sort((a, b) => sortPriority(a) - sortPriority(b))
     .filter(c => {
       if (filterStatus && c.status !== filterStatus) return false;
@@ -454,6 +488,12 @@ const BattlePage: React.FC = () => {
             onClick={() => handleTabChange("ranking")}
           >
             랭킹
+          </button>
+          <button
+            className={`home-tab-btn${activeTab === "previous-problems" ? " home-tab-btn--active" : ""}`}
+            onClick={() => handleTabChange("previous-problems")}
+          >
+            이전 문제
           </button>
           <button
             className={`home-tab-btn${activeTab === "help" ? " home-tab-btn--active" : ""}`}
@@ -712,6 +752,49 @@ const BattlePage: React.FC = () => {
                   </>
                 )}
               </>
+            )}
+          </div>
+        )}
+
+        {/* 이전 문제 탭 */}
+        {activeTab === "previous-problems" && (
+          <div className="bp-previous-problems">
+            <div className="bp-previous-header">
+              <h2 className="bp-previous-title">이전 문제</h2>
+              <p className="bp-previous-subtitle">지난 3일 이상 종료된 대회들</p>
+            </div>
+
+            {previousProblems.length === 0 ? (
+              <div className="bp-contest-empty">
+                <span className="bp-contest-empty-text">이전 문제가 없습니다.</span>
+              </div>
+            ) : (
+              <div className="bp-previous-table-wrap">
+                <table className="bp-previous-table">
+                  <thead>
+                    <tr>
+                      <th className="bp-prev-th-id">ID</th>
+                      <th className="bp-prev-th-name">이름</th>
+                      <th className="bp-prev-th-info">정보</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previousProblems.map(c => (
+                      <tr key={c.id} className="bp-prev-row" onClick={() => { window.location.hash = `submit/${c.id}`; }}>
+                        <td className="bp-prev-id">#{c.id}</td>
+                        <td className="bp-prev-name">{c.title}</td>
+                        <td className="bp-prev-info">
+                          {isParticipant(c.id) ? (
+                            <span className="bp-prev-participated">참여</span>
+                          ) : (
+                            <span className="bp-prev-not-participated">미참여</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
