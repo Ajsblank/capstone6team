@@ -10,11 +10,13 @@ import {
   PAYMENT_AMOUNT, buildDraft, saveDraft, requestTossPayment,
   loadDraft, clearDraft, deserializeFile,
 } from "../api/paymentApi";
+import { validateContestCode, subscribeToValidationResults, unsubscribeFromValidationResults, ValidationResult } from "../api/validationApi";
 import ContestSidebar from "../components/ContestSidebar";
 import RichTextEditor from "../components/RichTextEditor";
 import AiAssistPanel from "../components/AiAssistPanel";
 import ContestPreviewModal from "../components/ContestPreviewModal";
 import ContestTutorial, { TutSnapshot, TutFileKind } from "../components/ContestTutorial";
+import ValidationResultModal from "../components/ValidationResultModal";
 import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
@@ -46,20 +48,20 @@ function stepPow2(n: number, dir: 1 | -1, min = 128, max = 2048): number {
   return Math.max(min, Math.min(max, Math.pow(2, newExp)));
 }
 
-interface FileInputProps { label: string; required?: boolean; accept?: string; value: File | null; onChange: (f: File | null) => void; hint?: string; }
-const FileInput: React.FC<FileInputProps> = ({ label, required, accept, value, onChange, hint }) => {
+interface FileInputProps { label: string; required?: boolean; accept?: string; value: File | null; onChange: (f: File | null) => void; hint?: string; disabled?: boolean; }
+const FileInput: React.FC<FileInputProps> = ({ label, required, accept, value, onChange, hint, disabled }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="cc-field">
       <label className="cc-label">{label}{required && <Req show={!value} />}{hint && <span className="cc-optional-hint">{hint}</span>}</label>
       <div className="cc-file-row">
-        <button type="button" className="cc-file-btn" onClick={() => inputRef.current?.click()}>파일 선택</button>
+        <button type="button" className="cc-file-btn" onClick={() => inputRef.current?.click()} disabled={disabled}>파일 선택</button>
         <span className={`cc-file-name${!value ? " cc-file-name--empty" : ""}`}>{value ? value.name : "선택된 파일 없음"}</span>
         {value && (
-          <button type="button" className="cc-file-clear" onClick={() => { onChange(null); if (inputRef.current) inputRef.current.value = ""; }}>✕</button>
+          <button type="button" className="cc-file-clear" onClick={() => { onChange(null); if (inputRef.current) inputRef.current.value = ""; }} disabled={disabled}>✕</button>
         )}
       </div>
-      <input ref={inputRef} type="file" accept={accept} style={{ display: "none" }} onChange={(e) => onChange(e.target.files?.[0] ?? null)} />
+      <input ref={inputRef} type="file" accept={accept} style={{ display: "none" }} onChange={(e) => onChange(e.target.files?.[0] ?? null)} disabled={disabled} />
     </div>
   );
 };
@@ -90,6 +92,14 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
   // 결제 확인 모달
   const [showPayConfirm, setShowPayConfirm] = useState(false);
   const [payLoading,     setPayLoading]     = useState(false);
+
+  // 검증 모달
+  const [showValidation, setShowValidation] = useState(false);
+  const [isValidating, setIsValidating]     = useState(false);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+
+  // 검증 완료 상태 (필수 파일 3개 검증 완료)
+  const [validationPassed, setValidationPassed] = useState(false);
 
   // 결제 실패 후 복구 토스트
   const [restoreToast, setRestoreToast] = useState(false);
@@ -242,6 +252,10 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
   const handleAICodeDescChange = (i: number, desc: string) =>
     setExampleAiCodes(prev => prev.map((e, idx) => idx === i ? { ...e, description: desc } : e));
 
+  // 필수 파일 3개 업로드 확인 (샘플 코드, 채점 코드, 예시 AI 코드)
+  const areRequiredFilesUploaded = () =>
+    sampleCodes.length > 0 && !!judgeCode && exampleAiCodes.length > 0;
+
   // 유효성 검사 (공통)
   const validate = (requireViz = false): string[] => {
     const missing: string[] = [];
@@ -257,8 +271,83 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     return missing;
   };
 
-  // 비인증 — 결제 확인 모달 열기
+  // 코드 검증 및 생성
+  const handleValidateAndCreate = async () => {
+    if (!judgeCode || sampleCodes.length === 0 || exampleAiCodes.length === 0 || !user?.id) {
+      setErrorMsg("필수 파일을 모두 업로드해주세요.");
+      return;
+    }
+
+    setIsValidating(true);
+    setValidationResult(null);
+    console.log("[handleValidateAndCreate] 검증 시작");
+
+    try {
+      // 파일 읽기
+      const judgeCodeText = await judgeCode.text();
+      const sampleCodesData = await Promise.all(
+        sampleCodes.map(async file => ({
+          code: await file.text(),
+          language: extToLanguage(file.name) || "CPP",
+        }))
+      );
+      const exampleAiCodesData = await Promise.all(
+        exampleAiCodes.map(async entry => ({
+          code: await entry.file.text(),
+          language: extToLanguage(entry.file.name) || "CPP",
+          description: entry.description,
+        }))
+      );
+
+      // 검증 API 호출
+      await validateContestCode({
+        judgeCode: judgeCodeText,
+        sampleCodes: sampleCodesData,
+        exampleAiCodes: exampleAiCodesData,
+      });
+
+      // 검증 결과 콜백 등록
+      subscribeToValidationResults(
+        (result) => {
+          console.log("[handleValidateAndCreate] 검증 결과 수신:", result);
+          setValidationResult(result);
+          setIsValidating(false);
+          // 모든 항목이 통과되면 validationPassed 상태 업데이트
+          if (result.passed) {
+            setValidationPassed(true);
+            console.log("[handleValidateAndCreate] 검증 완료 - 추가 항목 활성화");
+          }
+        },
+        (error) => {
+          console.error("[handleValidateAndCreate] 검증 오류:", error);
+          setErrorMsg(error.message);
+          setIsValidating(false);
+        }
+      );
+    } catch (err: any) {
+      console.error("[handleValidateAndCreate] 예외:", err);
+      setErrorMsg(err?.message ?? "검증 요청 중 오류가 발생했습니다.");
+      setIsValidating(false);
+    }
+  };
+
+  // 검증 실패 시 재검증
+  const handleRetryValidation = () => {
+    setValidationResult(null);
+    setValidationPassed(false);
+    handleValidateAndCreate();
+  };
+
+  // 검증 성공 후 결제로 진행
+  const handleProceedToPayment = () => {
+    console.log("[handleProceedToPayment] 검증 성공, 결제 확인 모달 열기");
+    setShowValidation(false);
+    setShowPayConfirm(true);
+  };
+
+  // 비인증 — 검증 완료 후 결제 확인 모달 열기
   const handleSubmit = () => {
+    if (!validationPassed) return;
     const missing = validate(false);
     if (missing.length > 0) { setToastMessages(missing); return; }
     setShowPayConfirm(true);
@@ -337,6 +426,19 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
           결제가 취소되었습니다. 입력하신 내용이 복구되었으니 다시 시도해주세요.
         </div>
       )}
+
+      {/* 검증 결과 모달 */}
+      <ValidationResultModal
+        isOpen={showValidation}
+        result={validationResult}
+        isLoading={isValidating}
+        onClose={() => {
+          setShowValidation(false);
+          unsubscribeFromValidationResults();
+        }}
+        onRetry={handleRetryValidation}
+        onProceedToPayment={handleProceedToPayment}
+      />
 
       {/* 결제 확인 모달 */}
       {showPayConfirm && (
@@ -606,28 +708,42 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                     <input key={aiCodeInputKey} id="cc-ai-code-input" type="file" accept=".py,.cpp,.java,.js,.ts,.c,.cs,.go,.rs,.kt,.lua" multiple style={{ display: "none" }} onChange={(e) => handleAICodeAdd(e.target.files)} />
                   </div>
 
-                  <div data-tut="viz">
-                    <FileInput label="시각화 HTML 파일" accept=".html" value={visualizationHtml} onChange={setVisualizationHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
-                    <FileInput label="혼자서 플레이 HTML 파일" accept=".html" value={soloPlayHtml} onChange={setSoloPlayHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
+                  {/* 검증 후 계속 버튼 - 필수 파일 3개 모두 업로드 후 표시 */}
+                  {areRequiredFilesUploaded() && !validationPassed && (
+                    <div className="cc-validate-btn-wrapper">
+                      <button
+                        type="button"
+                        className="cc-validate-btn"
+                        onClick={handleValidateAndCreate}
+                        disabled={isValidating}
+                      >
+                        {isValidating ? "검증 중..." : "검증 후 계속"}
+                      </button>
+                    </div>
+                  )}
+
+                  <div data-tut="viz" className={!validationPassed ? "cc-section--disabled" : ""}>
+                    <FileInput label="시각화 HTML 파일" accept=".html" value={visualizationHtml} onChange={setVisualizationHtml} required={certification} hint={!certification ? " (선택)" : undefined} disabled={!validationPassed} />
+                    <FileInput label="혼자서 플레이 HTML 파일" accept=".html" value={soloPlayHtml} onChange={setSoloPlayHtml} required={certification} hint={!certification ? " (선택)" : undefined} disabled={!validationPassed} />
                   </div>
                 </section>
 
                 {/* 대회 설정 */}
-                <section className="cc-section">
+                <section className={`cc-section${!validationPassed ? " cc-section--disabled" : ""}`}>
                   <h3 className="cc-section-title">대회 설정</h3>
                   <div className="cc-row" data-tut="date">
                     <div className="cc-field">
                       <label className="cc-label">시작 일시 <Req show={!startDate} /></label>
-                      <input className="cc-input cc-input--date" type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                      <input className="cc-input cc-input--date" type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} disabled={!validationPassed} />
                     </div>
                     <div className="cc-field">
                       <label className="cc-label">종료 일시 <Req show={!endDate} /></label>
-                      <input className="cc-input cc-input--date" type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                      <input className="cc-input cc-input--date" type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} disabled={!validationPassed} />
                     </div>
                   </div>
                   <div className="cc-field cc-field--narrow" data-tut="max">
                     <label className="cc-label">최대 참가자 수 <span className="cc-required">*</span></label>
-                    <input className="cc-input" type="number" min={1} max={10000} value={maxParticipants} onChange={(e) => setMaxParticipants(Number(e.target.value))} />
+                    <input className="cc-input" type="number" min={1} max={10000} value={maxParticipants} onChange={(e) => setMaxParticipants(Number(e.target.value))} disabled={!validationPassed} />
                   </div>
                 </section>
 
@@ -653,9 +769,9 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                       </button>
                     </span>
                   ) : certification ? (
-                    <button type="button" className="cc-next-btn" onClick={handleNextStep}>결제 확인 →</button>
+                    <button type="button" className="cc-next-btn" onClick={handleNextStep}>다음 단계 (검수자 설정) →</button>
                   ) : (
-                    <button type="button" className="cc-submit-btn" onClick={handleSubmit}>
+                    <button type="button" className="cc-submit-btn" onClick={handleSubmit} disabled={!validationPassed}>
                       결제 후 생성
                     </button>
                   )}

@@ -88,9 +88,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 로그인/페이지 새로고침 시 SSE 재연결, 로그아웃 시 해제
   useEffect(() => {
     if (user?.id) {
-      console.log("[AppContext] SSE 연결 보장 — userId:", user.id);
+      console.log("[AppContext] ========== SSE 연결 시작 ==========");
+      console.log("[AppContext] 사용자 로그인 감지:", {
+        userId: user.id,
+        username: user.username,
+        timestamp: new Date().toLocaleTimeString()
+      });
+      console.log("[AppContext] ensureSseConnected() 호출 → /api/subscribe/{userId} 연결 시도");
       ensureSseConnected(user.id);
     } else {
+      console.log("[AppContext] ========== SSE 연결 해제 ==========");
+      console.log("[AppContext] 로그아웃 감지 → SSE 연결 종료");
       setJoinedContestIds([]);
       setHostedContestIds([]);
       setCreatedContestIds([]);
