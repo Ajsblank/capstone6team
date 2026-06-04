@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -40,11 +39,16 @@ import com.asap.server.repository.usersRepository;
 @DisplayName("PaymentService 단위 테스트")
 class PaymentServiceTest {
 
-    @Mock private PaymentRepository paymentRepository;
-    @Mock private CodeBattleContestRepository contestRepository;
-    @Mock private usersRepository userRepository;
-    @Mock private TransactionTemplate transactionTemplate;
-    @Mock private RestClient restClient;
+    @Mock
+    private PaymentRepository paymentRepository;
+    @Mock
+    private CodeBattleContestRepository contestRepository;
+    @Mock
+    private usersRepository userRepository;
+    @Mock
+    private TransactionTemplate transactionTemplate;
+    @Mock
+    private RestClient restClient;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -71,9 +75,9 @@ class PaymentServiceTest {
 
         // RestClient 체인 단계별 설정
         requestBodyUriSpec = mock(RestClient.RequestBodyUriSpec.class);
-        requestBodySpec    = mock(RestClient.RequestBodySpec.class);
+        requestBodySpec = mock(RestClient.RequestBodySpec.class);
         requestHeadersSpec = mock(RestClient.RequestHeadersSpec.class);
-        responseSpec       = mock(RestClient.ResponseSpec.class);
+        responseSpec = mock(RestClient.ResponseSpec.class);
 
         lenient().when(restClient.post()).thenReturn(requestBodyUriSpec);
         lenient().when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodySpec);

@@ -75,6 +75,11 @@ public class FullLeagueService {
                 return;
             }
 
+            Map<Long, String> codeCache = new HashMap<>();
+            for (CodeBattleSubmission s : submissions) {
+                codeCache.put(s.getId(), s3Service.readFileAsString(s.getCodeUrl()));
+            }
+            log.info("[풀리그] 대회 ID={}을 위한 코드를 S3에서 불러옴", contestId);
             log.info("[풀리그] 풀리그 대회 ID: {}, {}개의 제출 코드로 매칭을 생성합니다.", contestId, submissions.size());
 
             int expected = (submissions.size() * (submissions.size() - 1)) / 2;
@@ -97,7 +102,8 @@ public class FullLeagueService {
                         redisTemplate.opsForList().leftPush("contest:matchIds:" + contestId,
                                 String.valueOf(match.getId()));
                         // 큐에 적재
-                        enqueueMatchToGradingQueue(match.getId(), contest, s1, s2, 0);
+                        enqueueMatchToGradingQueue(match.getId(), contest, s1, s2, codeCache.get(s1.getId()),
+                                codeCache.get(s2.getId()), 0);
                         enqueued++;
 
                     } catch (Exception e) {
@@ -124,26 +130,12 @@ public class FullLeagueService {
             CodeBattleContest contest,
             CodeBattleSubmission s1,
             CodeBattleSubmission s2,
+            String player1Code,
+            String player2Code,
             int aiOrder) throws Exception {
 
-        // S3에서 코드 읽기 비활성화
-        // log.info("[S3] judge={}", contest.getJudgeCode());
-        // log.info("[S3] p1={}", s1.getCodeUrl());
-        // log.info("[S3] p2={}", s2.getCodeUrl());
-
-        // String judgeCode = s3Service.readFileAsString(contest.getJudgeCode());
-        // String player1Code = s3Service.readFileAsString(s1.getCodeUrl());
-        // String player2Code = s3Service.readFileAsString(s2.getCodeUrl());
-
-        // log.info("[S3] 읽기 완료. judge={}자, p1={}자, p2={}자",
-        // judgeCode.length(), player1Code.length(), player2Code.length());
         String judgeCode = contest.getJudgeCode();
-        String player1Code = s1.getCodeUrl();
-        String player2Code = s2.getCodeUrl();
-        // S3 시 사용
-        // log.info("[대회 처리] judge={}, 길이={}", judgeCode, judgeCode.length());
-        // log.info("[대회 처리] p1={}, 길이={}", player1Code, player1Code.length());
-        // log.info("[대회 처리] p2={}, 길이={}", player2Code, player2Code.length());
+
         log.info("[대회 처리] 길이={}", judgeCode.length());
         log.info("[대회 처리] 길이={}", player1Code.length());
         log.info("[대회 처리] 길이={}", player2Code.length());
