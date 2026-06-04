@@ -547,8 +547,8 @@ public class ContestService {
 
     public void validateContestCodes(Long userId, ValidateContestRequest req) {
         String pendingKey = "validate:" + userId + ":pending";
-        String logsKey    = "validate:" + userId + ":logs";
-        String labelsKey  = "validate:" + userId + ":labels";
+        String labelsKey  = "validate:" + userId + ":labels"; // hash: jobId -> label
+        String resultsKey = "validate:" + userId + ":results"; // hash: jobId -> log
 
         if (Boolean.TRUE.equals(redisTemplate.hasKey(pendingKey))) {
             throw new IllegalStateException("이미 진행 중인 검증 요청이 있습니다. 완료 후 다시 시도해주세요.");
@@ -556,44 +556,48 @@ public class ContestService {
 
         SampleCodeRequest skeleton = req.getSampleCodes().get(0);
         String skeletonLang = skeleton.getLanguage().name().toLowerCase();
-        int jobCount = 1 + req.getExampleAiCodes().size();
+        List<ExampleAiRequest> aiCodes = req.getExampleAiCodes();
+        int jobCount = 1 + aiCodes.size();
 
-        redisTemplate.delete(logsKey);
         redisTemplate.delete(labelsKey);
+        redisTemplate.delete(resultsKey);
         redisTemplate.opsForValue().set(pendingKey, String.valueOf(jobCount), 10, java.util.concurrent.TimeUnit.MINUTES);
 
         try {
-            // 1) judge vs skeleton × skeleton — judge + 스켈레톤 코드 검증
-            redisTemplate.opsForList().leftPush(labelsKey, "샘플 코드");
-            pushTestJob(userId, req.getJudgeCode(),
+            // 1) judge vs 샘플 × 샘플
+            String jobId0 = userId + "_0";
+            redisTemplate.opsForHash().put(labelsKey, jobId0, "샘플 코드");
+            pushTestJob(jobId0, userId, req.getJudgeCode(),
                     skeleton.getCode(), skeletonLang,
                     skeleton.getCode(), skeletonLang);
 
-            // 2) judge vs skeleton × exampleAi[i] — 각 AI 코드 검증
-            List<ExampleAiRequest> aiCodes = req.getExampleAiCodes();
+            // 2) judge vs 샘플 × exampleAi[i]
             for (int i = 0; i < aiCodes.size(); i++) {
                 ExampleAiRequest ai = aiCodes.get(i);
-                redisTemplate.opsForList().leftPush(labelsKey, "Example AI " + (i + 1) + "번");
-                pushTestJob(userId, req.getJudgeCode(),
+                String jobId = userId + "_" + (i + 1);
+                redisTemplate.opsForHash().put(labelsKey, jobId, "Example AI " + (i + 1) + "번");
+                pushTestJob(jobId, userId, req.getJudgeCode(),
                         skeleton.getCode(), skeletonLang,
                         ai.getCode(), ai.getLanguage().name().toLowerCase());
             }
             redisTemplate.expire(labelsKey, 10, java.util.concurrent.TimeUnit.MINUTES);
+            redisTemplate.expire(resultsKey, 10, java.util.concurrent.TimeUnit.MINUTES);
         } catch (JsonProcessingException e) {
             redisTemplate.delete(pendingKey);
-            redisTemplate.delete(logsKey);
             redisTemplate.delete(labelsKey);
+            redisTemplate.delete(resultsKey);
             throw new IllegalStateException("검증 요청 직렬화 실패", e);
         }
 
         log.info("[검증] userId={} 검증 요청 {}건 큐 적재 완료", userId, jobCount);
     }
 
-    private void pushTestJob(Long userId,
+    private void pushTestJob(String jobId, Long userId,
                              String judgeCode,
                              String p1Code, String p1Lang,
                              String p2Code, String p2Lang) throws JsonProcessingException {
         ObjectNode payload = objectMapper.createObjectNode();
+        payload.put("jobId", jobId);
         payload.put("userId", userId);
         payload.put("judge", judgeCode);
         payload.put("player1", p1Code);

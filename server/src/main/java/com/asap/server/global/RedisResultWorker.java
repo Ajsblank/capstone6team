@@ -193,71 +193,70 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
             String resultLog = rootNode.get("log").asText();
 
             String pendingKey = "validate:" + targetUserId + ":pending";
-            String logsKey    = "validate:" + targetUserId + ":logs";
-            String labelsKey  = "validate:" + targetUserId + ":labels";
+            String labelsKey  = "validate:" + targetUserId + ":labels";  // hash: jobId -> label
+            String resultsKey = "validate:" + targetUserId + ":results"; // hash: jobId -> log
 
             // 검증 요청인지 확인 (pendingKey 존재 여부로 판단)
             if (Boolean.FALSE.equals(redisTemplate.hasKey(pendingKey))) {
-                // 검수자 테스트 — 기존대로 즉시 전송
                 sseService.sendToUser(targetUserId, resultLog, "test_result");
                 log.info("🎯 유저(ID: {}) 검수자 결과 SSE 전송 완료", targetUserId);
                 return;
             }
 
-            // 잡 설명 꺼내기 (leftPush로 쌓았으므로 rightPop이 FIFO 순서)
-            String label = redisTemplate.opsForList().rightPop(labelsKey);
+            // jobId로 결과 저장 (순서 무관)
+            String jobId = rootNode.has("jobId") ? rootNode.get("jobId").asText() : "unknown";
+            redisTemplate.opsForHash().put(resultsKey, jobId, resultLog);
 
-            // 검증 요청 — 로그+라벨 묶어서 누적 후 카운터 차감
-            String entry = (label != null ? label : "알 수 없음") + "|" + resultLog;
-            redisTemplate.opsForList().leftPush(logsKey, entry);
             Long remaining = redisTemplate.opsForValue().decrement(pendingKey);
-            log.info("[검증] userId={} 남은 결과 수={}", targetUserId, remaining);
+            log.info("[검증] userId={} jobId={} 남은 결과 수={}", targetUserId, jobId, remaining);
 
             if (remaining != null && remaining <= 0) {
-                // 모든 결과 수집 완료 → 한 번만 SSE 전송
-                java.util.List<String> allLogs = redisTemplate.opsForList().range(logsKey, 0, -1);
-                if (allLogs != null) java.util.Collections.reverse(allLogs); // 적재 순서대로 표시
+                // 모든 결과 수집 완료 → jobId 기준으로 label과 매칭하여 SSE 1회 전송
+                java.util.Map<Object, Object> labelMap  = redisTemplate.opsForHash().entries(labelsKey);
+                java.util.Map<Object, Object> resultMap = redisTemplate.opsForHash().entries(resultsKey);
+
+                // jobId 정렬 (userId_0, userId_1, ... 순서 보장)
+                java.util.List<String> sortedJobIds = labelMap.keySet().stream()
+                        .map(Object::toString)
+                        .sorted(java.util.Comparator.comparingInt(id -> {
+                            String[] parts = id.split("_");
+                            return Integer.parseInt(parts[parts.length - 1]);
+                        }))
+                        .collect(java.util.stream.Collectors.toList());
 
                 java.util.List<java.util.Map<String, Object>> details = new java.util.ArrayList<>();
                 boolean passed = true;
 
-                if (allLogs != null) {
-                    for (String storedEntry : allLogs) {
-                        // target|log 형태로 저장된 값 분리
-                        int sep = storedEntry.indexOf('|');
-                        String target = sep >= 0 ? storedEntry.substring(0, sep) : "알 수 없음";
-                        String singleLog = sep >= 0 ? storedEntry.substring(sep + 1) : storedEntry;
+                for (String jid : sortedJobIds) {
+                    String target    = String.valueOf(labelMap.getOrDefault(jid, "알 수 없음"));
+                    String singleLog = String.valueOf(resultMap.getOrDefault(jid, ""));
 
-                        java.util.Map<String, Object> detail = new java.util.LinkedHashMap<>();
-                        String failReason = null;
+                    java.util.Map<String, Object> detail = new java.util.LinkedHashMap<>();
+                    String failReason = null;
 
-                        // 1) 컴파일 에러 확인
-                        if (singleLog.contains("Compile Error")) {
-                            failReason = singleLog.trim();
-                        } else if (singleLog.isBlank()) {
-                            // 2) judge가 아무 출력 없이 종료
-                            failReason = "Judge 출력 없음 (비정상 종료)";
-                        } else {
-                            // 3) 마지막 줄 형식 확인 (WIN|LOSE|NONE|TIME_LIMIT|MEMORY_LIMIT|ERROR 두 값)
-                            String trimmed = singleLog.stripTrailing();
-                            int lastNl = trimmed.lastIndexOf('\n');
-                            String lastLine = (lastNl >= 0 ? trimmed.substring(lastNl + 1) : trimmed).trim();
-                            if (!isValidResultLine(lastLine)) {
-                                failReason = "Judge 런타임 오류";
-                            }
+                    if (singleLog.contains("Compile Error")) {
+                        failReason = singleLog.trim();
+                    } else if (singleLog.isBlank()) {
+                        failReason = "Judge 출력 없음 (비정상 종료)";
+                    } else {
+                        String trimmed = singleLog.stripTrailing();
+                        int lastNl = trimmed.lastIndexOf('\n');
+                        String lastLine = (lastNl >= 0 ? trimmed.substring(lastNl + 1) : trimmed).trim();
+                        if (!isValidResultLine(lastLine)) {
+                            failReason = "Judge 런타임 오류";
                         }
-
-                        detail.put("target", target);
-                        detail.put("log", singleLog);
-                        if (failReason != null) {
-                            detail.put("passed", false);
-                            detail.put("reason", failReason);
-                            passed = false;
-                        } else {
-                            detail.put("passed", true);
-                        }
-                        details.add(detail);
                     }
+
+                    detail.put("target", target);
+                    detail.put("log", singleLog);
+                    if (failReason != null) {
+                        detail.put("passed", false);
+                        detail.put("reason", failReason);
+                        passed = false;
+                    } else {
+                        detail.put("passed", true);
+                    }
+                    details.add(detail);
                 }
 
                 java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
@@ -268,8 +267,8 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
                 log.info("🎯 유저(ID: {}) 검증 완료 SSE 전송 (passed={})", targetUserId, passed);
 
                 redisTemplate.delete(pendingKey);
-                redisTemplate.delete(logsKey);
                 redisTemplate.delete(labelsKey);
+                redisTemplate.delete(resultsKey);
             }
 
         } catch (JsonProcessingException e) {
