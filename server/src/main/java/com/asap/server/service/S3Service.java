@@ -26,6 +26,7 @@ public class S3Service {
   @Value("${cloud.aws.s3.bucket}")
   private String bucket;
 
+  // 안쓰고 있음 추후 삭제 고려
   @Value("${cloud.aws.cloudfront.url}")
   private String cloudFront;
 
