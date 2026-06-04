@@ -23,6 +23,7 @@ jobs:
       SOL_SENDER_NUMBER: ${{secrets.SOL_SENDER_NUMBER}}
       AWS_REGION: ${{secrets.AWS_REGION}}
       AWS_BUCKET_TEST: ${{secrets.AWS_BUCKET_TEST}}
+      AWS_CLOUD_FRONT: ${{vars.AWS_CLOUD_FRONT}}
       TOSS_CLIENT_KEY: ${{secrets.TOSS_CLIENT_KEY}}
       TOSS_SECRET_KEY: ${{secrets.TOSS_CLIENT_KEY}}
       REDIS_HOST: 127.0.0.1
