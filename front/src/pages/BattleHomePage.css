@@ -1298,100 +1298,67 @@
   overflow: hidden;
 }
 
-/* 1위 — 금 / 영롱 */
+/* 1위 — 금 */
 .bp-podium-card--1st {
   width: 240px;
-  background: linear-gradient(135deg, #fffbeb, #fef3c7, #fde68a, #fbbf24, #f59e0b, #fbbf24, #fde68a, #fef3c7, #fffbeb);
-  background-size: 400% 400%;
-  box-shadow: 0 0 0 3px #fbbf24, 0 0 32px rgba(251,191,36,0.5), 0 10px 36px rgba(245,158,11,0.3);
-  animation: bp-gold-sweep 4s ease infinite, bp-float 3.2s ease-in-out infinite, bp-glow-gold 2.5s ease-in-out infinite;
-}
-
-@keyframes bp-gold-sweep {
-  0%, 100% { background-position: 0% 50%; }
-  50%       { background-position: 100% 50%; }
-}
-
-@keyframes bp-float {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-10px); }
-}
-
-@keyframes bp-glow-gold {
-  0%, 100% { box-shadow: 0 0 0 3px #fbbf24, 0 0 22px rgba(251,191,36,0.45), 0 10px 28px rgba(245,158,11,0.25); }
-  50%       { box-shadow: 0 0 0 3px #f59e0b, 0 0 50px rgba(251,191,36,0.75), 0 10px 44px rgba(245,158,11,0.55); }
-}
-
-/* 1위 — 오버레이 광택 */
-.bp-podium-card--1st::after {
-  content: '';
-  position: absolute;
-  top: -60%;
-  left: -60%;
-  width: 45%;
-  height: 220%;
-  background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.55) 50%, transparent 80%);
-  animation: bp-shine-sweep 3.5s ease-in-out infinite;
-  pointer-events: none;
-  border-radius: 0;
-}
-
-@keyframes bp-shine-sweep {
-  0%   { left: -60%; }
-  100% { left: 130%; }
+  background: #fffbf0;
+  border: 1.5px solid #f59e0b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 /* 2위 — 실버 */
 .bp-podium-card--2nd {
-  background: linear-gradient(135deg, #f8fafc, #e2e8f0, #cbd5e1, #94a3b8, #cbd5e1, #e2e8f0, #f8fafc);
-  background-size: 400% 400%;
-  box-shadow: 0 0 0 2px #94a3b8, 0 0 18px rgba(148,163,184,0.4), 0 4px 18px rgba(100,116,139,0.2);
-  animation: bp-silver-sweep 5s ease infinite;
-}
-
-@keyframes bp-silver-sweep {
-  0%, 100% { background-position: 0% 50%; }
-  50%       { background-position: 100% 50%; }
+  background: #fafbfc;
+  border: 1.5px solid #d1d5db;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 /* 3위 — 브론즈 */
 .bp-podium-card--3rd {
-  background: linear-gradient(135deg, #fff7ed, #fed7aa, #fdba74, #f97316, #fdba74, #fed7aa, #fff7ed);
-  background-size: 400% 400%;
-  box-shadow: 0 0 0 2px #f97316, 0 0 18px rgba(249,115,22,0.3), 0 4px 18px rgba(234,88,12,0.2);
-  animation: bp-bronze-sweep 5s ease infinite;
+  background: #fef8f1;
+  border: 1.5px solid #cd7f32;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-@keyframes bp-bronze-sweep {
-  0%, 100% { background-position: 0% 50%; }
-  50%       { background-position: 100% 50%; }
-}
-
-/* 왕관 */
-.bp-podium-crown-wrap {
+/* 순위 숫자 */
+.bp-podium-rank-num {
+  font-size: 2rem;
+  font-weight: 900;
   height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #9ca3af;
+  letter-spacing: -0.02em;
+  font-family: 'Courier New', monospace;
+}
+
+.bp-podium-card--1st .bp-podium-rank-num {
+  color: #f59e0b;
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.6), 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+.bp-podium-card--2nd .bp-podium-rank-num {
+  color: #9ca3af;
+  text-shadow: 0 0 10px rgba(156, 163, 175, 0.6), 0 0 20px rgba(156, 163, 175, 0.3);
+}
+
+.bp-podium-card--3rd .bp-podium-rank-num {
+  color: #cd7f32;
+  text-shadow: 0 0 10px rgba(205, 127, 50, 0.6), 0 0 20px rgba(205, 127, 50, 0.3);
+}
+
+/* 왕관 (레거시) */
+.bp-podium-crown-wrap {
+  display: none;
 }
 
 .bp-podium-crown-icon {
-  font-size: 1.85rem;
-  filter: drop-shadow(0 2px 10px rgba(245,158,11,0.9));
-  animation: bp-crown-wobble 2s ease-in-out infinite;
-  display: inline-block;
-}
-
-@keyframes bp-crown-wobble {
-  0%, 100% { transform: rotate(-6deg) scale(1); }
-  50%       { transform: rotate(6deg) scale(1.12); }
+  display: none;
 }
 
 .bp-podium-emblem {
-  font-size: 1.55rem;
-  height: 30px;
-  display: flex;
-  align-items: center;
+  display: none;
 }
 
 /* 아바타 */
@@ -1408,27 +1375,24 @@
   width: 76px;
   height: 76px;
   font-size: 1.7rem;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: #f59e0b;
   color: #fff;
-  box-shadow: 0 0 0 4px #fef3c7, 0 0 20px rgba(245,158,11,0.65);
 }
 
 .bp-podium-avatar--2nd {
   width: 62px;
   height: 62px;
   font-size: 1.4rem;
-  background: linear-gradient(135deg, #64748b, #475569);
+  background: #9ca3af;
   color: #fff;
-  box-shadow: 0 0 0 3px #e2e8f0;
 }
 
 .bp-podium-avatar--3rd {
   width: 62px;
   height: 62px;
   font-size: 1.4rem;
-  background: linear-gradient(135deg, #ea580c, #c2410c);
+  background: #cd7f32;
   color: #fff;
-  box-shadow: 0 0 0 3px #fed7aa;
 }
 
 /* 이름·포인트 */
@@ -1455,17 +1419,7 @@
 
 .bp-podium-card--1st .bp-podium-pts {
   font-size: 1.3rem;
-  background: linear-gradient(90deg, #92400e, #d97706, #f59e0b, #d97706, #92400e);
-  background-size: 250% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: bp-pts-shimmer 2.2s linear infinite;
-}
-
-@keyframes bp-pts-shimmer {
-  0%   { background-position: 0% center; }
-  100% { background-position: 250% center; }
+  color: #f59e0b;
 }
 
 .bp-podium-pts span {
@@ -1475,7 +1429,7 @@
   opacity: 0.65;
 }
 
-.bp-podium-card--1st .bp-podium-pts span { -webkit-text-fill-color: initial; color: #b45309; opacity: 0.7; }
+.bp-podium-card--1st .bp-podium-pts span { color: #f59e0b; opacity: 0.7; }
 
 /* 배지 */
 .bp-podium-stats {
@@ -1507,12 +1461,12 @@
 .bp-podium-plinth span {
   font-size: 2.2rem;
   font-weight: 900;
-  opacity: 0.18;
+  opacity: 0;
 }
 
-.bp-podium-plinth--1st { height: 88px; background: linear-gradient(180deg, rgba(251,191,36,0.28) 0%, rgba(245,158,11,0.48) 100%); }
-.bp-podium-plinth--2nd { height: 64px; background: linear-gradient(180deg, rgba(148,163,184,0.28) 0%, rgba(100,116,139,0.48) 100%); }
-.bp-podium-plinth--3rd { height: 48px; background: linear-gradient(180deg, rgba(249,115,22,0.2)  0%, rgba(234,88,12,0.4)  100%); }
+.bp-podium-plinth--1st { height: 88px; background: transparent; }
+.bp-podium-plinth--2nd { height: 64px; background: transparent; }
+.bp-podium-plinth--3rd { height: 48px; background: transparent; }
 
 /* ── 4·5위 ── */
 .bp-ranking-top5-wrap {
@@ -1533,15 +1487,15 @@
 }
 
 .bp-top5-row--4 {
-  background: linear-gradient(135deg, #faf5ff, #ede9fe, #ddd6fe);
-  border: 1.5px solid #c4b5fd;
-  box-shadow: 0 2px 12px rgba(139,92,246,0.13);
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .bp-top5-row--5 {
-  background: linear-gradient(135deg, #eff6ff, #dbeafe, #bfdbfe);
-  border: 1.5px solid #93c5fd;
-  box-shadow: 0 2px 12px rgba(59,130,246,0.13);
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .bp-top5-rank {
@@ -1550,10 +1504,8 @@
   width: 34px;
   text-align: center;
   flex-shrink: 0;
+  color: #9ca3af;
 }
-
-.bp-top5-row--4 .bp-top5-rank { color: #7c3aed; }
-.bp-top5-row--5 .bp-top5-rank { color: #1d4ed8; }
 
 .bp-top5-avatar {
   width: 44px;
@@ -1566,10 +1518,8 @@
   font-weight: 800;
   color: #fff;
   flex-shrink: 0;
+  background: #9ca3af;
 }
-
-.bp-top5-row--4 .bp-top5-avatar { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
-.bp-top5-row--5 .bp-top5-avatar { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
 
 .bp-top5-name {
   flex: 1;
@@ -1631,12 +1581,12 @@
 .bp-rank-row:hover td { filter: brightness(0.97); }
 
 /* 컬럼별 셀 배경 + 색상 */
-.bp-rank-row td.bp-rank-num    { background: #fafafa;  color: #7e8694; font-weight: 700; }
-.bp-rank-row td.bp-rank-user   { background: #ffffff;  color: #111827; }
-.bp-rank-row td.bp-rank-pts    { background: #fffbf8;  color: #ea580c; font-weight: 700; }
-.bp-rank-row td.bp-rank-cert   { background: #f8fffe;  color: #166534; font-weight: 600; }
-.bp-rank-row td.bp-rank-uncert { background: #fefff5;  color: #854d0e; font-weight: 600; }
-.bp-rank-row td.bp-rank-total  { background: #f8fafc;  color: #475569; font-weight: 600; }
+.bp-rank-row td.bp-rank-num    { background: #ffffff; color: #9ca3af; font-weight: 700; }
+.bp-rank-row td.bp-rank-user   { background: #ffffff; color: #111827; }
+.bp-rank-row td.bp-rank-pts    { background: #ffffff; color: #111827; font-weight: 700; }
+.bp-rank-row td.bp-rank-cert   { background: #ffffff; color: #166534; font-weight: 600; }
+.bp-rank-row td.bp-rank-uncert { background: #ffffff; color: #9a3412; font-weight: 600; }
+.bp-rank-row td.bp-rank-total  { background: #ffffff; color: #6b7280; font-weight: 600; }
 
 .bp-rank-user {
   display: flex;
@@ -1649,7 +1599,7 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ea580c, #c2410c);
+  background: #9ca3af;
   color: #fff;
   display: inline-flex;
   align-items: center;
