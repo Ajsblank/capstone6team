@@ -127,6 +127,7 @@ int main(int argc, char* argv[]) {
         std::cout << "[Worker] 코드 배틀 서버 시작...\n";
 
         while (true) {
+            try {
             auto item = redis.brpop({"code_battle_test_queue", "code_battle_grading_queue", "code_battle_swiss_league_queue", "code_battle_full_league_queue"}, 0);
             if (!item) continue;
             std::string queue_name = item->first;
@@ -157,6 +158,7 @@ int main(int argc, char* argv[]) {
                 json result_json;
                 result_json["userId"] = data["userId"];
                 result_json["log"] = "error";
+                if (data.contains("jobId")) result_json["jobId"] = data["jobId"];
 
                 // Dockerfile 생성 및 build 제거 -> 볼륨 마운트로 즉시 컴파일
                 std::cout << "빌드 중..." << std::endl;
@@ -316,9 +318,12 @@ int main(int argc, char* argv[]) {
                 
                 std::cout << "▶ 매치 처리 완료. 다음 대결을 대기합니다." << std::endl;
             }
+            } catch (const std::exception& e) {
+                std::cerr << "[에러] 작업 처리 중 예외 발생: " << e.what() << std::endl;
+            }
         }
-    } catch (const Error &e) {
-        std::cerr << "Redis 에러 발생: " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "초기화 에러: " << e.what() << std::endl;
     }
 
     return 0;
