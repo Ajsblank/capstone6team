@@ -49,10 +49,10 @@ const LoginPage: React.FC = () => {
 
         <form className="login-form" onSubmit={handleLogin} noValidate>
           <div className="login-field">
-            <label className="login-label" htmlFor="login-email">이메일</label>
+            <label className="label" htmlFor="login-email">이메일</label>
             <input
               id="login-email"
-              className="login-input"
+              className="input"
               type="email"
               placeholder="example@email.com"
               value={email}
@@ -62,10 +62,10 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div className="login-field">
-            <label className="login-label" htmlFor="login-password">비밀번호</label>
+            <label className="label" htmlFor="login-password">비밀번호</label>
             <input
               id="login-password"
-              className="login-input"
+              className="input"
               type="password"
               placeholder="비밀번호를 입력하세요"
               value={password}
@@ -76,7 +76,7 @@ const LoginPage: React.FC = () => {
 
           {error && <p className="login-error">{error}</p>}
 
-          <button className="login-btn login-btn--primary" type="submit" disabled={submitting}>
+          <button className="btn btn-primary btn-full" type="submit" disabled={submitting}>
             {submitting ? "로그인 중..." : "로그인"}
           </button>
         </form>

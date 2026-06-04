@@ -42,7 +42,7 @@
 .sp-back-btn {
   background: none;
   border: none;
-  color: #9ca3af;
+  color: #7e8694;
   cursor: pointer;
   font-size: 0.82rem;
   font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
@@ -87,7 +87,7 @@
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: #6b7280;
+  color: #4b5563;
   font-size: 0.88rem;
   font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   padding: 0 14px;
@@ -99,7 +99,7 @@
 .sp-sub-tab-btn:hover { color: #111827; }
 .sp-sub-tab-btn--active { color: #ea580c; border-bottom-color: #ea580c; font-weight: 600; }
 .sp-sub-tab-btn--disabled { opacity: 0.38; cursor: not-allowed; }
-.sp-sub-tab-btn--disabled:hover { color: #6b7280; }
+.sp-sub-tab-btn--disabled:hover { color: #4b5563; }
 .sp-sub-tab-btn--unavailable { color: #f97316; opacity: 0.45; cursor: not-allowed; }
 .sp-sub-tab-btn--unavailable:hover { color: #f97316; }
 
@@ -114,7 +114,7 @@
 .placeholder-panel {
   flex: 1; display: flex; align-items: center; justify-content: center;
 }
-.placeholder-text { font-size: 1rem; color: #9ca3af; font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; }
+.placeholder-text { font-size: 1rem; color: #7e8694; font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; }
 
 .code-submit-panel {
   flex: 1; display: flex;

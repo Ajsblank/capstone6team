@@ -55,7 +55,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
       <div className="home-auth-area">
         <button
-          className="home-auth-btn home-auth-btn--ghost"
+          className="btn btn-ghost btn-sm"
           onClick={() => navigate("landing")}
         >
           메인
@@ -65,19 +65,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             <span className="home-username" onClick={() => navigate("profile")} title="프로필 보기">
               {user.username}
             </span>
-            <button className="home-auth-btn home-auth-btn--secondary" onClick={() => navigate("account-settings")}>
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate("account-settings")}>
               설정
             </button>
-            <button className="home-auth-btn home-auth-btn--ghost" onClick={() => logout()}>
+            <button className="btn btn-ghost btn-sm" onClick={() => logout()}>
               로그아웃
             </button>
           </>
         ) : (
           <>
-            <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("signup")}>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate("signup")}>
               회원가입
             </button>
-            <button className="home-auth-btn home-auth-btn--primary" onClick={() => navigate("login")}>
+            <button className="btn btn-primary btn-sm" onClick={() => navigate("login")}>
               로그인
             </button>
           </>

@@ -70,7 +70,7 @@
 .pp-back-btn {
   background: none;
   border: none;
-  color: #9ca3af;
+  color: #7e8694;
   font-size: 0.82rem;
   font-family: inherit;
   cursor: pointer;
@@ -106,17 +106,17 @@
 .pp-btn--primary:disabled { opacity: 0.5; cursor: default; }
 .pp-btn--ghost {
   background: none;
-  color: #6b7280;
+  color: #4b5563;
   border-color: #e5e7eb;
 }
-.pp-btn--ghost:hover { border-color: #9ca3af; color: #374151; }
+.pp-btn--ghost:hover { border-color: #7e8694; color: #374151; }
 .pp-btn--ghost:disabled { opacity: 0.5; cursor: default; }
 
 /* ── 상태 메시지 ── */
 .pp-status {
   padding: 60px 28px;
   text-align: center;
-  color: #9ca3af;
+  color: #7e8694;
   font-size: 0.9rem;
 }
 .pp-status--error { color: #ef4444; }
@@ -168,7 +168,7 @@
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.07em;
-  color: #9ca3af;
+  color: #7e8694;
   text-transform: uppercase;
 }
 
@@ -187,9 +187,9 @@
 .pp-tag {
   font-size: 0.8rem;
   font-weight: 400;
-  color: #9ca3af;
+  color: #7e8694;
 }
-.pp-value--muted { color: #6b7280; }
+.pp-value--muted { color: #4b5563; }
 .pp-value--bio {
   white-space: pre-wrap;
   line-height: 1.6;

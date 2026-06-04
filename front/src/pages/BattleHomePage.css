@@ -221,7 +221,7 @@
 
 .bp-cost-note {
   font-size: 0.78rem;
-  color: #6b7280;
+  color: #4b5563;
   text-align: center;
   line-height: 1.6;
   margin: 0;
@@ -385,7 +385,7 @@
   transition: color 0.15s;
 }
 .bp-problem-card:hover .bp-problem-num {
-  color: #9ca3af;
+  color: #7e8694;
 }
 
 .bp-problem-title {
@@ -438,7 +438,7 @@
   background: #f9fafb;
   border: 1px solid #d1d5db;
   border-radius: 6px;
-  color: #6b7280;
+  color: #4b5563;
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
@@ -452,7 +452,7 @@
 
 .bp-problem-desc {
   font-size: 0.82rem;
-  color: #9ca3af;
+  color: #7e8694;
   margin: 0;
   line-height: 1.5;
   overflow: hidden;
@@ -495,7 +495,7 @@
 
 .bp-problem-arrow {
   font-size: 1.1rem;
-  color: #9ca3af;
+  color: #7e8694;
   transition: color 0.15s, transform 0.15s;
 }
 .bp-problem-card:hover .bp-problem-arrow {
@@ -551,7 +551,7 @@
   border: 1px dashed #d1d5db;
   border-radius: 10px;
 }
-.bp-contest-empty-text { font-size: 0.95rem; color: #9ca3af; }
+.bp-contest-empty-text { font-size: 0.95rem; color: #7e8694; }
 
 /* ── 페이지네이션 ── */
 .bp-pagination {
@@ -586,7 +586,7 @@
 
 .bp-page-info {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: #4b5563;
   min-width: 60px;
   text-align: center;
 }
@@ -633,7 +633,7 @@
   flex: 1 1 160px;
 }
 .bp-filter-input:focus { border-color: #ea580c; }
-.bp-filter-input::placeholder { color: #9ca3af; }
+.bp-filter-input::placeholder { color: #7e8694; }
 
 .bp-filter-date-group {
   display: flex;
@@ -644,7 +644,7 @@
 
 .bp-filter-date-label {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: #4b5563;
   white-space: nowrap;
 }
 
@@ -664,7 +664,7 @@
 
 .bp-filter-date-sep {
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: #7e8694;
 }
 
 .bp-filter-reset {
@@ -673,7 +673,7 @@
   background: none;
   border: 1px solid #e5e7eb;
   border-radius: 7px;
-  color: #6b7280;
+  color: #4b5563;
   font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 0.82rem;
   font-weight: 600;
@@ -689,7 +689,7 @@
 
 .bp-filter-count {
   font-size: 0.82rem;
-  color: #9ca3af;
+  color: #7e8694;
   margin: 0;
 }
 
@@ -699,7 +699,7 @@
   align-items: center;
   gap: 4px;
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: #7e8694;
   margin: 3px 0 4px;
   line-height: 1.4;
 }
@@ -733,7 +733,7 @@
 /* ── 상태 배지 — 종료 ── */
 .bp-problem-difficulty--ended {
   background: #f3f4f6;
-  color: #6b7280;
+  color: #4b5563;
   border-color: #e5e7eb;
 }
 
@@ -869,7 +869,7 @@
 
 .bp-help-nav-desc {
   font-size: 0.7rem;
-  color: #9ca3af;
+  color: #7e8694;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1238,7 +1238,7 @@
 .bp-contact-label {
   font-size: 0.7rem;
   font-weight: 700;
-  color: #9ca3af;
+  color: #7e8694;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 3px;
@@ -1274,7 +1274,7 @@
 
 .bp-ranking-subtitle {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: #7e8694;
   margin: 0;
 }
 
@@ -1613,7 +1613,7 @@
 }
 
 /* 컬럼별 헤더 색상 */
-.bp-th-num    { background: #f9fafb; color: #9ca3af; width: 52px; }
+.bp-th-num    { background: #f9fafb; color: #7e8694; width: 52px; }
 .bp-th-user   { background: #f9fafb; color: #374151; }
 .bp-th-pts    { background: #fff7ed; color: #c2410c; }
 .bp-th-cert   { background: #f0fdf4; color: #166534; }
@@ -1631,7 +1631,7 @@
 .bp-rank-row:hover td { filter: brightness(0.97); }
 
 /* 컬럼별 셀 배경 + 색상 */
-.bp-rank-row td.bp-rank-num    { background: #fafafa;  color: #9ca3af; font-weight: 700; }
+.bp-rank-row td.bp-rank-num    { background: #fafafa;  color: #7e8694; font-weight: 700; }
 .bp-rank-row td.bp-rank-user   { background: #ffffff;  color: #111827; }
 .bp-rank-row td.bp-rank-pts    { background: #fffbf8;  color: #ea580c; font-weight: 700; }
 .bp-rank-row td.bp-rank-cert   { background: #f8fffe;  color: #166534; font-weight: 600; }

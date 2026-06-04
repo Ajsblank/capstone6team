@@ -49,13 +49,13 @@ const LandingPage: React.FC = () => {
           {user ? (
             <>
               <span className="lp-username" onClick={() => navigate("profile")}>{user.username}</span>
-              <button className="lp-auth-btn lp-auth-btn--ghost" onClick={() => navigate("account-settings")}>설정</button>
-              <button className="lp-auth-btn lp-auth-btn--ghost" onClick={() => logout()}>로그아웃</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate("account-settings")}>설정</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => logout()}>로그아웃</button>
             </>
           ) : (
             <>
-              <button className="lp-auth-btn lp-auth-btn--ghost" onClick={() => navigate("signup")}>회원가입</button>
-              <button className="lp-auth-btn lp-auth-btn--primary" onClick={() => { localStorage.setItem("loginRedirect", "landing"); navigate("login"); }}>로그인</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate("signup")}>회원가입</button>
+              <button className="btn btn-primary btn-sm" onClick={() => { localStorage.setItem("loginRedirect", "landing"); navigate("login"); }}>로그인</button>
             </>
           )}
         </div>

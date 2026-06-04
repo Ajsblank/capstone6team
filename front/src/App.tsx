@@ -1,14 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { AppProvider, useApp } from "./context/AppContext";
 import LandingPage from "./pages/LandingPage";
-import AlgoHomePage from "./pages/AlgoHomePage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import BattleHomePage from "./pages/BattleHomePage";
 import BattleSubmitPage from "./pages/BattleSubmitPage";
-import AlgoProblemListPage from "./pages/AlgoProblemListPage";
-import AlgoCreateProblemPage from "./pages/AlgoCreateProblemPage";
-import AlgoProblemDetailPage from "./pages/AlgoProblemDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import AccountSettingsPage from "./pages/AccountSettingsPage";
 import BattleCreateContestPage from "./pages/BattleCreateContestPage";
@@ -218,14 +214,10 @@ const PageRouter: React.FC = () => {
 
   switch (currentPage) {
     case "landing":          return <LandingPage />;
-    case "home":             return <AlgoHomePage />;
     case "login":            return <LoginPage />;
     case "signup":           return <SignUpPage />;
     case "battle":           return <BattleHomePage />;
     case "submit":           return <BattleSubmitPage />;
-    case "problems":         return <AlgoProblemListPage />;
-    case "create-problem":   return <AlgoCreateProblemPage />;
-    case "problem-detail":   return <AlgoProblemDetailPage />;
     case "profile":          return <ProfilePage />;
     case "account-settings": return <AccountSettingsPage />;
     case "create-contest":            return <BattleCreateContestPage />;
@@ -233,7 +225,7 @@ const PageRouter: React.FC = () => {
     case "contest-settings":          return <ContestSettingsPage />;
     case "tournament":                return <SwissTournamentPage />;
     case "tutorial-contest":          return <BattleCreateContestPage tutorial />;
-    default:                 return <AlgoHomePage />;
+    default:                 return <LandingPage />;
   }
 };
 
