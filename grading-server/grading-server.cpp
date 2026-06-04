@@ -8,6 +8,7 @@
 #include <memory>
 #include <stdexcept>
 #include <filesystem>
+#include <algorithm>
 #include <regex>
 #include <sw/redis++/redis++.h> // redis-plus-plus
 #include <nlohmann/json.hpp>    // json
@@ -84,32 +85,45 @@ int setup_role(const std::string& role, const std::string& code, const std::stri
     return 0;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    std::string redis_url;
+    if (argc > 1) {
+        redis_url = argv[1];
+    } else {
+        const char* env = std::getenv("REDIS_URL");
+        redis_url = env ? env : "tcp://localhost:6379";
+    }
+
     try {
         std::cout << "[Worker] 채점 환경(Docker) 초기화 중..." << std::endl;
-        
-        std::string dockerfile_content =
-            "FROM ubuntu:22.04\n"
-            "ENV DEBIAN_FRONTEND=noninteractive\n"
-            "RUN apt-get update && apt-get install -y \\\n"
-            "    build-essential \\\n"
-            "    openjdk-17-jdk \\\n"
-            "    python3 \\\n"
-            "    && rm -rf /var/lib/apt/lists/*\n"
-            "CMD [\"/bin/bash\"]\n";
-            
-        write_file("./Dockerfile", dockerfile_content);
 
-        CmdResult build_res = exec_cmd("docker build -t code-battle-env .");
-        if (build_res.exit_code != 0) {
-            std::cerr << "[에러] Docker 통합 이미지 빌드 실패:\n" << build_res.output << std::endl;
-            return 1; // 필수 환경 구성 실패 시 서버 종료
+        CmdResult check_res = exec_cmd("docker images -q code-battle-env");
+        bool image_exists = !check_res.output.empty() &&
+                            check_res.output.find_first_not_of(" \n\r\t") != std::string::npos;
+
+        if (!image_exists) {
+            std::string dockerfile_content =
+                "FROM ubuntu:22.04\n"
+                "ENV DEBIAN_FRONTEND=noninteractive\n"
+                "RUN apt-get update && apt-get install -y \\\n"
+                "    build-essential \\\n"
+                "    openjdk-17-jdk \\\n"
+                "    python3 \\\n"
+                "    && rm -rf /var/lib/apt/lists/*\n"
+                "CMD [\"/bin/bash\"]\n";
+
+            write_file("./Dockerfile", dockerfile_content);
+
+            CmdResult build_res = exec_cmd("docker build -t code-battle-env .");
+            if (build_res.exit_code != 0) {
+                std::cerr << "[에러] Docker 통합 이미지 빌드 실패:\n" << build_res.output << std::endl;
+                return 1;
+            }
         }
         std::cout << "[Worker] 다국어 채점 환경(code-battle-env) 준비 완료!\n";
 
         // Redis 연결 설정
-        auto redis = Redis("tcp://3.216.165.85:6379");
-        //auto redis = Redis("tcp://localhost:6379");
+        auto redis = Redis(redis_url);
         std::cout << "[Worker] 코드 배틀 서버 시작...\n";
 
         while (true) {
@@ -190,6 +204,7 @@ int main() {
                 
                 //int time_limit_sec = data["timeLimitSec"];
                 int time_limit_sec = 1000;
+                int memory_limit_mb = std::min(data.contains("memoryLimitMb") ? (int)data["memoryLimitMb"] * 3 : 512, 2048);
                 std::string work_dir = "./" + match_id;
                 std::string abs_work_dir = fs::absolute(work_dir).string();
     
@@ -235,9 +250,9 @@ int main() {
                     std::cout << "실행 및 채점 중..." << std::endl;
                     std::string run_cmd = "timeout " + std::to_string(time_limit_sec) + "s " +
                                         "docker run -i --rm -v " + abs_work_dir + ":/app -w /app " +
-                                        "--memory=512m --network=none code-battle-env " +
+                                        "--memory=" + std::to_string(memory_limit_mb) + "m --network=none code-battle-env " +
                                         "./judge ./player1 ./player2 2>&1";
-                
+
                     CmdResult run_res = exec_cmd(run_cmd);
                     result_json["log"] = run_res.output;
                     // 결과 판정
