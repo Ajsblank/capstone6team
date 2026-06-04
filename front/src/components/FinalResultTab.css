@@ -1,7 +1,7 @@
 .fr-container {
-  padding: 24px 20px;
+  padding: 24px 32px;
   width: 100%;
-  max-width: 640px;
+  max-width: 100%;
 }
 
 .fr-header {
@@ -47,16 +47,17 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 18px;
-  background: #16213e;
-  border: 1.5px solid #2a2a4a;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
   border-radius: 12px;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-.fr-card--rank1 { border-color: #f59e0b; background: #1c1a10; }
-.fr-card--rank2 { border-color: #9ca3af; background: #161618; }
-.fr-card--rank3 { border-color: #b45309; background: #1a1410; }
+.fr-card--rank1 { border-color: #f59e0b; background: #fffbf0; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06); }
+.fr-card--rank2 { border-color: #d1d5db; background: #fafbfc; box-shadow: 0 0 0 3px rgba(209, 213, 219, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06); }
+.fr-card--rank3 { border-color: #cd7f32; background: #fef8f1; box-shadow: 0 0 0 3px rgba(205, 127, 50, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06); }
 
 /* ── 순위 영역 ── */
 .fr-rank {
@@ -67,8 +68,8 @@
   flex-shrink: 0;
 }
 
-.fr-medal    { font-size: 1.6rem; line-height: 1; }
-.fr-rank-num { font-size: 1.2rem; font-weight: 800; color: #6b7280; }
+.fr-medal    { font-size: 1.8rem; line-height: 1; }
+.fr-rank-num { font-size: 1.2rem; font-weight: 800; color: #9ca3af; }
 
 /* ── 유저 정보 ── */
 .fr-info {
@@ -81,20 +82,20 @@
 .fr-user-id {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #e0e0e0;
+  color: #111827;
 }
 
 .fr-record {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.75rem;
+  gap: 6px;
+  font-size: 0.8rem;
 }
 
-.fr-wins   { color: #87ceeb; font-weight: 700; }
-.fr-draws  { color: #facc15; font-weight: 700; }
-.fr-losses { color: #f87171; font-weight: 700; }
-.fr-total  { color: #4b5563; }
+.fr-wins   { color: #16a34a; font-weight: 700; }
+.fr-draws  { color: #f59e0b; font-weight: 700; }
+.fr-losses { color: #dc2626; font-weight: 700; }
+.fr-total  { color: #9ca3af; }
 
 /* ── 승점 ── */
 .fr-points {
@@ -103,29 +104,29 @@
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
   border-radius: 10px;
-  padding: 8px 14px;
-  min-width: 58px;
+  padding: 10px 16px;
+  min-width: 65px;
 }
 
 
 .fr-points-num {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   font-weight: 900;
-  color: #c9d1db;
+  color: #111827;
   line-height: 1;
   letter-spacing: -0.02em;
 }
 
-.fr-card--rank1 .fr-points-num { color: #f59e0b; text-shadow: 0 0 12px rgba(245,158,11,0.4); }
-.fr-card--rank2 .fr-points-num { color: #c0c8d4; text-shadow: 0 0 10px rgba(156,163,175,0.3); }
-.fr-card--rank3 .fr-points-num { color: #cd7f32; text-shadow: 0 0 12px rgba(180,83,9,0.35); }
+.fr-card--rank1 .fr-points-num { color: #f59e0b; }
+.fr-card--rank2 .fr-points-num { color: #9ca3af; }
+.fr-card--rank3 .fr-points-num { color: #cd7f32; }
 
 .fr-points-label {
   font-size: 0.6rem;
-  color: #6b7280;
+  color: #9ca3af;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -134,10 +135,10 @@
 /* ── 자세히 보기 버튼 ── */
 .fr-detail-btn {
   flex-shrink: 0;
-  padding: 6px 13px;
+  padding: 6px 14px;
   border-radius: 8px;
-  border: 1px solid #2a2a4a;
-  background: transparent;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
   color: #6b7280;
   font-size: 0.75rem;
   font-weight: 600;
@@ -146,8 +147,8 @@
   white-space: nowrap;
 }
 
-.fr-detail-btn:hover        { background: rgba(255,255,255,0.06); color: #e0e0e0; border-color: #ea580c; }
-.fr-detail-btn--open        { color: #ea580c; border-color: #ea580c; }
+.fr-detail-btn:hover        { background: #f3f4f6; color: #374151; border-color: #16a34a; }
+.fr-detail-btn--open        { color: #16a34a; border-color: #16a34a; background: #f0fdf4; }
 
 /* ── 카드 래퍼 (카드 + 상세 패널 묶음) ── */
 .fr-card-wrap { display: flex; flex-direction: column; }
@@ -159,11 +160,11 @@
 
 /* ── 상세 패널 ── */
 .fr-detail-panel {
-  background: #0d0d1a;
-  border: 1.5px solid #2a2a4a;
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
   border-top: none;
   border-radius: 0 0 12px 12px;
-  padding: 14px 18px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -172,7 +173,7 @@
 .fr-match-heading {
   font-size: 0.68rem;
   font-weight: 700;
-  color: #4b5563;
+  color: #6b7280;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -181,27 +182,27 @@
 .fr-match-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 8px;
 }
 
 .fr-match-pill {
-  padding: 5px 12px;
+  padding: 6px 14px;
   border-radius: 99px;
-  border: 1px solid #2a2a4a;
-  background: #151528;
-  color: #9ca3af;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.fr-match-pill:hover           { background: #1e1e38; color: #e0e0e0; border-color: #ea580c; }
-.fr-match-pill--active         { background: rgba(234,88,12,0.15); color: #ea580c; border-color: #ea580c; }
+.fr-match-pill:hover           { background: #f3f4f6; color: #374151; border-color: #16a34a; }
+.fr-match-pill--active         { background: #f0fdf4; color: #16a34a; border-color: #16a34a; }
 
 /* ── 로그 상태 메시지 ── */
 .fr-log-status { font-size: 0.82rem; color: #6b7280; }
-.fr-log-status--error { color: #f87171; }
+.fr-log-status--error { color: #dc2626; }
 
 /* ── 로그 섹션 ── */
 .fr-log-section {
@@ -226,9 +227,9 @@
 .fr-go-viz-btn {
   padding: 5px 14px;
   border-radius: 8px;
-  border: 1px solid #ea580c;
-  background: rgba(234,88,12,0.1);
-  color: #ea580c;
+  border: 1px solid #fde047;
+  background: #fef3c7;
+  color: #b45309;
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
@@ -236,17 +237,17 @@
   white-space: nowrap;
 }
 
-.fr-go-viz-btn:hover { background: rgba(234,88,12,0.22); }
+.fr-go-viz-btn:hover { background: #fef08a; }
 
 /* ── 로그 텍스트 ── */
 .fr-log-text {
-  background: #08080f;
-  border: 1px solid #1e1e32;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 12px 14px;
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   font-size: 0.73rem;
-  color: #a8b4c8;
+  color: #4b5563;
   line-height: 1.65;
   overflow-x: auto;
   white-space: pre-wrap;

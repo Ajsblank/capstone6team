@@ -1,7 +1,7 @@
 .lb-container {
-  padding: 24px 20px;
+  padding: 24px 32px;
   width: 100%;
-  max-width: 640px;
+  max-width: 100%;
 }
 
 .lb-header {
@@ -81,21 +81,22 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 18px;
-  background: #16213e;
-  border: 1.5px solid #2a2a4a;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
   border-radius: 12px;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-.lb-card--rank1 { border-color: #f59e0b; background: #1c1a10; }
-.lb-card--rank2 { border-color: #9ca3af; background: #161618; }
-.lb-card--rank3 { border-color: #b45309; background: #1a1410; }
+.lb-card--rank1 { border-color: #f59e0b; background: #fffbf0; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06); }
+.lb-card--rank2 { border-color: #d1d5db; background: #fafbfc; box-shadow: 0 0 0 3px rgba(209, 213, 219, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06); }
+.lb-card--rank3 { border-color: #cd7f32; background: #fef8f1; box-shadow: 0 0 0 3px rgba(205, 127, 50, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06); }
 
 .lb-card--me {
-  border-color: #89b4fa !important;
-  background: #0f1e35 !important;
-  box-shadow: 0 0 0 1px rgba(137, 180, 250, 0.25), 0 0 16px rgba(137, 180, 250, 0.12);
+  border-color: #16a34a !important;
+  background: #f0fdf4 !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
 }
 
 /* ── 순위 ── */
@@ -107,8 +108,8 @@
   flex-shrink: 0;
 }
 
-.lb-medal    { font-size: 1.6rem; line-height: 1; }
-.lb-rank-num { font-size: 1.2rem; font-weight: 800; color: #6b7280; }
+.lb-medal    { font-size: 1.8rem; line-height: 1; }
+.lb-rank-num { font-size: 1.2rem; font-weight: 800; color: #9ca3af; }
 
 /* ── 유저 정보 ── */
 .lb-info {
@@ -124,30 +125,30 @@
   gap: 8px;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #e0e0e0;
+  color: #111827;
 }
 
 .lb-me-badge {
   font-size: 0.68rem;
   font-weight: 700;
-  padding: 1px 7px;
+  padding: 2px 8px;
   border-radius: 20px;
-  background: rgba(137, 180, 250, 0.15);
-  color: #89b4fa;
-  border: 1px solid rgba(137, 180, 250, 0.35);
+  background: #d1fae5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
 }
 
 .lb-record {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 0.75rem;
+  gap: 6px;
+  font-size: 0.8rem;
 }
 
-.lb-wins   { color: #87ceeb; font-weight: 700; }
-.lb-draws  { color: #facc15; font-weight: 700; }
-.lb-losses { color: #f87171; font-weight: 700; }
-.lb-total  { color: #4b5563; }
+.lb-wins   { color: #16a34a; font-weight: 700; }
+.lb-draws  { color: #f59e0b; font-weight: 700; }
+.lb-losses { color: #dc2626; font-weight: 700; }
+.lb-total  { color: #9ca3af; }
 
 /* ── 승점 ── */
 .lb-points {
@@ -156,30 +157,30 @@
   align-items: center;
   gap: 3px;
   flex-shrink: 0;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
   border-radius: 10px;
-  padding: 8px 14px;
-  min-width: 58px;
+  padding: 10px 16px;
+  min-width: 65px;
 }
 
 
 .lb-points-num {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   font-weight: 900;
-  color: #c9d1db;
+  color: #111827;
   line-height: 1;
   letter-spacing: -0.02em;
 }
 
-.lb-card--rank1 .lb-points-num { color: #f59e0b; text-shadow: 0 0 12px rgba(245,158,11,0.4); }
-.lb-card--rank2 .lb-points-num { color: #c0c8d4; text-shadow: 0 0 10px rgba(156,163,175,0.3); }
-.lb-card--rank3 .lb-points-num { color: #cd7f32; text-shadow: 0 0 12px rgba(180,83,9,0.35); }
-.lb-card--me    .lb-points-num { color: #89b4fa; text-shadow: 0 0 10px rgba(137,180,250,0.35); }
+.lb-card--rank1 .lb-points-num { color: #f59e0b; }
+.lb-card--rank2 .lb-points-num { color: #9ca3af; }
+.lb-card--rank3 .lb-points-num { color: #cd7f32; }
+.lb-card--me    .lb-points-num { color: #16a34a; }
 
 .lb-points-label {
   font-size: 0.6rem;
-  color: #6b7280;
+  color: #9ca3af;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -223,22 +224,25 @@
   cursor: pointer;
   user-select: none;
 }
-.lb-card--expandable:hover { border-color: #a5c8ff !important; }
+.lb-card--expandable:hover {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
 
 .lb-expand-arrow {
-  font-size: 0.7rem;
-  color: #89b4fa;
+  font-size: 0.8rem;
+  color: #9ca3af;
   flex-shrink: 0;
   margin-left: 4px;
 }
 
 /* ── 매치 상세 패널 ── */
 .lb-detail-panel {
-  background: #0d1525;
-  border: 1px solid #1e2f50;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-top: none;
   border-radius: 0 0 12px 12px;
-  padding: 14px 18px;
+  padding: 16px 20px;
   margin-top: -8px;
   margin-bottom: 4px;
   display: flex;
@@ -248,7 +252,7 @@
   color: #6b7280;
   font-size: 0.85rem;
 }
-.lb-detail-panel--error { color: #f87171; }
+.lb-detail-panel--error { color: #dc2626; }
 
 .lb-detail-spinner {
   display: inline-block;
@@ -283,8 +287,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 10px;
-  background: #111827;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   font-size: 0.82rem;
 }
@@ -293,13 +298,13 @@
   width: 28px;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #4b5563;
+  color: #9ca3af;
   flex-shrink: 0;
 }
 
 .lb-match-opponent {
   flex: 1;
-  color: #d1d5db;
+  color: #374151;
   font-weight: 500;
 }
 
@@ -325,29 +330,30 @@
 
 .lb-log-btn, .lb-viz-btn {
   font-size: 0.72rem;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 .lb-log-btn {
-  background: none;
-  border: 1px solid #2a3a5a;
-  color: #87ceeb;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #16a34a;
 }
-.lb-log-btn:hover { background: #0f1e35; border-color: #87ceeb; }
+.lb-log-btn:hover { background: #dcfce7; border-color: #86efac; }
 
 .lb-viz-btn {
-  background: none;
-  border: 1px solid #2a3a2a;
-  color: #4ade80;
+  background: #fef3c7;
+  border: 1px solid #fde047;
+  color: #b45309;
 }
-.lb-viz-btn:hover { background: #0f1f0f; border-color: #4ade80; }
+.lb-viz-btn:hover { background: #fef08a; border-color: #facc15; }
 
 .lb-log-btn--loading { opacity: 0.6; cursor: default; }
-.lb-log-btn--active  { border-color: #87ceeb; color: #87ceeb; background: rgba(135,206,235,0.08); }
+.lb-log-btn--active  { border-color: #16a34a; color: #16a34a; background: #dcfce7; }
 
 /* ── 매치 아이템 (행 + 로그 프리뷰) ── */
 .lb-match-item {
