@@ -65,10 +65,10 @@
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #6b7280;
+  color: #9ca3af;
   font-size: 0.9rem;
 }
-.lb-empty--error { color: #f87171; }
+.lb-empty--error { color: #dc2626; }
 
 /* ── 카드 목록 ── */
 .lb-list {
@@ -101,15 +101,34 @@
 
 /* ── 순위 ── */
 .lb-rank {
-  width: 40px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
 }
 
+.lb-card--rank1 .lb-rank { background: #fef3c7; border-color: #fcd34d; }
+.lb-card--rank2 .lb-rank { background: #f3f4f6; border-color: #d1d5db; }
+.lb-card--rank3 .lb-rank { background: #fef3f2; border-color: #fecaca; }
+.lb-card--me .lb-rank { background: #dcfce7; border-color: #86efac; }
+
 .lb-medal    { font-size: 1.8rem; line-height: 1; }
-.lb-rank-num { font-size: 1.2rem; font-weight: 800; color: #9ca3af; }
+.lb-rank-num {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #9ca3af;
+  letter-spacing: -0.02em;
+}
+
+.lb-card--rank1 .lb-rank-num { color: #f59e0b; }
+.lb-card--rank2 .lb-rank-num { color: #9ca3af; }
+.lb-card--rank3 .lb-rank-num { color: #cd7f32; }
+.lb-card--me .lb-rank-num { color: #16a34a; }
 
 /* ── 유저 정보 ── */
 .lb-info {
@@ -158,10 +177,9 @@
   gap: 3px;
   flex-shrink: 0;
   background: #f9fafb;
-  border: 1.5px solid #e5e7eb;
   border-radius: 10px;
-  padding: 10px 16px;
-  min-width: 65px;
+  padding: 10px 14px;
+  width: 70px;
 }
 
 
@@ -171,6 +189,9 @@
   color: #111827;
   line-height: 1;
   letter-spacing: -0.02em;
+  font-family: 'Courier New', monospace;
+  min-width: 40px;
+  text-align: center;
 }
 
 .lb-card--rank1 .lb-points-num { color: #f59e0b; }
@@ -194,21 +215,22 @@
 }
 
 .lb-nav-btn {
-  background: none;
-  border: 1px solid #2a2a4a;
-  color: #9ca3af;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
   font-size: 0.75rem;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
+  font-weight: 600;
 }
-.lb-nav-btn:hover:not(:disabled) { background: #1e2a3a; border-color: #89b4fa; color: #89b4fa; }
-.lb-nav-btn:disabled { opacity: 0.3; cursor: default; }
+.lb-nav-btn:hover:not(:disabled) { background: #f3f4f6; border-color: #16a34a; color: #16a34a; }
+.lb-nav-btn:disabled { opacity: 0.4; cursor: default; }
 
 .lb-nav-label {
   font-size: 0.88rem;
@@ -226,7 +248,8 @@
 }
 .lb-card--expandable:hover {
   border-color: #16a34a !important;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1), 0 4px 12px rgba(22, 163, 74, 0.1) !important;
+  background: #fafbf9 !important;
 }
 
 .lb-expand-arrow {
@@ -257,8 +280,8 @@
 .lb-detail-spinner {
   display: inline-block;
   width: 14px; height: 14px;
-  border: 2px solid #1e2f50;
-  border-top-color: #89b4fa;
+  border: 2px solid #e5e7eb;
+  border-top-color: #16a34a;
   border-radius: 50%;
   animation: lb-spin 0.7s linear infinite;
   margin-right: 8px;

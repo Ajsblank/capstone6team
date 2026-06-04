@@ -115,7 +115,6 @@ const HELP_ITEMS: { title: string; summary: string; body: React.ReactNode; hasTu
           ④ 종료 시 결과를 stdout 마지막 줄에 출력입니다.
         </p>
         <div className="bp-tut-callout">
-          <span className="bp-tut-callout-icon">💡</span>
           <span><strong>핵심:</strong> Judge 실행 결과의 <strong>마지막 줄</strong>만 채점 서버가 읽습니다.</span>
         </div>
 
@@ -134,7 +133,6 @@ const HELP_ITEMS: { title: string; summary: string; body: React.ReactNode; hasTu
           <strong> 개최자가 자유롭게 설계</strong>합니다.
         </p>
         <div className="bp-tut-callout">
-          <span className="bp-tut-callout-icon">⚠️</span>
           <span>디버그 메시지는 반드시 <strong>stderr</strong>에만 출력하세요. stdout에 쓰면 Judge가 오파싱합니다.</span>
         </div>
         <h5 className="bp-tut-sub">Judge 최종 출력 형식</h5>
@@ -172,7 +170,6 @@ WIN TIME_LIMIT  ← P2 시간초과로 P1 승`}</pre>
           <li>마지막 줄에 결과 출력 (이것만 채점 서버가 읽음)</li>
         </ol>
         <div className="bp-tut-callout">
-          <span className="bp-tut-callout-icon">📎</span>
           <span>Judge · Sample AI의 전체 C++ 뼈대 코드는 아래 <strong>빠른 생성(사과게임)</strong> 예시 파일과 별도 튜토리얼 문서에서 제공됩니다.</span>
         </div>
 
@@ -185,7 +182,6 @@ WIN TIME_LIMIT  ← P2 시간초과로 P1 승`}</pre>
           <li>종료 신호를 받으면 정상 종료한다</li>
         </ol>
         <div className="bp-tut-callout">
-          <span className="bp-tut-callout-icon">💡</span>
           <span><strong>핵심:</strong> 행동 출력 시 반드시 <code>endl</code>/<code>flush</code>로 즉시 전송하세요. 버퍼에 남으면 Judge가 타임아웃 처리합니다.</span>
         </div>
 
@@ -212,7 +208,6 @@ WIN TIME_LIMIT  ← P2 시간초과로 P1 승`}</pre>
           참가자가 AI를 만들기 전 게임 규칙을 직접 체험하는 인터랙티브 플레이어입니다. 마우스 드래그 선택 · 실시간 합계 피드백 · 힌트를 지원합니다.
         </p>
         <div className="bp-tut-callout">
-          <span className="bp-tut-callout-icon">📎</span>
           <span>시각화 HTML은 <strong>독립 실행 가능한 단일 파일</strong>이어야 합니다. iframe 삽입 시 <code>window.postMessage</code>(<code>{"{ type: \"LOAD_LOG\", log }"}</code>)로 로그를 전달받을 수 있습니다.</span>
         </div>
 
@@ -533,7 +528,7 @@ const BattlePage: React.FC = () => {
                         </p>
                         {(c.startDate || c.endDate) && (
                           <p className="bp-result-mini-dates">
-                            <span>📅</span>
+                            <span>기간</span>
                             {c.startDate && <span>{formatDate(c.startDate)}</span>}
                             {c.startDate && c.endDate && <span>~</span>}
                             {c.endDate && <span>{formatDate(c.endDate)}</span>}
@@ -679,7 +674,7 @@ const BattlePage: React.FC = () => {
                               </p>
                               {(c.startDate || c.endDate) && (
                                 <p className="bp-problem-dates">
-                                  <span className="bp-problem-dates-icon">📅</span>
+                                  <span className="bp-problem-dates-label">기간</span>
                                   {c.startDate && <span>{formatDate(c.startDate)}</span>}
                                   {c.startDate && c.endDate && <span className="bp-problem-dates-sep">~</span>}
                                   {c.endDate && <span>{formatDate(c.endDate)}</span>}
