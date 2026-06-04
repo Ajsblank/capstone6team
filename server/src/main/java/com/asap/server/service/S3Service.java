@@ -27,7 +27,7 @@ public class S3Service {
   private String bucket;
 
   @Value("${cloud.aws.cloudfront.url}")
-  private String coudFront;
+  private String cloudFront;
 
   @Value("${cloud.aws.region}")
   private String region;
