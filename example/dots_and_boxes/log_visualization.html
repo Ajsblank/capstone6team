@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dots and Boxes — 로그 시각화</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: #16213e; border-bottom: 1px solid #2a2a4a; padding: 14px 24px; display: flex; align-items: center; justify-content: center; }
+    header h1 { font-size: 1.3rem; font-weight: 700; color: #87ceeb; }
+
+    .upload-area {
+      margin: 20px auto; width: 90%; max-width: 860px;
+      background: #16213e; border-radius: 12px; padding: 16px; border: 2px dashed #2a2a4a;
+    }
+    .upload-area.drag-over { border-color: #87ceeb; }
+    .upload-area textarea { width: 100%; height: 90px; background: #0d0d1a; border: none; border-radius: 8px; color: #ccc; font-family: monospace; font-size: 0.78rem; padding: 8px; resize: vertical; }
+    .upload-row { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+    .upload-area input[type=file] { display: none; }
+    button { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-family: inherit; font-weight: 500; background: #0f3460; color: #ccc; transition: background 0.15s; }
+    button:hover:not(:disabled) { background: #1a5276; color: #fff; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .main { display: flex; gap: 16px; padding: 0 16px 24px; max-width: 1100px; margin: 0 auto; width: 100%; align-items: flex-start; }
+    .game-col { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+    .score-row { display: flex; gap: 16px; width: 100%; justify-content: center; }
+    .score-card { background: #16213e; border-radius: 10px; padding: 10px 20px; text-align: center; border: 2px solid #2a2a4a; min-width: 110px; }
+    .score-card.p1 { border-color: #1565c0; }
+    .score-card.p2 { border-color: #b71c1c; }
+    .score-name { font-size: 0.82rem; font-weight: 600; }
+    .score-card.p1 .score-name { color: #64b5f6; }
+    .score-card.p2 .score-name { color: #e57373; }
+    .score-val { font-size: 1.8rem; font-weight: 800; }
+    .score-card.p1 .score-val { color: #64b5f6; }
+    .score-card.p2 .score-val { color: #e57373; }
+
+    .board-wrap { background: #16213e; border-radius: 12px; padding: 12px; box-shadow: 0 6px 28px rgba(0,0,0,0.5); }
+
+    .ctrl-row { display: flex; gap: 8px; align-items: center; background: #16213e; border-radius: 10px; padding: 8px 12px; width: 100%; }
+    .ctrl-row input[type=range] { flex: 1; }
+    .turn-info { font-size: 0.82rem; color: #888; white-space: nowrap; }
+
+    .status-bar { width: 100%; background: #111; border-radius: 8px; padding: 7px 14px; font-size: 0.82rem; min-height: 2.2rem; display: flex; align-items: center; }
+
+    .log-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .log-header { background: #16213e; border-radius: 10px 10px 0 0; padding: 8px 14px; font-size: 0.88rem; font-weight: 700; color: #87ceeb; }
+    .log-box { background: #1e1e2e; border-radius: 0 0 10px 10px; overflow-y: auto; max-height: calc(100vh - 200px); font-family: 'Consolas','Menlo',monospace; font-size: 0.78rem; }
+    .log-entry { display: flex; align-items: baseline; cursor: pointer; }
+    .log-entry:hover { background: #252535; }
+    .log-entry.active { background: #1a3a5c; }
+    .log-no  { flex: 0 0 3.6em; text-align: right; padding: 3px 8px; color: #555; }
+    .log-sep { color: #444; padding: 3px 0; }
+    .log-text { flex: 1; padding: 3px 10px; white-space: pre-wrap; color: #dedfe0; }
+  </style>
+</head>
+<body>
+<header><h1>Dots and Boxes — 로그 시각화</h1></header>
+
+<div class="upload-area" id="uploadArea">
+  <textarea id="logInput" placeholder="여기에 게임 로그를 붙여넣으세요...&#10;또는 로그 파일을 드래그앤드롭하세요."></textarea>
+  <div class="upload-row">
+    <button onclick="document.getElementById('fileInput').click()">파일 열기</button>
+    <input type="file" id="fileInput" accept=".txt,.log">
+    <button onclick="loadFromTextarea()">로그 불러오기</button>
+    <span style="font-size:0.78rem;color:#556">INIT 6 6 → FIRST/SECOND r1 c1 r2 c2 → WIN/LOSE 형식</span>
+  </div>
+</div>
+
+<div class="main" id="mainArea" style="display:none">
+  <div class="game-col">
+    <div class="score-row">
+      <div class="score-card p1"><div class="score-name">선공</div><div class="score-val" id="score1">0</div></div>
+      <div class="score-card p2"><div class="score-name">후공</div><div class="score-val" id="score2">0</div></div>
+    </div>
+    <div class="board-wrap"><svg id="boardSvg"></svg></div>
+    <div class="ctrl-row">
+      <button onclick="gotoTurn(curTurn-1)">◀</button>
+      <input type="range" id="slider" min="0" value="0" oninput="gotoTurn(+this.value)">
+      <button onclick="gotoTurn(curTurn+1)">▶</button>
+      <button id="btnPlay" onclick="togglePlay()">▶ 재생</button>
+      <span class="turn-info" id="turnInfo">0 / 0</span>
+    </div>
+    <div class="status-bar" id="statusBar"></div>
+  </div>
+  <div class="log-col">
+    <div class="log-header">게임 로그</div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+</div>
+
+<script>
+const NR=6, NC=6;
+const CELL=70, PAD=28;
+const SVG_W = PAD*2 + NC*CELL;
+const SVG_H = PAD*2 + NR*CELL;
+const C1='#64b5f6', C2='#e57373';
+
+function dotX(c){ return PAD+c*CELL; }
+function dotY(r){ return PAD+r*CELL; }
+
+function svgEl(tag,attrs){
+  const el=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  for(const [k,v] of Object.entries(attrs)) el.setAttribute(k,v);
+  return el;
+}
+
+function cloneState(s){
+  return {
+    hlines: s.hlines.map(r=>[...r]),
+    vlines: s.vlines.map(r=>[...r]),
+    boxes:  s.boxes.map(r=>[...r])
+  };
+}
+
+function applyMove(state,r1,c1,r2,c2,pn){
+  const isH=(r1===r2);
+  if(isH) state.hlines[r1][c1]=pn;
+  else    state.vlines[r1][c1]=pn;
+  const checkBox=(br,bc)=>{
+    if(br<0||br>=NR||bc<0||bc>=NC) return;
+    if(state.boxes[br][bc]) return;
+    if(state.hlines[br][bc]&&state.hlines[br+1][bc]&&state.vlines[br][bc]&&state.vlines[br][bc+1])
+      state.boxes[br][bc]=pn;
+  };
+  if(isH){checkBox(r1-1,c1);checkBox(r1,c1);}
+  else   {checkBox(r1,c1-1);checkBox(r1,c1);}
+}
+
+function parseLog(text){
+  const lines=text.trim().split('\n').map(l=>l.trim()).filter(Boolean);
+  const state={
+    hlines:Array.from({length:NR+1},()=>new Array(NC).fill(0)),
+    vlines:Array.from({length:NR},()=>new Array(NC+1).fill(0)),
+    boxes: Array.from({length:NR},()=>new Array(NC).fill(0))
+  };
+  const snaps=[{...cloneState(state),player:0,move:null,label:'(초기 상태)'}];
+  for(const line of lines){
+    const parts=line.split(/\s+/);
+    if(parts[0]==='FIRST'||parts[0]==='SECOND'){
+      const pn=parts[0]==='FIRST'?1:2;
+      const [r1,c1,r2,c2]=[+parts[1],+parts[2],+parts[3],+parts[4]];
+      applyMove(state,r1,c1,r2,c2,pn);
+      snaps.push({...cloneState(state),player:pn,move:{r1,c1,r2,c2},label:line});
+    }
+  }
+  return {snaps, lines};
+}
+
+let snaps=[], logLines=[], curTurn=0, playTimer=null;
+
+function countBoxes(snap,pn){
+  let n=0; snap.boxes.forEach(row=>row.forEach(v=>{if(v===pn)n++;})); return n;
+}
+
+function renderTurn(idx){
+  if(!snaps.length) return;
+  idx=Math.max(0,Math.min(snaps.length-1,idx));
+  curTurn=idx;
+  const snap=snaps[idx];
+
+  document.getElementById('score1').textContent=countBoxes(snap,1);
+  document.getElementById('score2').textContent=countBoxes(snap,2);
+  document.getElementById('slider').value=idx;
+  document.getElementById('turnInfo').textContent=`${idx} / ${snaps.length-1}`;
+
+  const svg=document.getElementById('boardSvg');
+  svg.setAttribute('width',SVG_W); svg.setAttribute('height',SVG_H);
+  svg.innerHTML='';
+
+  // Background
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:SVG_W,height:SVG_H,fill:'#16213e',rx:10}));
+
+  // Boxes
+  for(let r=0;r<NR;r++) for(let c=0;c<NC;c++){
+    if(!snap.boxes[r][c]) continue;
+    const fill=snap.boxes[r][c]===1?'rgba(13,42,94,0.8)':'rgba(94,13,13,0.8)';
+    svg.appendChild(svgEl('rect',{x:dotX(c)+3,y:dotY(r)+3,width:CELL-6,height:CELL-6,fill,rx:4}));
+  }
+
+  // Empty line guides
+  for(let r=0;r<=NR;r++) for(let c=0;c<NC;c++)
+    if(!snap.hlines[r][c])
+      svg.appendChild(svgEl('line',{x1:dotX(c)+5,y1:dotY(r),x2:dotX(c+1)-5,y2:dotY(r),stroke:'#ffffff',
+        'stroke-width':2,opacity:0.07,'stroke-dasharray':'4 4','stroke-linecap':'round'}));
+  for(let r=0;r<NR;r++) for(let c=0;c<=NC;c++)
+    if(!snap.vlines[r][c])
+      svg.appendChild(svgEl('line',{x1:dotX(c),y1:dotY(r)+5,x2:dotX(c),y2:dotY(r+1)-5,stroke:'#ffffff',
+        'stroke-width':2,opacity:0.07,'stroke-dasharray':'4 4','stroke-linecap':'round'}));
+
+  // Placed lines
+  const mv=snap.move;
+  for(let r=0;r<=NR;r++) for(let c=0;c<NC;c++) if(snap.hlines[r][c]){
+    const isNew=mv&&mv.r1===r&&mv.c1===c&&mv.r2===r&&mv.c2===c+1;
+    const color=snap.hlines[r][c]===1?C1:C2;
+    svg.appendChild(svgEl('line',{x1:dotX(c)+5,y1:dotY(r),x2:dotX(c+1)-5,y2:dotY(r),
+      stroke:color,'stroke-width':isNew?6:4,'stroke-linecap':'round',
+      opacity:isNew?1:0.85}));
+  }
+  for(let r=0;r<NR;r++) for(let c=0;c<=NC;c++) if(snap.vlines[r][c]){
+    const isNew=mv&&mv.r1===r&&mv.c1===c&&mv.r2===r+1&&mv.c2===c;
+    const color=snap.vlines[r][c]===1?C1:C2;
+    svg.appendChild(svgEl('line',{x1:dotX(c),y1:dotY(r)+5,x2:dotX(c),y2:dotY(r+1)-5,
+      stroke:color,'stroke-width':isNew?6:4,'stroke-linecap':'round',
+      opacity:isNew?1:0.85}));
+  }
+
+  // Dots
+  for(let r=0;r<=NR;r++) for(let c=0;c<=NC;c++)
+    svg.appendChild(svgEl('circle',{cx:dotX(c),cy:dotY(r),r:5,fill:'#dde'}));
+
+  // Status
+  const bar=document.getElementById('statusBar');
+  if(snap.player>0&&snap.move){
+    const color=snap.player===1?C1:C2;
+    const name=snap.player===1?'선공':'후공';
+    const {r1,c1,r2,c2}=snap.move;
+    const dir=(r1===r2)?'수평':'수직';
+    bar.innerHTML=`<span style="color:${color};font-weight:600">${name}</span><span style="color:#555"> — (${r1},${c1})~(${r2},${c2}) ${dir} 선분</span>`;
+  } else {
+    bar.innerHTML='<span style="color:#888">초기 보드 상태</span>';
+  }
+
+  document.querySelectorAll('.log-entry').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  const activeEl=document.querySelector('.log-entry.active');
+  if(activeEl) activeEl.scrollIntoView({block:'nearest'});
+}
+
+function gotoTurn(t){ renderTurn(t); }
+
+function togglePlay(){
+  const btn=document.getElementById('btnPlay');
+  if(playTimer){ clearInterval(playTimer); playTimer=null; btn.textContent='▶ 재생'; }
+  else {
+    btn.textContent='⏸ 정지';
+    playTimer=setInterval(()=>{
+      if(curTurn>=snaps.length-1){ clearInterval(playTimer); playTimer=null; btn.textContent='▶ 재생'; return; }
+      gotoTurn(curTurn+1);
+    }, 700);
+  }
+}
+
+function buildLogPanel(lines){
+  const box=document.getElementById('logBox');
+  box.innerHTML='';
+  const COLORS={INIT:'#ffb74d',FIRST:'#64b5f6',SECOND:'#e57373',WIN:'#81c784',LOSE:'#81c784',NONE:'#ffd54f'};
+  // log panel: index matches snaps (0=초기, 1+= each move)
+  const snap0row=document.createElement('div'); snap0row.className='log-entry';
+  snap0row.onclick=()=>gotoTurn(0);
+  snap0row.innerHTML=`<div class="log-no">0</div><div class="log-sep">│</div><div class="log-text"><span style="color:#888">(초기 상태)</span></div>`;
+  box.appendChild(snap0row);
+
+  let snapIdx=1;
+  lines.forEach((line)=>{
+    const row=document.createElement('div'); row.className='log-entry';
+    const cmd=line.split(/\s+/)[0];
+    const isMove=cmd==='FIRST'||cmd==='SECOND';
+    const si=isMove?snapIdx++:null;
+    if(si!==null) row.onclick=()=>gotoTurn(si);
+    const no=document.createElement('div'); no.className='log-no'; no.textContent=si!==null?si:'';
+    const sep=document.createElement('div'); sep.className='log-sep'; sep.textContent='│';
+    const txt=document.createElement('div'); txt.className='log-text';
+    const s=document.createElement('span'); s.style.color=COLORS[cmd]||'#dedfe0'; s.textContent=line;
+    txt.appendChild(s); row.appendChild(no); row.appendChild(sep); row.appendChild(txt);
+    box.appendChild(row);
+  });
+}
+
+function loadLog(text){
+  const result=parseLog(text);
+  snaps=result.snaps; logLines=result.lines;
+  if(snaps.length<=1&&!text.includes('FIRST')&&!text.includes('SECOND')){
+    // might be INIT-only
+  }
+  if(!snaps.length){alert('로그 파싱 실패.'); return;}
+  const slider=document.getElementById('slider');
+  slider.max=snaps.length-1; slider.value=0;
+  buildLogPanel(text.trim().split('\n').map(l=>l.trim()).filter(Boolean));
+  document.getElementById('mainArea').style.display='flex';
+  renderTurn(0);
+}
+
+function loadFromTextarea(){ loadLog(document.getElementById('logInput').value); }
+
+document.getElementById('fileInput').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=ev=>loadLog(ev.target.result); r.readAsText(f);
+});
+
+const ua=document.getElementById('uploadArea');
+ua.addEventListener('dragover',e=>{e.preventDefault();ua.classList.add('drag-over');});
+ua.addEventListener('dragleave',()=>ua.classList.remove('drag-over'));
+ua.addEventListener('drop',e=>{
+  e.preventDefault(); ua.classList.remove('drag-over');
+  const f=e.dataTransfer.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=ev=>loadLog(ev.target.result); r.readAsText(f);
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft') gotoTurn(curTurn-1);
+  else if(e.key==='ArrowRight') gotoTurn(curTurn+1);
+  else if(e.key===' '){ e.preventDefault(); togglePlay(); }
+});
+
+window.addEventListener('message',e=>{
+  if(e.data&&e.data.type==='LOAD_LOG') loadLog(e.data.log);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dots and Boxes — 번갈아 플레이</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      background: #1a1a2e;
+      min-height: 100vh;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 24px;
+      background: #16213e;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    header h1 { font-size: 1.3rem; font-weight: 700; color: #87ceeb; letter-spacing: 0.04em; }
+
+    .main {
+      display: flex;
+      gap: 16px;
+      padding: 20px 16px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      align-items: flex-start;
+    }
+
+    .game-col {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+    .game-row { display: flex; align-items: center; gap: 16px; }
+
+    /* Player cards */
+    .player-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 20px 14px;
+      background: #16213e;
+      border-radius: 14px;
+      border: 2px solid #2a2a4a;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      position: relative;
+      min-width: 110px;
+    }
+    .player-card[data-player="first"].active  { border-color: #87ceeb; box-shadow: 0 0 18px 2px rgba(135,206,235,0.35); }
+    .player-card[data-player="second"].active { border-color: #ce93d8; box-shadow: 0 0 18px 2px rgba(206,147,216,0.35); }
+
+    .turn-badge {
+      position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+      font-size: 0.65rem; font-weight: 700; padding: 2px 9px;
+      border-radius: 99px; opacity: 0; pointer-events: none;
+      transition: opacity 0.25s; white-space: nowrap;
+    }
+    .player-card[data-player="first"]  .turn-badge { background: #87ceeb; color: #000; }
+    .player-card[data-player="second"] .turn-badge { background: #ce93d8; color: #000; }
+    .player-card.active .turn-badge { opacity: 1; }
+
+    .player-emoji { font-size: 2.8rem; line-height: 1; }
+    .player-name { font-size: 0.88rem; font-weight: 600; }
+    .player-card[data-player="first"]  .player-name  { color: #87ceeb; }
+    .player-card[data-player="second"] .player-name  { color: #ce93d8; }
+    .player-score { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+    .player-card[data-player="first"]  .player-score { color: #87ceeb; }
+    .player-card[data-player="second"] .player-score { color: #ce93d8; }
+
+    /* Board SVG wrapper */
+    .board-wrap {
+      background: #16213e;
+      border-radius: 14px;
+      padding: 4px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.5);
+    }
+    #gameBoard { display: block; cursor: pointer; }
+
+    /* Controls */
+    .controls-area { width: 100%; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .ctrl-row {
+      display: flex; align-items: center; gap: 8px;
+      background: #16213e; border-radius: 10px; padding: 8px 12px;
+    }
+    button {
+      padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer;
+      font-size: 0.85rem; font-family: inherit; font-weight: 500;
+      background: #0f3460; color: #ccc; transition: background 0.15s; white-space: nowrap;
+    }
+    button:hover { background: #1a5276; color: #fff; }
+
+    .status-bar {
+      width: 100%; background: #111; border-radius: 8px; padding: 7px 14px;
+      font-size: 0.82rem; min-height: 2.2rem; display: flex; align-items: center; margin-top: 6px;
+    }
+
+    .result-banner {
+      display: none; background: #16213e; border-radius: 12px;
+      padding: 18px 20px; text-align: center;
+      border: 1px solid #2a2a4a; margin-top: 8px; width: 100%;
+    }
+    .result-banner.show { display: block; }
+    .result-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 10px; }
+    .result-scores { display: flex; justify-content: center; gap: 28px; font-size: 1rem; font-weight: 600; }
+
+    /* Log */
+    .log-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .log-header { background: #16213e; border-radius: 10px 10px 0 0; padding: 8px 14px; font-size: 0.88rem; font-weight: 700; color: #87ceeb; }
+    .log-box { background: #1e1e2e; border-radius: 0 0 10px 10px; overflow-y: auto; max-height: calc(100vh - 110px); font-family: 'Consolas','Menlo',monospace; font-size: 0.78rem; }
+    .log-entry { display: flex; align-items: baseline; }
+    .log-entry:hover { background: #252535; }
+    .log-no { flex: 0 0 3.6em; text-align: right; padding: 3px 8px; color: #555; }
+    .log-sep { color: #444; padding: 3px 0; }
+    .log-text { flex: 1; padding: 3px 10px; white-space: pre-wrap; word-break: break-all; color: #dedfe0; }
+
+    @media (max-width: 900px) {
+      .main { flex-direction: column; }
+      .log-box { max-height: 260px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Dots and Boxes — 번갈아 플레이</h1>
+</header>
+
+<div class="main">
+
+  <div class="game-col">
+    <div class="game-row">
+
+      <div class="player-card" id="card-first" data-player="first">
+        <div class="turn-badge">내 차례</div>
+        <div class="player-emoji">🔵</div>
+        <div class="player-name">선공</div>
+        <div class="player-score" id="score-first">0</div>
+      </div>
+
+      <div class="board-wrap">
+        <svg id="gameBoard"></svg>
+      </div>
+
+      <div class="player-card" id="card-second" data-player="second">
+        <div class="turn-badge">내 차례</div>
+        <div class="player-emoji">🟣</div>
+        <div class="player-name">후공</div>
+        <div class="player-score" id="score-second">0</div>
+      </div>
+
+    </div>
+
+    <div class="controls-area">
+      <div class="ctrl-row">
+        <button id="btnNew">새 게임</button>
+        <span style="font-size:0.78rem;color:#555;margin-left:4px">박스를 완성하면 한 번 더!</span>
+      </div>
+    </div>
+
+    <div class="status-bar" id="statusBar"></div>
+
+    <div class="result-banner" id="resultBanner">
+      <div class="result-title" id="resultTitle"></div>
+      <div class="result-scores" id="resultScores"></div>
+    </div>
+  </div>
+
+  <div class="log-col">
+    <div class="log-header">게임 로그</div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+
+</div>
+
+<script>
+// NR x NC boxes  →  (NR+1) x (NC+1) dots
+const NR = 6, NC = 6;
+const CELL = 72, PAD = 32, DOT_R = 6;
+const SVG_W = PAD * 2 + NC * CELL;
+const SVG_H = PAD * 2 + NR * CELL;
+
+const C1 = { line: '#64b5f6', box: 'rgba(100,181,246,0.28)', text: '#87ceeb' };
+const C2 = { line: '#ba68c8', box: 'rgba(186,104,200,0.28)', text: '#ce93d8' };
+
+const LOG_COLOR = { INIT: '#ffb74d', FIRST: '#64b5f6', SECOND: '#ba68c8', WIN: '#81c784', LOSE: '#81c784' };
+
+// State
+let hlines, vlines, boxes, scores, currentPlayer, finished;
+
+function dotX(c) { return PAD + c * CELL; }
+function dotY(r) { return PAD + r * CELL; }
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function isBoxComplete(r, c) {
+  return hlines[r][c] && hlines[r+1][c] && vlines[r][c] && vlines[r][c+1];
+}
+
+function totalLines() {
+  return (NR+1)*NC + NR*(NC+1);
+}
+
+function placedLines() {
+  let n = 0;
+  for (const row of hlines) for (const v of row) if (v) n++;
+  for (const row of vlines) for (const v of row) if (v) n++;
+  return n;
+}
+
+function placeLine(type, r, c) {
+  if (finished) return;
+  const pNum = currentPlayer === 'first' ? 1 : 2;
+  const pColor = currentPlayer === 'first' ? C1 : C2;
+  const tag = currentPlayer === 'first' ? 'FIRST' : 'SECOND';
+
+  if (type === 'h') {
+    if (hlines[r][c]) return;
+    hlines[r][c] = pNum;
+    pushLog(`${tag} ${r} ${c} ${r} ${c+1}`);
+  } else {
+    if (vlines[r][c]) return;
+    vlines[r][c] = pNum;
+    pushLog(`${tag} ${r} ${c} ${r+1} ${c}`);
+  }
+
+  // Check completed boxes
+  let boxMade = 0;
+  const toCheck = type === 'h'
+    ? [[r-1, c], [r, c]]
+    : [[r, c-1], [r, c]];
+
+  for (const [br, bc] of toCheck) {
+    if (br >= 0 && br < NR && bc >= 0 && bc < NC && !boxes[br][bc] && isBoxComplete(br, bc)) {
+      boxes[br][bc] = pNum;
+      scores[currentPlayer]++;
+      boxMade++;
+    }
+  }
+
+  if (placedLines() === totalLines()) {
+    renderBoard();
+    endGame();
+    return;
+  }
+
+  if (!boxMade) currentPlayer = currentPlayer === 'first' ? 'second' : 'first';
+  renderBoard();
+  updateStatus(boxMade > 0);
+}
+
+function endGame() {
+  finished = true;
+  let result = scores.first > scores.second ? 'WIN LOSE'
+             : scores.second > scores.first ? 'LOSE WIN' : 'WIN WIN';
+  pushLog(result);
+
+  const banner = document.getElementById('resultBanner');
+  const title  = document.getElementById('resultTitle');
+  const sc     = document.getElementById('resultScores');
+
+  let winText, winColor;
+  if      (scores.first  > scores.second) { winText = '🎉 선공 승리!'; winColor = '#87ceeb'; }
+  else if (scores.second > scores.first)  { winText = '🎉 후공 승리!'; winColor = '#ce93d8'; }
+  else                                     { winText = '🤝 무승부!';   winColor = '#ffd54f'; }
+
+  title.textContent = winText;
+  title.style.color = winColor;
+  sc.innerHTML =
+    `<span style="color:#87ceeb">선공 ${scores.first}점</span>` +
+    `<span style="color:#ce93d8">후공 ${scores.second}점</span>`;
+  banner.classList.add('show');
+  updateStatus(false);
+}
+
+function renderBoard() {
+  const svg = document.getElementById('gameBoard');
+  svg.setAttribute('width',  SVG_W);
+  svg.setAttribute('height', SVG_H);
+  svg.innerHTML = '';
+
+  // Background
+  svg.appendChild(svgEl('rect', { x:0, y:0, width:SVG_W, height:SVG_H, fill:'#16213e', rx:10 }));
+
+  // Owned boxes
+  for (let r = 0; r < NR; r++) {
+    for (let c = 0; c < NC; c++) {
+      if (!boxes[r][c]) continue;
+      const col = boxes[r][c] === 1 ? C1 : C2;
+      svg.appendChild(svgEl('rect', {
+        x: dotX(c)+2, y: dotY(r)+2,
+        width: CELL-4, height: CELL-4,
+        fill: col.box, rx: 4,
+      }));
+      const txt = svgEl('text', {
+        x: dotX(c) + CELL/2, y: dotY(r) + CELL/2 + 5,
+        'text-anchor': 'middle',
+        'font-size': 18, 'font-weight': 700,
+        fill: col.text, opacity: 0.7,
+        'pointer-events': 'none',
+      });
+      txt.textContent = boxes[r][c] === 1 ? '선' : '후';
+      svg.appendChild(txt);
+    }
+  }
+
+  // Empty line guides (subtle)
+  for (let r = 0; r <= NR; r++)
+    for (let c = 0; c < NC; c++)
+      if (!hlines[r][c])
+        svg.appendChild(svgEl('line', {
+          x1: dotX(c)+DOT_R+1, y1: dotY(r), x2: dotX(c+1)-DOT_R-1, y2: dotY(r),
+          stroke: '#ffffff', 'stroke-width': 2, opacity: 0.06,
+          'stroke-dasharray': '4 4', 'stroke-linecap': 'round',
+        }));
+  for (let r = 0; r < NR; r++)
+    for (let c = 0; c <= NC; c++)
+      if (!vlines[r][c])
+        svg.appendChild(svgEl('line', {
+          x1: dotX(c), y1: dotY(r)+DOT_R+1, x2: dotX(c), y2: dotY(r+1)-DOT_R-1,
+          stroke: '#ffffff', 'stroke-width': 2, opacity: 0.06,
+          'stroke-dasharray': '4 4', 'stroke-linecap': 'round',
+        }));
+
+  // Placed lines
+  for (let r = 0; r <= NR; r++)
+    for (let c = 0; c < NC; c++)
+      if (hlines[r][c]) {
+        const col = hlines[r][c] === 1 ? C1.line : C2.line;
+        svg.appendChild(svgEl('line', {
+          x1: dotX(c)+DOT_R, y1: dotY(r), x2: dotX(c+1)-DOT_R, y2: dotY(r),
+          stroke: col, 'stroke-width': 5, 'stroke-linecap': 'round',
+        }));
+      }
+  for (let r = 0; r < NR; r++)
+    for (let c = 0; c <= NC; c++)
+      if (vlines[r][c]) {
+        const col = vlines[r][c] === 1 ? C1.line : C2.line;
+        svg.appendChild(svgEl('line', {
+          x1: dotX(c), y1: dotY(r)+DOT_R, x2: dotX(c), y2: dotY(r+1)-DOT_R,
+          stroke: col, 'stroke-width': 5, 'stroke-linecap': 'round',
+        }));
+      }
+
+  // Hit areas + hover
+  if (!finished) {
+    const hoverColor = currentPlayer === 'first' ? C1.line : C2.line;
+    const HIT = 18;
+
+    // Horizontal hit areas
+    for (let r = 0; r <= NR; r++) {
+      for (let c = 0; c < NC; c++) {
+        if (hlines[r][c]) continue;
+        const hitRect = svgEl('rect', {
+          x: dotX(c)+DOT_R, y: dotY(r)-HIT/2,
+          width: CELL-DOT_R*2, height: HIT,
+          fill: 'transparent', cursor: 'pointer',
+        });
+        let preview = null;
+        hitRect.addEventListener('mouseenter', () => {
+          preview = svgEl('line', {
+            x1: dotX(c)+DOT_R, y1: dotY(r), x2: dotX(c+1)-DOT_R, y2: dotY(r),
+            stroke: hoverColor, 'stroke-width': 4, 'stroke-linecap': 'round', opacity: 0.55,
+          });
+          svg.insertBefore(preview, hitRect);
+        });
+        hitRect.addEventListener('mouseleave', () => { if (preview) { preview.remove(); preview = null; } });
+        hitRect.addEventListener('click', () => { if (preview) { preview.remove(); preview = null; } placeLine('h', r, c); });
+        svg.appendChild(hitRect);
+      }
+    }
+
+    // Vertical hit areas
+    for (let r = 0; r < NR; r++) {
+      for (let c = 0; c <= NC; c++) {
+        if (vlines[r][c]) continue;
+        const hitRect = svgEl('rect', {
+          x: dotX(c)-HIT/2, y: dotY(r)+DOT_R,
+          width: HIT, height: CELL-DOT_R*2,
+          fill: 'transparent', cursor: 'pointer',
+        });
+        let preview = null;
+        hitRect.addEventListener('mouseenter', () => {
+          preview = svgEl('line', {
+            x1: dotX(c), y1: dotY(r)+DOT_R, x2: dotX(c), y2: dotY(r+1)-DOT_R,
+            stroke: hoverColor, 'stroke-width': 4, 'stroke-linecap': 'round', opacity: 0.55,
+          });
+          svg.insertBefore(preview, hitRect);
+        });
+        hitRect.addEventListener('mouseleave', () => { if (preview) { preview.remove(); preview = null; } });
+        hitRect.addEventListener('click', () => { if (preview) { preview.remove(); preview = null; } placeLine('v', r, c); });
+        svg.appendChild(hitRect);
+      }
+    }
+  }
+
+  // Dots (on top)
+  for (let r = 0; r <= NR; r++)
+    for (let c = 0; c <= NC; c++)
+      svg.appendChild(svgEl('circle', { cx: dotX(c), cy: dotY(r), r: DOT_R, fill: '#dde' }));
+
+  // Score update
+  document.getElementById('score-first').textContent  = scores.first;
+  document.getElementById('score-second').textContent = scores.second;
+  document.getElementById('card-first').classList.toggle('active',  currentPlayer === 'first'  && !finished);
+  document.getElementById('card-second').classList.toggle('active', currentPlayer === 'second' && !finished);
+}
+
+function updateStatus(extraTurn) {
+  const bar = document.getElementById('statusBar');
+  if (finished) {
+    bar.innerHTML = '<span style="color:#81c784;font-weight:600">게임 종료</span>';
+    return;
+  }
+  const name  = currentPlayer === 'first' ? '선공' : '후공';
+  const color = currentPlayer === 'first' ? '#87ceeb' : '#ce93d8';
+  const extra = extraTurn ? `<span style="color:#ffd54f;font-weight:700"> 🎯 박스 완성! 한 번 더</span>` : '';
+  bar.innerHTML = `<span style="color:${color};font-weight:600">${name}의 차례</span>${extra}<span style="color:#555"> — 선분을 클릭하세요</span>`;
+}
+
+function pushLog(line) {
+  const box   = document.getElementById('logBox');
+  const idx   = box.children.length + 1;
+  const parts = line.trim().split(/\s+/);
+  const cmd   = parts[0];
+  const color = LOG_COLOR[cmd] || '#dedfe0';
+
+  const row = document.createElement('div'); row.className = 'log-entry';
+  const no  = document.createElement('div'); no.className = 'log-no'; no.textContent = idx;
+  const sep = document.createElement('div'); sep.className = 'log-sep'; sep.textContent = '│';
+  const txt = document.createElement('div'); txt.className = 'log-text';
+  const s0  = document.createElement('span'); s0.style.color = color; s0.textContent = cmd;
+  txt.appendChild(s0);
+  parts.slice(1).forEach(p => {
+    const s = document.createElement('span'); s.textContent = ' ' + p; txt.appendChild(s);
+  });
+  row.appendChild(no); row.appendChild(sep); row.appendChild(txt);
+  box.appendChild(row);
+  box.scrollTop = box.scrollHeight;
+}
+
+function initGame() {
+  hlines = Array.from({length: NR+1}, () => new Array(NC).fill(0));
+  vlines = Array.from({length: NR},   () => new Array(NC+1).fill(0));
+  boxes  = Array.from({length: NR},   () => new Array(NC).fill(0));
+  scores = { first: 0, second: 0 };
+  currentPlayer = 'first';
+  finished = false;
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('resultBanner').classList.remove('show');
+  const initParts = [`INIT ${NR} ${NC}`];
+  pushLog(initParts[0]);
+  renderBoard();
+  updateStatus(false);
+}
+
+document.getElementById('btnNew').addEventListener('click', initGame);
+initGame();
+</script>
+</body>
+</html>
