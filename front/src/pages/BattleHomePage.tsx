@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useApp } from "../context/AppContext";
 import { getContestList, ContestItem } from "../api/codeBattleApi";
+import TermsAgreementModal from "../components/TermsAgreementModal";
 import "./AppLayout.css";
 import "./BattleHomePage.css";
 
@@ -311,6 +312,9 @@ const BattlePage: React.FC = () => {
   // 대회 개최 비용 안내 팝업
   const [showCostPopup, setShowCostPopup] = useState(false);
 
+  // 약관 동의 모달
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
   // 필터 상태
   const [filterStatus, setFilterStatus]       = useState<StatusFilter>("");
   const [filterName,   setFilterName]         = useState("");
@@ -438,6 +442,17 @@ const BattlePage: React.FC = () => {
 
   return (
     <div className="home-page battle-home-page">
+      {/* ── 약관 동의 모달 ── */}
+      <TermsAgreementModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        onAgree={() => {
+          setShowTermsModal(false);
+          navigate("create-contest");
+        }}
+        type="contest-hosting"
+      />
+
       {/* ── 대회 개최 비용 안내 팝업 ── */}
       {showCostPopup && (
         <div className="bp-popup-overlay" onClick={() => setShowCostPopup(false)}>
@@ -457,8 +472,8 @@ const BattlePage: React.FC = () => {
               대회 생성 완료 시 해당 금액이 결제됩니다.<br />
               인증/비인증은 다음 페이지에서 선택하실 수 있습니다.
             </p>
-            <button className="bp-popup-btn" onClick={() => { setShowCostPopup(false); navigate("create-contest"); }}>
-              확인 — 대회 개최 페이지로
+            <button className="bp-popup-btn" onClick={() => { setShowCostPopup(false); setShowTermsModal(true); }}>
+              확인 — 약관 동의하기
             </button>
           </div>
         </div>
