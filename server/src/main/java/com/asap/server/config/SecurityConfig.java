@@ -84,7 +84,7 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/contests", "/api/contests/**").permitAll()
                         .requestMatchers("/api/contests/*/resources/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/contests", "/api/contests/create").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/contests", "/api/contests/create", "/api/contests/validate").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/contests/**", "/api/contests/*/resources/**")
                         .authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/contests/**", "/api/contests/*/resources/**")
