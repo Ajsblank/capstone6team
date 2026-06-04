@@ -38,6 +38,7 @@ import com.asap.server.dto.request.CreateCertifiedContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
 import com.asap.server.dto.request.UpdateContestCertifiedRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
+import com.asap.server.dto.request.ValidateContestRequest;
 import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
@@ -677,6 +678,24 @@ public class ContestController {
         } catch (Exception e) {
             log.error("[스위스 세션 실행] 예외 발생", e);
             return ResponseEntity.badRequest().body(e.getClass().getSimpleName() + ": " + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "대회 코드 유효성 검증", description = "Judge/Sample/ExampleAI 코드를 채점 서버에서 실행해 검증합니다. 결과는 SSE(event: test_result)로 수신합니다.")
+    @PostMapping("/validate")
+    public ResponseEntity<?> validateContestCodes(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody ValidateContestRequest request) {
+        try {
+            contestService.validateContestCodes(userId, request);
+            return ResponseEntity.accepted().body(Map.of("message", "검증 요청이 접수되었습니다. SSE(validate_result)로 결과를 수신하세요."));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("[검증] 검증 요청 실패", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "검증 요청 중 오류 발생"));
         }
     }
 
