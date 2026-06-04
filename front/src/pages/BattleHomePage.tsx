@@ -727,7 +727,7 @@ const BattlePage: React.FC = () => {
             {/* 포디움 Top 3 */}
             <div className="bp-ranking-podium">
               <div className="bp-podium-card bp-podium-card--2nd">
-                <div className="bp-podium-emblem">🥈</div>
+                <div className="bp-podium-rank-num">2</div>
                 <div className="bp-podium-avatar bp-podium-avatar--2nd">{RANKING_DATA[1].username.charAt(0)}</div>
                 <div className="bp-podium-name">{RANKING_DATA[1].username}</div>
                 <div className="bp-podium-pts">{RANKING_DATA[1].points.toLocaleString()}<span>pts</span></div>
@@ -738,7 +738,7 @@ const BattlePage: React.FC = () => {
                 <div className="bp-podium-plinth bp-podium-plinth--2nd"><span>2</span></div>
               </div>
               <div className="bp-podium-card bp-podium-card--1st">
-                <div className="bp-podium-crown-wrap"><span className="bp-podium-crown-icon">👑</span></div>
+                <div className="bp-podium-rank-num">1</div>
                 <div className="bp-podium-avatar bp-podium-avatar--1st">{RANKING_DATA[0].username.charAt(0)}</div>
                 <div className="bp-podium-name">{RANKING_DATA[0].username}</div>
                 <div className="bp-podium-pts">{RANKING_DATA[0].points.toLocaleString()}<span>pts</span></div>
@@ -749,7 +749,7 @@ const BattlePage: React.FC = () => {
                 <div className="bp-podium-plinth bp-podium-plinth--1st"><span>1</span></div>
               </div>
               <div className="bp-podium-card bp-podium-card--3rd">
-                <div className="bp-podium-emblem">🥉</div>
+                <div className="bp-podium-rank-num">3</div>
                 <div className="bp-podium-avatar bp-podium-avatar--3rd">{RANKING_DATA[2].username.charAt(0)}</div>
                 <div className="bp-podium-name">{RANKING_DATA[2].username}</div>
                 <div className="bp-podium-pts">{RANKING_DATA[2].points.toLocaleString()}<span>pts</span></div>
