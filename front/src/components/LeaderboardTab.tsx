@@ -261,19 +261,15 @@ const LeaderboardTab: React.FC<Props> = ({
             const isMe       = myUserId !== undefined && s.user_id === myUserId;
             const isExpanded = expandedUserId === s.user_id;
             const rankClass  = s.rank <= 3 ? ` lb-card--rank${s.rank}` : "";
-            const meClass    = isMe ? " lb-card--me" : "";
 
             return (
               <React.Fragment key={s.user_id}>
                 <div
-                  className={`lb-card${rankClass}${meClass} lb-card--expandable`}
+                  className={`lb-card${rankClass} lb-card--expandable`}
                   onClick={() => handleCardClick(s.user_id)}
                 >
                   <div className="lb-rank">
-                    {RANK_MEDAL[s.rank]
-                      ? <span className="lb-medal">{RANK_MEDAL[s.rank]}</span>
-                      : <span className="lb-rank-num">{s.rank}</span>
-                    }
+                    <span className="lb-rank-num">{s.rank}</span>
                   </div>
                   <div className="lb-info">
                     <span className="lb-user-id">

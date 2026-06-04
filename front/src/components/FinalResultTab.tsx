@@ -4,13 +4,12 @@ import "./FinalResultTab.css";
 
 interface Props {
   contestId: number;
+  myUserId?: number;
   hasVizHtml?: boolean;
   onLogView?: (log: string) => void;
 }
 
-const RANK_MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
-
-const FinalResultTab: React.FC<Props> = ({ contestId, hasVizHtml, onLogView }) => {
+const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLogView }) => {
   const [standings, setStandings]                 = useState<FinalStanding[]>([]);
   const [totalParticipants, setTotalParticipants] = useState<number>(0);
   const [loading, setLoading]                     = useState(false);
@@ -85,7 +84,7 @@ const FinalResultTab: React.FC<Props> = ({ contestId, hasVizHtml, onLogView }) =
       <div className="fr-list">
         {standings.map(s => {
           const total       = s.wins + s.draws + s.losses;
-          const medal       = RANK_MEDAL[s.rank];
+          const isMe        = myUserId !== undefined && s.user_id === myUserId;
           const isExpanded  = expandedUserId === s.user_id;
           const sortedMatchIds = [...(s.match_ids ?? [])].sort((a, b) => a - b);
           const hasMatchIds = sortedMatchIds.length > 0;
@@ -94,14 +93,14 @@ const FinalResultTab: React.FC<Props> = ({ contestId, hasVizHtml, onLogView }) =
             <div key={s.user_id} className="fr-card-wrap">
               <div className={`fr-card${s.rank <= 3 ? ` fr-card--rank${s.rank}` : ""}${isExpanded ? " fr-card--expanded" : ""}`}>
                 <div className="fr-rank">
-                  {medal
-                    ? <span className="fr-medal">{medal}</span>
-                    : <span className="fr-rank-num">{s.rank}</span>
-                  }
+                  <span className="fr-rank-num">{s.rank}</span>
                 </div>
 
                 <div className="fr-info">
-                  <span className="fr-user-id">User {s.user_id}</span>
+                  <span className="fr-user-id">
+                    User {s.user_id}
+                    {isMe && <span className="fr-me-badge">나</span>}
+                  </span>
                   <span className="fr-record">
                     <span className="fr-wins">{s.wins}승</span>
                     <span className="fr-draws">{s.draws}무</span>
