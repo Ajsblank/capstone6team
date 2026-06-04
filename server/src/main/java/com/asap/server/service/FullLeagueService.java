@@ -75,6 +75,11 @@ public class FullLeagueService {
                 return;
             }
 
+            Map<Long, String> codeCache = new HashMap<>();
+            for (CodeBattleSubmission s : submissions) {
+                codeCache.put(s.getId(), s3Service.readFileAsString(s.getCodeUrl()));
+            }
+            log.info("[풀리그] 대회 ID={}을 위한 코드를 S3에서 불러옴", contestId);
             log.info("[풀리그] 풀리그 대회 ID: {}, {}개의 제출 코드로 매칭을 생성합니다.", contestId, submissions.size());
 
             int expected = (submissions.size() * (submissions.size() - 1)) / 2;
@@ -97,7 +102,8 @@ public class FullLeagueService {
                         redisTemplate.opsForList().leftPush("contest:matchIds:" + contestId,
                                 String.valueOf(match.getId()));
                         // 큐에 적재
-                        enqueueMatchToGradingQueue(match.getId(), contest, s1, s2, 0);
+                        enqueueMatchToGradingQueue(match.getId(), contest, s1, s2, codeCache.get(s1.getId()),
+                                codeCache.get(s2.getId()), 0);
                         enqueued++;
 
                     } catch (Exception e) {
@@ -124,11 +130,11 @@ public class FullLeagueService {
             CodeBattleContest contest,
             CodeBattleSubmission s1,
             CodeBattleSubmission s2,
+            String player1Code,
+            String player2Code,
             int aiOrder) throws Exception {
 
         String judgeCode = contest.getJudgeCode();
-        String player1Code = s3Service.readFileAsString(s1.getCodeUrl());
-        String player2Code = s3Service.readFileAsString(s2.getCodeUrl());
 
         log.info("[대회 처리] 길이={}", judgeCode.length());
         log.info("[대회 처리] 길이={}", player1Code.length());
