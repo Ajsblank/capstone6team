@@ -546,13 +546,18 @@ public class ContestService {
     }
 
     public void validateContestCodes(Long userId, ValidateContestRequest req) {
+        String pendingKey = "validate:" + userId + ":pending";
+        String logsKey    = "validate:" + userId + ":logs";
+        String labelsKey  = "validate:" + userId + ":labels";
+
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(pendingKey))) {
+            throw new IllegalStateException("이미 진행 중인 검증 요청이 있습니다. 완료 후 다시 시도해주세요.");
+        }
+
         SampleCodeRequest skeleton = req.getSampleCodes().get(0);
         String skeletonLang = skeleton.getLanguage().name().toLowerCase();
         int jobCount = 1 + req.getExampleAiCodes().size();
 
-        String pendingKey = "validate:" + userId + ":pending";
-        String logsKey    = "validate:" + userId + ":logs";
-        String labelsKey  = "validate:" + userId + ":labels";
         redisTemplate.delete(logsKey);
         redisTemplate.delete(labelsKey);
         redisTemplate.opsForValue().set(pendingKey, String.valueOf(jobCount), 10, java.util.concurrent.TimeUnit.MINUTES);

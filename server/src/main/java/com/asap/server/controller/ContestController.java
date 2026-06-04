@@ -688,7 +688,9 @@ public class ContestController {
             @Valid @RequestBody ValidateContestRequest request) {
         try {
             contestService.validateContestCodes(userId, request);
-            return ResponseEntity.accepted().body(Map.of("message", "검증 요청이 접수되었습니다. SSE(test_result)로 결과를 수신하세요."));
+            return ResponseEntity.accepted().body(Map.of("message", "검증 요청이 접수되었습니다. SSE(validate_result)로 결과를 수신하세요."));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
