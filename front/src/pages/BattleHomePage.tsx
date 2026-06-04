@@ -528,7 +528,7 @@ const BattlePage: React.FC = () => {
                         </p>
                         {(c.startDate || c.endDate) && (
                           <p className="bp-result-mini-dates">
-                            <span>기간</span>
+                            <span>기간: </span>
                             {c.startDate && <span>{formatDate(c.startDate)}</span>}
                             {c.startDate && c.endDate && <span>~</span>}
                             {c.endDate && <span>{formatDate(c.endDate)}</span>}
@@ -674,7 +674,7 @@ const BattlePage: React.FC = () => {
                               </p>
                               {(c.startDate || c.endDate) && (
                                 <p className="bp-problem-dates">
-                                  <span className="bp-problem-dates-label">기간</span>
+                                  <span className="bp-problem-dates-label"><strong>기간</strong> :</span>
                                   {c.startDate && <span>{formatDate(c.startDate)}</span>}
                                   {c.startDate && c.endDate && <span className="bp-problem-dates-sep">~</span>}
                                   {c.endDate && <span>{formatDate(c.endDate)}</span>}

@@ -510,6 +510,7 @@ const SubmitPage: React.FC = () => {
           <div className="full-panel" style={{ overflowY: "auto" }}>
             <FinalResultTab
               contestId={problemId}
+              myUserId={user?.id ? Number(user.id) : undefined}
               hasVizHtml={viz1Available}
               onLogView={handleLogClick}
             />

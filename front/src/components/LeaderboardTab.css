@@ -93,12 +93,6 @@
 .lb-card--rank2 { border-color: #d1d5db; background: #fafbfc; box-shadow: 0 0 0 3px rgba(209, 213, 219, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06); }
 .lb-card--rank3 { border-color: #cd7f32; background: #fef8f1; box-shadow: 0 0 0 3px rgba(205, 127, 50, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06); }
 
-.lb-card--me {
-  border-color: #16a34a !important;
-  background: #f0fdf4 !important;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
-}
-
 /* ── 순위 ── */
 .lb-rank {
   width: 48px;
@@ -115,7 +109,6 @@
 .lb-card--rank1 .lb-rank { background: #fef3c7; border-color: #fcd34d; }
 .lb-card--rank2 .lb-rank { background: #f3f4f6; border-color: #d1d5db; }
 .lb-card--rank3 .lb-rank { background: #fef3f2; border-color: #fecaca; }
-.lb-card--me .lb-rank { background: #dcfce7; border-color: #86efac; }
 
 .lb-medal    { font-size: 1.8rem; line-height: 1; }
 .lb-rank-num {
@@ -125,10 +118,18 @@
   letter-spacing: -0.02em;
 }
 
-.lb-card--rank1 .lb-rank-num { color: #f59e0b; }
-.lb-card--rank2 .lb-rank-num { color: #9ca3af; }
-.lb-card--rank3 .lb-rank-num { color: #cd7f32; }
-.lb-card--me .lb-rank-num { color: #16a34a; }
+.lb-card--rank1 .lb-rank-num {
+  color: #f59e0b;
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.6), 0 0 20px rgba(245, 158, 11, 0.3);
+}
+.lb-card--rank2 .lb-rank-num {
+  color: #9ca3af;
+  text-shadow: 0 0 10px rgba(156, 163, 175, 0.6), 0 0 20px rgba(156, 163, 175, 0.3);
+}
+.lb-card--rank3 .lb-rank-num {
+  color: #cd7f32;
+  text-shadow: 0 0 10px rgba(205, 127, 50, 0.6), 0 0 20px rgba(205, 127, 50, 0.3);
+}
 
 /* ── 유저 정보 ── */
 .lb-info {
@@ -197,7 +198,6 @@
 .lb-card--rank1 .lb-points-num { color: #f59e0b; }
 .lb-card--rank2 .lb-points-num { color: #9ca3af; }
 .lb-card--rank3 .lb-points-num { color: #cd7f32; }
-.lb-card--me    .lb-points-num { color: #16a34a; }
 
 .lb-points-label {
   font-size: 0.6rem;
