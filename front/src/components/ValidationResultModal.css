@@ -1,0 +1,311 @@
+/* 검증 결과 모달 */
+
+.vrm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.vrm-modal {
+  display: flex;
+  flex-direction: column;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+/* ── 헤더 ── */
+.vrm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.vrm-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+.vrm-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.vrm-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+/* ── 콘텐츠 ── */
+.vrm-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.vrm-loading {
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.vrm-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #16a34a;
+  border-radius: 50%;
+  animation: vrm-spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes vrm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── 요약 ── */
+.vrm-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 10px;
+  border-left: 4px solid;
+}
+
+.vrm-summary--success {
+  background: #f0fdf4;
+  border-left-color: #16a34a;
+}
+
+.vrm-summary--failure {
+  background: #fef2f2;
+  border-left-color: #dc2626;
+}
+
+.vrm-summary-icon {
+  font-size: 1.6rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.vrm-summary--success .vrm-summary-icon {
+  color: #16a34a;
+}
+
+.vrm-summary--failure .vrm-summary-icon {
+  color: #dc2626;
+}
+
+.vrm-summary-text {
+  flex: 1;
+}
+
+.vrm-summary-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.vrm-summary-desc {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ── 상세 결과 ── */
+.vrm-details {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.vrm-details-header {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #4b5563;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vrm-detail-item {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vrm-detail-item:last-child {
+  border-bottom: none;
+}
+
+.vrm-detail-item--pass {
+  background: #f9fafb;
+}
+
+.vrm-detail-item--fail {
+  background: #fef2f2;
+}
+
+.vrm-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vrm-detail-status {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.vrm-detail-item--pass .vrm-detail-status {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.vrm-detail-item--fail .vrm-detail-status {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.vrm-detail-target {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.vrm-detail-reason {
+  font-size: 0.85rem;
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.05);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 2px solid #dc2626;
+}
+
+.vrm-detail-log {
+  font-size: 0.8rem;
+}
+
+.vrm-detail-log summary {
+  cursor: pointer;
+  color: #4b5563;
+  font-weight: 600;
+  padding: 4px 0;
+}
+
+.vrm-detail-log summary:hover {
+  color: #111827;
+}
+
+.vrm-detail-log pre {
+  margin: 8px 0 0 0;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: 'Courier New', monospace;
+}
+
+/* ── 푸터 ── */
+.vrm-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 20px 28px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  flex-shrink: 0;
+}
+
+.vrm-btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+}
+
+.vrm-btn-retry {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.vrm-btn-retry:hover {
+  background: #d1d5db;
+}
+
+.vrm-btn-proceed {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.vrm-btn-proceed:hover {
+  background: #15803d;
+}
+
+.vrm-btn-close {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.vrm-btn-close:hover {
+  background: #d1d5db;
+}
+
+/* 스크롤바 스타일 */
+.vrm-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.vrm-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vrm-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.vrm-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

@@ -29,6 +29,7 @@ type SummaryCallback         = (summary: SubmissionSummary) => void;
 type TestResultCallback      = (log: string) => void;
 type StatusCallback          = (status: SseStatus) => void;
 type ReconnectCallback       = () => void;
+type ValidationResultCallback = (result: any) => void;
 
 let emitter: EventSource | null = null;
 let matchCallback:           MatchCallback           | null = null;
@@ -36,6 +37,7 @@ let summaryCallback:         SummaryCallback         | null = null;
 let testResultCallback:      TestResultCallback      | null = null;
 let statusCallback:          StatusCallback          | null = null;
 let reconnectCallback:       ReconnectCallback       | null = null;
+let validationResultCallback: ValidationResultCallback | null = null;
 let lastUserId: string | null = null;
 let reconnectAttempts = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -70,7 +72,11 @@ function connectSSE(userId: string): void {
 
   const token = getAccessToken();
   const url = `${BASE_URL}/api/subscribe/${userId}?token=${token ?? ""}`;
-  console.log(`[SSE] 연결 시도 — userId: ${userId}, url: ${url.replace(/token=[^&]*/, "token=***")}`);
+  console.log(`[SSE] ========== SSE EventSource 생성 ==========`);
+  console.log(`[SSE] URL: ${url.replace(/token=[^&]*/, "token=***")}`);
+  console.log(`[SSE] userId: ${userId}`);
+  console.log(`[SSE] 토큰 상태: ${token ? "있음" : "없음"}`);
+  console.log(`[SSE] 연결 시도 중...`);
   notifyStatus("connecting");
   emitter = new EventSource(url);
 
@@ -78,7 +84,15 @@ function connectSSE(userId: string): void {
     reconnectAttempts = 0;
     const wasReconnect = !isFirstConnect;
     isFirstConnect = false;
-    console.log(`[SSE] 연결 성공 (${wasReconnect ? "재연결" : "최초"}) — readyState:`, emitter?.readyState);
+    console.log(`[SSE] ========== SSE 연결 성공 ==========`);
+    console.log(`[SSE] 유형: ${wasReconnect ? "재연결" : "최초 연결"}`);
+    console.log(`[SSE] readyState: ${emitter?.readyState} (CONNECTING=0, OPEN=1, CLOSED=2)`);
+    console.log(`[SSE] 이제 다음 이벤트를 수신 준비:`, [
+      "match_result",
+      "submission_summary",
+      "test_result",
+      "validate_result"
+    ]);
     notifyStatus("connected");
     if (wasReconnect) {
       console.log("[SSE] 재연결 완료 — reconnectCallback 호출");
@@ -118,6 +132,20 @@ function connectSSE(userId: string): void {
     testResultCallback?.((e as MessageEvent).data);
   });
 
+  // 대회 검증 결과 (백엔드 이름: validate_result)
+  emitter.addEventListener("validate_result", (e: Event) => {
+    console.log("[SSE] ========== validate_result 이벤트 수신 ==========");
+    console.log("[SSE] 원본 데이터:", (e as MessageEvent).data);
+    try {
+      const result = JSON.parse((e as MessageEvent).data);
+      console.log("[SSE] 파싱된 결과:", result);
+      console.log("[SSE] validationResultCallback 호출");
+      validationResultCallback?.(result);
+    } catch (err) {
+      console.warn("[SSE] validate_result parse 오류:", err);
+    }
+  });
+
   // 이벤트 이름 없는 기본 메시지 (하위 호환)
   emitter.onmessage = (e) => {
     console.log("[SSE] onmessage (unnamed) — raw:", e.data);
@@ -141,14 +169,25 @@ function connectSSE(userId: string): void {
   // 연결 끊김 → 지수 백오프 재연결
   emitter.onerror = (e) => {
     const state = emitter?.readyState;
-    console.error(`[SSE] 연결 오류 — readyState: ${state}`, e);
+    console.error(`[SSE] ========== SSE 연결 오류 ==========`);
+    console.error(`[SSE] readyState: ${state} (CONNECTING=0, OPEN=1, CLOSED=2)`);
+    console.error(`[SSE] 오류 이벤트:`, e);
+    console.error(`[SSE] emitter 객체:`, emitter);
+
+    // EventSource 상태 더 자세히 로깅
+    if (emitter) {
+      console.error(`[SSE] emitter.readyState: ${emitter.readyState}`);
+      console.error(`[SSE] emitter.url: ${emitter.url}`);
+      console.error(`[SSE] emitter.withCredentials: ${emitter.withCredentials}`);
+    }
+
     emitter?.close();
     emitter = null;
     notifyStatus("disconnected");
     if (reconnectAttempts < MAX_RECONNECT && lastUserId) {
       const delay = RECONNECT_BASE_MS * Math.pow(2, reconnectAttempts);
       reconnectAttempts++;
-      console.warn(`[SSE] ${delay}ms 후 재연결 시도 (${reconnectAttempts}/${MAX_RECONNECT})`);
+      console.warn(`[SSE] 재연결 시도 (${reconnectAttempts}/${MAX_RECONNECT}) — ${delay}ms 후 재시도`);
       notifyStatus("connecting");
       reconnectTimer = setTimeout(() => connectSSE(lastUserId!), delay);
     } else {
@@ -174,9 +213,20 @@ export const subscribeToResults = (userId: string, onMatch: MatchCallback) => {
 
 // SSE 연결만 보장 — 콜백은 건드리지 않음 (AppContext 전용)
 export const ensureSseConnected = (userId: string) => {
+  console.log(`[ensureSseConnected] 호출됨 — userId: ${userId}`);
+  console.log(`[ensureSseConnected] 현재 상태:`, {
+    lastUserId,
+    emitterExists: !!emitter,
+    readyState: emitter?.readyState,
+    isConnected: emitter && emitter.readyState !== EventSource.CLOSED
+  });
+
   if (lastUserId === userId && emitter && emitter.readyState !== EventSource.CLOSED) {
+    console.log(`[ensureSseConnected] 이미 동일한 userId로 연결됨 — 스킵`);
     return;
   }
+
+  console.log(`[ensureSseConnected] 새 SSE 연결 시작`);
   lastUserId = userId;
   reconnectAttempts = 0;
   isFirstConnect = true;
@@ -196,6 +246,10 @@ export const setTestResultCallback = (cb: TestResultCallback | null) => {
   testResultCallback = cb;
 };
 
+export const setValidationResultCallback = (cb: ValidationResultCallback | null) => {
+  validationResultCallback = cb;
+};
+
 // 현재 SSE 상태 콘솔 덤프 — 디버깅용
 export const debugSse = () => {
   const stateLabel = !emitter ? "없음"
@@ -211,6 +265,8 @@ export const debugSse = () => {
   console.log("lastUserId          :", lastUserId);
   console.log("matchCallback 등록  :", matchCallback !== null);
   console.log("summaryCallback 등록:", summaryCallback !== null);
+  console.log("testResultCallback 등록:", testResultCallback !== null);
+  console.log("validationResultCallback 등록:", validationResultCallback !== null);
   console.log("재연결 시도 횟수    :", reconnectAttempts, "/", MAX_RECONNECT);
   console.log("BASE_URL            :", BASE_URL || "(비어 있음 — REACT_APP_API_BASE_URL 미설정)");
   console.groupEnd();
@@ -226,10 +282,11 @@ export const unsubscribeFromResults = () => {
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   emitter?.close();
   emitter = null;
-  matchCallback      = null;
-  summaryCallback    = null;
-  testResultCallback = null;
-  lastUserId         = null;
-  reconnectAttempts        = 0;
+  matchCallback           = null;
+  summaryCallback        = null;
+  testResultCallback     = null;
+  validationResultCallback = null;
+  lastUserId             = null;
+  reconnectAttempts      = 0;
   notifyStatus("disconnected");
 };
