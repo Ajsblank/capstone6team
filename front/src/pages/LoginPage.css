@@ -63,31 +63,13 @@
 
 .login-form { display: flex; flex-direction: column; gap: 14px; }
 .login-field { display: flex; flex-direction: column; gap: 6px; }
-.login-label { font-size: 0.82rem; color: #374151; font-weight: 600; }
-
-.login-input {
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  color: #111827;
-  font-size: 0.9rem;
-  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
-  padding: 10px 14px;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.login-input::placeholder { color: #9ca3af; }
-.login-input:focus {
-  border-color: #16a34a;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
-}
 
 .login-remember {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 0.85rem;
-  color: #6b7280;
+  color: #4b5563;
   cursor: pointer;
   user-select: none;
 }
@@ -106,25 +88,12 @@
   border-radius: 8px;
 }
 
-.login-btn {
-  width: 100%;
-  padding: 11px;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s;
-  border: none;
-}
-.login-btn--primary { background: #16a34a; color: #ffffff; margin-top: 4px; }
-.login-btn--primary:hover { background: #15803d; }
 
 
 .login-footer {
   display: flex; align-items: center; justify-content: center; gap: 8px;
 }
-.login-footer-text { font-size: 0.85rem; color: #9ca3af; }
+.login-footer-text { font-size: 0.85rem; color: #7e8694; }
 
 .login-link-btn {
   background: none; border: none;
@@ -137,9 +106,9 @@
 
 .login-back-btn {
   background: none; border: none;
-  color: #9ca3af; font-size: 0.82rem;
+  color: #7e8694; font-size: 0.82rem;
   font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   cursor: pointer; padding: 0; text-align: center;
   transition: color 0.15s;
 }
-.login-back-btn:hover { color: #6b7280; }
+.login-back-btn:hover { color: #4b5563; }

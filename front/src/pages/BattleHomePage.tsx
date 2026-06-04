@@ -477,13 +477,13 @@ const BattlePage: React.FC = () => {
           {user ? (
             <>
               <span className="home-username" onClick={() => navigate("profile")}>{user.username}</span>
-              <button className="home-auth-btn home-auth-btn--secondary" onClick={() => navigate("account-settings")}>설정</button>
-              <button className="home-auth-btn home-auth-btn--ghost" onClick={() => logout()}>로그아웃</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => navigate("account-settings")}>설정</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => logout()}>로그아웃</button>
             </>
           ) : (
             <>
-              <button className="home-auth-btn home-auth-btn--ghost" onClick={() => navigate("signup")}>회원가입</button>
-              <button className="home-auth-btn home-auth-btn--primary" onClick={() => {
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate("signup")}>회원가입</button>
+              <button className="btn btn-primary btn-sm" onClick={() => {
                 localStorage.setItem("loginRedirect", window.location.hash.replace("#", "") || "battle");
                 navigate("login");
               }}>로그인</button>
