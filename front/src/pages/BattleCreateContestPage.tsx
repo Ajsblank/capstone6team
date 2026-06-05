@@ -97,12 +97,25 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
   const [showValidation, setShowValidation] = useState(false);
   const [isValidating, setIsValidating]     = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [loadingDots, setLoadingDots]       = useState(1);
 
   // 검증 완료 상태 (필수 파일 3개 검증 완료)
   const [validationPassed, setValidationPassed] = useState(false);
 
+  // 검증 성공 확인 팝업
+  const [showValidationSuccess, setShowValidationSuccess] = useState(false);
+
   // 결제 실패 후 복구 토스트
   const [restoreToast, setRestoreToast] = useState(false);
+
+  // 로딩 애니메이션 (점 깜박임)
+  useEffect(() => {
+    if (!isValidating) return;
+    const interval = setInterval(() => {
+      setLoadingDots(prev => (prev === 3 ? 1 : prev + 1));
+    }, 500);
+    return () => clearInterval(interval);
+  }, [isValidating]);
 
   // 결제 실패 시 draft 복구
   useEffect(() => {
@@ -235,9 +248,14 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     if (!files || files.length === 0) return;
     setSampleCodes(prev => [...prev, ...Array.from(files)]);
     setSampleCodeInputKey(k => k + 1);
+    setValidationPassed(false);
+    setValidationResult(null);
   };
-  const handleSampleCodeRemove = (i: number) =>
+  const handleSampleCodeRemove = (i: number) => {
     setSampleCodes(prev => prev.filter((_, idx) => idx !== i));
+    setValidationPassed(false);
+    setValidationResult(null);
+  };
 
   const handleAICodeAdd = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -246,9 +264,14 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
       ...Array.from(files).map(file => ({ file, description: "" })),
     ]);
     setAiCodeInputKey(k => k + 1);
+    setValidationPassed(false);
+    setValidationResult(null);
   };
-  const handleAICodeRemove = (i: number) =>
+  const handleAICodeRemove = (i: number) => {
     setExampleAiCodes(prev => prev.filter((_, idx) => idx !== i));
+    setValidationPassed(false);
+    setValidationResult(null);
+  };
   const handleAICodeDescChange = (i: number, desc: string) =>
     setExampleAiCodes(prev => prev.map((e, idx) => idx === i ? { ...e, description: desc } : e));
 
@@ -316,6 +339,8 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
           if (result.passed) {
             setValidationPassed(true);
             console.log("[handleValidateAndCreate] 검증 완료 - 추가 항목 활성화");
+            // ✨ 검증 성공 팝업 표시
+            setShowValidationSuccess(true);
           }
         },
         (error) => {
@@ -439,6 +464,29 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
         onRetry={handleRetryValidation}
         onProceedToPayment={handleProceedToPayment}
       />
+
+      {/* 검증 성공 확인 팝업 */}
+      {showValidationSuccess && (
+        <div className="cc-modal-overlay" onClick={() => setShowValidationSuccess(false)}>
+          <div className="cc-modal cc-success-modal" onClick={e => e.stopPropagation()}>
+            <div className="cc-success-header">
+              <h2 className="cc-success-title">검증 성공!</h2>
+            </div>
+            <div className="cc-success-body">
+              <p>코드 검증이 완료되었습니다.</p>
+              <p className="cc-success-subtitle">이제 시각화 파일과 대회 기간을 설정할 수 있습니다.</p>
+            </div>
+            <div className="cc-success-footer">
+              <button
+                className="cc-success-btn"
+                onClick={() => setShowValidationSuccess(false)}
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 결제 확인 모달 */}
       {showPayConfirm && (
@@ -677,7 +725,17 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                   </div>
 
                   <div data-tut="judge">
-                    <FileInput label="채점 코드" required accept=".py,.cpp,.java,.js,.ts" value={judgeCode} onChange={setJudgeCode} />
+                    <FileInput
+                      label="채점 코드"
+                      required
+                      accept=".py,.cpp,.java,.js,.ts"
+                      value={judgeCode}
+                      onChange={(file) => {
+                        setJudgeCode(file);
+                        setValidationPassed(false);
+                        setValidationResult(null);
+                      }}
+                    />
                   </div>
 
                   {/* 예시 AI 코드 (다중 + 설명) */}
@@ -717,7 +775,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                         onClick={handleValidateAndCreate}
                         disabled={isValidating}
                       >
-                        {isValidating ? "검증 중..." : "검증 후 계속"}
+                        {isValidating ? `검증 중${".".repeat(loadingDots)}` : "검증 후 계속"}
                       </button>
                     </div>
                   )}
