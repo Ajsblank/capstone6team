@@ -85,16 +85,23 @@ int setup_role(const std::string& role, const std::string& code, const std::stri
     return 0;
 }
 
+static const std::string VERSION = "1.1.0";  // jobId echo back 지원
+
 int main(int argc, char* argv[]) {
-    std::string redis_url;
+    std::string redis_host;
     if (argc > 1) {
-        redis_url = argv[1];
+        redis_host = argv[1];
     } else {
-        const char* env = std::getenv("REDIS_URL");
-        redis_url = env ? env : "tcp://localhost:6379";
+        const char* env = std::getenv("REDIS_HOST");
+        redis_host = env ? env : "3.216.165.85";
     }
+    std::string redis_url = "tcp://" + redis_host + ":6379";
 
     try {
+        std::cout << "========================================" << std::endl;
+        std::cout << " Grading Server v" << VERSION << std::endl;
+        std::cout << " Redis: " << redis_url << std::endl;
+        std::cout << "========================================" << std::endl;
         std::cout << "[Worker] 채점 환경(Docker) 초기화 중..." << std::endl;
 
         CmdResult check_res = exec_cmd("docker images -q code-battle-env");
