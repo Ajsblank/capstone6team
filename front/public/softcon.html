@@ -188,12 +188,14 @@
     .player-card[data-player="second"] .turn-badge { background: #2f7fc4; color: #fff; }
     .player-card.active .turn-badge { opacity: 1; }
 
+    /* 카드는 순수 장식 — 보드 위로 넘친 아바타가 드래그를 가로채지 않도록 클릭 통과 */
+    .player-card { pointer-events: none; }
     .player-avatar {
       width: 160px;
       height: 160px;
-      transform: scale(1.7) translateY(-5px); 
-      transform-origin: center;      
-      
+      transform: scale(1.7) translateY(-5px);
+      transform-origin: center;
+      pointer-events: none;
     }
     /* 오른쪽(AI) 캐릭터만 2배로 — 카드 크기는 유지 */
     .player-card[data-player="second"] .player-avatar {
@@ -388,6 +390,8 @@
     @keyframes ai-spin { to { transform: rotate(360deg); } }
 
     /* ── 좌측 규칙 패널 (토글) ── */
+    /* 컨테이너 자체는 클릭을 통과시켜 보드 드래그를 막지 않음.
+       실제 상호작용 요소(토글 버튼, 열린 본문)만 pointer-events 활성화 */
     .rules-panel {
       position: fixed;
       left: 24px;
@@ -395,7 +399,10 @@
       width: 250px;
       z-index: 40;
       font-family: 'Pretendard', sans-serif;
+      pointer-events: none;
     }
+    .rules-toggle { pointer-events: auto; }
+    .rules-body.open { pointer-events: auto; }
     .rules-toggle {
       width: 100%;
       display: flex;
@@ -953,12 +960,18 @@ function buildBoardDOM() {
       const num = document.createElement('span');
       num.className = 'cell-num';
       cell.appendChild(num);
-      cell.addEventListener('mousedown',  onCellDown);
       cell.addEventListener('mouseenter', onCellEnter);
       el.appendChild(cell);
     }
   }
   document.addEventListener('mouseup', onDocMouseUp);
+}
+
+// Helper: 좌표에서 cell 요소 찾기
+function getCellFromPoint(x, y) {
+  const el = document.elementFromPoint(x, y);
+  if (el && el.dataset.r !== undefined) return el;
+  return el ? el.closest('.cell') : null;
 }
 
 function getSel() {
@@ -1026,19 +1039,32 @@ function renderBoard() {
 function updateStatus() { /* 상태바 제거됨 */ }
 
 // ── Mouse events ─────────────────────────────────────────
-function onCellDown(e) {
+function onBoardMouseDown(e) {
   if (finished || aiThinking || currentPlayer !== 'first') return;
+  const cell = getCellFromPoint(e.clientX, e.clientY);
+  if (!cell) return;
   e.preventDefault();
-  dragStart = { r: +e.currentTarget.dataset.r, c: +e.currentTarget.dataset.c };
+  dragStart = { r: +cell.dataset.r, c: +cell.dataset.c };
   dragEnd   = { ...dragStart };
   isDragging = true;
   renderBoard();
 }
+
+function onBoardMouseMove(e) {
+  if (!isDragging) return;
+  const cell = getCellFromPoint(e.clientX, e.clientY);
+  if (cell) {
+    dragEnd = { r: +cell.dataset.r, c: +cell.dataset.c };
+    renderBoard();
+  }
+}
+
 function onCellEnter(e) {
   if (!isDragging) return;
   dragEnd = { r: +e.currentTarget.dataset.r, c: +e.currentTarget.dataset.c };
   renderBoard();
 }
+
 function onDocMouseUp() {
   if (!isDragging) return;
   isDragging = false;
@@ -1180,6 +1206,10 @@ function initGame() {
   buildBoardDOM();
   renderBoard();
 }
+
+// Board 이벤트 등록
+document.getElementById('boardWrap').addEventListener('mousedown', onBoardMouseDown);
+document.getElementById('boardWrap').addEventListener('mousemove', onBoardMouseMove);
 
 initGame();
 </script>
