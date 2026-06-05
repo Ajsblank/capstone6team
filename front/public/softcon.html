@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>버섯사과 — 번갈아 플레이</title>
+  <title>사과게임 플레이해보기</title>
   <style>
     @font-face {
       font-family: 'Maplestory';
@@ -535,6 +535,43 @@
     @media (max-width: 1000px) {
       .main { flex-direction: column; }
       .log-box { max-height: 300px; }
+    }
+
+    /* ── 모바일 대응 ───────────────────────────────── */
+    @media (max-width: 760px) {
+      /* 가로 스크롤 방지 (장식용 아바타가 화면 밖으로 넘쳐도 잘라냄) */
+      html, body { overflow-x: hidden; }
+
+      /* 헤더/버튼 폰트·여백 축소 */
+      header { padding: 16px 12px; }
+      header h1 { font-size: 1.1rem; }
+      .btn-new-fixed { top: 12px; right: 12px; }
+      .btn-new-fixed button { padding: 7px 14px; font-size: 0.8rem; }
+
+      /* 게임 영역 상단 여백 축소 */
+      .main { padding: 16px 8px 24px; }
+
+      /* 규칙 패널: 고정 해제 → 보드 위 흐름에 배치 (보드 가림 방지) */
+      .rules-panel {
+        position: static;
+        left: auto; top: auto;
+        width: min(280px, 90vw);
+        margin: 0 auto 16px;
+        pointer-events: auto;
+      }
+
+      /* 카드를 보드 위/아래로 세로 배치 → 보드가 가로폭을 더 차지(탭 크기↑) */
+      .game-row { flex-direction: column; gap: 4px; }
+      .player-wrap { flex-direction: row; gap: 16px; align-items: center; }
+
+      /* 거대한 AI 아바타 축소 (세로 배치 시 보드와 겹침 완화) */
+      .player-card[data-player="second"] .player-avatar {
+        transform: scale(1.7) translateY(-5px);
+      }
+
+      /* 점수/이름 폰트 살짝 축소 */
+      .player-score { font-size: 2rem; }
+      .player-name  { font-size: 1.25rem; }
     }
   </style>
 </head>
@@ -1178,7 +1215,7 @@ document.getElementById('rulesToggle').addEventListener('click', () => {
     return el && el.dataset.r !== undefined ? el : (el && el.closest('.cell'));
   }
   document.getElementById('board').addEventListener('touchstart', e => {
-    if (finished) return;
+    if (finished || aiThinking || currentPlayer !== 'first') return;  // 마우스와 동일한 턴 검증
     e.preventDefault();
     const t = e.touches[0], cell = cellAt(t.clientX, t.clientY);
     if (!cell) return;
@@ -1228,7 +1265,32 @@ function initGame() {
 document.getElementById('boardWrap').addEventListener('mousedown', onBoardMouseDown);
 document.getElementById('boardWrap').addEventListener('mousemove', onBoardMouseMove);
 
+// ── 모바일: 게임 영역을 화면 폭에 맞게 동적 축소 ──────────────
+// CSS transform은 hit-testing(elementFromPoint)에 반영되므로
+// 드래그/터치 좌표 계산은 그대로 정확히 동작한다.
+function fitGameToViewport() {
+  const col = document.querySelector('.game-col');
+  if (!col) return;
+  // 측정 전 변형 초기화
+  col.style.transform = 'none';
+  col.style.marginBottom = '0px';
+  const naturalW = col.offsetWidth;
+  const naturalH = col.offsetHeight;
+  const avail = window.innerWidth - 16;   // 좌우 여백
+  const scale = Math.min(1, avail / naturalW);
+  if (scale < 1) {
+    col.style.transform = `scale(${scale})`;
+    col.style.transformOrigin = 'top center';
+    // 축소된 만큼 아래 빈 공간 보정
+    col.style.marginBottom = `-${naturalH * (1 - scale)}px`;
+  }
+}
+window.addEventListener('resize', fitGameToViewport);
+window.addEventListener('orientationchange', fitGameToViewport);
+window.addEventListener('load', fitGameToViewport);   // 이미지/폰트 로딩 후 재보정
+
 initGame();
+fitGameToViewport();
 </script>
 </body>
 </html>
