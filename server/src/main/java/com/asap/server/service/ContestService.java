@@ -8,10 +8,15 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleExampleAI;
@@ -26,6 +31,7 @@ import com.asap.server.dto.request.ExampleAiRequest;
 import com.asap.server.dto.request.SampleCodeRequest;
 import com.asap.server.dto.request.UpdateContestCertifiedRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
+import com.asap.server.dto.request.ValidateContestRequest;
 import com.asap.server.dto.response.CodeBattleAiMatchResult;
 import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.dto.response.ContestDetailResponse;
@@ -61,6 +67,10 @@ public class ContestService {
     private final ContestReviewerRepository contestReviewerRepository;
     private final CodeBattleMatchRepository matchRepository;
     private final CodeBattleSampleCodeRepository sampleCodeRepository;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
+
+    private static final String CODE_BATTLE_TEST_QUEUE_KEY = "code_battle_test_queue";
 
     /**
      * 비인증 대회 생성
@@ -533,6 +543,72 @@ public class ContestService {
                 // handled before
             }
         }
+    }
+
+    public void validateContestCodes(Long userId, ValidateContestRequest req) {
+        String pendingKey = "validate:" + userId + ":pending";
+        String labelsKey  = "validate:" + userId + ":labels"; // hash: jobId -> label
+        String resultsKey = "validate:" + userId + ":results"; // hash: jobId -> log
+
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(pendingKey))) {
+            throw new IllegalStateException("이미 진행 중인 검증 요청이 있습니다. 완료 후 다시 시도해주세요.");
+        }
+
+        SampleCodeRequest skeleton = req.getSampleCodes().get(0);
+        String skeletonLang = skeleton.getLanguage().name().toLowerCase();
+        List<ExampleAiRequest> aiCodes = req.getExampleAiCodes();
+        int jobCount = 1 + aiCodes.size();
+
+        redisTemplate.delete(labelsKey);
+        redisTemplate.delete(resultsKey);
+        redisTemplate.opsForValue().set(pendingKey, String.valueOf(jobCount), 10, java.util.concurrent.TimeUnit.MINUTES);
+
+        try {
+            // 1) judge vs 샘플 × 샘플
+            String jobId0 = userId + "_0";
+            redisTemplate.opsForHash().put(labelsKey, jobId0, "샘플 코드");
+            pushTestJob(jobId0, userId, req.getJudgeCode(),
+                    skeleton.getCode(), skeletonLang,
+                    skeleton.getCode(), skeletonLang);
+
+            // 2) judge vs 샘플 × exampleAi[i]
+            for (int i = 0; i < aiCodes.size(); i++) {
+                ExampleAiRequest ai = aiCodes.get(i);
+                String jobId = userId + "_" + (i + 1);
+                redisTemplate.opsForHash().put(labelsKey, jobId, "Example AI " + (i + 1) + "번");
+                pushTestJob(jobId, userId, req.getJudgeCode(),
+                        skeleton.getCode(), skeletonLang,
+                        ai.getCode(), ai.getLanguage().name().toLowerCase());
+            }
+            redisTemplate.expire(labelsKey, 10, java.util.concurrent.TimeUnit.MINUTES);
+            redisTemplate.expire(resultsKey, 10, java.util.concurrent.TimeUnit.MINUTES);
+        } catch (JsonProcessingException e) {
+            redisTemplate.delete(pendingKey);
+            redisTemplate.delete(labelsKey);
+            redisTemplate.delete(resultsKey);
+            throw new IllegalStateException("검증 요청 직렬화 실패", e);
+        }
+
+        log.info("[검증] userId={} 검증 요청 {}건 큐 적재 완료", userId, jobCount);
+    }
+
+    private void pushTestJob(String jobId, Long userId,
+                             String judgeCode,
+                             String p1Code, String p1Lang,
+                             String p2Code, String p2Lang) throws JsonProcessingException {
+        ObjectNode payload = objectMapper.createObjectNode();
+        payload.put("jobId", jobId);
+        payload.put("userId", userId);
+        payload.put("judge", judgeCode);
+        payload.put("player1", p1Code);
+        payload.put("player2", p2Code);
+
+        ObjectNode languages = payload.putObject("languages");
+        languages.put("judge", "cpp");
+        languages.put("player1", p1Lang);
+        languages.put("player2", p2Lang);
+
+        redisTemplate.opsForList().leftPush(CODE_BATTLE_TEST_QUEUE_KEY, objectMapper.writeValueAsString(payload));
     }
 
     private record DatePolicy(LocalDateTime startDate, LocalDateTime endDate) {
