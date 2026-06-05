@@ -205,10 +205,27 @@
     }
     .player-name {
       font-family: 'Maplestory', sans-serif;
-      font-size: 0.9rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+      /* ── 위치 미세 조정 ──
+         position:relative + top/left 로 픽셀 단위 이동.
+         아래 [data-player] 블록에서 값만 바꾸면 됩니다. */
+      position: relative;
+      top: 0px;
+      left: 0px;
     }
-    .player-card[data-player="first"]  .player-name { color: #9a6f1a; }
-    .player-card[data-player="second"] .player-name { color: #2f7fc4; }
+    /* 플레이어(왼쪽) 이름 위치 조정: top=상하(−위/+아래), left=좌우(−왼/+오) */
+    .player-name[data-player="first"] {
+      color: #9a6f1a;
+      top: -8px;
+      left: 0px;
+    }
+    /* AI(오른쪽) 이름 위치 조정 */
+    .player-name[data-player="second"] {
+      color: #2f7fc4;
+      top: -8px;
+      left: 0px;
+    }
     .player-score {
       font-size: 2.6rem;
       font-weight: 800;
@@ -563,10 +580,10 @@
     <div class="game-row">
 
       <div class="player-wrap">
+        <div class="player-name" data-player="first">플레이어</div>
         <div class="player-card" id="card-first" data-player="first">
           <div class="turn-badge">내 차례</div>
           <img class="player-avatar" src="/resources/softcon/치토_기본.png" alt="플레이어">
-          <div class="player-name">플레이어</div>
         </div>
         <div class="player-score" id="score-first" data-player="first">0</div>
       </div>
@@ -582,10 +599,10 @@
       </div>
 
       <div class="player-wrap">
+        <div class="player-name" data-player="second">AI</div>
         <div class="player-card" id="card-second" data-player="second">
           <div class="turn-badge">내 차례</div>
           <img class="player-avatar" src="/resources/softcon/불_기본.png" alt="AI">
-          <div class="player-name">AI</div>
         </div>
         <div class="player-score" id="score-second" data-player="second">0</div>
       </div>
