@@ -130,7 +130,13 @@ const TermsAgreementModal: React.FC<TermsAgreementModalProps> = ({
           <div className="tam-content">
             {sections.map((section, idx) => (
               <div key={idx} className="tam-section">
-                <div className="tam-section-header">
+                <div className="tam-section-title-bar">
+                  <span className="tam-section-title">{section.title}</span>
+                </div>
+                <div className="tam-section-content">
+                  {renderMarkdown(section.content)}
+                </div>
+                <label htmlFor={`section-${idx}`} className="tam-section-agree">
                   <input
                     type="checkbox"
                     className="tam-section-checkbox"
@@ -138,13 +144,8 @@ const TermsAgreementModal: React.FC<TermsAgreementModalProps> = ({
                     checked={agreedSections.has(idx)}
                     onChange={() => handleSectionAgree(idx)}
                   />
-                  <label htmlFor={`section-${idx}`} className="tam-section-title">
-                    {section.title}
-                  </label>
-                </div>
-                <div className="tam-section-content">
-                  {renderMarkdown(section.content)}
-                </div>
+                  <span className="tam-section-agree-text">위 내용을 확인했으며 동의합니다</span>
+                </label>
               </div>
             ))}
           </div>

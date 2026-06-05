@@ -81,21 +81,42 @@
   min-height: 0;
 }
 
-.tam-section-header {
+/* ── 상단: 약관 제목 바 ── */
+.tam-section-title-bar {
+  padding: 16px 20px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.tam-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* ── 하단: 동의 체크 영역 ── */
+.tam-section-agree {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
+  gap: 10px;
+  padding: 14px 20px;
   background: #f9fafb;
   cursor: pointer;
   user-select: none;
-  border-bottom: 1px solid #e5e7eb;
+  border-top: 1px solid #e5e7eb;
   transition: background 0.15s;
   flex-shrink: 0;
 }
 
-.tam-section-header:hover {
+.tam-section-agree:hover {
   background: #f3f4f6;
+}
+
+.tam-section-agree-text {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #111827;
 }
 
 .tam-section-checkbox {
@@ -104,13 +125,6 @@
   cursor: pointer;
   accent-color: #16a34a;
   flex-shrink: 0;
-}
-
-.tam-section-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #111827;
-  cursor: pointer;
 }
 
 .tam-section-content {
