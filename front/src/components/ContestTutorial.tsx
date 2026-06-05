@@ -33,6 +33,7 @@ export interface TutSnapshot {
   maxParticipants: number;
   previewOpened: boolean;
   created: boolean;
+  validationCompleted?: boolean;
 }
 
 interface Props {
@@ -41,6 +42,7 @@ interface Props {
   applyFile: (kind: TutFileKind) => void;
   setUncertified: () => void;
   onFinish: () => void;
+  onStepChange?: (info: { stepIdx: number; typingDone: boolean }) => void;
 }
 
 // ─── 타이핑 효과 (마크업 제외 plain 길이 기준) ──────────────────────────────────
@@ -137,9 +139,19 @@ const STEPS: Step[] = [
     isComplete: s => s.judgeUploaded },
 
   { target: "example", placement: "bottom", dropKind: "example",
-    text: "**‘예시 AI 코드’**입니다. 참가자가 제출한 코드와 대결할 **기준 AI**로, 대회의 **난이도**를 결정하는 상대가 됩니다. 왼쪽의 **‘예시AI코드’ 파일**을 끌어다 놓아보세요.",
+    text: "**’예시 AI 코드’**입니다. 참가자가 제출한 코드와 대결할 **기준 AI**로, 대회의 **난이도**를 결정하는 상대가 됩니다. 왼쪽의 **’예시AI코드’ 파일**을 끌어다 놓아보세요.",
     hint: "왼쪽의 [예시AI코드] 파일을 드래그해 놓으세요.",
     isComplete: s => s.exampleUploaded },
+
+  { target: "validate", placement: "bottom",
+    text: "이제 업로드한 코드들이 **제대로 작동하는지 검증**해야 합니다. 이 단계에서는 채점 코드, 샘플 코드, 예시 AI 코드가 **실제로 실행 가능한지** 시스템이 확인합니다. **’검증 후 계속’ 버튼**을 눌러 검증 프로세스를 시작해보세요.",
+    hint: "검증 후 계속 버튼을 눌러보세요.",
+    isComplete: s => s.validationCompleted === true },
+
+  { target: "validate-confirm", placement: "bottom",
+    text: "검증이 완료되었습니다! **’확인’ 버튼**을 눌러 다음 단계로 진행하세요.",
+    hint: "확인 버튼을 눌러보세요.",
+    isComplete: s => s.validationCompleted !== true },
 
   { target: "viz", placement: "top", dropKind: ["logviz", "solo"],
     text: "**‘시각화 파일’**입니다. **로그 시각화**는 대결 로그를 턴별로 재생해 보여주고, **혼자서 하기**는 참가자가 게임을 직접 체험하게 해줍니다. 왼쪽의 **두 시각화 파일을 모두** 끌어다 놓아보세요.",
@@ -187,12 +199,17 @@ const BlurMask = React.memo<{ rect: DOMRect }>(({ rect }) => (
 BlurMask.displayName = "BlurMask";
 
 // ─── 메인 ──────────────────────────────────────────────────────────────────────
-const ContestTutorial: React.FC<Props> = ({ snap, previewOpen, applyFile, setUncertified, onFinish }) => {
+const ContestTutorial: React.FC<Props> = ({ snap, previewOpen, applyFile, setUncertified, onFinish, onStepChange }) => {
   const [stepIdx, setStepIdx] = useState(0);
   const step = STEPS[stepIdx];
   const { len, done, skip } = useTypewriter(step.text);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [dropActive, setDropActive] = useState(false);
+
+  // Step 변경 시 콜백 호출
+  useEffect(() => {
+    onStepChange?.({ stepIdx, typingDone: done });
+  }, [stepIdx, done, onStepChange]);
 
   // auto 액션
   useEffect(() => {
