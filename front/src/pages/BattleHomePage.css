@@ -1056,6 +1056,85 @@
   white-space: pre;
 }
 
+/* ── 접기/펼치기 코드 스니펫 ── */
+.bp-code-collapse {
+  margin: 10px 0 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.bp-code-summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 14px;
+  background: #f1f5f9;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+  user-select: none;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bp-code-summary::-webkit-details-marker { display: none; }
+.bp-code-summary::after {
+  content: "▼";
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: #64748b;
+  transition: transform 0.2s;
+}
+.bp-code-collapse[open] .bp-code-summary::after { transform: rotate(180deg); }
+.bp-code-summary:hover { background: #e2e8f0; }
+.bp-code-pre {
+  margin: 0;
+  border-radius: 0;
+  max-height: 480px;
+  overflow: auto;
+  position: relative;
+  padding: 12px 0;
+  white-space: normal;   /* 라인 div 단위로 렌더하므로 컨테이너 pre 래핑 해제 */
+}
+.bp-code-line {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  padding: 0 14px;
+}
+.bp-code-line--active {
+  background: rgba(250, 204, 21, 0.22);
+  box-shadow: inset 3px 0 0 #facc15;
+}
+.bp-code-ln {
+  display: inline-block;
+  width: 2.6em;
+  margin-right: 14px;
+  text-align: right;
+  color: #6b7280;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.bp-code-txt { white-space: pre; }
+
+/* 클릭 가능한 설명 항목 */
+.bp-code-steps .bp-code-step-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px dashed #94a3b8;
+  transition: color 0.15s, border-color 0.15s;
+}
+.bp-code-steps .bp-code-step-btn:hover {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
 .bp-tut-callout {
   display: flex;
   gap: 10px;

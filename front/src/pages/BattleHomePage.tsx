@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useApp } from "../context/AppContext";
 import { getContestList, ContestItem } from "../api/codeBattleApi";
 import TermsAgreementModal from "../components/TermsAgreementModal";
@@ -10,6 +10,86 @@ type StatusFilter = "" | "RUNNING" | "PLANNED" | "END";
 
 const FETCH_SIZE = 100;
 const VALID_BATTLE_TABS: BattleTab[] = ["contest", "previous-problems", "ranking", "help", "contact"];
+
+// ── 설명 항목 ↔ 코드 연결 가이드 (도움말용) ──
+// 각 단계 항목을 클릭하면 코드를 펼치고 해당 라인 범위로 스크롤·하이라이트한다.
+// 코드는 public/tutorial 의 .cpp 파일을 처음 펼칠 때 한 번만 fetch.
+interface CodeStep { text: React.ReactNode; start: number; end: number; }
+
+const CodeGuide: React.FC<{ src: string; codeLabel: string; steps: CodeStep[] }> = ({ src, codeLabel, steps }) => {
+  const [lines, setLines] = useState<string[] | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [range, setRange] = useState<[number, number] | null>(null);
+  const [pending, setPending] = useState<number | null>(null);
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const preRef = useRef<HTMLPreElement>(null);
+
+  const load = useCallback(() => {
+    if (loaded) return;
+    setLoaded(true);
+    fetch(src)
+      .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.text(); })
+      .then(t => setLines(t.replace(/\n+$/, "").split("\n")))
+      .catch(() => setLines(["// 코드를 불러오지 못했습니다."]));
+  }, [loaded, src]);
+
+  const scrollToLine = useCallback((ln: number) => {
+    const pre = preRef.current;
+    const el = pre?.querySelector<HTMLElement>(`[data-ln="${ln}"]`);
+    if (pre && el) {
+      pre.scrollTo({ top: el.offsetTop - pre.clientHeight / 2 + el.clientHeight / 2, behavior: "smooth" });
+    }
+  }, []);
+
+  const handleStepClick = (s: CodeStep) => {
+    if (detailsRef.current && !detailsRef.current.open) detailsRef.current.open = true;
+    setRange([s.start, s.end]);
+    if (lines) {
+      requestAnimationFrame(() => scrollToLine(s.start));
+    } else {
+      setPending(s.start);
+      load();
+    }
+  };
+
+  // fetch 완료 후 대기 중인 스크롤 처리
+  useEffect(() => {
+    if (lines && pending != null) {
+      requestAnimationFrame(() => { scrollToLine(pending); setPending(null); });
+    }
+  }, [lines, pending, scrollToLine]);
+
+  return (
+    <>
+      <ol className="bp-info-list bp-code-steps">
+        {steps.map((s, i) => (
+          <li key={i}>
+            <button type="button" className="bp-code-step-btn" onClick={() => handleStepClick(s)}>
+              {s.text}
+            </button>
+          </li>
+        ))}
+      </ol>
+      <details ref={detailsRef} className="bp-code-collapse" onToggle={e => { if (e.currentTarget.open) load(); }}>
+        <summary className="bp-code-summary">{codeLabel}</summary>
+        <pre ref={preRef} className="bp-tut-code bp-code-pre">
+          {lines === null
+            ? "불러오는 중…"
+            : lines.map((ln, i) => {
+                const n = i + 1;
+                const active = range != null && n >= range[0] && n <= range[1];
+                return (
+                  <div key={n} data-ln={n} className={"bp-code-line" + (active ? " bp-code-line--active" : "")}>
+                    <span className="bp-code-ln">{n}</span>
+                    <span className="bp-code-txt">{ln || " "}</span>
+                  </div>
+                );
+              })}
+        </pre>
+      </details>
+    </>
+  );
+};
 
 const HELP_ITEMS: { title: string; summary: string; body: React.ReactNode; hasTutorial?: boolean }[] = [
   {
@@ -159,32 +239,41 @@ WIN TIME_LIMIT  ← P2 시간초과로 P1 승`}</pre>
 
         {/* 5 */}
         <h4 className="bp-tut-h">5. Judge 코드 작성법</h4>
-        <p className="bp-info-text">구현해야 할 핵심 흐름:</p>
-        <ol className="bp-info-list">
-          <li>게임 보드/상태 초기화</li>
-          <li>AI 프로세스 실행 (fork + pipe)</li>
-          <li>게임 시작 시 초기 정보를 AI에게 전송 (형식 자유)</li>
-          <li>매 턴 AI와 데이터 주고받기 (형식·순서 자유)</li>
-          <li>각 AI의 행동 유효성 검사</li>
-          <li>타임아웃 처리 (무응답 시 <code>TIME_LIMIT</code>)</li>
-          <li>종료 조건 판단 후 종료 신호 전송</li>
-          <li>마지막 줄에 결과 출력 (이것만 채점 서버가 읽음)</li>
-        </ol>
+        <p className="bp-info-text">구현해야 할 핵심 흐름입니다. <strong>각 항목을 클릭하면</strong> 아래 코드의 해당 부분으로 이동합니다.</p>
         <div className="bp-tut-callout">
           <span>Judge · Sample AI의 전체 C++ 뼈대 코드는 아래 <strong>빠른 생성(사과게임)</strong> 예시 파일과 별도 튜토리얼 문서에서 제공됩니다.</span>
         </div>
+        <CodeGuide
+          src="/tutorial/apple_judge.cpp"
+          codeLabel="📄 apple_judge.cpp — 전체 코드 펼쳐보기"
+          steps={[
+            { text: "게임 보드/상태 초기화", start: 135, end: 144 },
+            { text: "AI 프로세스 실행 (fork + pipe)", start: 52, end: 78 },
+            { text: "게임 시작 시 초기 정보를 AI에게 전송 (형식 자유)", start: 215, end: 219 },
+            { text: "매 턴 AI와 데이터 주고받기 (형식·순서 자유)", start: 229, end: 234 },
+            { text: "각 AI의 행동 유효성 검사", start: 157, end: 175 },
+            { text: <>타임아웃 처리 (무응답 시 <code>TIME_LIMIT</code>)</>, start: 238, end: 241 },
+            { text: "종료 조건 판단 후 종료 신호 전송", start: 264, end: 272 },
+            { text: "마지막 줄에 결과 출력 (이것만 채점 서버가 읽음)", start: 278, end: 296 },
+          ]}
+        />
 
         {/* 6 */}
         <h4 className="bp-tut-h">6. Sample AI 코드 작성법</h4>
-        <p className="bp-info-text">AI가 해야 할 일은 세 가지입니다.</p>
-        <ol className="bp-info-list">
-          <li>Judge가 보내는 메시지를 stdin으로 읽는다</li>
-          <li>행동 요청 메시지에만 stdout으로 응답한다</li>
-          <li>종료 신호를 받으면 정상 종료한다</li>
-        </ol>
+        <p className="bp-info-text">AI가 해야 할 일은 세 가지입니다. <strong>각 항목을 클릭하면</strong> 아래 코드의 해당 부분으로 이동합니다.</p>
         <div className="bp-tut-callout">
           <span><strong>핵심:</strong> 행동 출력 시 반드시 <code>endl</code>/<code>flush</code>로 즉시 전송하세요. 버퍼에 남으면 Judge가 타임아웃 처리합니다.</span>
         </div>
+        <p className="bp-info-text"><code>calculateMove</code> 부분이 참가자가 개선할 전략 영역입니다.</p>
+        <CodeGuide
+          src="/tutorial/apple_sample_ai_code.cpp"
+          codeLabel="📄 apple_sample_ai_code.cpp — 전체 코드 펼쳐보기"
+          steps={[
+            { text: "Judge가 보내는 메시지를 stdin으로 읽는다", start: 93, end: 101 },
+            { text: "행동 요청 메시지에만 stdout으로 응답한다", start: 131, end: 142 },
+            { text: "종료 신호를 받으면 정상 종료한다", start: 153, end: 157 },
+          ]}
+        />
 
         {/* 7 */}
         <h4 className="bp-tut-h">7. 완성된 예시 — 사과 게임</h4>
