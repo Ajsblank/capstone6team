@@ -105,6 +105,9 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
   // 검증 성공 확인 팝업
   const [showValidationSuccess, setShowValidationSuccess] = useState(false);
 
+  // 튜토리얼 step 정보
+  const [tutStepInfo, setTutStepInfo] = useState<{ stepIdx: number; typingDone: boolean } | null>(null);
+
   // 결제 실패 후 복구 토스트
   const [restoreToast, setRestoreToast] = useState(false);
 
@@ -356,6 +359,16 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     }
   };
 
+  // 튜토리얼 모드: Mock 검증
+  const handleTutorialValidation = async () => {
+    setIsValidating(true);
+    console.log("[튜토리얼 검증] 2초 대기 후 자동 성공");
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setIsValidating(false);
+    setValidationPassed(true);
+    setShowValidationSuccess(true);
+  };
+
   // 검증 실패 시 재검증
   const handleRetryValidation = () => {
     setValidationResult(null);
@@ -441,6 +454,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     maxParticipants,
     previewOpened: tutPreviewOpened,
     created: tutCreated,
+    validationCompleted: showValidationSuccess,
   };
 
   return (
@@ -480,6 +494,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
               <button
                 className="cc-success-btn"
                 onClick={() => setShowValidationSuccess(false)}
+                data-tut="validate-confirm"
               >
                 확인
               </button>
@@ -772,8 +787,9 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                       <button
                         type="button"
                         className="cc-validate-btn"
-                        onClick={handleValidateAndCreate}
-                        disabled={isValidating}
+                        onClick={tutorial ? handleTutorialValidation : handleValidateAndCreate}
+                        disabled={isValidating || (tutorial && tutStepInfo?.stepIdx === 8 && !tutStepInfo?.typingDone)}
+                        data-tut="validate"
                       >
                         {isValidating ? `검증 중${".".repeat(loadingDots)}` : "검증 후 계속"}
                       </button>
@@ -873,6 +889,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
           applyFile={applyTutorialFile}
           setUncertified={() => setCertification(false)}
           onFinish={() => navigate("battle")}
+          onStepChange={setTutStepInfo}
         />
       )}
     </div>
