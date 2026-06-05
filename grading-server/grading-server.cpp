@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <regex>
+#include <ctime>
 #include <sw/redis++/redis++.h> // redis-plus-plus
 #include <nlohmann/json.hpp>    // json
 
@@ -52,10 +53,11 @@ int setup_role(const std::string& role, const std::string& code, const std::stri
     std::string docker_img = "code-battle-env"; // 다중 언어 지원 이미지 이름
 
     if (lang == "java") {
-        file_name[0] = std::toupper(file_name[0]); // player1 -> Player1
-        write_file(abs_work_dir + "/" + file_name + ".java", code);
-        compile_cmd = "docker run --rm -v " + abs_work_dir + ":/app -w /app " + docker_img + " javac " + file_name + ".java";
-        run_cmd = "java -cp /app " + file_name;
+        std::string java_dir = abs_work_dir + "/" + role + "_src";
+        fs::create_directories(java_dir);
+        write_file(java_dir + "/Main.java", code);
+        compile_cmd = "docker run --rm -v " + abs_work_dir + ":/app -w /app " + docker_img + " javac -encoding UTF-8 " + role + "_src/Main.java";
+        run_cmd = "java -cp /app/" + role + "_src Main";
     } else if (lang == "python" || lang == "py") {
         write_file(abs_work_dir + "/" + role + ".py", code);
         // 파이썬은 사전 컴파일이 필요 없음
@@ -144,7 +146,14 @@ int main(int argc, char* argv[]) {
             if (queue_name == "code_battle_test_queue") {
                 
                 int time_limit_sec = 1000;
-                std::string work_dir = "./";
+                auto json_to_str = [](const json& v) -> std::string {
+                    if (v.is_string()) return v.get<std::string>();
+                    return v.dump();
+                };
+                std::string test_id = data.contains("jobId")
+                    ? json_to_str(data["jobId"])
+                    : json_to_str(data["userId"]) + "_" + std::to_string(std::time(nullptr));
+                std::string work_dir = "./test_" + test_id;
                 std::string abs_work_dir = fs::absolute(work_dir).string();
 
                 std::cout << "▶ 테스트 매치: " << " (제한시간: " << time_limit_sec << "초)" << std::endl;
