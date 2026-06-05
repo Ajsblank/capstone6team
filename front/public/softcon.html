@@ -537,41 +537,55 @@
       .log-box { max-height: 300px; }
     }
 
-    /* ── 모바일 대응 ───────────────────────────────── */
+    /* ── 모바일 공통 (가로/세로): 헤더·버튼 축소 ───────── */
     @media (max-width: 760px) {
-      /* 가로 스크롤 방지 (장식용 아바타가 화면 밖으로 넘쳐도 잘라냄) */
       html, body { overflow-x: hidden; }
-
-      /* 헤더/버튼 폰트·여백 축소 */
       header { padding: 16px 12px; }
       header h1 { font-size: 1.1rem; }
       .btn-new-fixed { top: 12px; right: 12px; }
       .btn-new-fixed button { padding: 7px 14px; font-size: 0.8rem; }
-
-      /* 게임 영역 상단 여백 축소 */
       .main { padding: 16px 8px 24px; }
+    }
 
-      /* 규칙 패널: 고정 해제 → 보드 위 흐름에 배치 (보드 가림 방지) */
+    /* ── 모바일 세로(portrait) 전용 레이아웃 ───────────────
+       아바타는 상단 좌·우 코너에 작게, 보드는 그 아래 전체 폭 중앙.
+       (PC·가로 모드에는 적용되지 않음 → 기존 UI 유지) */
+    @media (orientation: portrait) and (pointer: coarse) {
+      /* 규칙 패널: 고정 해제 → 흐름 배치 (보드 가림 방지) */
       .rules-panel {
         position: static;
         left: auto; top: auto;
         width: min(280px, 90vw);
-        margin: 0 auto 16px;
+        margin: 0 auto 12px;
         pointer-events: auto;
       }
 
-      /* 카드를 보드 위/아래로 세로 배치 → 보드가 가로폭을 더 차지(탭 크기↑) */
-      .game-row { flex-direction: column; gap: 4px; }
-      .player-wrap { flex-direction: row; gap: 16px; align-items: center; }
-
-      /* 거대한 AI 아바타 축소 (세로 배치 시 보드와 겹침 완화) */
-      .player-card[data-player="second"] .player-avatar {
-        transform: scale(1.7) translateY(-5px);
+      /* [아바타L][아바타R] / [   보드 전체 폭   ] 그리드 배치 */
+      .game-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+          "p1 p2"
+          "board board";
+        align-items: start;
+        gap: 0;
       }
+      .game-row > .player-wrap:nth-child(1) { grid-area: p1; justify-self: start; }
+      .game-row > .board-wrap               { grid-area: board; justify-self: center; margin-top: 6px; }
+      .game-row > .player-wrap:nth-child(3) { grid-area: p2; justify-self: end; }
 
-      /* 점수/이름 폰트 살짝 축소 */
-      .player-score { font-size: 2rem; }
-      .player-name  { font-size: 1.25rem; }
+      /* 아바타 축소 (기존보다 작게) — 점수는 또렷하게 유지 */
+      .player-wrap { flex-direction: column; gap: 0; }
+      .player-card { padding: 8px 8px 2px; min-width: 0; }
+      .player-avatar {
+        transform: scale(0.8) translateY(-2px);
+      }
+      .player-card[data-player="second"] .player-avatar {
+        transform: scale(0.9) translateY(-4px);
+      }
+      .turn-badge { top: -8px; font-size: 0.6rem; }
+      .player-name  { font-size: 1.05rem; top: 0; }
+      .player-score { font-size: 2.2rem; }   /* 균일 축소돼도 잘 보이도록 크게 */
     }
   </style>
 </head>
