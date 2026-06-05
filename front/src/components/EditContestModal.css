@@ -140,6 +140,30 @@
   background: #fafafe;
 }
 
+/* ── 비활성(잠금) 입력 ── */
+.ecm-input:disabled,
+.ecm-textarea:disabled {
+  background: #f1f1f6;
+  color: #9a9ab0;
+  cursor: not-allowed;
+  border-color: #e0e0ec;
+}
+
+/* ── 잠금 안내 배너 ── */
+.ecm-lock-notice {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: #fef3f2;
+  border: 1px solid #fecdca;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  color: #912018;
+  line-height: 1.55;
+}
+.ecm-lock-icon { flex-shrink: 0; }
+
 .ecm-error {
   font-size: 0.85rem;
   color: #cc2244;
