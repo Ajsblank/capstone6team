@@ -533,34 +533,85 @@
     }
 
     @media (max-width: 1000px) {
-      .main { flex-direction: column; }
+      .main { flex-direction: column; align-items: center; }
       .log-box { max-height: 300px; }
-    }
-
-    /* ── 모바일 공통 (가로/세로): 헤더·버튼 축소 ───────── */
-    @media (max-width: 760px) {
-      html, body { overflow-x: hidden; }
-      header { padding: 16px 12px; }
-      header h1 { font-size: 1.1rem; }
-      .btn-new-fixed { top: 12px; right: 12px; }
-      .btn-new-fixed button { padding: 7px 14px; font-size: 0.8rem; }
-      .main { padding: 16px 8px 24px; }
-    }
-
-    /* ── 모바일 세로(portrait) 전용 레이아웃 ───────────────
-       아바타는 상단 좌·우 코너에 작게, 보드는 그 아래 전체 폭 중앙.
-       (PC·가로 모드에는 적용되지 않음 → 기존 UI 유지) */
-    @media (orientation: portrait) and (pointer: coarse) {
-      /* 규칙 패널: 고정 해제 → 흐름 배치 (보드 가림 방지) */
+      /* 규칙 패널 고정 해제 → 보드 가림 방지 (가로/세로 공통) */
       .rules-panel {
         position: static;
         left: auto; top: auto;
-        width: min(280px, 90vw);
+        width: min(240px, 72vw);
         margin: 0 auto 12px;
         pointer-events: auto;
       }
+      .rules-toggle { padding: 9px 14px; font-size: 0.85rem; }
+    }
 
-      /* [아바타L][아바타R] / [   보드 전체 폭   ] 그리드 배치 */
+    /* ── 모바일 공통 (터치 기기, 가로/세로) ─────────────────
+       타일은 화면 폭/높이 중 작은 쪽에 맞춰 CSS로 직접 크게 키운다.
+       (JS 균일 축소는 모바일에서 비활성화 → 타일이 작아지지 않음) */
+    @media (pointer: coarse) {
+      html, body { overflow-x: hidden; }
+
+      /* 헤더: 제목 ↔ '새 게임' 버튼 충돌 방지 */
+      header { padding: 14px 92px 14px 14px; justify-content: flex-start; }
+      header h1 { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .btn-new-fixed { top: 10px; right: 10px; }
+      .btn-new-fixed button { padding: 9px 16px; font-size: 0.85rem; }
+      .main { padding: 12px 6px 20px; }
+
+      /* ⭐ 반응형 셀: 17열(폭) / 10행(높이) 중 더 빡빡한 쪽 기준으로 셀 크기 결정.
+         100dvh는 모바일 주소창 변화를 반영. 세로 reserve(아바타·헤더·버튼) 고려.
+         --cell은 부모 .board-wrap에 정의 → .board(자식)와 .board-wrap(margin) 둘 다 사용 가능 */
+      .board-wrap {
+        --cell: min(calc((100vw - 24px) / 17), calc((100dvh - 240px) / 10));
+        padding: 6px;
+      }
+      .board {
+        grid-template-columns: repeat(17, var(--cell));
+        grid-template-rows: repeat(10, var(--cell));
+      }
+      .cell { width: var(--cell); height: var(--cell); }
+      .cell-num { font-size: calc(var(--cell) * 0.52); }
+
+      /* 아바타·카드 축소 (실제 크기 줄임) */
+      .player-card { padding: 8px 12px 4px; min-width: 0; gap: 6px; }
+      .player-avatar,
+      .player-card[data-player="second"] .player-avatar {
+        width: 80px; height: 80px;
+        transform: none;
+      }
+      .turn-badge { top: -8px; font-size: 0.6rem; padding: 1px 8px; }
+      .player-name  { font-size: 1.1rem; top: 0; }
+      .player-score { font-size: 2.2rem; }
+
+      /* ⭐ 힌트·스킵 버튼 크게 */
+      .board-controls { gap: 14px; margin-top: 16px; }
+      .board-controls button { padding: 13px 30px; font-size: 1rem; border-radius: 10px; }
+    }
+
+    /* ── 모바일 세로(portrait): 보드 90° 회전 + 아바타 상단 코너 ── */
+    @media (orientation: portrait) and (pointer: coarse) {
+      /* 게임 규칙 버튼 아주 작게 */
+      .rules-panel { width: min(140px, 44vw); margin: 0 auto 4px; }
+      .rules-toggle { padding: 5px 10px; font-size: 0.72rem; }
+      .rules-arrow { font-size: 0.65rem; }
+
+      /* 회전 후 가로 제약은 10칸 → 셀을 더 크게. 세로는 17칸 기준.
+         보드(그리드)만 90° 회전 → 세로로 길어짐. --cell은 .board-wrap에 정의. */
+      .board-wrap {
+        --cell: min(calc((100vw - 24px) / 10), calc((100dvh - 200px) / 17));
+        /* translateX는 회전 후 화면 X축으로 적용(가장 왼쪽 함수=마지막=화면좌표).
+           회전된 레이아웃 박스(17칸) vs 시각 폭(10칸) 차이 3.5칸만큼 왼쪽으로 보정 */
+        transform: translateX(calc(-3.5 * var(--cell))) rotate(90deg);
+        transform-origin: center center;
+        /* 회전으로 세로가 (17-10)/2=3.5칸 더 길어진 만큼 위아래 여백 확보
+           (+여유를 더 줘서 위쪽 캐릭터 카드와 안 겹치게) */
+        margin: calc(3.5 * var(--cell) + 14px) auto calc(3.5 * var(--cell)) auto;
+      }
+      /* 각 칸은 반대로 -90° → 사과·숫자는 똑바로(읽기 쉽게) 유지 */
+      .cell { transform: rotate(-90deg); }
+
+      /* [아바타L][아바타R] / [   보드   ] 그리드 배치 */
       .game-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -568,24 +619,20 @@
           "p1 p2"
           "board board";
         align-items: start;
-        gap: 0;
+        row-gap: 2px;
       }
       .game-row > .player-wrap:nth-child(1) { grid-area: p1; justify-self: start; }
-      .game-row > .board-wrap               { grid-area: board; justify-self: center; margin-top: 6px; }
+      .game-row > .board-wrap               { grid-area: board; justify-self: center; }
       .game-row > .player-wrap:nth-child(3) { grid-area: p2; justify-self: end; }
-
-      /* 아바타 축소 (기존보다 작게) — 점수는 또렷하게 유지 */
       .player-wrap { flex-direction: column; gap: 0; }
-      .player-card { padding: 8px 8px 2px; min-width: 0; }
-      .player-avatar {
-        transform: scale(0.8) translateY(-2px);
-      }
-      .player-card[data-player="second"] .player-avatar {
-        transform: scale(0.9) translateY(-4px);
-      }
-      .turn-badge { top: -8px; font-size: 0.6rem; }
-      .player-name  { font-size: 1.05rem; top: 0; }
-      .player-score { font-size: 2.2rem; }   /* 균일 축소돼도 잘 보이도록 크게 */
+
+      /* 캐릭터 카드·아바타 더 작게 (보드에 안 묻히게) */
+      .player-card { padding: 4px 8px 2px; gap: 2px; border-width: 2px; }
+      .player-avatar,
+      .player-card[data-player="second"] .player-avatar { width: 52px; height: 52px; }
+      .player-name  { font-size: 0.9rem; }
+      .player-score { font-size: 1.5rem; }
+      .turn-badge { top: -6px; font-size: 0.5rem; padding: 1px 6px; }
     }
   </style>
 </head>
@@ -1285,17 +1332,24 @@ document.getElementById('boardWrap').addEventListener('mousemove', onBoardMouseM
 function fitGameToViewport() {
   const col = document.querySelector('.game-col');
   if (!col) return;
-  // 측정 전 변형 초기화
+  // 변형 초기화
   col.style.transform = 'none';
   col.style.marginBottom = '0px';
-  const naturalW = col.offsetWidth;
-  const naturalH = col.offsetHeight;
+
+  // 모바일(터치)은 CSS 반응형 셀(--cell)로 크기를 직접 조절하므로 JS 축소 비활성화.
+  if (window.matchMedia('(pointer: coarse)').matches) return;
+
+  // 데스크톱: 콘텐츠 폭이 창보다 넓으면 균일 축소.
+  const board = document.querySelector('.board-wrap');
+  const boardW = board ? board.offsetWidth : 0;
+  const naturalW = Math.max(col.scrollWidth, boardW, col.offsetWidth);
+  const naturalH = Math.max(col.scrollHeight, col.offsetHeight);
+
   const avail = window.innerWidth - 16;   // 좌우 여백
   const scale = Math.min(1, avail / naturalW);
   if (scale < 1) {
     col.style.transform = `scale(${scale})`;
     col.style.transformOrigin = 'top center';
-    // 축소된 만큼 아래 빈 공간 보정
     col.style.marginBottom = `-${naturalH * (1 - scale)}px`;
   }
 }
