@@ -76,6 +76,27 @@ const ProfilePage: React.FC = () => {
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setDraft(prev => ({ ...prev, [field]: e.target.value }));
 
+  // 프로필 이미지 업로드 → base64 data URL로 변환해 draft.imageUrl에 저장(서버 전송)
+  const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // 같은 파일 재선택 가능하게
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setSaveErr("이미지 파일만 업로드할 수 있습니다.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setSaveErr("이미지 크기는 2MB 이하만 가능합니다.");
+      return;
+    }
+    setSaveErr(null);
+    const reader = new FileReader();
+    reader.onload = () => setDraft(prev => ({ ...prev, imageUrl: String(reader.result) }));
+    reader.onerror = () => setSaveErr("이미지를 읽지 못했습니다.");
+    reader.readAsDataURL(file); // → "data:image/...;base64,...."
+  };
+
   if (!user) {
     return (
       <div className="pp-center">
@@ -97,7 +118,7 @@ const ProfilePage: React.FC = () => {
           <h1 className="pp-card-title">프로필</h1>
           {!editing && !loading && (
             <button className="pp-btn pp-btn--primary" onClick={startEdit}>
-              {fetchFailed ? "프로필 추가" : "수정"}
+              {fetchFailed ? "프로필 변경" : "수정"}
             </button>
           )}
           {editing && (
@@ -132,11 +153,26 @@ const ProfilePage: React.FC = () => {
               )}
             </div>
 
-            {/* 이미지 URL 입력 (편집 모드) */}
+            {/* 이미지 업로드 (편집 모드) — base64로 변환되어 서버에 전송됨 */}
             {editing && (
               <div className="pp-field pp-field--full">
-                <label className="pp-label">프로필 이미지 URL</label>
-                <input className="pp-input" value={draft.imageUrl ?? ""} onChange={set("imageUrl")} placeholder="https://..." />
+                <label className="pp-label">프로필 이미지</label>
+                <div className="pp-image-actions">
+                  <label className="pp-btn pp-btn--ghost pp-upload-btn">
+                    이미지 업로드
+                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
+                  </label>
+                  {draft.imageUrl ? (
+                    <button
+                      type="button"
+                      className="pp-btn pp-btn--ghost"
+                      onClick={() => setDraft(prev => ({ ...prev, imageUrl: "" }))}
+                    >
+                      이미지 제거
+                    </button>
+                  ) : null}
+                </div>
+                <p className="pp-upload-hint">JPG/PNG 등 이미지 파일, 최대 2MB</p>
               </div>
             )}
 
