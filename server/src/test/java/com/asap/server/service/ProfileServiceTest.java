@@ -104,7 +104,7 @@ class ProfileServiceTest {
     // ─────────────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("닉네임 변경 시 새 태그 할당 후 저장")
+    @DisplayName("닉네임 변경 시 새 태그 할당 후 저장, ")
     void updateMyProfile_nicknameChanged() {
         UpdateProfileRequest request = new UpdateProfileRequest();
         request.setNickname("newnick");
@@ -136,29 +136,33 @@ class ProfileServiceTest {
     }
 
     @Test
-    @DisplayName("닉네임이 null이면 예외 발생")
+    @DisplayName("닉네임이 null이면 기존 닉네임 유지")
     void updateMyProfile_nullNickname() {
         UpdateProfileRequest request = new UpdateProfileRequest();
         request.setNickname(null);
+        request.setBio("newbio");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(profileRepository.save(any(Profile.class))).thenReturn(testProfile);
 
-        assertThatThrownBy(() -> profileService.updateMyProfile(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("닉네임은 필수입니다.");
+        ProfileResponse response = profileService.updateMyProfile(1L, request);
+        assertThat(response.getNickname()).isEqualTo("testnick");
+
     }
 
     @Test
-    @DisplayName("닉네임이 공백만 있으면 예외 발생")
+    @DisplayName("닉네임이 공백만 있으면 기존 닉네임 유지")
     void updateMyProfile_blankNickname() {
         UpdateProfileRequest request = new UpdateProfileRequest();
         request.setNickname("   ");
+        request.setBio("newbio");
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(profileRepository.save(any(Profile.class))).thenReturn(testProfile);
 
-        assertThatThrownBy(() -> profileService.updateMyProfile(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("닉네임은 필수입니다.");
+        ProfileResponse response = profileService.updateMyProfile(1L, request);
+
+        assertThat(response.getNickname()).isEqualTo("testnick");
     }
 
     @Test
