@@ -49,9 +49,15 @@ export async function validateContestCode(
     console.log("[validateContestCode] 응답 상태:", response.status);
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("[validateContestCode] 오류:", error);
-      throw new Error(`검증 요청 실패: ${response.status}`);
+      const bodyText = await response.text();
+      console.error("[validateContestCode] 오류:", bodyText);
+      // 서버 에러 본문({"error":"..."} 또는 {"message":"..."} 또는 평문)을 메시지로 전달
+      let msg = bodyText;
+      try {
+        const j = JSON.parse(bodyText);
+        msg = j?.error ?? j?.message ?? bodyText;
+      } catch { /* 평문 그대로 사용 */ }
+      throw new Error(msg || `검증 요청 실패: ${response.status}`);
     }
 
     console.log("[validateContestCode] 202 Accepted - SSE를 통해 결과 대기");
