@@ -451,7 +451,8 @@ const BattlePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (activeTab === "contest") fetchContests();
+    // 대회 목록은 '대회' 탭과 '이전 문제' 탭 둘 다에서 사용 → 둘 다일 때 로딩
+    if (activeTab === "contest" || activeTab === "previous-problems") fetchContests();
   }, [activeTab, fetchContests]);
 
   function sortPriority(c: ContestItem): number {
