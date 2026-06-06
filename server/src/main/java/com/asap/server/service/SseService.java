@@ -33,14 +33,11 @@ public class SseService {
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
         emitters.put(userId, emitter);
 
-        emitter.onCompletion(() -> emitters.remove(userId));
-        emitter.onTimeout(() -> emitters.remove(userId));
         // 연결 확립용 초기 전송 — 이게 있어야 헤더가 flush되어 브라우저 onopen 발생
         try {
             emitter.send(SseEmitter.event().name("connect").data("ok"));
-            // 또는 주석 핑: emitter.send(SseEmitter.event().comment("connected"));
         } catch (IOException e) {
-            emitters.remove(userId);
+            emitters.remove(userId, emitter);
             emitter.completeWithError(e);
             return emitter;
         }
@@ -49,22 +46,22 @@ public class SseService {
             try {
                 emitter.send(SseEmitter.event().comment("heartbeat"));
             } catch (IOException e) {
-                emitters.remove(userId);
+                emitters.remove(userId, emitter);
                 emitter.complete();
             }
         }, 55, 55, TimeUnit.SECONDS);
 
-        // 콜백 하나로 통합 (덮어쓰기 방지)
+        // remove(key, value): 이 emitter가 현재 map에 있을 때만 삭제 (재연결 시 새 emitter 보호)
         emitter.onCompletion(() -> {
-            emitters.remove(userId);
+            emitters.remove(userId, emitter);
             heartbeatTask.cancel(true);
         });
         emitter.onTimeout(() -> {
-            emitters.remove(userId);
+            emitters.remove(userId, emitter);
             heartbeatTask.cancel(true);
         });
         emitter.onError(e -> {
-            emitters.remove(userId);
+            emitters.remove(userId, emitter);
             heartbeatTask.cancel(true);
         });
 
