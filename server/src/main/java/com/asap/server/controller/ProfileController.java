@@ -54,7 +54,7 @@ public class ProfileController {
     @Operation(summary = "유저 목록 프로필 조회")
     @PostMapping("/bulk")
     public ResponseEntity<Map<Long, ProfileListResponse>> getBulkProfiles(
-            @RequestBody ProfileBulkRequest request) {
+            @Valid @RequestBody ProfileBulkRequest request) {
         return ResponseEntity.ok(profileService.getBulkProfiles(request.getUserIds()));
     }
 }

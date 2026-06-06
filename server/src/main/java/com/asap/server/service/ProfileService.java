@@ -61,7 +61,11 @@ public class ProfileService {
     // 이미지가 있을 때만 S3 업로드
     String imageUrl = null;
     if (request.getImageBase64() != null) {
-      byte[] imageBytes = Base64.getDecoder().decode(request.getImageBase64());
+      String base64Data = request.getImageBase64();
+      if (base64Data.contains(",")) {
+        base64Data = base64Data.split(",")[1];
+      }
+      byte[] imageBytes = Base64.getDecoder().decode(base64Data);
       imageUrl = s3Service.uploadProfileImage(userId, imageBytes);
     }
     profile.updateDetails(request.getBio(), request.getAffiliation(), imageUrl);
@@ -90,7 +94,9 @@ public class ProfileService {
   @Transactional(readOnly = true)
   public Map<Long, ProfileListResponse> getBulkProfiles(List<Long> userIds) {
     List<Profile> profiles = profileRepository.findAllByUserIdIn(userIds);
-
+    if (userIds == null || userIds.isEmpty()) {
+      return java.util.Collections.emptyMap();
+    }
     return profiles.stream()
         .collect(Collectors.toMap(
             profile -> profile.getUser().getId(),
@@ -98,7 +104,8 @@ public class ProfileService {
               String tagCode = String.format("%04d", profile.getTag());
               String nicknameTag = profile.getNickname() + "-" + tagCode;
               String imageUrl = profile.getImage_url() != null
-                  ? cloudFrontDomain + profile.getImage_url()
+                  ? (cloudFrontDomain.endsWith("/") ? cloudFrontDomain : cloudFrontDomain + "/")
+                      + profile.getImage_url()
                   : null;
               return ProfileListResponse.builder()
                   .nicknameTag(nicknameTag)

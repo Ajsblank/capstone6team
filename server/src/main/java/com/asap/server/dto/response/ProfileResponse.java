@@ -23,7 +23,7 @@ public class ProfileResponse {
     String tagCode = String.format("%04d", profile.getTag());
     String nicknameTag = profile.getNickname() + "-" + tagCode;
     String imageUrl = profile.getImage_url() != null
-        ? cloudFrontDomain + profile.getImage_url()
+        ? (cloudFrontDomain.endsWith("/") ? cloudFrontDomain : cloudFrontDomain + "/") + profile.getImage_url()
         : null;
     return ProfileResponse.builder()
         .userId(profile.getUser().getId())
