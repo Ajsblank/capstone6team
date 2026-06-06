@@ -33,7 +33,9 @@ export interface TutSnapshot {
   maxParticipants: number;
   previewOpened: boolean;
   created: boolean;
-  validationCompleted?: boolean;
+  validationCompleted?: boolean;    // 검증 성공(결과 모달에 성공 표시)
+  validationModalOpen?: boolean;    // 검증 버튼을 눌러 결과 모달이 열림
+  validationModalClosed?: boolean;  // 성공 후 "계속하기"로 결과 모달을 닫음
 }
 
 interface Props {
@@ -124,9 +126,9 @@ const STEPS: Step[] = [
     isComplete: s => s.descFilled },
 
   { target: "limit", placement: "bottom",
-    text: "**‘시간 제한’**과 **‘메모리 제한’**입니다. 참가자 코드가 한 수를 결정할 때 허용되는 시간과 메모리를 정합니다. 시간 제한은 **2초**, 메모리 제한은 **128MB**로 맞춰보세요.",
-    hint: "시간 제한 = 2초, 메모리 제한 = 128MB 로 설정하세요.",
-    isComplete: s => s.timeLimitSec === 2 && s.memoryLimitMb === 128 },
+    text: "**‘시간 제한’**과 **‘메모리 제한’**입니다. 참가자 코드가 한 수를 결정할 때 허용되는 시간과 메모리를 정합니다. 시간 제한은 **12초**, 메모리 제한은 **128MB**로 맞춰보세요.",
+    hint: "시간 제한 = 12초, 메모리 제한 = 128MB 로 설정하세요.",
+    isComplete: s => s.timeLimitSec === 12 && s.memoryLimitMb === 128 },
 
   { target: "sample", placement: "bottom", dropKind: "sample",
     text: "이제 파일 업로드입니다. **‘샘플 AI 코드’**는 참가자에게 제공되는 **기본 템플릿**으로, 참가자는 이를 토대로 자신만의 전략을 구현합니다. 왼쪽의 **‘샘플AI코드’ 파일**을 끌어다 놓아보세요.",
@@ -146,12 +148,12 @@ const STEPS: Step[] = [
   { target: "validate", placement: "bottom",
     text: "이제 업로드한 코드들이 **제대로 작동하는지 검증**해야 합니다. 이 단계에서는 채점 코드, 샘플 코드, 예시 AI 코드가 **실제로 실행 가능한지** 시스템이 확인합니다. **’검증 후 계속’ 버튼**을 눌러 검증 프로세스를 시작해보세요.",
     hint: "검증 후 계속 버튼을 눌러보세요.",
-    isComplete: s => s.validationCompleted === true },
+    isComplete: s => s.validationModalOpen === true },
 
   { target: "validate-confirm", placement: "bottom",
-    text: "검증이 완료되었습니다! **’확인’ 버튼**을 눌러 다음 단계로 진행하세요.",
-    hint: "확인 버튼을 눌러보세요.",
-    isComplete: s => s.validationCompleted !== true },
+    text: "검증이 완료되었습니다! 검증 로그를 확인한 뒤 **’계속하기’ 버튼**을 눌러 다음 단계로 진행하세요.",
+    hint: "계속하기 버튼을 눌러보세요.",
+    isComplete: s => s.validationModalClosed === true },
 
   { target: "viz", placement: "top", dropKind: ["logviz", "solo"],
     text: "**‘시각화 파일’**입니다. **로그 시각화**는 대결 로그를 턴별로 재생해 보여주고, **혼자서 하기**는 참가자가 게임을 직접 체험하게 해줍니다. 왼쪽의 **두 시각화 파일을 모두** 끌어다 놓아보세요.",
@@ -216,22 +218,43 @@ const ContestTutorial: React.FC<Props> = ({ snap, previewOpen, applyFile, setUnc
     if (step.auto === "uncertified") setUncertified();
   }, [stepIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 타겟 위치 측정
+  // 타겟 위치 측정 (늦게 나타나는 타겟 — 예: 검증 모달의 '계속하기' — 은 재탐지)
   useEffect(() => {
     if (!step.target) { setRect(null); return; }
-    const el = document.querySelector<HTMLElement>(`[data-tut="${step.target}"]`);
-    if (!el) { setRect(null); return; }
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    let cancelled = false;
     let raf = 0;
-    const measure = () => setRect(el.getBoundingClientRect());
-    const t = setTimeout(measure, 380);
-    const onMove = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(measure); };
-    window.addEventListener("scroll", onMove, true);
-    window.addEventListener("resize", onMove);
+    let measureTimer = 0;
+    let retryTimer = 0;
+    let detach: (() => void) | null = null;
+    let tries = 0;
+
+    const tryFind = () => {
+      if (cancelled) return;
+      const el = document.querySelector<HTMLElement>(`[data-tut="${step.target}"]`);
+      if (!el) {
+        setRect(null);
+        if (tries++ < 30) retryTimer = window.setTimeout(tryFind, 200);  // 최대 ~6초 재시도
+        return;
+      }
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const measure = () => { if (!cancelled) setRect(el.getBoundingClientRect()); };
+      measureTimer = window.setTimeout(measure, 380);
+      const onMove = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(measure); };
+      window.addEventListener("scroll", onMove, true);
+      window.addEventListener("resize", onMove);
+      detach = () => {
+        window.removeEventListener("scroll", onMove, true);
+        window.removeEventListener("resize", onMove);
+      };
+    };
+    tryFind();
+
     return () => {
-      clearTimeout(t); cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onMove, true);
-      window.removeEventListener("resize", onMove);
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      clearTimeout(measureTimer);
+      clearTimeout(retryTimer);
+      detach?.();
     };
   }, [stepIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -241,6 +264,14 @@ const ContestTutorial: React.FC<Props> = ({ snap, previewOpen, applyFile, setUnc
   );
   const canNext = done && practiceComplete;
   const isLast = stepIdx === STEPS.length - 1;
+
+  // 행위형 스텝(파일 업로드·검증): 설명 재생 중이라도 사용자가 행위를 미리 완료하면 즉시 다음으로
+  const isAutoAdvanceStep = !!step.dropKind || step.target === "validate" || step.target === "validate-confirm";
+  useEffect(() => {
+    if (!isAutoAdvanceStep || !practiceComplete || isLast) return;
+    const t = setTimeout(() => setStepIdx(i => i + 1), 350);
+    return () => clearTimeout(t);
+  }, [isAutoAdvanceStep, practiceComplete, isLast, stepIdx]);
 
   const goNext = () => {
     if (!canNext) return;

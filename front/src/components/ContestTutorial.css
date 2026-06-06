@@ -79,6 +79,7 @@
   box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.2);
   pointer-events: none;
   transition: all 0.25s ease;
+  z-index: 1011;   /* 검증 결과 모달(1010) 위에서 타겟을 강조 */
 }
 
 /* 드롭존 (드롭 스텝) */
@@ -124,7 +125,7 @@
 }
 .ct-exit:hover { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
 
-.ct-connector { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.ct-connector { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1011; }
 
 /* ── 말풍선 ── */
 .ct-bubble {
@@ -135,7 +136,7 @@
   padding: 18px 20px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
   pointer-events: auto;
-  z-index: 1001;
+  z-index: 1012;   /* 검증 결과 모달(1010)·강조 프레임(1011) 위 — 설명이 가려지지 않도록 */
 }
 .ct-bubble--center { position: static; max-width: 480px; width: 100%; }
 

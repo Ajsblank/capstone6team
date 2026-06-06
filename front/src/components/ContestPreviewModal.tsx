@@ -105,18 +105,30 @@ const ContestPreviewModal: React.FC<Props> = ({
         }}>
           <span style={{ opacity: 0.7 }}>👁</span> 미리보기 모드 — 실제 대회 페이지와 동일한 구조입니다
         </span>
-        <button
-          onClick={onClose}
-          style={{
-            background: "none", border: "1px solid #fed7aa",
-            borderRadius: 6, color: "#ea580c",
-            fontSize: "0.78rem", fontWeight: 600,
-            padding: "4px 14px", cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
+        <button onClick={onClose} className="cpm-close-btn">
           닫기 ✕
         </button>
+        <style>{`
+          @keyframes cpm-close-pulse {
+            0%, 100% { transform: scale(1);    box-shadow: 0 0 8px rgba(22,163,74,0.45), 0 0 0 0 rgba(22,163,74,0.45); }
+            50%      { transform: scale(1.12); box-shadow: 0 0 22px rgba(22,163,74,0.85), 0 0 0 6px rgba(22,163,74,0); }
+          }
+          .cpm-close-btn {
+            background: #16a34a;
+            border: none;
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 1.05rem;
+            font-weight: 800;
+            padding: 10px 26px;
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+            animation: cpm-close-pulse 1.2s ease-in-out infinite;
+            transition: background 0.15s;
+          }
+          .cpm-close-btn:hover { background: #15803d; }
+        `}</style>
       </div>
 
       {/* 문제 제목 바 */}

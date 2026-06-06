@@ -105,7 +105,7 @@ const ValidationResultModal: React.FC<ValidationResultModalProps> = ({
         <div className="vrm-footer">
           {!isLoading && result && (
             allPassed ? (
-              <button className="vrm-btn vrm-btn-proceed" onClick={onClose}>
+              <button className="vrm-btn vrm-btn-proceed" onClick={onClose} data-tut="validate-confirm">
                 계속하기
               </button>
             ) : (
