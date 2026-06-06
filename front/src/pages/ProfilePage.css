@@ -262,3 +262,17 @@
   font-size: 0.82rem;
   margin: 0;
 }
+
+/* 프로필 이미지 업로드 */
+.pp-image-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pp-upload-btn { cursor: pointer; display: inline-flex; align-items: center; }
+.pp-upload-hint {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
