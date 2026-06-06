@@ -62,6 +62,9 @@ int setup_role(const std::string& role, const std::string& code, const std::stri
         write_file(abs_work_dir + "/" + role + ".py", code);
         // 파이썬은 사전 컴파일이 필요 없음
         run_cmd = "python3 /app/" + role + ".py";
+    } else if (lang == "c") {
+        write_file(abs_work_dir + "/" + role + ".c", code);
+        compile_cmd = "docker run --rm -v " + abs_work_dir + ":/app -w /app " + docker_img + " gcc -O2 -o " + role + " " + role + ".c";
     } else { // 기본값 C++
         write_file(abs_work_dir + "/" + role + ".cpp", code);
         compile_cmd = "docker run --rm -v " + abs_work_dir + ":/app -w /app " + docker_img + " g++ -O2 -o " + role + " " + role + ".cpp";
@@ -87,7 +90,7 @@ int setup_role(const std::string& role, const std::string& code, const std::stri
     return 0;
 }
 
-static const std::string VERSION = "1.1.0";  // jobId echo back 지원
+static const std::string VERSION = "1.1.1";
 
 int main(int argc, char* argv[]) {
     std::string redis_host;
@@ -144,8 +147,11 @@ int main(int argc, char* argv[]) {
             json data = json::parse(json_str);
 
             if (queue_name == "code_battle_test_queue") {
-                
-                int time_limit_sec = 1000;
+
+                // timeoutSec 필드가 있으면 해당 값 사용 (smoke test는 10초로 단축 가능)
+                // 없으면 기본 60초
+                int time_limit_sec = data.contains("timeoutSec")
+                    ? (int)data["timeoutSec"] : 60;
                 auto json_to_str = [](const json& v) -> std::string {
                     if (v.is_string()) return v.get<std::string>();
                     return v.dump();
@@ -155,6 +161,8 @@ int main(int argc, char* argv[]) {
                     : json_to_str(data["userId"]) + "_" + std::to_string(std::time(nullptr));
                 std::string work_dir = "./test_" + test_id;
                 std::string abs_work_dir = fs::absolute(work_dir).string();
+                // 컨테이너 이름: 타임아웃/비정상 종료 후 docker rm -f 로 zombie 컨테이너 정리에 사용
+                std::string container_name = "cb_test_" + test_id;
 
                 std::cout << "▶ 테스트 매치: " << " (제한시간: " << time_limit_sec << "초)" << std::endl;
 
@@ -183,24 +191,39 @@ int main(int argc, char* argv[]) {
                 int exit_p2 = setup_role("player2", data["player2"], p2_lang, abs_work_dir);
                 
                 if (exit_j != 0) {
-                    result_json["log"] = "Judge Compile Error";
+                    // judge 자체가 컴파일 안 되면 검증 불가
+                    result_json["log"] = "COMPILE_ERROR";
                 } else if (exit_p1 != 0 && exit_p2 != 0) {
-                    result_json["log"] = "Both Players Compile Error";
+                    result_json["log"] = "COMPILE_ERROR COMPILE_ERROR";
                 } else if (exit_p1 != 0) {
-                    result_json["log"] = "Player 1 Compile Error";
+                    result_json["log"] = "COMPILE_ERROR WIN";
                 } else if (exit_p2 != 0) {
-                    result_json["log"] = "Player 2 Compile Error";
+                    // probe(compile error) 검증은 이 경로를 통해 "WIN COMPILE_ERROR" 로그를 받음
+                    result_json["log"] = "WIN COMPILE_ERROR";
                 }
                 else
                 {
                     std::cout << "실행 및 채점 중..." << std::endl;
-                    std::string run_cmd = "timeout " + std::to_string(time_limit_sec) + "s " +
-                                        "docker run -i --rm -v " + abs_work_dir + ":/app -w /app " +
+                    // -k 5s: SIGTERM 후 5초 내 미종료 시 SIGKILL로 강제 종료
+                    // --name: zombie 컨테이너를 이름으로 추적해 docker rm -f 로 정리 가능
+                    std::string run_cmd = "timeout -k 5s " + std::to_string(time_limit_sec) + "s " +
+                                        "docker run -i --rm --name " + container_name +
+                                        " -v " + abs_work_dir + ":/app -w /app " +
                                         "--memory=512m --network=none code-battle-env " +
                                         "./judge ./player1 ./player2 2>&1";
-                
+
                     CmdResult run_res = exec_cmd(run_cmd);
-                    result_json["log"] = run_res.output;
+
+                    // 컨테이너가 zombie로 남아있을 경우 강제 정리 (이미 종료됐으면 무해)
+                    exec_cmd("docker rm -f " + container_name + " > /dev/null 2>&1");
+
+                    result_json["exitCode"] = run_res.exit_code; // Spring에서 타임아웃(124) 직접 판별용
+                    if (run_res.exit_code != 0 && run_res.output.empty()) {
+                        result_json["log"] = "RUNTIME_ERROR RUNTIME_ERROR";
+                        std::cout << "[테스트] Judge 비정상 종료 (exit=" << run_res.exit_code << ")" << std::endl;
+                    } else {
+                        result_json["log"] = run_res.output;
+                    }
                 }
                 redis.lpush("code_battle_test_result_queue", result_json.dump());
 
@@ -225,6 +248,7 @@ int main(int argc, char* argv[]) {
                 int memory_limit_mb = std::min(data.contains("memoryLimitMb") ? (int)data["memoryLimitMb"] * 3 : 512, 2048);
                 std::string work_dir = "./" + match_id;
                 std::string abs_work_dir = fs::absolute(work_dir).string();
+                std::string container_name = "cb_match_" + match_id;
     
                 std::cout << "▶ 매치 ID: " << match_id << " (제한시간: " << time_limit_sec << "초)" << std::endl;
     
@@ -270,12 +294,17 @@ int main(int argc, char* argv[]) {
                 else
                 {
                     std::cout << "실행 및 채점 중..." << std::endl;
-                    std::string run_cmd = "timeout " + std::to_string(time_limit_sec) + "s " +
-                                        "docker run -i --rm -v " + abs_work_dir + ":/app -w /app " +
+                    std::string run_cmd = "timeout -k 5s " + std::to_string(time_limit_sec) + "s " +
+                                        "docker run -i --rm --name " + container_name +
+                                        " -v " + abs_work_dir + ":/app -w /app " +
                                         "--memory=" + std::to_string(memory_limit_mb) + "m --network=none code-battle-env " +
                                         "./judge ./player1 ./player2 2>&1";
 
                     CmdResult run_res = exec_cmd(run_cmd);
+
+                    // zombie 컨테이너 정리 (이미 종료됐으면 무해)
+                    exec_cmd("docker rm -f " + container_name + " > /dev/null 2>&1");
+
                     result_json["log"] = run_res.output;
                     // 결과 판정
                     if (run_res.exit_code == 124) {
