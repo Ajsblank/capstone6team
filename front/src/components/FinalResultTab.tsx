@@ -9,6 +9,33 @@ interface Props {
   onLogView?: (log: string) => void;
 }
 
+// ── 공동 순위 계산 (같은 승점 → 같은 등수, 다음 등수는 건너뜀) ────────────────────
+// 동점 그룹은 첫 줄에만 등수를 표시하고 나머지는 묶음으로 표현하기 위한 플래그 포함
+type TiedRank = {
+  displayRank: number;
+  isFirstInGroup: boolean;
+  isTiedStart: boolean;
+  isTiedCont: boolean;
+  isTiedLast: boolean;
+};
+function computeTiedRanks<T extends { points: number }>(entries: T[]): (T & TiedRank)[] {
+  const sorted = [...entries].sort((a, b) => b.points - a.points);
+  const ranked = sorted.map((entry, idx) => {
+    const isFirstInGroup = idx === 0 || sorted[idx - 1].points !== entry.points;
+    const displayRank = isFirstInGroup ? idx + 1 : (sorted[idx - 1] as any).displayRank;
+    return { ...entry, displayRank, isFirstInGroup };
+  });
+  return ranked.map((entry, idx) => {
+    const hasFollower = idx < ranked.length - 1 && ranked[idx + 1].points === entry.points;
+    return {
+      ...entry,
+      isTiedStart: entry.isFirstInGroup && hasFollower,
+      isTiedCont:  !entry.isFirstInGroup,
+      isTiedLast:  !entry.isFirstInGroup && !hasFollower,
+    };
+  });
+}
+
 const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLogView }) => {
   const [standings, setStandings]                 = useState<FinalStanding[]>([]);
   const [totalParticipants, setTotalParticipants] = useState<number>(0);
@@ -82,18 +109,25 @@ const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLo
       </div>
 
       <div className="fr-list">
-        {standings.map(s => {
+        {computeTiedRanks(standings).map(s => {
           const total       = s.wins + s.draws + s.losses;
           const isMe        = myUserId !== undefined && s.user_id === myUserId;
           const isExpanded  = expandedUserId === s.user_id;
           const sortedMatchIds = [...(s.match_ids ?? [])].sort((a, b) => a - b);
           const hasMatchIds = sortedMatchIds.length > 0;
 
+          const tieClass =
+            (s.isTiedStart ? " fr-card--tied-start" : "") +
+            (s.isTiedCont  ? " fr-card--tied-cont"  : "") +
+            (s.isTiedLast  ? " fr-card--tied-last"  : "");
+
           return (
             <div key={s.user_id} className="fr-card-wrap">
-              <div className={`fr-card${s.rank <= 3 ? ` fr-card--rank${s.rank}` : ""}${isExpanded ? " fr-card--expanded" : ""}`}>
+              <div className={`fr-card${s.displayRank <= 3 ? ` fr-card--rank${s.displayRank}` : ""}${tieClass}${isExpanded ? " fr-card--expanded" : ""}`}>
                 <div className="fr-rank">
-                  <span className="fr-rank-num">{s.rank}</span>
+                  {s.isFirstInGroup
+                    ? <span className="fr-rank-num">{s.displayRank}</span>
+                    : <span className="fr-tie-dot" aria-label={`공동 ${s.displayRank}위`}>·</span>}
                 </div>
 
                 <div className="fr-info">

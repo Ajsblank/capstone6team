@@ -137,6 +137,33 @@ const MatchDetailPanel: React.FC<DetailPanelProps> = ({
   );
 };
 
+// ── 공동 순위 계산 (같은 승점 → 같은 등수, 다음 등수는 건너뜀) ────────────────────
+// 동점 그룹은 첫 줄에만 등수를 표시하고 나머지는 묶음으로 표현하기 위한 플래그 포함
+type TiedRank = {
+  displayRank: number;
+  isFirstInGroup: boolean;  // 그룹의 첫 줄 (등수 표시)
+  isTiedStart: boolean;     // 뒤에 동점자가 있는 첫 줄
+  isTiedCont: boolean;      // 위와 동점인 연속 줄
+  isTiedLast: boolean;      // 동점 그룹의 마지막 줄
+};
+function computeTiedRanks<T extends { points: number }>(entries: T[]): (T & TiedRank)[] {
+  const sorted = [...entries].sort((a, b) => b.points - a.points);
+  const ranked = sorted.map((entry, idx) => {
+    const isFirstInGroup = idx === 0 || sorted[idx - 1].points !== entry.points;
+    const displayRank = isFirstInGroup ? idx + 1 : (sorted[idx - 1] as any).displayRank;
+    return { ...entry, displayRank, isFirstInGroup };
+  });
+  return ranked.map((entry, idx) => {
+    const hasFollower = idx < ranked.length - 1 && ranked[idx + 1].points === entry.points;
+    return {
+      ...entry,
+      isTiedStart: entry.isFirstInGroup && hasFollower,
+      isTiedCont:  !entry.isFirstInGroup,
+      isTiedLast:  !entry.isFirstInGroup && !hasFollower,
+    };
+  });
+}
+
 // ── 메인 컴포넌트 ──────────────────────────────────────────────────────────────
 
 const LeaderboardTab: React.FC<Props> = ({
@@ -257,19 +284,25 @@ const LeaderboardTab: React.FC<Props> = ({
 
       {!loading && data && data.final_standings.length > 0 && (
         <div className="lb-list">
-          {[...data.final_standings].sort((a, b) => a.rank - b.rank).map((s: LeaderboardStanding) => {
+          {computeTiedRanks(data.final_standings).map((s) => {
             const isMe       = myUserId !== undefined && s.user_id === myUserId;
             const isExpanded = expandedUserId === s.user_id;
-            const rankClass  = s.rank <= 3 ? ` lb-card--rank${s.rank}` : "";
+            const rankClass  = s.displayRank <= 3 ? ` lb-card--rank${s.displayRank}` : "";
+            const tieClass   =
+              (s.isTiedStart ? " lb-card--tied-start" : "") +
+              (s.isTiedCont  ? " lb-card--tied-cont"  : "") +
+              (s.isTiedLast  ? " lb-card--tied-last"  : "");
 
             return (
               <React.Fragment key={s.user_id}>
                 <div
-                  className={`lb-card${rankClass} lb-card--expandable`}
+                  className={`lb-card${rankClass}${tieClass} lb-card--expandable`}
                   onClick={() => handleCardClick(s.user_id)}
                 >
                   <div className="lb-rank">
-                    <span className="lb-rank-num">{s.rank}</span>
+                    {s.isFirstInGroup
+                      ? <span className="lb-rank-num">{s.displayRank}</span>
+                      : <span className="lb-tie-dot" aria-label={`공동 ${s.displayRank}위`}>·</span>}
                   </div>
                   <div className="lb-info">
                     <span className="lb-user-id">

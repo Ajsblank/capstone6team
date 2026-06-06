@@ -95,6 +95,7 @@
 
 /* ── 순위 ── */
 .lb-rank {
+  position: relative;
   width: 48px;
   height: 48px;
   display: flex;
@@ -109,6 +110,41 @@
 .lb-card--rank1 .lb-rank { background: #fef3c7; border-color: #fcd34d; }
 .lb-card--rank2 .lb-rank { background: #f3f4f6; border-color: #d1d5db; }
 .lb-card--rank3 .lb-rank { background: #fef3f2; border-color: #fecaca; }
+
+/* ── 동점(공동 순위) 묶음: 첫 줄만 등수, 나머지는 세로 연결선으로 그룹화 ── */
+/* 연결선 색상 변수: 등수별 강조색과 맞춤 */
+.lb-card--tied-start .lb-rank::after,
+.lb-card--tied-cont  .lb-rank::before,
+.lb-card--tied-cont:not(.lb-card--tied-last) .lb-rank::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: #cbd5e1;
+}
+/* 그룹 시작: 중앙 → 아래(다음 카드까지, lb-list gap 8px 포함) */
+.lb-card--tied-start .lb-rank::after { top: 50%; bottom: -10px; }
+/* 연속 줄: 위(이전 카드) → 중앙 */
+.lb-card--tied-cont  .lb-rank::before { top: -10px; bottom: 50%; }
+/* 중간 연속 줄: 중앙 → 아래로도 이어짐 */
+.lb-card--tied-cont:not(.lb-card--tied-last) .lb-rank::after { top: 50%; bottom: -10px; }
+
+/* 그룹별 연결선 색상 강조 */
+.lb-card--rank1.lb-card--tied-start .lb-rank::after,
+.lb-card--rank1.lb-card--tied-cont  .lb-rank::before,
+.lb-card--rank1.lb-card--tied-cont  .lb-rank::after { background: #fcd34d; }
+.lb-card--rank3.lb-card--tied-start .lb-rank::after,
+.lb-card--rank3.lb-card--tied-cont  .lb-rank::before,
+.lb-card--rank3.lb-card--tied-cont  .lb-rank::after { background: #fecaca; }
+
+/* 연속 줄의 "동점" 표시 점 */
+.lb-tie-dot {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #cbd5e1;
+  line-height: 1;
+}
 
 .lb-medal    { font-size: 1.8rem; line-height: 1; }
 .lb-rank-num {
