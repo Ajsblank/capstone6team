@@ -736,7 +736,7 @@
           
           <li>종료 시 <b>더 많은 칸</b>을 점령한 쪽이 승리합니다.</li>
         </ul>
-        <p class="rules-tip">힌트 켜기를 누르면 만들 수 있는 구역이 표시됩니다. (최대 3회)</p>
+        <p class="rules-tip">힌트 켜기를 누르면 만들 수 있는 모든 구역이 표시됩니다.</p>
       </div>
     </div>
   </aside>
@@ -817,7 +817,6 @@ let consecutiveSkips = 0;
 let finished = false;
 let dragStart = null, dragEnd = null, isDragging = false;
 let hintSet = null;
-let hintsLeft = 3;        // 힌트 사용 가능 횟수
 let lastMove = null;      // 방금 점령한 영역 (flip 애니메이션용)
 let aiThinking = false;      // AI 계산 중 여부
 let humanPassed = false;     // 사람이 직전 턴에 패스했는지
@@ -1012,30 +1011,22 @@ function anyRectSums10() {
 }
 
 // 유효한 10-합 영역 중 최대 maxN개를 골라 그 칸들을 표시
-function computeHintMoves(maxN = 3) {
+function computeHintMoves() {
   const ps = buildPS(board);
-  const moves = [];
+  const result = new Set();
+  // 만들 수 있는 모든 유효 구역의 사과 칸을 표시
   for (let r1=0; r1<ROWS; r1++) for (let r2=r1; r2<ROWS; r2++)
     for (let c1=0; c1<COLS; c1++) for (let c2=c1; c2<COLS; c2++)
       if (rectQ(ps,r1,c1,r2,c2) === 10 && checkSelection(r1,c1,r2,c2).valid)
-        moves.push([r1, c1, r2, c2]);
-  // 셔플 후 maxN개 선택 (없으면 있는 만큼)
-  for (let i = moves.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [moves[i], moves[j]] = [moves[j], moves[i]];
-  }
-  const picked = moves.slice(0, maxN);
-  const result = new Set();
-  for (const [r1, c1, r2, c2] of picked)
-    for (let r=r1; r<=r2; r++) for (let c=c1; c<=c2; c++)
-      if (board[r][c] > 0) result.add(r * COLS + c);
+        for (let r=r1; r<=r2; r++) for (let c=c1; c<=c2; c++)
+          if (board[r][c] > 0) result.add(r * COLS + c);
   return result;
 }
 
 function updateHintBtn() {
   const btn = document.getElementById('btnHint');
-  btn.textContent = `힌트 (${hintsLeft})`;
-  btn.disabled = hintsLeft <= 0 || finished;
+  btn.textContent = hintSet ? '힌트 끄기' : '힌트 켜기';
+  btn.disabled = finished;
 }
 
 function getScores() {
@@ -1055,6 +1046,7 @@ function doMove(r1, c1, r2, c2) {
   actionIndex++;
   consecutiveSkips = 0;
   hintSet = null;
+  updateHintBtn();
   if (!anyRectSums10()) { endGame(); return; }
   currentPlayer = currentPlayer === 'first' ? 'second' : 'first';
 }
@@ -1066,6 +1058,7 @@ function doSkip() {
   actionIndex++;
   consecutiveSkips++;
   hintSet = null;
+  updateHintBtn();
   if (consecutiveSkips >= 2) { endGame(); return; }
   currentPlayer = currentPlayer === 'first' ? 'second' : 'first';
 }
@@ -1322,9 +1315,8 @@ function pushLog(line) {
 
 // ── Controls ─────────────────────────────────────────────
 document.getElementById('btnHint').addEventListener('click', () => {
-  if (finished || aiThinking || currentPlayer !== 'first' || hintsLeft <= 0) return;
-  hintSet = computeHintMoves(3);   // 가능한 영역 중 최대 3개
-  hintsLeft--;
+  if (finished || aiThinking || currentPlayer !== 'first') return;
+  hintSet = hintSet ? null : computeHintMoves();   // 토글: 모든 가능한 구역 표시 / 끄기
   updateHintBtn();
   renderBoard();
 });
@@ -1385,7 +1377,6 @@ function initGame() {
   dragStart = dragEnd = null;
   isDragging = false;
   hintSet = null;
-  hintsLeft = 3;
   lastMove = null;
   aiThinking = false;
   humanPassed = false;
