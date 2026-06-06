@@ -79,6 +79,8 @@ public class SwissLeagueService {
         log.info("이미 종료된 세션이므로 스킵합니다.");
         return;
       }
+      // 중간에 멈춘 세션 재실행 로직 없음
+
       // 비정상 종료 라운드 무시 로직
       List<ContestSwissRound> runningRounds = swissRoundRepository
           .findBySessionIdAndStatus(sessionId, MatchStatus.RUNNING);
