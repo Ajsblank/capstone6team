@@ -256,12 +256,16 @@ int main(int argc, char* argv[]) {
                 
                 if (exit_j != 0) {
                     result_json["winner"] = 0;
+                    result_json["log"] = "NONE NONE";
                 } else if (exit_p1 != 0 && exit_p2 != 0) {
                     result_json["winner"] = 0;
+                    result_json["log"] = "COMPILE_ERROR COMPILE_ERROR";
                 } else if (exit_p1 != 0) {
                     result_json["winner"] = 2; // P1 컴파일 에러면 P2 승
+                    result_json["log"] = "COMPILE_ERROR WIN";
                 } else if (exit_p2 != 0) {
                     result_json["winner"] = 1; // P2 컴파일 에러면 P1 승
+                    result_json["log"] = "WIN COMPILE_ERROR";
                 }
                 else
                 {
@@ -294,8 +298,9 @@ int main(int argc, char* argv[]) {
                             if (s == "2" || s == "LOSE") return "LOSE";
                             if (s == "3" || s == "TIME_LIMIT") return "TIME_LIMIT";
                             if (s == "4" || s == "MEMORY_LIMIT") return "MEMORY_LIMIT";
-                            if (s == "5" || s == "ERROR") return "ERROR";
-                            return "ERROR";
+                            if (s == "5" || s == "RUNTIME_ERROR") return "RUNTIME_ERROR";
+                            if (s == "COMPILE_ERROR") return "COMPILE_ERROR";
+                            return "RUNTIME_ERROR";
                         };
                     
                         std::string p1_result = parse_enum(p1_str);
