@@ -29,7 +29,7 @@ const ProfilePage: React.FC = () => {
       nickname:    profile?.nickname    ?? user?.username ?? "",
       bio:         profile?.bio         ?? "",
       affiliation: profile?.affiliation ?? "",
-      imageUrl:    profile?.imageUrl    ?? "",
+      // imageBase64는 새 이미지를 업로드할 때만 설정 (기존 이미지는 profile.imageUrl로 표시)
     });
     setSaveErr(null);
     setEditing(true);
@@ -52,7 +52,8 @@ const ProfilePage: React.FC = () => {
         nickname:    draft.nickname?.trim()    ?? "",
         bio:         draft.bio?.trim()         ?? "",
         affiliation: draft.affiliation?.trim() ?? "",
-        imageUrl:    draft.imageUrl?.trim()    ?? "",
+        // 새로 업로드(또는 제거)한 경우에만 imageBase64 전송 — 미변경 시 키 생략
+        ...(draft.imageBase64 !== undefined ? { imageBase64: draft.imageBase64 } : {}),
       };
       const updated = await updateMyProfile(payload);
       setProfile(updated);
@@ -76,7 +77,7 @@ const ProfilePage: React.FC = () => {
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setDraft(prev => ({ ...prev, [field]: e.target.value }));
 
-  // 프로필 이미지 업로드 → base64 data URL로 변환해 draft.imageUrl에 저장(서버 전송)
+  // 프로필 이미지 업로드 → base64 data URL로 변환해 draft.imageBase64에 저장(서버가 S3 업로드)
   const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -92,7 +93,7 @@ const ProfilePage: React.FC = () => {
     }
     setSaveErr(null);
     const reader = new FileReader();
-    reader.onload = () => setDraft(prev => ({ ...prev, imageUrl: String(reader.result) }));
+    reader.onload = () => setDraft(prev => ({ ...prev, imageBase64: String(reader.result) }));
     reader.onerror = () => setSaveErr("이미지를 읽지 못했습니다.");
     reader.readAsDataURL(file); // → "data:image/...;base64,...."
   };
@@ -107,7 +108,10 @@ const ProfilePage: React.FC = () => {
   }
 
   const displayNickname = profile?.nicknameTag || profile?.nickname || user.username;
-  const displayImageUrl = editing ? (draft.imageUrl ?? "") : (profile?.imageUrl ?? "");
+  // 편집 중: 새로 올린 base64(있으면 우선, 제거 시 빈 문자열), 미변경 시 기존 S3 URL
+  const displayImageUrl = editing
+    ? (draft.imageBase64 !== undefined ? draft.imageBase64 : (profile?.imageUrl ?? ""))
+    : (profile?.imageUrl ?? "");
 
   return (
     <div className="pp-root">
@@ -162,11 +166,11 @@ const ProfilePage: React.FC = () => {
                     이미지 업로드
                     <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
                   </label>
-                  {draft.imageUrl ? (
+                  {displayImageUrl ? (
                     <button
                       type="button"
                       className="pp-btn pp-btn--ghost"
-                      onClick={() => setDraft(prev => ({ ...prev, imageUrl: "" }))}
+                      onClick={() => setDraft(prev => ({ ...prev, imageBase64: "" }))}
                     >
                       이미지 제거
                     </button>
