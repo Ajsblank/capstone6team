@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { SessionPayload, SessionRound, SessionMatch } from "./SessionDetailPanel";
+import { getSwissMatchLog } from "../api/codeBattleApi";
 import "../pages/SwissTournamentPage.css";
 
 // ─── Internal types ────────────────────────────────────────────────────────────
@@ -148,9 +149,12 @@ interface VMatchRowProps {
   selected: boolean;
   onSelect: () => void;
   setRef: (id: string, el: HTMLDivElement | null) => void;
+  hasVisualization: boolean;
+  logLoading: boolean;
+  onShowLog: (matchId: number) => void;
 }
 
-const VMatchRow: React.FC<VMatchRowProps> = ({ match, trackedId, selected, onSelect, setRef }) => {
+const VMatchRow: React.FC<VMatchRowProps> = ({ match, trackedId, selected, onSelect, setRef, hasVisualization, logLoading, onShowLog }) => {
   const { result, isBye, p1Id, p2Id, id } = match;
   const p1Win  = result === "p1";
   const p2Win  = result === "p2";
@@ -193,33 +197,50 @@ const VMatchRow: React.FC<VMatchRowProps> = ({ match, trackedId, selected, onSel
   ].filter(Boolean).join(" ");
 
   return (
-    <div ref={el => setRef(id, el)} className={rowCls} onClick={onSelect}>
-      {/* 좌측 — 플레이어 1 */}
-      <div className={p1HalfCls}>
-        <span className="st-match-pname">{pName(p1Id)}</span>
-        <span className="st-result-slot">
-          {p1Win  && <span className="st-win-icon">W</span>}
-          {p2Win  && <span className="st-lose-icon">L</span>}
-          {isDraw && <span className="st-draw-icon">D</span>}
-        </span>
+    <>
+      <div ref={el => setRef(id, el)} className={rowCls} onClick={onSelect}>
+        {/* 좌측 — 플레이어 1 */}
+        <div className={p1HalfCls}>
+          <span className="st-match-pname">{pName(p1Id)}</span>
+          <span className="st-result-slot">
+            {p1Win  && <span className="st-win-icon">W</span>}
+            {p2Win  && <span className="st-lose-icon">L</span>}
+            {isDraw && <span className="st-draw-icon">D</span>}
+          </span>
+        </div>
+
+        {/* VS 구분선 */}
+        <div className={`st-match-vs-divider${selected ? " st-match-vs-divider--active" : ""}`}>
+          <span>VS</span>
+          {selected && <span className="st-vs-pulse" />}
+        </div>
+
+        {/* 우측 — 플레이어 2 */}
+        <div className={p2HalfCls}>
+          <span className="st-result-slot">
+            {p1Win  && <span className="st-lose-icon">L</span>}
+            {p2Win  && <span className="st-win-icon">W</span>}
+            {isDraw && <span className="st-draw-icon">D</span>}
+          </span>
+          <span className="st-match-pname">{pName(p2Id)}</span>
+        </div>
       </div>
 
-      {/* VS 구분선 */}
-      <div className={`st-match-vs-divider${selected ? " st-match-vs-divider--active" : ""}`}>
-        <span>VS</span>
-        {selected && <span className="st-vs-pulse" />}
-      </div>
-
-      {/* 우측 — 플레이어 2 */}
-      <div className={p2HalfCls}>
-        <span className="st-result-slot">
-          {p1Win  && <span className="st-lose-icon">L</span>}
-          {p2Win  && <span className="st-win-icon">W</span>}
-          {isDraw && <span className="st-draw-icon">D</span>}
-        </span>
-        <span className="st-match-pname">{pName(p2Id)}</span>
-      </div>
-    </div>
+      {/* 선택 시 로그 액션 — 결과가 확정된 매치만 */}
+      {selected && result !== null && (
+        <div className="st-match-actions">
+          <button
+            className="st-log-btn"
+            disabled={logLoading}
+            onClick={e => { e.stopPropagation(); onShowLog(match.matchId); }}
+          >
+            {logLoading
+              ? "로그 불러오는 중…"
+              : hasVisualization ? "로그 바로 보러 가기" : "로그 보기"}
+          </button>
+        </div>
+      )}
+    </>
   );
 };
 
@@ -229,6 +250,9 @@ interface VPoolCardProps {
   selectedMatchId: string | null;
   onSelect: (id: string) => void;
   setRef: (id: string, el: HTMLDivElement | null) => void;
+  hasVisualization: boolean;
+  logLoadingMatchId: number | null;
+  onShowLog: (matchId: number) => void;
 }
 
 function poolHsl(t: number, lightness = 62, sat = 80): string {
@@ -236,7 +260,7 @@ function poolHsl(t: number, lightness = 62, sat = 80): string {
   return `hsl(${hue}, ${sat}%, ${lightness}%)`;
 }
 
-const VPoolCard: React.FC<VPoolCardProps> = ({ pool, trackedId, selectedMatchId, onSelect, setRef }) => {
+const VPoolCard: React.FC<VPoolCardProps> = ({ pool, trackedId, selectedMatchId, onSelect, setRef, hasVisualization, logLoadingMatchId, onShowLog }) => {
   const hasTracked = trackedId !== null &&
     pool.matches.some(m => m.p1Id === trackedId || m.p2Id === trackedId);
 
@@ -261,6 +285,9 @@ const VPoolCard: React.FC<VPoolCardProps> = ({ pool, trackedId, selectedMatchId,
             selected={selectedMatchId === m.id}
             onSelect={() => onSelect(m.id)}
             setRef={setRef}
+            hasVisualization={hasVisualization}
+            logLoading={logLoadingMatchId === m.matchId}
+            onShowLog={onShowLog}
           />
         ))}
       </div>
@@ -331,14 +358,41 @@ const VSidebar: React.FC<VSidebarProps> = ({ standings, trackedId, onTrack, rank
 interface Props {
   payload: SessionPayload | null;
   myUserId?: number;
+  contestId: number;
+  hasVisualization?: boolean;
+  onLogView?: (log: string) => void;   // 로그 분석 탭으로 이동(시각화 HTML 존재 시)
 }
 
-const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId }) => {
+const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId, contestId, hasVisualization = false, onLogView }) => {
   const [trackedId,      setTrackedId]      = useState<number | null>(null);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [animKeyMap,     setAnimKeyMap]     = useState<Map<number, number>>(new Map());
   const [rankDeltaMap,   setRankDeltaMap]   = useState<Map<number, { delta: number; key: number }>>(new Map());
   const [zoom,           setZoom]           = useState(1.0);
+
+  // 매치 로그 조회 (스위스): 시각화 HTML 있으면 로그 분석 탭으로, 없으면 팝업 텍스트
+  const [logLoadingMatchId, setLogLoadingMatchId] = useState<number | null>(null);
+  const [logModal, setLogModal] = useState<{ open: boolean; text: string; error: string | null } | null>(null);
+
+  const handleShowLog = useCallback((matchId: number) => {
+    if (logLoadingMatchId !== null) return;
+    setLogLoadingMatchId(matchId);
+    getSwissMatchLog(contestId, matchId)
+      .then(res => {
+        const raw: any = res;
+        const log: string = typeof raw === "string" ? raw : (raw?.log ?? "");
+        if (hasVisualization && onLogView) {
+          onLogView(log);   // 로그 분석 탭으로 이동 + 반영
+        } else {
+          setLogModal({ open: true, text: log, error: null });
+        }
+      })
+      .catch(err => {
+        console.error(`[SwissViewer] viewMatchLog 오류 — contest=${contestId} match=${matchId}`, err?.response ?? err);
+        setLogModal({ open: true, text: "", error: "로그를 불러오지 못했습니다." });
+      })
+      .finally(() => setLogLoadingMatchId(null));
+  }, [contestId, hasVisualization, onLogView, logLoadingMatchId]);
 
   const ZOOM_STEP = 0.1;
   const ZOOM_MIN  = 0.5;
@@ -521,6 +575,9 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId }) => {
                           selectedMatchId={selectedMatchId}
                           onSelect={setSelectedMatchId}
                           setRef={setMatchRef}
+                          hasVisualization={hasVisualization}
+                          logLoadingMatchId={logLoadingMatchId}
+                          onShowLog={handleShowLog}
                         />
                       ))
                     )}
@@ -564,6 +621,23 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId }) => {
           sessionDone={sessionDone}
         />
       </div>
+
+      {/* 로그 보기 팝업 (시각화 HTML이 없을 때) */}
+      {logModal?.open && (
+        <div className="st-log-modal-overlay" onClick={() => setLogModal(null)}>
+          <div className="st-log-modal" onClick={e => e.stopPropagation()}>
+            <div className="st-log-modal-header">
+              <span className="st-log-modal-title">매치 로그</span>
+              <button className="st-log-modal-close" onClick={() => setLogModal(null)}>✕</button>
+            </div>
+            {logModal.error
+              ? <div className="st-log-modal-error">{logModal.error}</div>
+              : logModal.text.trim()
+                ? <pre className="st-log-modal-body">{logModal.text}</pre>
+                : <div className="st-log-modal-error">로그 내용이 없습니다.</div>}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

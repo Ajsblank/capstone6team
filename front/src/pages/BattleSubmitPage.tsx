@@ -534,6 +534,8 @@ const SubmitPage: React.FC = () => {
                 sessionNumber={selectedSession}
                 onBack={() => setSelectedSession(null)}
                 myUserId={user?.id ? Number(user.id) : undefined}
+                hasVisualization={viz1Available}
+                onLogView={handleLogClick}
               />
             )}
           </div>

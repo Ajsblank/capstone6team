@@ -754,6 +754,95 @@
 }
 .st-sidebar-clear-btn:hover { color: #93c5fd; border-color: #3b82f6; }
 
+/* ── 매치 선택 시 로그 액션 ── */
+.st-match-actions {
+  display: flex;
+  justify-content: center;
+  padding: 6px 8px 8px;
+  background: #0a1420;
+  border-bottom: 1px solid #1a1f2e;
+}
+.st-log-btn {
+  background: #0a1a1a;
+  border: 1px solid #00f5c4;
+  border-radius: 6px;
+  color: #00f5c4;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.st-log-btn:hover:not(:disabled) {
+  background: #0f2a26;
+  box-shadow: 0 0 10px rgba(0, 245, 196, 0.4);
+}
+.st-log-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* ── 로그 보기 팝업 ── */
+.st-log-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+.st-log-modal {
+  width: min(720px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: #0d1117;
+  border: 1px solid #1e2a40;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.st-log-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #161b22;
+  border-bottom: 1px solid #1e2a40;
+}
+.st-log-modal-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e6edf3;
+}
+.st-log-modal-close {
+  background: none;
+  border: none;
+  color: #8b949e;
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+}
+.st-log-modal-close:hover { color: #e6edf3; }
+.st-log-modal-body {
+  margin: 0;
+  padding: 14px 16px;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: #94a3b8;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-y: auto;
+}
+.st-log-modal-error {
+  padding: 20px 16px;
+  font-size: 0.82rem;
+  color: #ff7b72;
+  text-align: center;
+}
+
 .st-sidebar-list {
   overflow-y: auto;
   flex: 1;
