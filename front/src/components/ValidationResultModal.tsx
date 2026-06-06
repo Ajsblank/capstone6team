@@ -8,7 +8,6 @@ interface ValidationResultModalProps {
   isLoading: boolean;
   onClose: () => void;
   onRetry: () => void;
-  onProceedToPayment: () => void;
 }
 
 const ValidationResultModal: React.FC<ValidationResultModalProps> = ({
@@ -17,7 +16,6 @@ const ValidationResultModal: React.FC<ValidationResultModalProps> = ({
   isLoading,
   onClose,
   onRetry,
-  onProceedToPayment,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -25,6 +23,14 @@ const ValidationResultModal: React.FC<ValidationResultModalProps> = ({
     if (isOpen) {
       setIsVisible(true);
     }
+  }, [isOpen]);
+
+  // 모달이 열려 있는 동안 배경(대회 페이지) 스크롤 잠금
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -84,10 +90,10 @@ const ValidationResultModal: React.FC<ValidationResultModalProps> = ({
                   )}
 
                   {detail.log && (
-                    <details className="vrm-detail-log">
-                      <summary>로그 보기</summary>
+                    <div className="vrm-detail-log">
+                      <div className="vrm-detail-log-label">서버 로그</div>
                       <pre>{detail.log}</pre>
-                    </details>
+                    </div>
                   )}
                 </div>
               ))}
@@ -97,22 +103,21 @@ const ValidationResultModal: React.FC<ValidationResultModalProps> = ({
 
         {/* 버튼 */}
         <div className="vrm-footer">
-          {!isLoading && (
-            <>
-              <button className="vrm-btn vrm-btn-retry" onClick={onRetry}>
-                다시 검증
+          {!isLoading && result && (
+            allPassed ? (
+              <button className="vrm-btn vrm-btn-proceed" onClick={onClose}>
+                계속하기
               </button>
-              {allPassed && (
-                <button className="vrm-btn vrm-btn-proceed" onClick={onProceedToPayment}>
-                  결제로 진행
+            ) : (
+              <>
+                <button className="vrm-btn vrm-btn-retry" onClick={onRetry}>
+                  다시 검증
                 </button>
-              )}
-              {!allPassed && (
                 <button className="vrm-btn vrm-btn-close" onClick={onClose}>
                   닫기
                 </button>
-              )}
-            </>
+              </>
+            )
           )}
         </div>
       </div>

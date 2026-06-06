@@ -198,18 +198,29 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
         const blob = await res.blob();
         return new File([blob], name, { type: blob.type || "text/plain" });
       };
-      const [sampleFile, judgeFile, exampleFile, vizFile, soloFile] = await Promise.all([
+      const [sampleFile, judgeFile, example0, example1, example2, vizFile, soloFile] = await Promise.all([
         fetchFile("apple_sample_code.cpp"),
         fetchFile("apple_judge.cpp"),
-        fetchFile("apple_example_code.cpp"),
+        fetchFile("apple_example_code_00.cpp"),
+        fetchFile("apple_example_code_01.cpp"),
+        fetchFile("apple_example_code_02.cpp"),
         fetchFile("apple_game_log_visualization.html"),
         fetchFile("apple_game_soloPlay.html"),
       ]);
       setSampleCodes([sampleFile]);
       setJudgeCode(judgeFile);
-      setExampleAiCodes([{ file: exampleFile, description: "사과게임 기본 예시 AI" }]);
+      setExampleAiCodes([
+        { file: example0, description: "사과게임 예시 AI 00" },
+        { file: example1, description: "사과게임 예시 AI 01" },
+        { file: example2, description: "사과게임 예시 AI 02" },
+      ]);
       setVisualizationHtml(vizFile);
       setSoloPlayHtml(soloFile);
+
+      // 문제 설명: 명세 .md를 HTML로 변환해 반영
+      const specRes = await fetch(`${base}/apple_spec.md`);
+      const specMd  = await specRes.text();
+      setDescription(await Promise.resolve(marked.parse(specMd)));
     } catch (e) {
       console.error("[QuickFill] 파일 로드 실패:", e);
     } finally {
@@ -306,6 +317,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
 
     setIsValidating(true);
     setValidationResult(null);
+    setShowValidation(true);   // 검증 로그 팝업 열기 (로딩 → 결과/에러 로그 표시)
     console.log("[handleValidateAndCreate] 검증 시작");
 
     try {
@@ -338,23 +350,37 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
           console.log("[handleValidateAndCreate] 검증 결과 수신:", result);
           setValidationResult(result);
           setIsValidating(false);
-          // 모든 항목이 통과되면 validationPassed 상태 업데이트
+
           if (result.passed) {
+            // 검증 성공 → 이후 항목 활성화 (팝업은 서버 로그 표시 후 "계속하기"로 닫음)
             setValidationPassed(true);
             console.log("[handleValidateAndCreate] 검증 완료 - 추가 항목 활성화");
-            // ✨ 검증 성공 팝업 표시
-            setShowValidationSuccess(true);
+          } else {
+            // 실패 — 로그에 error가 포함되면 추가 이벤트 수신을 중단(이미 에러 확정)
+            const hasErrorLog = result.details?.some(d => /error/i.test(d.log || ""));
+            if (hasErrorLog) {
+              console.warn("[handleValidateAndCreate] 에러 로그 감지 → 검증 중단");
+              unsubscribeFromValidationResults();
+            }
           }
+          // (성공/실패/에러 모두) 서버 로그는 검증 결과 팝업에서 그대로 표시됨
         },
         (error) => {
           console.error("[handleValidateAndCreate] 검증 오류:", error);
           setErrorMsg(error.message);
           setIsValidating(false);
+          setShowValidation(false);
         }
       );
     } catch (err: any) {
       console.error("[handleValidateAndCreate] 예외:", err);
-      setErrorMsg(err?.message ?? "검증 요청 중 오류가 발생했습니다.");
+      const msg = err?.message ?? "검증 요청 중 오류가 발생했습니다.";
+      setErrorMsg(msg);
+      // 요청 자체 실패(예: 409 이미 진행 중) → 모달이 빈 채로 뜨지 않도록 에러 로그를 결과로 표시
+      setValidationResult({
+        passed: false,
+        details: [{ target: "검증 요청", passed: false, log: msg, reason: msg }],
+      });
       setIsValidating(false);
     }
   };
@@ -374,13 +400,6 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     setValidationResult(null);
     setValidationPassed(false);
     handleValidateAndCreate();
-  };
-
-  // 검증 성공 후 결제로 진행
-  const handleProceedToPayment = () => {
-    console.log("[handleProceedToPayment] 검증 성공, 결제 확인 모달 열기");
-    setShowValidation(false);
-    setShowPayConfirm(true);
   };
 
   // 비인증 — 검증 완료 후 결제 확인 모달 열기
@@ -476,7 +495,6 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
           unsubscribeFromValidationResults();
         }}
         onRetry={handleRetryValidation}
-        onProceedToPayment={handleProceedToPayment}
       />
 
       {/* 검증 성공 확인 팝업 */}
@@ -727,6 +745,8 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                 {/* 파일 첨부 */}
                 <section className="cc-section">
                   <h3 className="cc-section-title">파일 첨부</h3>
+                  {/* 검증 중에는 검증 대상 파일 3종(샘플/채점/예시 AI) 상호작용 차단 */}
+                  <div className={isValidating ? "cc-section--disabled" : ""}>
                   {/* 샘플 코드 (다중) */}
                   <div className="cc-field" data-tut="sample">
                     <label className="cc-label">샘플 코드 <Req show={sampleCodes.length === 0} /></label>
@@ -787,6 +807,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                     <label htmlFor="cc-ai-code-input" className="cc-reviewer-add">+ AI 코드 추가</label>
                     <input key={aiCodeInputKey} id="cc-ai-code-input" type="file" accept=".py,.cpp,.java,.js,.ts,.c,.cs,.go,.rs,.kt,.lua" multiple style={{ display: "none" }} onChange={(e) => handleAICodeAdd(e.target.files)} />
                   </div>
+                  </div>{/* /검증 중 비활성화 래퍼 */}
 
                   {/* 검증 후 계속 버튼 - 필수 파일 3개 모두 업로드 후 표시 */}
                   {areRequiredFilesUploaded() && !validationPassed && (

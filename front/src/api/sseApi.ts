@@ -39,12 +39,7 @@ let statusCallback:          StatusCallback          | null = null;
 let reconnectCallback:       ReconnectCallback       | null = null;
 let validationResultCallback: ValidationResultCallback | null = null;
 let lastUserId: string | null = null;
-let reconnectAttempts = 0;
-let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-let isFirstConnect = true;   // 최초 연결인지 재연결인지 구분
-
-const MAX_RECONNECT    = 5;
-const RECONNECT_BASE_MS = 2000;
+let isFirstConnect = true;   // 최초 연결인지 (네이티브) 재연결인지 구분
 
 function notifyStatus(s: SseStatus) {
   statusCallback?.(s);
@@ -65,9 +60,8 @@ export const setReconnectCallback = (cb: ReconnectCallback | null) => {
   reconnectCallback = cb;
 };
 
-// ── 내부 연결 함수 (초기 연결 + 재연결 공유) ──
+// ── 내부 연결 함수 ──
 function connectSSE(userId: string): void {
-  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   if (emitter) emitter.close();
 
   const token = getAccessToken();
@@ -81,7 +75,6 @@ function connectSSE(userId: string): void {
   emitter = new EventSource(url);
 
   emitter.onopen = () => {
-    reconnectAttempts = 0;
     const wasReconnect = !isFirstConnect;
     isFirstConnect = false;
     console.log(`[SSE] ========== SSE 연결 성공 ==========`);
@@ -167,31 +160,21 @@ function connectSSE(userId: string): void {
   };
 
   // 연결 끊김 → 지수 백오프 재연결
+  // 오류 처리 — 브라우저 EventSource의 기본 자동 재연결에 위임
+  // (emitter.close()를 호출하지 않으면 readyState=CONNECTING으로 브라우저가 자동 재시도)
   emitter.onerror = (e) => {
     const state = emitter?.readyState;
-    console.error(`[SSE] ========== SSE 연결 오류 ==========`);
-    console.error(`[SSE] readyState: ${state} (CONNECTING=0, OPEN=1, CLOSED=2)`);
-    console.error(`[SSE] 오류 이벤트:`, e);
-    console.error(`[SSE] emitter 객체:`, emitter);
+    console.warn(`[SSE] 연결 오류 — readyState: ${state} (CONNECTING=0, OPEN=1, CLOSED=2)`, e);
 
-    // EventSource 상태 더 자세히 로깅
-    if (emitter) {
-      console.error(`[SSE] emitter.readyState: ${emitter.readyState}`);
-      console.error(`[SSE] emitter.url: ${emitter.url}`);
-      console.error(`[SSE] emitter.withCredentials: ${emitter.withCredentials}`);
-    }
-
-    emitter?.close();
-    emitter = null;
-    notifyStatus("disconnected");
-    if (reconnectAttempts < MAX_RECONNECT && lastUserId) {
-      const delay = RECONNECT_BASE_MS * Math.pow(2, reconnectAttempts);
-      reconnectAttempts++;
-      console.warn(`[SSE] 재연결 시도 (${reconnectAttempts}/${MAX_RECONNECT}) — ${delay}ms 후 재시도`);
+    if (state === EventSource.CONNECTING) {
+      // 일시적 끊김: 브라우저가 자동으로 재연결 중
+      console.info("[SSE] 브라우저 기본 자동 재연결 진행 중...");
       notifyStatus("connecting");
-      reconnectTimer = setTimeout(() => connectSSE(lastUserId!), delay);
-    } else {
-      console.warn("[SSE] 재연결 횟수 초과 — 연결 포기");
+    } else if (state === EventSource.CLOSED) {
+      // 치명적 오류(서버가 비정상 응답 등): 브라우저가 더 이상 재시도하지 않음
+      console.warn("[SSE] 연결이 종료되어 자동 재연결되지 않습니다.");
+      emitter = null;
+      notifyStatus("disconnected");
     }
   };
 }
@@ -206,7 +189,6 @@ export const subscribeToResults = (userId: string, onMatch: MatchCallback) => {
   }
   lastUserId = userId;
   matchCallback = onMatch;
-  reconnectAttempts = 0;
   isFirstConnect = true;
   connectSSE(userId);
 };
@@ -228,7 +210,6 @@ export const ensureSseConnected = (userId: string) => {
 
   console.log(`[ensureSseConnected] 새 SSE 연결 시작`);
   lastUserId = userId;
-  reconnectAttempts = 0;
   isFirstConnect = true;
   connectSSE(userId);
 };
@@ -267,7 +248,7 @@ export const debugSse = () => {
   console.log("summaryCallback 등록:", summaryCallback !== null);
   console.log("testResultCallback 등록:", testResultCallback !== null);
   console.log("validationResultCallback 등록:", validationResultCallback !== null);
-  console.log("재연결 시도 횟수    :", reconnectAttempts, "/", MAX_RECONNECT);
+  console.log("재연결 방식         :", "브라우저 EventSource 기본 자동 재연결");
   console.log("BASE_URL            :", BASE_URL || "(비어 있음 — REACT_APP_API_BASE_URL 미설정)");
   console.groupEnd();
 };
@@ -279,7 +260,6 @@ if (process.env.NODE_ENV === "development") {
 
 // 로그아웃 시 연결 해제
 export const unsubscribeFromResults = () => {
-  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   emitter?.close();
   emitter = null;
   matchCallback           = null;
@@ -287,6 +267,5 @@ export const unsubscribeFromResults = () => {
   testResultCallback     = null;
   validationResultCallback = null;
   lastUserId             = null;
-  reconnectAttempts      = 0;
   notifyStatus("disconnected");
 };

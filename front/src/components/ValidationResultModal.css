@@ -11,6 +11,9 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  overflow-y: auto;       /* 모달이 뷰포트보다 길어도 오버레이가 스크롤 */
+  padding: 16px;
+  overscroll-behavior: contain;  /* 모달 스크롤이 배경으로 전파되지 않도록 */
 }
 
 .vrm-modal {
@@ -220,27 +223,25 @@
   font-size: 0.8rem;
 }
 
-.vrm-detail-log summary {
-  cursor: pointer;
+.vrm-detail-log-label {
   color: #4b5563;
   font-weight: 600;
   padding: 4px 0;
 }
 
-.vrm-detail-log summary:hover {
-  color: #111827;
-}
-
 .vrm-detail-log pre {
-  margin: 8px 0 0 0;
-  padding: 8px 12px;
-  background: #f3f4f6;
-  border-radius: 4px;
-  max-height: 150px;
+  margin: 6px 0 0 0;
+  padding: 10px 12px;
+  background: #0d1117;
+  color: #e6edf3;
+  border: 1px solid #1e2a40;
+  border-radius: 6px;
+  max-height: 240px;
   overflow-y: auto;
   white-space: pre-wrap;
   word-break: break-all;
   font-family: 'Courier New', monospace;
+  line-height: 1.55;
 }
 
 /* ── 푸터 ── */
