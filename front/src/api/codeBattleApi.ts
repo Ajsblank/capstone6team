@@ -163,6 +163,20 @@ export const getMyBattleSubmissions = async (
   return response.data;
 };
 
+// ── 제출 코드 조회 — GET /api/code/submission/{submissionId} ──
+export interface SubmissionCode {
+  submissionId: number;
+  language: string;
+  code: string;
+  result: string;
+  createdAt: string;
+}
+
+export const getSubmissionCode = async (submissionId: number): Promise<SubmissionCode> => {
+  const { data } = await api.get<SubmissionCode>(`/api/code/submission/${submissionId}`);
+  return data;
+};
+
 // ── 세션 목록 조회 — GET /api/contests/{contestId}/sessionList ──
 export interface ContestSession {
   sessionNumber: number;

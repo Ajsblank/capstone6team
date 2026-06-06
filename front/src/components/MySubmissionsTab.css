@@ -326,6 +326,64 @@
   padding: 6px 0;
 }
 
+/* ── 코드 확인 버튼 ── */
+.ms-code-btn {
+  background: none;
+  border: 1px solid #c7c0dc;
+  border-radius: 4px;
+  color: #7c5fcc;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.ms-code-btn:hover {
+  background: #f3eeff;
+  border-color: #a98ddd;
+}
+.ms-code-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ms-code-btn--active {
+  background: #f3eeff;
+  border-color: #a98ddd;
+  color: #5a3aaa;
+}
+
+/* ── 제출 코드 패널 (검은 배경) ── */
+.ms-code-panel {
+  margin: 4px 12px 12px;
+  background: #0d1117;
+  border: 1px solid #1e2a40;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ms-code-lang {
+  padding: 8px 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7ee787;
+  background: #161b22;
+  border-bottom: 1px solid #1e2a40;
+}
+/* Monaco 코드 뷰어 컨테이너 (IDE 하이라이트) */
+.ms-code-editor {
+  width: 100%;
+  max-height: 510px;
+}
+.ms-code-status {
+  padding: 14px 16px;
+  font-size: 0.82rem;
+  color: #9aa4b2;
+}
+.ms-code-status--error {
+  color: #ff7b72;
+}
+
 /* ── 채점 중 ── */
 .ms-pending {
   color: #9090aa;
