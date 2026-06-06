@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useApp } from "../context/AppContext";
+import ProfileBadge from "../components/ProfileBadge";
 import { getContestList, ContestItem } from "../api/codeBattleApi";
 import TermsAgreementModal from "../components/TermsAgreementModal";
 import "./AppLayout.css";
@@ -616,8 +617,7 @@ const BattlePage: React.FC = () => {
         <div className="home-auth-area">
           {user ? (
             <>
-              <span className="home-avatar" onClick={() => navigate("profile")} title="프로필" />
-              <span className="home-username" onClick={() => navigate("profile")}>{user.username}</span>
+              <ProfileBadge />
               <button className="btn btn-ghost btn-sm" onClick={() => logout()}>로그아웃</button>
             </>
           ) : (

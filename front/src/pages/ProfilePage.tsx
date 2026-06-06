@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { getMyProfile, updateMyProfile, UserProfile, UserProfilePatch } from "../api/codeBattleApi";
+import { clearMyProfileCache } from "../components/ProfileBadge";
 import "./ProfilePage.css";
 
 const ProfilePage: React.FC = () => {
@@ -57,6 +58,7 @@ const ProfilePage: React.FC = () => {
       };
       const updated = await updateMyProfile(payload);
       setProfile(updated);
+      clearMyProfileCache(); // 상단 바 프로필 배지가 최신 정보를 다시 불러오도록
       setFetchFailed(false);
       setEditing(false);
     } catch (err: any) {

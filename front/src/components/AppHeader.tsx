@@ -1,5 +1,6 @@
 import React from "react";
 import { useApp } from "../context/AppContext";
+import ProfileBadge from "./ProfileBadge";
 import "../pages/AppLayout.css";
 
 interface AppHeaderProps {
@@ -62,10 +63,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </button>
         {user ? (
           <>
-            <span className="home-avatar" onClick={() => navigate("profile")} title="프로필 보기" />
-            <span className="home-username" onClick={() => navigate("profile")} title="프로필 보기">
-              {user.username}
-            </span>
+            <ProfileBadge />
             <button className="btn btn-ghost btn-sm" onClick={() => logout()}>
               로그아웃
             </button>

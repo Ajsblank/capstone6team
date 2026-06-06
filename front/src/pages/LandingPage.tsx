@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
+import ProfileBadge from "../components/ProfileBadge";
 import "./LandingPage.css";
 
 const BATTLE_FEATURES = [
@@ -49,8 +50,7 @@ const LandingPage: React.FC = () => {
         <div className="lp-auth">
           {user ? (
             <>
-              <span className="lp-avatar" onClick={() => navigate("profile")} title="프로필" />
-              <span className="lp-username" onClick={() => navigate("profile")}>{user.username}</span>
+              <ProfileBadge avatarClass="lp-avatar" usernameClass="lp-username" />
               <button className="btn btn-ghost btn-sm" onClick={() => logout()}>로그아웃</button>
             </>
           ) : (
