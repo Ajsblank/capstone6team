@@ -234,7 +234,7 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
                     java.util.Map<String, Object> detail = new java.util.LinkedHashMap<>();
                     String failReason = null;
 
-                    if (singleLog.contains("Compile Error")) {
+                    if (singleLog.contains("COMPILE_ERROR")) {
                         failReason = singleLog.trim();
                     } else if (singleLog.isBlank()) {
                         failReason = "Judge 출력 없음 (비정상 종료)";
@@ -281,7 +281,7 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
     }
 
     private static final java.util.Set<String> VALID_RESULTS = java.util.Set.of(
-            "WIN", "LOSE", "NONE", "TIME_LIMIT", "MEMORY_LIMIT", "ERROR");
+            "WIN", "LOSE", "NONE", "TIME_LIMIT", "MEMORY_LIMIT", "RUNTIME_ERROR", "COMPILE_ERROR");
 
     private boolean isValidResultLine(String line) {
         String[] parts = line.split("\\s+");
