@@ -1,8 +1,18 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { LocalSubmission } from "../pages/BattleSubmitPage";
 import { BattleMatchResult, SseStatus, getSseStatus, setStatusCallback, debugSse } from "../api/sseApi";
-import { getMyBattleSubmissions, ContestSubmissionResponse } from "../api/codeBattleApi";
+import { getMyBattleSubmissions, ContestSubmissionResponse, getSubmissionCode, SubmissionCode } from "../api/codeBattleApi";
+import Editor from "@monaco-editor/react";
 import "./MySubmissionsTab.css";
+
+// 서버 language 문자열 → Monaco 언어 ID
+function toMonacoLang(lang: string): string {
+  const l = (lang ?? "").toLowerCase();
+  if (l === "cpp" || l === "c++") return "cpp";
+  if (l === "java")               return "java";
+  if (l === "python" || l === "py") return "python";
+  return "plaintext";
+}
 
 interface Props {
   contestId: number;
@@ -88,12 +98,15 @@ function serverGroupToLocal(group: ContestSubmissionResponse[], userId: string):
 }
 
 // ── 매치 상세 행 ──
-function MatchRow({ match, index, hasVisualization, onLogClick }: {
+function MatchRow({ match, index, hasVisualization, onLogClick, codeOpen, canShowCode, onCodeToggle }: {
   match: BattleMatchResult;
   index: number;
   userId: string;
   hasVisualization: boolean;
   onLogClick: (log: string) => void;
+  codeOpen: boolean;
+  canShowCode: boolean;
+  onCodeToggle: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const { label, cls }  = parseMyResult(match.log);
@@ -106,6 +119,15 @@ function MatchRow({ match, index, hasVisualization, onLogClick }: {
         <td className="ms-match-ai">AI #{index + 1}</td>
         <td>
           <span className={cls}>{label}</span>
+        </td>
+        <td>
+          <button
+            className={`ms-code-btn${codeOpen ? " ms-code-btn--active" : ""}`}
+            onClick={onCodeToggle}
+            disabled={!canShowCode}
+          >
+            {codeOpen ? "코드 닫기" : "코드 확인"}
+          </button>
         </td>
         <td>
           <div className="ms-log-actions">
@@ -126,7 +148,7 @@ function MatchRow({ match, index, hasVisualization, onLogClick }: {
       </tr>
       {open && (
         <tr className="ms-log-row">
-          <td colSpan={4}>
+          <td colSpan={5}>
             {hasLog
               ? <pre className="ms-log-preview">{match.log}</pre>
               : <div className="ms-log-empty">로그 내용이 없습니다.</div>}
@@ -150,6 +172,25 @@ function SubmissionItem({ sub, seqNum, userId, hasVisualization, onLogClick }: {
   const [flashType,  setFlashType]  = useState("pending");
   const prevMatchCountRef = useRef(sub.matches.length);
   const prevFinalizedRef  = useRef(sub.finalized);
+
+  // 제출 코드 조회 (submissionId 단위) — 매치 행의 "코드 확인" 버튼으로 토글
+  const [codeOpen,    setCodeOpen]    = useState(false);
+  const [codeData,    setCodeData]    = useState<SubmissionCode | null>(null);
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [codeError,   setCodeError]   = useState<string | null>(null);
+  const canShowCode = sub.submissionId != null;
+
+  const handleCodeToggle = () => {
+    if (codeOpen) { setCodeOpen(false); return; }
+    setCodeOpen(true);
+    if (codeData || codeLoading || sub.submissionId == null) return;
+    setCodeLoading(true);
+    setCodeError(null);
+    getSubmissionCode(sub.submissionId)
+      .then(setCodeData)
+      .catch(() => setCodeError("코드를 불러오지 못했습니다."))
+      .finally(() => setCodeLoading(false));
+  };
 
   useEffect(() => {
     const hasNewMatch   = sub.matches.length > prevMatchCountRef.current;
@@ -237,15 +278,63 @@ function SubmissionItem({ sub, seqNum, userId, hasVisualization, onLogClick }: {
                 <th>매치</th>
                 <th>상대 AI</th>
                 <th>결과</th>
+                <th>코드</th>
                 <th>로그</th>
               </tr>
             </thead>
             <tbody>
               {sub.matches.map((m, i) => (
-                <MatchRow key={`${m.matchId}-${i}`} match={m} index={i} userId={userId} hasVisualization={hasVisualization} onLogClick={onLogClick} />
+                <MatchRow
+                  key={`${m.matchId}-${i}`}
+                  match={m}
+                  index={i}
+                  userId={userId}
+                  hasVisualization={hasVisualization}
+                  onLogClick={onLogClick}
+                  codeOpen={codeOpen}
+                  canShowCode={canShowCode}
+                  onCodeToggle={handleCodeToggle}
+                />
               ))}
             </tbody>
           </table>
+
+          {/* 제출 코드 영역 — "코드 확인" 클릭 시 카드 아래에 표시 (language + code) */}
+          {codeOpen && (
+            <div className="ms-code-panel">
+              {codeLoading && <div className="ms-code-status">코드 불러오는 중...</div>}
+              {codeError && !codeLoading && <div className="ms-code-status ms-code-status--error">{codeError}</div>}
+              {codeData && !codeLoading && !codeError && (
+                <>
+                  <div className="ms-code-lang">{codeData.language}</div>
+                  <div
+                    className="ms-code-editor"
+                    style={{ height: Math.min(Math.max(codeData.code.split("\n").length, 6), 26) * 19 + 16 }}
+                  >
+                    <Editor
+                      height="100%"
+                      language={toMonacoLang(codeData.language)}
+                      value={codeData.code}
+                      theme="vs-dark"
+                      options={{
+                        readOnly: true,
+                        domReadOnly: true,
+                        fontSize: 13,
+                        minimap: { enabled: false },
+                        scrollBeyondLastLine: false,
+                        wordWrap: "on",
+                        tabSize: 4,
+                        automaticLayout: true,
+                        lineNumbers: "on",
+                        renderLineHighlight: "none",
+                        contextmenu: false,
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
