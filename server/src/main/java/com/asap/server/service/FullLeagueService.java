@@ -136,10 +136,6 @@ public class FullLeagueService {
 
         String judgeCode = contest.getJudgeCode();
 
-        log.info("[대회 처리] 길이={}", judgeCode.length());
-        log.info("[대회 처리] 길이={}", player1Code.length());
-        log.info("[대회 처리] 길이={}", player2Code.length());
-
         // JSON 구성
         ObjectNode rootNode = objectMapper.createObjectNode();
         rootNode.put("submissionId", matchId); // 이름 오류 부분 (정상 작동)
@@ -198,6 +194,8 @@ public class FullLeagueService {
                     drawsMap.merge(user2Id, 1, Integer::sum);
                 }
             }
+
+            // 동점자 시간 순 정렬, 현재 동점자 동순위로 미사용 로직 상태
             Map<Long, LocalDateTime> submissionTimeMap = new HashMap<>();
             List<CodeBattleParticipant> participants = participantRepository.findByContestId(contestId);
             for (CodeBattleParticipant p : participants) {
@@ -208,8 +206,9 @@ public class FullLeagueService {
             // 유저 ID 목록 추출 후 points 기준 정렬
             List<Long> userIds = new ArrayList<>(userMatchIds.keySet());
             userIds.sort((a, b) -> { // Tim Sort 사용
-                double pointsA = winsMap.getOrDefault(a, 0) * 1.0 + drawsMap.getOrDefault(a, 0) * 0.5;
-                double pointsB = winsMap.getOrDefault(b, 0) * 1.0 + drawsMap.getOrDefault(b, 0) * 0.5;
+                // 정렬에 무승부 점수 0.5점 삭제
+                double pointsA = winsMap.getOrDefault(a, 0) * 1.0;
+                double pointsB = winsMap.getOrDefault(b, 0) * 1.0;
                 // 1순위: points 내림차순
                 int cmp = Double.compare(pointsB, pointsA);
                 if (cmp != 0)
@@ -220,6 +219,7 @@ public class FullLeagueService {
                 LocalDateTime timeB = submissionTimeMap.getOrDefault(b, LocalDateTime.MAX);
                 return timeA.compareTo(timeB);
             });
+            int currentRank = 1;
             // ✅ 4. standings 생성
             List<Map<String, Object>> standings = new ArrayList<>();
             for (int i = 0; i < userIds.size(); i++) {
@@ -228,14 +228,20 @@ public class FullLeagueService {
                 int wins = winsMap.getOrDefault(userId, 0);
                 int draws = drawsMap.getOrDefault(userId, 0);
                 int losses = lossesMap.getOrDefault(userId, 0);
-                double points = wins * 1.0 + draws * 0.5; // draw 값 정책
+                // draw 값은 현재 집계에 사용하지 않음 (0 점)
+                double points = wins * 1.0;
+
+                int rank = (i > 0 && (double) standings.get(i - 1).get("points") == points)
+                        ? (int) standings.get(i - 1).get("rank")
+                        : currentRank;
+                currentRank++;
 
                 Map<String, Object> standing = new LinkedHashMap<>();
                 standing.put("user_id", userId);
                 standing.put("wins", wins);
                 standing.put("draws", draws);
                 standing.put("losses", losses);
-                standing.put("rank", i + 1);
+                standing.put("rank", rank);
                 standing.put("points", points);
                 standing.put("match_ids", userMatchIds.getOrDefault(userId, List.of()));
                 standings.add(standing);
