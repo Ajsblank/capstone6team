@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { logoutApi, getAccessToken, getUserId, getUsername } from "../api/authApi";
 import { ensureSseConnected, unsubscribeFromResults } from "../api/sseApi";
+import { clearMyProfileCache } from "../components/ProfileBadge";
 
 export type Page =
   | "landing"
@@ -111,6 +112,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 토큰 갱신 실패 시 강제 로그아웃
   useEffect(() => {
     const handleForceLogout = () => {
+      clearMyProfileCache();
       setUser(null);
       window.location.hash = "login";
       setCurrentPage("login");
@@ -120,6 +122,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const login = useCallback((u: User, joinedContests: number[] = [], hostedContests: number[] = [], createdContests: number[] = []) => {
+    clearMyProfileCache();   // 이전 계정 프로필 캐시 제거 → 새 계정 정보로 재조회
     setUser(u);
     setJoinedContestIds(joinedContests);
     setHostedContestIds(hostedContests);
@@ -149,6 +152,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = useCallback(async () => {
     await logoutApi();
+    clearMyProfileCache();   // 로그아웃 시 프로필 캐시 제거 (다음 계정에 잔존 방지)
     setUser(null);
     setJoinedContestIds([]);
     setHostedContestIds([]);

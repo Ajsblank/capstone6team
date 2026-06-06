@@ -27,8 +27,9 @@ const ProfileBadge: React.FC<Props> = ({
   const [profile, setProfile] = useState<UserProfile | null>(cachedProfile);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setProfile(null); return; }
     if (cachedProfile) { setProfile(cachedProfile); return; }
+    setProfile(null);   // 계정 전환 시 이전 계정 정보 즉시 제거(재조회 전까지 stale 방지)
     if (!inflight) {
       inflight = getMyProfile()
         .then(p => { cachedProfile = p; return p; })
