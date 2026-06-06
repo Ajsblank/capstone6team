@@ -48,8 +48,8 @@ const LandingPage: React.FC = () => {
         <div className="lp-auth">
           {user ? (
             <>
+              <span className="lp-avatar" onClick={() => navigate("profile")} title="프로필" />
               <span className="lp-username" onClick={() => navigate("profile")}>{user.username}</span>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate("account-settings")}>설정</button>
               <button className="btn btn-ghost btn-sm" onClick={() => logout()}>로그아웃</button>
             </>
           ) : (

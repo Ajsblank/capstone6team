@@ -74,6 +74,20 @@
 .lp-username:hover { background: #fff7ed; }
 .lp-username:focus-visible { outline: 2px solid #c2410c; outline-offset: 2px; }
 
+/* 프로필 이미지용 동그라미 (이름 왼쪽) */
+.lp-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  border: 1px solid #d1d5db;
+  display: inline-block;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.lp-avatar:hover { box-shadow: 0 0 0 2px rgba(194, 65, 12, 0.3); }
+
 
 /* ════════════════════════════════════════
    CodeBattle Hero

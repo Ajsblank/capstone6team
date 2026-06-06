@@ -62,12 +62,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </button>
         {user ? (
           <>
+            <span className="home-avatar" onClick={() => navigate("profile")} title="프로필 보기" />
             <span className="home-username" onClick={() => navigate("profile")} title="프로필 보기">
               {user.username}
             </span>
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate("account-settings")}>
-              설정
-            </button>
             <button className="btn btn-ghost btn-sm" onClick={() => logout()}>
               로그아웃
             </button>

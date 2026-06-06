@@ -146,6 +146,20 @@
 .home-username:hover { background: #f0fdf4; }
 .home-username:focus-visible { outline: 2px solid #15803d; outline-offset: 2px; }
 
+/* 프로필 이미지용 동그라미 (이메일/이름 왼쪽) */
+.home-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  border: 1px solid #d1d5db;
+  display: inline-block;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.home-avatar:hover { box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.3); }
+
 
 /* Body */
 .home-body {
