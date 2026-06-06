@@ -1,0 +1,35 @@
+/* 상단 바 프로필 배지 — 이메일(위) + 닉네임·태그(아래) 세로 중앙 배치 */
+.pb-username {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
+  gap: 1px;
+}
+
+/* 이메일: 테마 색(home-username/lp-username)을 그대로 상속 */
+.pb-email {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.pb-sub {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+/* 닉네임: 중립 다크 그레이 (테마색 덮어씀) */
+.pb-nick {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* 태그: 연한 회색 + 작게 (#으로 시작) */
+.pb-tag {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: #9ca3af;
+}

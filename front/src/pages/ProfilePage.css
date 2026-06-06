@@ -185,9 +185,9 @@
   gap: 6px;
 }
 .pp-tag {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 400;
-  color: #7e8694;
+  color: #9ca3af;
 }
 .pp-value--muted { color: #4b5563; }
 .pp-value--bio {

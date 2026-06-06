@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
+import ProfileBadge from "../components/ProfileBadge";
 import Breadcrumb from "../components/Breadcrumb";
 import { getContestDraft } from "../contestDraft";
 import ContestSidebar from "../components/ContestSidebar";
@@ -73,8 +74,7 @@ const BattleCreateCertifiedPage: React.FC = () => {
         <div className="home-auth-area">
 {user ? (
             <>
-              <span className="home-avatar" onClick={() => navigate("profile")} title="프로필" />
-              <span className="home-username" onClick={() => navigate("profile")}>{user.username}</span>
+              <ProfileBadge />
               <button className="btn btn-ghost btn-sm" onClick={() => logout()}>로그아웃</button>
             </>
           ) : (

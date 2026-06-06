@@ -14,6 +14,7 @@ import Breadcrumb from "../components/Breadcrumb";
 import { submitCode, getContestDetail, joinContest, ContestDetail } from "../api/codeBattleApi";
 import { setMatchCallback, setSummaryCallback, setReconnectCallback, BattleMatchResult, SubmissionSummary, debugSse } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
+import ProfileBadge from "../components/ProfileBadge";
 import { Language } from "../types";
 import "./AppLayout.css";
 import "./BattleHomePage.css";
@@ -384,8 +385,7 @@ const SubmitPage: React.FC = () => {
         <div className="home-auth-area">
           {user ? (
             <>
-              <span className="home-avatar" onClick={() => navigate("profile")} title="프로필" />
-              <span className="home-username" onClick={() => navigate("profile")}>{user.username}</span>
+              <ProfileBadge />
               <button className="btn btn-ghost btn-sm" onClick={() => logout()}>로그아웃</button>
             </>
           ) : (
