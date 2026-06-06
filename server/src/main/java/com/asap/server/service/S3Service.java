@@ -100,6 +100,21 @@ public class S3Service {
     log.info("코드 업로드 완료 - key: {}", key);
   }
 
+  public String uploadProfileImage(Long userId, byte[] imageBytes) {
+    String key = String.format("backend-deploy/profile/%d-image", userId);
+
+    PutObjectRequest putRequest = PutObjectRequest.builder()
+        .bucket(bucket)
+        .key(key)
+        .contentType("image/jpeg")
+        .build();
+
+    s3Client.putObject(putRequest, RequestBody.fromBytes(imageBytes));
+    log.info("프로필 이미지 업로드 완료 - key: {}", key);
+
+    return String.format("%s", key);
+  }
+
   public String buildFinalResultKey(Long contestId) {
     return String.format("%s/%d/final-result", normalizePathPrefix(contestResourcePrefix), contestId);
   }

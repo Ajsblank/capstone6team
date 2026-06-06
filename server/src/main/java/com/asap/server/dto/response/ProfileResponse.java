@@ -19,9 +19,12 @@ public class ProfileResponse {
   private String affiliation;
   private String imageUrl;
 
-  public static ProfileResponse from(Profile profile) {
+  public static ProfileResponse from(Profile profile, String cloudFrontDomain) {
     String tagCode = String.format("%04d", profile.getTag());
     String nicknameTag = profile.getNickname() + "-" + tagCode;
+    String imageUrl = profile.getImage_url() != null
+        ? cloudFrontDomain + profile.getImage_url()
+        : null;
     return ProfileResponse.builder()
         .userId(profile.getUser().getId())
         .nickname(profile.getNickname())
@@ -29,7 +32,8 @@ public class ProfileResponse {
         .nicknameTag(nicknameTag)
         .bio(profile.getBio())
         .affiliation(profile.getAffiliation())
-        .imageUrl(profile.getImage_url())
+        .imageUrl(imageUrl)
         .build();
   }
+
 }

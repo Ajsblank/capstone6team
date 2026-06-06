@@ -10,5 +10,5 @@ public class UpdateProfileRequest {
   private String nickname;
   private String bio;
   private String affiliation;
-  private String imageUrl;
+  private String imageBase64;
 }

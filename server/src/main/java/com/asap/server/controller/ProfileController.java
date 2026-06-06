@@ -31,7 +31,7 @@ public class ProfileController {
         return ResponseEntity.ok(profileService.getMyProfile(userId));
     }
 
-    @Operation(summary = "프로필 수정")
+    @Operation(summary = "프로필 생성/수정")
     @PatchMapping("/me")
     public ResponseEntity<ProfileResponse> patchMyProfile(
             @AuthenticationPrincipal Long userId,

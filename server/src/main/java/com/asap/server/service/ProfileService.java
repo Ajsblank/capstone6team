@@ -1,5 +1,8 @@
 package com.asap.server.service;
 
+import java.util.Base64;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +21,9 @@ public class ProfileService {
 
   private final usersRepository userRepository;
   private final ProfileReposiroty profileRepository;
+  private final S3Service s3Service;
+  @Value("${cloud.aws.cloudfront.url}")
+  private String cloudFrontDomain;
 
   @Transactional(readOnly = true)
   public ProfileResponse getMyProfile(Long userId) {
@@ -29,7 +35,7 @@ public class ProfileService {
       throw new IllegalArgumentException("프로필이 존재하지 않습니다.");
     }
 
-    return ProfileResponse.from(profile);
+    return ProfileResponse.from(profile, cloudFrontDomain);
   }
 
   @Transactional
@@ -48,10 +54,15 @@ public class ProfileService {
       int newTag = allocateNextTag(newNickname);
       profile.updateNicknameAndTag(newNickname, newTag);
     }
-
-    profile.updateDetails(request.getBio(), request.getAffiliation(), request.getImageUrl());
+    // 이미지가 있을 때만 S3 업로드
+    String imageUrl = null;
+    if (request.getImageBase64() != null) {
+      byte[] imageBytes = Base64.getDecoder().decode(request.getImageBase64());
+      imageUrl = s3Service.uploadProfileImage(userId, imageBytes);
+    }
+    profile.updateDetails(request.getBio(), request.getAffiliation(), imageUrl);
     Profile updated = profileRepository.save(profile);
-    return ProfileResponse.from(updated);
+    return ProfileResponse.from(updated, cloudFrontDomain);
   }
 
   @Transactional(readOnly = true)
@@ -60,7 +71,7 @@ public class ProfileService {
     Profile profile = profileRepository.findByNicknameAndTag(parsed.nickname(), parsed.tag())
         .orElseThrow(() -> new IllegalArgumentException("해당 프로필을 찾을 수 없습니다."));
 
-    return ProfileResponse.from(profile);
+    return ProfileResponse.from(profile, cloudFrontDomain);
   }
 
   public Profile createProfile(Users user, String nickname) {
