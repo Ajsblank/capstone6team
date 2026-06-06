@@ -26,7 +26,7 @@
 
 .lp-logo {
   cursor: pointer;
-  margin-right: 20px;
+  margin-right: 16px;
   user-select: none;
   display: flex;
   align-items: center;
@@ -39,24 +39,26 @@
   display: block;
 }
 
-.lp-nav { display: flex; gap: 2px; flex: 1; }
+/* 대회 목록 페이지(.home-tab-btn)와 동일한 밑줄형 탭 — 헤더 풀하이트 */
+.lp-nav { display: flex; align-items: stretch; align-self: stretch; gap: 2px; flex: 1; }
 
 .lp-nav-btn {
   background: none;
   border: none;
+  border-bottom: 2px solid transparent;
   color: #4b5563;
   cursor: pointer;
   font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 1.05rem;
-  padding: 8px 20px;
-  border-radius: 6px;
-  transition: background 0.15s, color 0.15s;
+  padding: 0 22px;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
   outline: none;
 }
-.lp-nav-btn:hover { background: #f3f4f6; color: #111827; }
-.lp-nav-btn:focus-visible { outline: 3px solid rgba(22, 163, 74, 0.6); outline-offset: 2px; }
+.lp-nav-btn:hover { color: #111827; }
+.lp-nav-btn:focus-visible { outline: 3px solid rgba(22, 163, 74, 0.6); outline-offset: -4px; }
 .lp-nav-btn--disabled { opacity: 0.38; cursor: not-allowed; }
-.lp-nav-btn--disabled:hover { background: none; color: #4b5563; }
+.lp-nav-btn--disabled:hover { color: #4b5563; }
 
 .lp-auth { display: flex; align-items: center; gap: 8px; }
 
