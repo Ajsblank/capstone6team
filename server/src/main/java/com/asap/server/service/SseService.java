@@ -2,11 +2,11 @@ package com.asap.server.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,7 +26,7 @@ public class SseService {
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
 
     // 전송 실패 시 임시 보관 → 재연결 때 순서대로 재전송
-    private final Map<Long, Queue<PendingEvent>> pendingEvents = new ConcurrentHashMap<>();
+    private final Map<Long, Deque<PendingEvent>> pendingEvents = new ConcurrentHashMap<>();
 
     // 세션 구독자 목록 - List를 CopyOnWriteArrayList로 교체
     private final Map<String, CopyOnWriteArrayList<SseEmitter>> sessionEmitters = new ConcurrentHashMap<>();
@@ -50,20 +50,8 @@ public class SseService {
         }
 
         // 재연결 시 대기 중이던 이벤트 순서대로 재전송
-        Queue<PendingEvent> queue = pendingEvents.remove(userId);
-        if (queue != null) {
-            for (PendingEvent pending : queue) {
-                try {
-                    emitter.send(SseEmitter.event().name(pending.eventName()).data(pending.data()));
-                    log.info("[SSE] 재연결 후 캐싱 이벤트 재전송 userId={} event={}", userId, pending.eventName());
-                } catch (IOException e) {
-                    log.warn("[SSE] 재전송 실패 userId={}", userId);
-                    pendingEvents.put(userId, queue);
-                    emitters.remove(userId, emitter);
-                    emitter.completeWithError(e);
-                    return emitter;
-                }
-            }
+        if (!drainQueue(userId, emitter)) {
+            return emitter;
         }
         // 55초마다 heartbeat (CloudFront 연결 끊김 방지)
         ScheduledFuture<?> heartbeatTask = heartbeatScheduler.scheduleAtFixedRate(() -> {
@@ -110,10 +98,33 @@ public class SseService {
                 emitters.remove(userId, emitter);
             }
         }
-        // emitter 없거나 전송 실패 → 재연결 대기 큐에 추가
-        pendingEvents.computeIfAbsent(userId, k -> new ConcurrentLinkedQueue<>())
-                     .add(new PendingEvent(data, eventName));
+        // emitter 없거나 전송 실패 → 재연결 대기 큐 끝에 추가
+        pendingEvents.computeIfAbsent(userId, k -> new ConcurrentLinkedDeque<>())
+                     .offerLast(new PendingEvent(data, eventName));
         log.warn("[SSE] emitter 없음 or 전송 실패 → 큐 추가 userId={} event={}", userId, eventName);
+    }
+
+    // 대기 큐의 이벤트를 순서대로 전송. 성공한 이벤트만 poll로 제거.
+    // 전송 실패 시 해당 이벤트를 offerFirst로 복원하고 false 반환.
+    private boolean drainQueue(Long userId, SseEmitter emitter) {
+        Deque<PendingEvent> queue = pendingEvents.get(userId);
+        if (queue == null) return true;
+
+        PendingEvent pending;
+        while ((pending = queue.pollFirst()) != null) {
+            try {
+                emitter.send(SseEmitter.event().name(pending.eventName()).data(pending.data()));
+                log.info("[SSE] 재전송 성공 userId={} event={}", userId, pending.eventName());
+            } catch (IOException e) {
+                queue.offerFirst(pending); // 전송 실패한 이벤트 맨 앞에 복원
+                log.warn("[SSE] 재전송 실패 userId={}", userId);
+                emitters.remove(userId, emitter);
+                emitter.completeWithError(e);
+                return false;
+            }
+        }
+        pendingEvents.remove(userId, queue);
+        return true;
     }
 
     // session 구독
