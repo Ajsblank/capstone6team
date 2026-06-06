@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
-import ProfileBadge from "../components/ProfileBadge";
+import BattleTopNav from "../components/BattleTopNav";
 import Breadcrumb from "../components/Breadcrumb";
 import { getContestDraft } from "../contestDraft";
 import ContestSidebar from "../components/ContestSidebar";
@@ -9,7 +9,7 @@ import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
 const BattleCreateCertifiedPage: React.FC = () => {
-  const { user, logout, navigate, addCreatedContest } = useApp();
+  const { user, navigate, addCreatedContest } = useApp();
 
   const hostEmail = user?.email ?? "";
   const [emails, setEmails] = useState<string[]>([]);
@@ -59,32 +59,7 @@ const BattleCreateCertifiedPage: React.FC = () => {
   return (
     <div className="cc-page">
 
-      <header className="home-header">
-        <span className="home-logo" onClick={() => navigate("landing")}>
-          <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
-        </span>
-        <nav className="home-tab-nav">
-          <button className="home-tab-btn" onClick={() => navigate("battle")}>대회</button>
-          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/ranking"; }}>랭킹</button>
-          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/previous-problems"; }}>이전 문제</button>
-          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/help"; }}>도움말</button>
-          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/contact"; }}>문의</button>
-        </nav>
-        <div className="cc-header-spacer" />
-        <div className="home-auth-area">
-{user ? (
-            <>
-              <ProfileBadge />
-              <button className="btn btn-ghost btn-sm" onClick={() => logout()}>로그아웃</button>
-            </>
-          ) : (
-            <>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate("signup")}>회원가입</button>
-              <button className="btn btn-primary btn-sm" onClick={() => navigate("login")}>로그인</button>
-            </>
-          )}
-        </div>
-      </header>
+      <BattleTopNav spacer />
 
       <main className="home-body">
         <div className="cc-content">

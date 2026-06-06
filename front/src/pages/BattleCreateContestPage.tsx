@@ -3,7 +3,7 @@ import axios from "axios";
 import { marked } from "marked";
 import mammoth from "mammoth";
 import { useApp } from "../context/AppContext";
-import ProfileBadge from "../components/ProfileBadge";
+import BattleTopNav from "../components/BattleTopNav";
 import Breadcrumb from "../components/Breadcrumb";
 import { ContestStatus, AiCodeEntry, extToLanguage } from "../api/contestApi";
 import { setContestDraft } from "../contestDraft";
@@ -43,7 +43,7 @@ const Toast: React.FC<ToastProps> = ({ messages, onClose }) => {
 const isDescEmpty = (html: string) =>
   !html || html === "<p></p>" || html.replace(/<[^>]*>/g, "").trim() === "";
 
-function stepPow2(n: number, dir: 1 | -1, min = 128, max = 2048): number {
+function stepPow2(n: number, dir: 1 | -1, min = 128, max = 512): number {
   const log = Math.log2(n);
   const newExp = dir === 1 ? Math.floor(log + 1e-9) + 1 : Math.ceil(log - 1e-9) - 1;
   return Math.max(min, Math.min(max, Math.pow(2, newExp)));
@@ -68,11 +68,11 @@ const FileInput: React.FC<FileInputProps> = ({ label, required, accept, value, o
 };
 
 const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = false }) => {
-  const { user, logout, navigate, addCreatedContest } = useApp();
+  const { user, navigate, addCreatedContest } = useApp();
 
   const [title, setTitle]                   = useState("");
   const [description, setDescription]       = useState("");
-  const [timeLimitSec, setTimeLimitSec]     = useState<number>(1);
+  const [timeLimitSec, setTimeLimitSec]     = useState<number>(10);
   const [memoryLimitMb, setMemoryLimitMb]   = useState<number>(256);
   const [sampleCodes, setSampleCodes]       = useState<File[]>([]);
   const [judgeCode, setJudgeCode]           = useState<File | null>(null);
@@ -616,32 +616,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
         />
       )}
 
-      <header className="home-header">
-        <span className="home-logo" onClick={() => navigate("landing")}>
-          <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
-        </span>
-        <nav className="home-tab-nav">
-          <button className="home-tab-btn" onClick={() => navigate("battle")}>대회</button>
-          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/ranking"; }}>랭킹</button>
-          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/previous-problems"; }}>이전 문제</button>
-          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/help"; }}>도움말</button>
-          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/contact"; }}>문의</button>
-        </nav>
-        <div className="cc-header-spacer" />
-        <div className="home-auth-area">
-{user ? (
-            <>
-              <ProfileBadge />
-              <button className="btn btn-ghost btn-sm" onClick={() => logout()}>로그아웃</button>
-            </>
-          ) : (
-            <>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate("signup")}>회원가입</button>
-              <button className="btn btn-primary btn-sm" onClick={() => navigate("login")}>로그인</button>
-            </>
-          )}
-        </div>
-      </header>
+      <BattleTopNav spacer />
 
       <main className="home-body">
         <div className="cc-content">
@@ -712,7 +687,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                   <div className="cc-row">
                     <div className="cc-field">
                       <label className="cc-label">시간 제한 (초/턴) <span className="cc-required">*</span></label>
-                      <input className="cc-input" type="number" min={1} max={60} value={timeLimitSec} onChange={(e) => setTimeLimitSec(Number(e.target.value))} />
+                      <input className="cc-input" type="number" min={10} max={60} value={timeLimitSec} onChange={(e) => setTimeLimitSec(Number(e.target.value))} />
                     </div>
                     <div className="cc-field">
                       <label className="cc-label">메모리 제한 (MB) <span className="cc-required">*</span></label>
@@ -721,7 +696,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                           className="cc-input cc-input--pow2"
                           type="number"
                           min={128}
-                          max={2048}
+                          max={512}
                           value={memoryLimitMb}
                           onChange={(e) => setMemoryLimitMb(Number(e.target.value))}
                           onKeyDown={(e) => {
