@@ -3,7 +3,9 @@ package com.asap.server.controller;
 import java.util.List;
 
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -146,11 +148,17 @@ public class CodeController {
     }
 
     @GetMapping("/submission/{submissionId}")
-    @Operation(summary = "제출 코드 조회", description = "submissionId로 제출한 코드 내용을 조회합니다.")
-    public ResponseEntity<?> getSubmissionCode(@PathVariable Long submissionId) {
+    @Operation(summary = "제출 코드 조회", description = "submissionId로 본인이 제출한 코드 내용을 조회합니다. 본인 제출만 조회 가능합니다.")
+    public ResponseEntity<?> getSubmissionCode(
+            @PathVariable Long submissionId,
+            @AuthenticationPrincipal Long userId) {
         try {
             CodeBattleSubmission submission = submissionRepository.findById(submissionId)
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 제출입니다."));
+
+            if (!submission.getUser().getId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("본인의 제출만 조회할 수 있습니다.");
+            }
 
             String code = s3Service.readFileAsString(submission.getCodeUrl());
             return ResponseEntity.ok(SubmissionCodeResponse.of(submission, code));
