@@ -53,6 +53,7 @@ import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.ContestSwissMatchRepository;
 import com.asap.server.repository.ContestSwissSessionRepository;
+import com.asap.server.repository.ProfileRepository;
 import com.asap.server.service.ContestRunService;
 import com.asap.server.service.ContestService;
 import com.asap.server.service.FullLeagueService;
@@ -91,6 +92,7 @@ public class ContestController {
     private final SseService sseService;
     private final ContestSwissMatchRepository swissMatchRepository;
     private final CodeBattleMatchRepository matchRepository;
+    private final ProfileRepository profileRepository;
 
     @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
     @PostMapping(value = "/create/uncertified", consumes = "application/json")
@@ -256,6 +258,10 @@ public class ContestController {
                         .body(Map.of("message", "아직 집계 중이거나 데이터가 존재하지 않습니다."));
             }
             FinalResultResponse response = objectMapper.readValue(json, FinalResultResponse.class);
+            Map<Long, String> nicknameTagMap = getNicknameTagMap(
+                    response.getFinalStandings().stream().map(FinalResultResponse.StandingDto::getUserId).toList());
+            response.getFinalStandings()
+                    .forEach(s -> s.setNicknameTag(nicknameTagMap.getOrDefault(s.getUserId(), "")));
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
@@ -455,6 +461,11 @@ public class ContestController {
             }
             try {
                 SwissResultResponse response = objectMapper.readValue(json, SwissResultResponse.class);
+                Map<Long, String> nicknameTagMap = getNicknameTagMap(
+                        response.getFinalStandings().stream().map(SwissResultResponse.StandingDto::getUserId).toList());
+                response.getFinalStandings()
+                        .forEach(s -> s.setNicknameTag(nicknameTagMap.getOrDefault(s.getUserId(), "")));
+
                 return ResponseEntity.ok(response);
             } catch (JsonProcessingException e) {
                 log.error("[스위스리그] JSON 파싱 실패. key={}", key, e);
@@ -494,6 +505,11 @@ public class ContestController {
 
             try {
                 SwissLeaderBoardResponse response = objectMapper.readValue(json, SwissLeaderBoardResponse.class);
+                Map<Long, String> nicknameTagMap = getNicknameTagMap(
+                        response.getFinalStandings().stream().map(SwissLeaderBoardResponse.StandingDto::getUserId)
+                                .toList());
+                response.getFinalStandings()
+                        .forEach(s -> s.setNicknameTag(nicknameTagMap.getOrDefault(s.getUserId(), "")));
                 return ResponseEntity.ok(response);
             } catch (JsonProcessingException e) {
                 log.error("[스위스리그] JSON 파싱 실패. key={}", key, e);
@@ -539,6 +555,11 @@ public class ContestController {
 
             try {
                 SwissLeaderBoardResponse response = objectMapper.readValue(json, SwissLeaderBoardResponse.class);
+                Map<Long, String> nicknameTagMap = getNicknameTagMap(
+                        response.getFinalStandings().stream().map(SwissLeaderBoardResponse.StandingDto::getUserId)
+                                .toList());
+                response.getFinalStandings()
+                        .forEach(s -> s.setNicknameTag(nicknameTagMap.getOrDefault(s.getUserId(), "")));
                 return ResponseEntity.ok(response);
             } catch (JsonProcessingException e) {
                 log.error("[스위스리그] JSON 파싱 실패. key={}", key, e);
@@ -698,6 +719,13 @@ public class ContestController {
             log.error("[검증] 검증 요청 실패", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "검증 요청 중 오류 발생"));
         }
+    }
+
+    private Map<Long, String> getNicknameTagMap(List<Long> userIds) {
+        return profileRepository.findByUserIdIn(userIds).stream()
+                .collect(Collectors.toMap(
+                        p -> p.getUser().getId(),
+                        p -> p.getNickname() + "-" + String.format("%04d", p.getTag())));
     }
 
 }

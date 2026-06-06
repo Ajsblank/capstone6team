@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import com.asap.server.domain.Profile;
 
-public interface ProfileReposiroty extends JpaRepository<Profile, Long> {
+public interface ProfileRepository extends JpaRepository<Profile, Long> {
   Optional<Profile> findByUserId(Long userId);
 
   Optional<Profile> findByNicknameAndTag(String nickname, Integer tag);
@@ -22,4 +22,6 @@ public interface ProfileReposiroty extends JpaRepository<Profile, Long> {
   Integer findMaxTagByNickname(@Param("nickname") String nickname);
 
   List<Profile> findAllByUserIdIn(List<Long> userIds);
+
+  List<Profile> findByUserIdIn(List<Long> userIds);
 }

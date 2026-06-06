@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @NoArgsConstructor
@@ -26,6 +27,7 @@ public class SwissLeaderBoardResponse {
   private List<StandingDto> finalStandings;
 
   @Getter
+  @Setter
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
@@ -34,6 +36,8 @@ public class SwissLeaderBoardResponse {
   public static class StandingDto {
     @JsonProperty("user_id")
     private Long userId;
+    @JsonProperty("nickname_tag")
+    private String nicknameTag;
     private int wins;
     private int draws;
     private int losses;
