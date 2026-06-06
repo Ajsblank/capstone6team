@@ -251,7 +251,8 @@ function SubmissionItem({ sub, seqNum, userId, hasVisualization, onLogClick }: {
             <>
               <span className="ms-win">{wins}승</span>
               {" "}
-              {draws > 0 && <><span className="ms-draw">{draws}무</span>{" "}</>}
+              <span className="ms-draw">{draws}무</span>
+              {" "}
               <span className="ms-loss">{losses}패</span>
               <span className="ms-total"> / {total}전</span>
             </>
