@@ -177,6 +177,11 @@ export const getSubmissionCode = async (submissionId: number): Promise<Submissio
   return data;
 };
 
+// ── 코드 선택(토너먼트 출전) — POST /api/code/submit/codebattle/{contestId}/codeSelect ──
+export const selectSubmissionCode = async (contestId: number, submissionId: number): Promise<void> => {
+  await api.post(`/api/code/submit/codebattle/${contestId}/codeSelect`, { submissionId });
+};
+
 // ── 세션 목록 조회 — GET /api/contests/{contestId}/sessionList ──
 export interface ContestSession {
   sessionNumber: number;
