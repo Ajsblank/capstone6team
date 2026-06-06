@@ -65,7 +65,7 @@ export interface UserProfilePatch {
   nickname?: string;
   bio?: string;
   affiliation?: string;
-  imageUrl?: string;
+  imageBase64?: string; // 서버가 S3에 업로드 (조회 시에는 UserProfile.imageUrl로 S3 URL 수신)
 }
 
 export interface LeaderboardStanding {
