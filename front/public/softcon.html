@@ -817,6 +817,7 @@ let consecutiveSkips = 0;
 let finished = false;
 let dragStart = null, dragEnd = null, isDragging = false;
 let hintSet = null;
+let hintOn = false;   // 힌트 활성 상태 (켜두면 이동 후에도 유지·재계산)
 let lastMove = null;      // 방금 점령한 영역 (flip 애니메이션용)
 let aiThinking = false;      // AI 계산 중 여부
 let humanPassed = false;     // 사람이 직전 턴에 패스했는지
@@ -1025,7 +1026,7 @@ function computeHintMoves() {
 
 function updateHintBtn() {
   const btn = document.getElementById('btnHint');
-  btn.textContent = hintSet ? '힌트 끄기' : '힌트 켜기';
+  btn.textContent = hintOn ? '힌트 끄기' : '힌트 켜기';
   btn.disabled = finished;
 }
 
@@ -1045,7 +1046,7 @@ function doMove(r1, c1, r2, c2) {
   pushLog(`${tag} ${r1} ${c1} ${r2} ${c2} 0`);
   actionIndex++;
   consecutiveSkips = 0;
-  hintSet = null;
+  hintSet = hintOn ? computeHintMoves() : null;   // 활성 상태면 새 보드 기준으로 재계산해 유지
   updateHintBtn();
   if (!anyRectSums10()) { endGame(); return; }
   currentPlayer = currentPlayer === 'first' ? 'second' : 'first';
@@ -1057,7 +1058,7 @@ function doSkip() {
   pushLog(`${tag} -1 -1 -1 -1 0`);
   actionIndex++;
   consecutiveSkips++;
-  hintSet = null;
+  hintSet = hintOn ? computeHintMoves() : null;   // 활성 상태면 유지(재계산)
   updateHintBtn();
   if (consecutiveSkips >= 2) { endGame(); return; }
   currentPlayer = currentPlayer === 'first' ? 'second' : 'first';
@@ -1316,7 +1317,8 @@ function pushLog(line) {
 // ── Controls ─────────────────────────────────────────────
 document.getElementById('btnHint').addEventListener('click', () => {
   if (finished || aiThinking || currentPlayer !== 'first') return;
-  hintSet = hintSet ? null : computeHintMoves();   // 토글: 모든 가능한 구역 표시 / 끄기
+  hintOn = !hintOn;                                // 토글: 켜두면 이동 후에도 유지
+  hintSet = hintOn ? computeHintMoves() : null;
   updateHintBtn();
   renderBoard();
 });
@@ -1377,6 +1379,7 @@ function initGame() {
   dragStart = dragEnd = null;
   isDragging = false;
   hintSet = null;
+  hintOn = false;
   lastMove = null;
   aiThinking = false;
   humanPassed = false;
