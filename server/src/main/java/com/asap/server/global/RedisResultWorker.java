@@ -226,16 +226,28 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
                 } else {
                     // judge 정상 → Phase 2: 실제 검증 잡 전체 제출
                     java.util.List<String> jobs = redisTemplate.opsForList().range(queuedJobsKey, 0, -1);
-                    int count = (jobs != null) ? jobs.size() : 0;
-                    log.info("✅ [검증] userId={} judge smoke test 통과 → {}개 잡 제출", targetUserId, count);
                     redisTemplate.delete(queuedJobsKey);
-                    redisTemplate.opsForValue().set(pendingKey, String.valueOf(count), 10,
-                            java.util.concurrent.TimeUnit.MINUTES);
-                    if (jobs != null) {
-                        for (String jobJson : jobs) {
-                            redisTemplate.opsForList().leftPush("code_battle_test_queue", jobJson);
-                        }
+
+                    if (jobs == null || jobs.isEmpty()) {
+                        // queued_jobs 만료/소실 → 데드락 방지: 즉시 실패 SSE 후 키 정리
+                        log.warn("⚠️ [검증] userId={} queued_jobs 소실 → 실패 처리", targetUserId);
+                        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+                        result.put("passed", false);
+                        result.put("details", java.util.List.of(java.util.Map.of(
+                                "target", "Judge 사전 검증",
+                                "log",    "",
+                                "passed", false,
+                                "reason", "검증 대기 목록이 만료되었습니다. 다시 시도해주세요."
+                        )));
+                        sseService.sendToUser(targetUserId, result, "validate_result");
+                        redisTemplate.delete(java.util.List.of(pendingKey, labelsKey, resultsKey, probeTypesKey));
+                        return;
                     }
+
+                    log.info("✅ [검증] userId={} judge smoke test 통과 → {}개 잡 제출", targetUserId, jobs.size());
+                    redisTemplate.opsForValue().set(pendingKey, String.valueOf(jobs.size()), 10,
+                            java.util.concurrent.TimeUnit.MINUTES);
+                    redisTemplate.opsForList().leftPushAll("code_battle_test_queue", jobs);
                 }
                 return;
             }
