@@ -1,11 +1,18 @@
 package com.asap.server.service;
 
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.asap.server.domain.Profile;
 import com.asap.server.domain.Users;
 import com.asap.server.dto.request.UpdateProfileRequest;
+import com.asap.server.dto.response.ProfileListResponse;
 import com.asap.server.dto.response.ProfileResponse;
 import com.asap.server.repository.ProfileReposiroty;
 import com.asap.server.repository.usersRepository;
@@ -18,10 +25,13 @@ public class ProfileService {
 
   private final usersRepository userRepository;
   private final ProfileReposiroty profileRepository;
+  private final S3Service s3Service;
+  @Value("${cloud.aws.cloudfront.url}")
+  private String cloudFrontDomain;
 
   @Transactional(readOnly = true)
-  public ProfileResponse getMyProfile(String email) {
-    Users user = userRepository.findByEmail(email)
+  public ProfileResponse getMyProfile(Long userId) {
+    Users user = userRepository.findById(userId)
         .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
     Profile profile = user.getProfile();
@@ -29,43 +39,38 @@ public class ProfileService {
       throw new IllegalArgumentException("프로필이 존재하지 않습니다.");
     }
 
-    return ProfileResponse.from(profile);
+    return ProfileResponse.from(profile, cloudFrontDomain);
   }
 
   @Transactional
-  public ProfileResponse updateMyProfile(String email, UpdateProfileRequest request) {
-    Users user = userRepository.findByEmail(email)
+  public ProfileResponse updateMyProfile(Long userId, UpdateProfileRequest request) {
+    Users user = userRepository.findById(userId)
         .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-    String newNickname = normalizeNickname(request.getNickname());
-    if (newNickname == null) {
-      throw new IllegalArgumentException("닉네임은 필수입니다.");
-    }
 
     Profile profile = user.getProfile();
     if (profile == null) {
-      int tag = allocateNextTag(newNickname);
-      Profile newProfile = Profile.builder()
-          .user(user)
-          .nickname(newNickname)
-          .tag(tag)
-          .bio(request.getBio())
-          .affiliation(request.getAffiliation())
-          .image_url(request.getImageUrl())
-          .build();
-      user.setProfile(newProfile);
-      userRepository.save(user);
-      return ProfileResponse.from(newProfile);
+      throw new IllegalArgumentException("프로필이 존재하지 않습니다.");
     }
 
-    if (!newNickname.equals(profile.getNickname())) {
+    // 닉네임이 있을 때만 변경
+    String newNickname = normalizeNickname(request.getNickname());
+    if (newNickname != null && !newNickname.equals(profile.getNickname())) {
       int newTag = allocateNextTag(newNickname);
       profile.updateNicknameAndTag(newNickname, newTag);
     }
-
-    profile.updateDetails(request.getBio(), request.getAffiliation(), request.getImageUrl());
+    // 이미지가 있을 때만 S3 업로드
+    String imageUrl = null;
+    if (request.getImageBase64() != null) {
+      String base64Data = request.getImageBase64();
+      if (base64Data.contains(",")) {
+        base64Data = base64Data.split(",")[1];
+      }
+      byte[] imageBytes = Base64.getDecoder().decode(base64Data);
+      imageUrl = s3Service.uploadProfileImage(userId, imageBytes);
+    }
+    profile.updateDetails(request.getBio(), request.getAffiliation(), imageUrl);
     Profile updated = profileRepository.save(profile);
-    return ProfileResponse.from(updated);
+    return ProfileResponse.from(updated, cloudFrontDomain);
   }
 
   @Transactional(readOnly = true)
@@ -74,7 +79,7 @@ public class ProfileService {
     Profile profile = profileRepository.findByNicknameAndTag(parsed.nickname(), parsed.tag())
         .orElseThrow(() -> new IllegalArgumentException("해당 프로필을 찾을 수 없습니다."));
 
-    return ProfileResponse.from(profile);
+    return ProfileResponse.from(profile, cloudFrontDomain);
   }
 
   public Profile createProfile(Users user, String nickname) {
@@ -84,6 +89,29 @@ public class ProfileService {
         .nickname(nickname)
         .tag(tag)
         .build();
+  }
+
+  @Transactional(readOnly = true)
+  public Map<Long, ProfileListResponse> getBulkProfiles(List<Long> userIds) {
+    List<Profile> profiles = profileRepository.findAllByUserIdIn(userIds);
+    if (userIds == null || userIds.isEmpty()) {
+      return java.util.Collections.emptyMap();
+    }
+    return profiles.stream()
+        .collect(Collectors.toMap(
+            profile -> profile.getUser().getId(),
+            profile -> {
+              String tagCode = String.format("%04d", profile.getTag());
+              String nicknameTag = profile.getNickname() + "-" + tagCode;
+              String imageUrl = profile.getImage_url() != null
+                  ? (cloudFrontDomain.endsWith("/") ? cloudFrontDomain : cloudFrontDomain + "/")
+                      + profile.getImage_url()
+                  : null;
+              return ProfileListResponse.builder()
+                  .nicknameTag(nicknameTag)
+                  .imageUrl(imageUrl)
+                  .build();
+            }));
   }
 
   private int allocateNextTag(String nickname) {

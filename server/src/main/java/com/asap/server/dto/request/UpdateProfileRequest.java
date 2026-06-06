@@ -1,6 +1,5 @@
 package com.asap.server.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -8,9 +7,8 @@ import lombok.Setter;
 @Setter
 public class UpdateProfileRequest {
 
-  @NotBlank(message = "닉네임은 필수입니다.")
   private String nickname;
   private String bio;
   private String affiliation;
-  private String imageUrl;
+  private String imageBase64;
 }

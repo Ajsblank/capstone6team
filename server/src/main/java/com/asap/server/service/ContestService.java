@@ -14,10 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleExampleAI;
 import com.asap.server.domain.CodeBattleMatch;
@@ -48,6 +44,9 @@ import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSampleCodeRepository;
 import com.asap.server.repository.ContestReviewerRepository;
 import com.asap.server.repository.usersRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,7 +62,6 @@ public class ContestService {
     private final ContestReviewerRepository reviewerRepository;
     private final usersRepository userRepository;
     private final ContestRunService contestRun;
-    private final S3Service s3Service;
     private final ContestReviewerRepository contestReviewerRepository;
     private final CodeBattleMatchRepository matchRepository;
     private final CodeBattleSampleCodeRepository sampleCodeRepository;
@@ -547,7 +545,7 @@ public class ContestService {
 
     public void validateContestCodes(Long userId, ValidateContestRequest req) {
         String pendingKey = "validate:" + userId + ":pending";
-        String labelsKey  = "validate:" + userId + ":labels"; // hash: jobId -> label
+        String labelsKey = "validate:" + userId + ":labels"; // hash: jobId -> label
         String resultsKey = "validate:" + userId + ":results"; // hash: jobId -> log
 
         if (Boolean.TRUE.equals(redisTemplate.hasKey(pendingKey))) {
@@ -561,7 +559,8 @@ public class ContestService {
 
         redisTemplate.delete(labelsKey);
         redisTemplate.delete(resultsKey);
-        redisTemplate.opsForValue().set(pendingKey, String.valueOf(jobCount), 10, java.util.concurrent.TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(pendingKey, String.valueOf(jobCount), 10,
+                java.util.concurrent.TimeUnit.MINUTES);
 
         try {
             // 1) judge vs 샘플 × 샘플
@@ -593,9 +592,9 @@ public class ContestService {
     }
 
     private void pushTestJob(String jobId, Long userId,
-                             String judgeCode,
-                             String p1Code, String p1Lang,
-                             String p2Code, String p2Lang) throws JsonProcessingException {
+            String judgeCode,
+            String p1Code, String p1Lang,
+            String p2Code, String p2Lang) throws JsonProcessingException {
         ObjectNode payload = objectMapper.createObjectNode();
         payload.put("jobId", jobId);
         payload.put("userId", userId);
