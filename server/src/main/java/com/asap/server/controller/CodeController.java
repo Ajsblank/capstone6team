@@ -228,7 +228,10 @@ public class CodeController {
             if (!contestId.equals(submission.getContest().getId())) {
                 throw new IllegalArgumentException("해당 대회의 제출이 아닙니다.");
             }
-
+            // 본인 submissionId인지 확인
+            if (!userId.equals(submission.getUser().getId())) {
+                throw new IllegalArgumentException("본인의 제출만 선택할 수 있습니다.");
+            }
             CodeBattleParticipant participant = participantRepository
                     .findByUserIdAndContestId(userId, contestId)
                     .orElseThrow(() -> new IllegalArgumentException("대회 참가 이력이 없습니다."));
