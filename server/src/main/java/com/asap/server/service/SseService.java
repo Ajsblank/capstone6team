@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -38,6 +41,20 @@ public class SseService {
             emitter.completeWithError(e);
             return emitter;
         }
+        // 55초마다 heartbeat (클라우드 프론트 연결 끊음 방지)
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                emitter.send(SseEmitter.event().comment("heartbeat"));
+            } catch (IOException e) {
+                emitters.remove(userId);
+                emitter.complete();
+                scheduler.shutdown();
+            }
+        }, 55, 55, TimeUnit.SECONDS);
+
+        emitter.onCompletion(scheduler::shutdown);
+        emitter.onTimeout(scheduler::shutdown);
         return emitter;
     }
 
