@@ -14,7 +14,7 @@ import Breadcrumb from "../components/Breadcrumb";
 import { submitCode, getContestDetail, joinContest, ContestDetail } from "../api/codeBattleApi";
 import { setMatchCallback, setSummaryCallback, setReconnectCallback, BattleMatchResult, SubmissionSummary, debugSse } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
-import ProfileBadge from "../components/ProfileBadge";
+import BattleTopNav from "../components/BattleTopNav";
 import { Language } from "../types";
 import "./AppLayout.css";
 import "./BattleHomePage.css";
@@ -73,7 +73,7 @@ function parseHash(): { problemId: number; tab: Tab } {
 }
 
 const SubmitPage: React.FC = () => {
-  const { navigate, user, logout, joinedContestIds, hostedContestIds, addJoinedContest } = useApp();
+  const { navigate, user, joinedContestIds, hostedContestIds, addJoinedContest } = useApp();
 
   const [{ problemId, tab: activeTab }, setHashState] = useState(parseHash);
 
@@ -371,34 +371,7 @@ const SubmitPage: React.FC = () => {
       )}
 
       {/* 메인 헤더 — BattleHomePage와 동일 */}
-      <header className="home-header">
-        <span className="home-logo" onClick={() => navigate("landing")}>
-          <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
-        </span>
-        <nav className="home-tab-nav">
-          <button className="home-tab-btn" onClick={() => navigate("battle")}>대회</button>
-          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/ranking"; }}>랭킹</button>
-          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/previous-problems"; }}>이전 문제</button>
-          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/help"; }}>도움말</button>
-          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/contact"; }}>문의</button>
-        </nav>
-        <div className="home-auth-area">
-          {user ? (
-            <>
-              <ProfileBadge />
-              <button className="btn btn-ghost btn-sm" onClick={() => logout()}>로그아웃</button>
-            </>
-          ) : (
-            <>
-              <button className="btn btn-ghost btn-sm" onClick={() => navigate("signup")}>회원가입</button>
-              <button className="btn btn-primary btn-sm" onClick={() => {
-                localStorage.setItem("loginRedirect", window.location.hash.replace("#", "") || "battle/contest");
-                navigate("login");
-              }}>로그인</button>
-            </>
-          )}
-        </div>
-      </header>
+      <BattleTopNav saveLoginRedirect />
 
       {/* 문제 제목 바 */}
       <div className="sp-problem-bar">
