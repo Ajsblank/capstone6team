@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1010;          /* 튜토리얼 블러 오버레이(≤1004)보다 위 — 검증 모달이 흐려지지 않도록 */
   overflow-y: auto;       /* 모달이 뷰포트보다 길어도 오버레이가 스크롤 */
   padding: 16px;
   overscroll-behavior: contain;  /* 모달 스크롤이 배경으로 전파되지 않도록 */

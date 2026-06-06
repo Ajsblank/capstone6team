@@ -103,11 +103,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
   // 검증 완료 상태 (필수 파일 3개 검증 완료)
   const [validationPassed, setValidationPassed] = useState(false);
 
-  // 검증 성공 확인 팝업
-  const [showValidationSuccess, setShowValidationSuccess] = useState(false);
 
-  // 튜토리얼 step 정보
-  const [tutStepInfo, setTutStepInfo] = useState<{ stepIdx: number; typingDone: boolean } | null>(null);
 
   // 결제 실패 후 복구 토스트
   const [restoreToast, setRestoreToast] = useState(false);
@@ -386,14 +382,19 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     }
   };
 
-  // 튜토리얼 모드: Mock 검증
+  // 튜토리얼 모드: Mock 검증 — 실제 흐름과 동일하게 검증 결과 모달(ValidationResultModal)을 사용
   const handleTutorialValidation = async () => {
     setIsValidating(true);
+    setValidationResult(null);
+    setShowValidation(true);   // 모달 열기(로딩 → 성공)
     console.log("[튜토리얼 검증] 2초 대기 후 자동 성공");
     await new Promise(resolve => setTimeout(resolve, 2000));
     setIsValidating(false);
+    setValidationResult({
+      passed: true,
+      details: [{ target: "튜토리얼 검증", passed: true, log: "[튜토리얼] 채점·샘플·예시 AI 코드가 모두 정상적으로 실행되었습니다." }],
+    });
     setValidationPassed(true);
-    setShowValidationSuccess(true);
   };
 
   // 검증 실패 시 재검증
@@ -474,7 +475,9 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     maxParticipants,
     previewOpened: tutPreviewOpened,
     created: tutCreated,
-    validationCompleted: showValidationSuccess,
+    validationCompleted: validationPassed,                       // 검증 성공(모달에 성공 표시)
+    validationModalOpen: showValidation,                         // 검증 버튼을 눌러 모달이 열림
+    validationModalClosed: validationPassed && !showValidation,  // 성공 후 "계속하기"로 모달을 닫음
   };
 
   return (
@@ -497,30 +500,6 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
         }}
         onRetry={handleRetryValidation}
       />
-
-      {/* 검증 성공 확인 팝업 */}
-      {showValidationSuccess && (
-        <div className="cc-modal-overlay" onClick={() => setShowValidationSuccess(false)}>
-          <div className="cc-modal cc-success-modal" onClick={e => e.stopPropagation()}>
-            <div className="cc-success-header">
-              <h2 className="cc-success-title">검증 성공!</h2>
-            </div>
-            <div className="cc-success-body">
-              <p>코드 검증이 완료되었습니다.</p>
-              <p className="cc-success-subtitle">이제 시각화 파일과 대회 기간을 설정할 수 있습니다.</p>
-            </div>
-            <div className="cc-success-footer">
-              <button
-                className="cc-success-btn"
-                onClick={() => setShowValidationSuccess(false)}
-                data-tut="validate-confirm"
-              >
-                확인
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 결제 확인 모달 */}
       {showPayConfirm && (
@@ -791,7 +770,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                         type="button"
                         className="cc-validate-btn"
                         onClick={tutorial ? handleTutorialValidation : handleValidateAndCreate}
-                        disabled={isValidating || (tutorial && tutStepInfo?.stepIdx === 8 && !tutStepInfo?.typingDone)}
+                        disabled={isValidating}
                         data-tut="validate"
                       >
                         {isValidating ? `검증 중${".".repeat(loadingDots)}` : "검증 후 계속"}
@@ -892,7 +871,6 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
           applyFile={applyTutorialFile}
           setUncertified={() => setCertification(false)}
           onFinish={() => navigate("battle")}
-          onStepChange={setTutStepInfo}
         />
       )}
     </div>
