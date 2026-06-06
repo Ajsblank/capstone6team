@@ -3,7 +3,6 @@ package com.asap.server.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,8 +27,10 @@ import com.asap.server.repository.usersRepository;
 @DisplayName("ProfileService 단위 테스트")
 class ProfileServiceTest {
 
-    @Mock private usersRepository userRepository;
-    @Mock private ProfileReposiroty profileRepository;
+    @Mock
+    private usersRepository userRepository;
+    @Mock
+    private ProfileReposiroty profileRepository;
 
     @InjectMocks
     private ProfileService profileService;
@@ -63,9 +64,9 @@ class ProfileServiceTest {
     @Test
     @DisplayName("내 프로필 조회 성공")
     void getMyProfile_success() {
-        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
-        ProfileResponse response = profileService.getMyProfile("test@test.com");
+        ProfileResponse response = profileService.getMyProfile(1L);
 
         assertThat(response.getNickname()).isEqualTo("testnick");
         assertThat(response.getTag()).isEqualTo(1);
@@ -75,9 +76,9 @@ class ProfileServiceTest {
     @Test
     @DisplayName("존재하지 않는 유저 프로필 조회 시 예외 발생")
     void getMyProfile_userNotFound() {
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> profileService.getMyProfile("notfound@test.com"))
+        assertThatThrownBy(() -> profileService.getMyProfile(999L))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("사용자를 찾을 수 없습니다.");
     }
@@ -91,9 +92,9 @@ class ProfileServiceTest {
                 .password("encodedPassword")
                 .build();
 
-        when(userRepository.findByEmail("noprofile@test.com")).thenReturn(Optional.of(userWithoutProfile));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(userWithoutProfile));
 
-        assertThatThrownBy(() -> profileService.getMyProfile("noprofile@test.com"))
+        assertThatThrownBy(() -> profileService.getMyProfile(2L))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("프로필이 존재하지 않습니다.");
     }
@@ -109,11 +110,11 @@ class ProfileServiceTest {
         request.setNickname("newnick");
         request.setBio("newbio");
 
-        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(profileRepository.findMaxTagByNickname("newnick")).thenReturn(0);
         when(profileRepository.save(any(Profile.class))).thenReturn(testProfile);
 
-        ProfileResponse response = profileService.updateMyProfile("test@test.com", request);
+        ProfileResponse response = profileService.updateMyProfile(1L, request);
 
         assertThat(response).isNotNull();
         verify(profileRepository).save(any(Profile.class));
@@ -126,10 +127,10 @@ class ProfileServiceTest {
         request.setNickname("testnick");
         request.setBio("updatedbio");
 
-        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(profileRepository.save(any(Profile.class))).thenReturn(testProfile);
 
-        ProfileResponse response = profileService.updateMyProfile("test@test.com", request);
+        ProfileResponse response = profileService.updateMyProfile(1L, request);
 
         assertThat(response).isNotNull();
     }
@@ -140,9 +141,9 @@ class ProfileServiceTest {
         UpdateProfileRequest request = new UpdateProfileRequest();
         request.setNickname(null);
 
-        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
-        assertThatThrownBy(() -> profileService.updateMyProfile("test@test.com", request))
+        assertThatThrownBy(() -> profileService.updateMyProfile(1L, request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("닉네임은 필수입니다.");
     }
@@ -153,9 +154,9 @@ class ProfileServiceTest {
         UpdateProfileRequest request = new UpdateProfileRequest();
         request.setNickname("   ");
 
-        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
-        assertThatThrownBy(() -> profileService.updateMyProfile("test@test.com", request))
+        assertThatThrownBy(() -> profileService.updateMyProfile(1L, request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("닉네임은 필수입니다.");
     }
@@ -166,10 +167,10 @@ class ProfileServiceTest {
         UpdateProfileRequest request = new UpdateProfileRequest();
         request.setNickname("fullnick");
 
-        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(profileRepository.findMaxTagByNickname("fullnick")).thenReturn(9999);
 
-        assertThatThrownBy(() -> profileService.updateMyProfile("test@test.com", request))
+        assertThatThrownBy(() -> profileService.updateMyProfile(1L, request))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("태그(0001~9999)를 모두 사용했습니다.");
     }

@@ -23,12 +23,10 @@ public class ProfileResponse {
     String tagCode = String.format("%04d", profile.getTag());
     String nicknameTag = profile.getNickname() + "-" + tagCode;
     return ProfileResponse.builder()
-        .userId(profile.getId())
+        .userId(profile.getUser().getId())
         .nickname(profile.getNickname())
         .tag(profile.getTag())
-        .tagCode(tagCode)
         .nicknameTag(nicknameTag)
-        .profileUrl("/api/profile/" + nicknameTag)
         .bio(profile.getBio())
         .affiliation(profile.getAffiliation())
         .imageUrl(profile.getImage_url())

@@ -26,16 +26,17 @@ public class ProfileController {
 
     @Operation(summary = "자신의 프로필 조회")
     @GetMapping("/me")
-    public ResponseEntity<ProfileResponse> getMyProfile(@AuthenticationPrincipal String email) {
-        return ResponseEntity.ok(profileService.getMyProfile(email));
+    public ResponseEntity<ProfileResponse> getMyProfile(@AuthenticationPrincipal Long userId) {
+
+        return ResponseEntity.ok(profileService.getMyProfile(userId));
     }
 
     @Operation(summary = "프로필 수정")
     @PatchMapping("/me")
     public ResponseEntity<ProfileResponse> patchMyProfile(
-            @AuthenticationPrincipal String email,
+            @AuthenticationPrincipal Long userId,
             @Valid @RequestBody UpdateProfileRequest request) {
-        return ResponseEntity.ok(profileService.updateMyProfile(email, request));
+        return ResponseEntity.ok(profileService.updateMyProfile(userId, request));
     }
 
     // 예시: /api/profile/chito-0001

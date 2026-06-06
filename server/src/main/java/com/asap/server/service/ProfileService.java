@@ -20,8 +20,8 @@ public class ProfileService {
   private final ProfileReposiroty profileRepository;
 
   @Transactional(readOnly = true)
-  public ProfileResponse getMyProfile(String email) {
-    Users user = userRepository.findByEmail(email)
+  public ProfileResponse getMyProfile(Long userId) {
+    Users user = userRepository.findById(userId)
         .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
     Profile profile = user.getProfile();
@@ -33,8 +33,8 @@ public class ProfileService {
   }
 
   @Transactional
-  public ProfileResponse updateMyProfile(String email, UpdateProfileRequest request) {
-    Users user = userRepository.findByEmail(email)
+  public ProfileResponse updateMyProfile(Long userId, UpdateProfileRequest request) {
+    Users user = userRepository.findById(userId)
         .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
     String newNickname = normalizeNickname(request.getNickname());
