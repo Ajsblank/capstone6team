@@ -81,7 +81,7 @@ const ContestSettingsPage: React.FC = () => {
 
   const [title, setTitle]                         = useState("");
   const [description, setDescription]             = useState("");
-  const [timeLimitSec, setTimeLimitSec]           = useState<number>(1);
+  const [timeLimitSec, setTimeLimitSec]           = useState<number>(10);
   const [memoryLimitMb, setMemoryLimitMb]         = useState<number>(256);
   const [sampleCode, setSampleCode]               = useState<File | null>(null);
   const [judgeCode, setJudgeCode]                 = useState<File | null>(null);
@@ -333,11 +333,11 @@ const ContestSettingsPage: React.FC = () => {
                   <div className="cc-row">
                     <div className="cc-field">
                       <label className="cc-label">시간 제한 (초/턴) <span className="cc-required">*</span></label>
-                      <input className="cc-input" type="number" min={1} max={60} value={timeLimitSec} onChange={(e) => setTimeLimitSec(Number(e.target.value))} />
+                      <input className="cc-input" type="number" min={10} max={60} value={timeLimitSec} onChange={(e) => setTimeLimitSec(Number(e.target.value))} />
                     </div>
                     <div className="cc-field">
                       <label className="cc-label">메모리 제한 (MB) <span className="cc-required">*</span></label>
-                      <input className="cc-input" type="number" min={16} max={2048} value={memoryLimitMb} onChange={(e) => setMemoryLimitMb(Number(e.target.value))} />
+                      <input className="cc-input" type="number" min={128} max={512} value={memoryLimitMb} onChange={(e) => setMemoryLimitMb(Number(e.target.value))} />
                     </div>
                   </div>
                 </section>
