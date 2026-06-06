@@ -11,6 +11,7 @@ interface Props {
   onLocalUpdate: React.Dispatch<React.SetStateAction<LocalSubmission[]>>;
   onLogClick: (log: string) => void;
   userId: string;
+  hasVisualization?: boolean;
 }
 
 type SortOrder = "newest" | "oldest";
@@ -19,6 +20,23 @@ const LANGUAGE_LABELS: Record<string, string> = {
   cpp: "C++", java: "Java", python: "Python",
   CPP: "C++", JAVA: "Java", PYTHON: "Python",
 };
+
+// 로그 마지막 줄의 결과 형식(예: "WIN LOSE") → 내(왼쪽) 결과 원본 값/스타일
+function parseMyResult(log: string): { label: string; cls: string } {
+  const lines  = (log ?? "").trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const last   = lines[lines.length - 1] ?? "";
+  const tokens = last.split(/\s+/).map(t => t.toUpperCase());
+  const left   = tokens[0] ?? "";
+  const right  = tokens[1] ?? "";
+  // 양쪽 모두 WIN이면 무승부(NONE)로 처리
+  const result = left === "WIN" && right === "WIN" ? "NONE" : left;
+  const label  = result || "-"; // 로그 원본 값 그대로 (WIN, LOSE, TIME_LIMIT 등)
+  const cls =
+    result === "WIN"  ? "ms-winner--me"   :
+    result === "NONE" ? "ms-winner--draw" :
+    "ms-winner--ai"; // LOSE / TIME_LIMIT / MEMORY_LIMIT / RUNTIME_ERROR / COMPILE_ERROR
+  return { label, cls };
+}
 
 function formatDate(d: Date | string): string {
   const date = typeof d === "string" ? parseServerDate(d) : d;
@@ -70,37 +88,61 @@ function serverGroupToLocal(group: ContestSubmissionResponse[], userId: string):
 }
 
 // ── 매치 상세 행 ──
-function MatchRow({ match, index, userId, onLogClick }: {
+function MatchRow({ match, index, hasVisualization, onLogClick }: {
   match: BattleMatchResult;
   index: number;
   userId: string;
+  hasVisualization: boolean;
   onLogClick: (log: string) => void;
 }) {
-  const isDraw = match.winner === "draw";
-  const isMe   = !isDraw && match.winner === userId;
+  const [open, setOpen] = useState(false);
+  const { label, cls }  = parseMyResult(match.log);
+  const hasLog          = !!match.log?.trim();
+
   return (
-    <tr className="ms-match-row">
-      <td className="ms-match-num">#{index + 1}</td>
-      <td className="ms-match-ai">AI #{index + 1}</td>
-      <td>
-        <span className={isDraw ? "ms-winner--draw" : isMe ? "ms-winner--me" : "ms-winner--ai"}>
-          {isDraw ? "무승부" : isMe ? "나" : "샘플 AI"}
-        </span>
-      </td>
-      <td>
-        <button className="ms-log-btn" onClick={() => onLogClick(match.log)}>
-          로그 보기 →
-        </button>
-      </td>
-    </tr>
+    <>
+      <tr className="ms-match-row">
+        <td className="ms-match-num">#{index + 1}</td>
+        <td className="ms-match-ai">AI #{index + 1}</td>
+        <td>
+          <span className={cls}>{label}</span>
+        </td>
+        <td>
+          <div className="ms-log-actions">
+            <button
+              className={`ms-log-btn${open ? " ms-log-btn--active" : ""}`}
+              onClick={() => setOpen(v => !v)}
+              disabled={!hasLog}
+            >
+              {open ? "로그 닫기 ▲" : "로그 보기 ▼"}
+            </button>
+            {hasVisualization && hasLog && (
+              <button className="ms-viz-btn" onClick={() => onLogClick(match.log)}>
+                로그 보러 가기
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+      {open && (
+        <tr className="ms-log-row">
+          <td colSpan={4}>
+            {hasLog
+              ? <pre className="ms-log-preview">{match.log}</pre>
+              : <div className="ms-log-empty">로그 내용이 없습니다.</div>}
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
 // ── 제출 아이템 ──
-function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
+function SubmissionItem({ sub, seqNum, userId, hasVisualization, onLogClick }: {
   sub: LocalSubmission;
   seqNum: number;
   userId: string;
+  hasVisualization: boolean;
   onLogClick: (log: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -200,7 +242,7 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
             </thead>
             <tbody>
               {sub.matches.map((m, i) => (
-                <MatchRow key={`${m.matchId}-${i}`} match={m} index={i} userId={userId} onLogClick={onLogClick} />
+                <MatchRow key={`${m.matchId}-${i}`} match={m} index={i} userId={userId} hasVisualization={hasVisualization} onLogClick={onLogClick} />
               ))}
             </tbody>
           </table>
@@ -212,7 +254,7 @@ function SubmissionItem({ sub, seqNum, userId, onLogClick }: {
 
 // ── 탭 컴포넌트 ──
 const MySubmissionsTab: React.FC<Props> = ({
-  contestId, refreshKey, localSubmissions, onLocalUpdate, onLogClick, userId,
+  contestId, refreshKey, localSubmissions, onLocalUpdate, onLogClick, userId, hasVisualization = false,
 }) => {
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState<string | null>(null);
@@ -363,6 +405,7 @@ const MySubmissionsTab: React.FC<Props> = ({
                 sub={sub}
                 seqNum={seqNum}
                 userId={userId}
+                hasVisualization={hasVisualization}
                 onLogClick={onLogClick}
               />
             );
