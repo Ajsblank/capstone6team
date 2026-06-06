@@ -432,3 +432,166 @@
   vertical-align: middle;
   margin-right: 5px;
 }
+
+/* ── 코드 선택: 리스트 + 우측 레일 ── */
+.ms-list-area {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.ms-list-area .ms-list,
+.ms-list-area .ms-empty-state {
+  flex: 1;
+  min-width: 0;
+}
+
+.ms-select-rail {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: 12px;
+}
+
+/* 세로 텍스트 "코드 선택" 버튼 */
+.ms-select-btn {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 0.18em;
+  padding: 16px 8px;
+  border: 1.5px solid #7755cc;
+  border-radius: 10px;
+  background: #f3eeff;
+  color: #5a3aaa;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.ms-select-btn:hover { background: #e9e0ff; box-shadow: 0 0 0 3px rgba(119,85,204,0.15); }
+.ms-select-btn--active {
+  background: #5a3aaa;
+  color: #fff;
+  border-color: #5a3aaa;
+}
+
+/* ? 원형 도움말 버튼 */
+.ms-help-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid #c7c0dc;
+  background: #fff;
+  color: #7c5fcc;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ms-help-btn:hover { background: #f3eeff; border-color: #a98ddd; }
+
+/* 선택 모드 안내 배너 */
+.ms-select-banner {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: #f3eeff;
+  border: 1px solid #d7c9f5;
+  border-radius: 8px;
+  color: #5a3aaa;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* 선택 모드 카드 상태 */
+.ms-item--selectable { cursor: pointer; }
+.ms-item--selectable:hover {
+  box-shadow: 0 0 0 2px rgba(119,85,204,0.45);
+}
+.ms-item--unselectable { opacity: 0.45; }
+.ms-item--chosen {
+  box-shadow: 0 0 0 2px #16a34a;
+}
+
+.ms-chosen-badge {
+  background: #16a34a;
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ms-select-cue {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #5a3aaa;
+  white-space: nowrap;
+}
+.ms-select-cue--no { color: #9ca3af; }
+
+/* ── 코드 선택 확인 모달 ── */
+.ms-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 16px;
+}
+.ms-modal {
+  width: min(420px, 92vw);
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  color: #1f2937;
+}
+.ms-modal-title { margin: 0 0 12px; font-size: 1.1rem; font-weight: 800; color: #111827; }
+.ms-modal-text  { margin: 0 0 6px; font-size: 0.95rem; }
+.ms-modal-sub   { margin: 0 0 12px; font-size: 0.82rem; color: #6b7280; }
+.ms-modal-error { margin: 0 0 12px; font-size: 0.82rem; color: #dc2626; }
+.ms-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.ms-modal-btn {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.ms-modal-btn:disabled { opacity: 0.6; cursor: default; }
+.ms-modal-btn--ghost   { background: #f3f4f6; border-color: #d1d5db; color: #374151; }
+.ms-modal-btn--ghost:hover:not(:disabled) { background: #e5e7eb; }
+.ms-modal-btn--primary { background: #5a3aaa; color: #fff; }
+.ms-modal-btn--primary:hover:not(:disabled) { background: #4a2f8f; }
+
+/* ── 코드 선택 도움말 팝업 ── */
+.ms-help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 16px;
+}
+.ms-help-pop {
+  width: min(440px, 92vw);
+  background: #fff;
+  border-radius: 12px;
+  padding: 22px 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  color: #374151;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.ms-help-pop-title { font-size: 1.05rem; font-weight: 800; color: #111827; margin-bottom: 10px; }
+.ms-help-pop p { margin: 0 0 8px; }
+.ms-help-pop strong { color: #5a3aaa; }
+.ms-help-pop-tip { color: #6b7280; font-size: 0.82rem; }

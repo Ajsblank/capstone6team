@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { LocalSubmission } from "../pages/BattleSubmitPage";
 import { BattleMatchResult, SseStatus, getSseStatus, setStatusCallback, debugSse } from "../api/sseApi";
-import { getMyBattleSubmissions, ContestSubmissionResponse, getSubmissionCode, SubmissionCode } from "../api/codeBattleApi";
+import { getMyBattleSubmissions, ContestSubmissionResponse, getSubmissionCode, SubmissionCode, selectSubmissionCode } from "../api/codeBattleApi";
 import Editor from "@monaco-editor/react";
 import "./MySubmissionsTab.css";
 
@@ -160,12 +160,15 @@ function MatchRow({ match, index, hasVisualization, onLogClick, codeOpen, canSho
 }
 
 // ── 제출 아이템 ──
-function SubmissionItem({ sub, seqNum, userId, hasVisualization, onLogClick }: {
+function SubmissionItem({ sub, seqNum, userId, hasVisualization, onLogClick, selectMode, isSelected, onSelect }: {
   sub: LocalSubmission;
   seqNum: number;
   userId: string;
   hasVisualization: boolean;
   onLogClick: (log: string) => void;
+  selectMode: boolean;
+  isSelected: boolean;
+  onSelect: (submissionId: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [animKey,    setAnimKey]    = useState(0);
@@ -227,15 +230,35 @@ function SubmissionItem({ sub, seqNum, userId, hasVisualization, onLogClick }: {
     : losses > wins ? "loss"
     : "draw";
 
+  // 코드 선택 모드: 카드 강제 접힘 + 클릭 시 선택(펼침 아님). submissionId 없는 항목은 선택 불가
+  const selectable        = selectMode && sub.submissionId != null;
+  const effectiveExpanded = !selectMode && expanded;
+  const handleHeaderClick = () => {
+    if (selectMode) {
+      if (sub.submissionId != null) onSelect(sub.submissionId);
+      return;
+    }
+    setExpanded(v => !v);
+  };
+
+  const itemCls = [
+    "ms-item", `ms-item--${resultType}`,
+    selectMode ? "ms-item--selectmode" : "",
+    selectable ? "ms-item--selectable" : "",
+    selectMode && !selectable ? "ms-item--unselectable" : "",
+    isSelected ? "ms-item--chosen" : "",
+  ].filter(Boolean).join(" ");
+
   return (
-    <div className={`ms-item ms-item--${resultType}`}>
+    <div className={itemCls}>
       {animKey > 0 && <div key={animKey} className={`ms-item-flash ms-item-flash--${flashType}`} aria-hidden="true" />}
       <div
         className="ms-item-header"
-        onClick={() => setExpanded(v => !v)}
-        style={{ cursor: "pointer" }}
+        onClick={handleHeaderClick}
+        style={{ cursor: selectMode ? (selectable ? "pointer" : "not-allowed") : "pointer" }}
       >
         <span className="ms-item-seq">#{seqNum}</span>
+        {isSelected && <span className="ms-chosen-badge">출전 코드</span>}
         <span className="ms-item-date">{formatDate(sub.submittedAt)}</span>
 
 
@@ -263,15 +286,21 @@ function SubmissionItem({ sub, seqNum, userId, hasVisualization, onLogClick }: {
           {resultType === "win" ? "승" : resultType === "loss" ? "패" : resultType === "draw" ? "무" : resultType === "error" ? "오류" : "…"}
         </span>
 
-        <button
-          className="ms-expand-btn"
-          onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
-        >
-          {expanded ? "▲" : "▼"}
-        </button>
+        {selectMode ? (
+          <span className={`ms-select-cue${selectable ? "" : " ms-select-cue--no"}`}>
+            {selectable ? "선택" : "선택 불가"}
+          </span>
+        ) : (
+          <button
+            className="ms-expand-btn"
+            onClick={e => { e.stopPropagation(); setExpanded(v => !v); }}
+          >
+            {expanded ? "▲" : "▼"}
+          </button>
+        )}
       </div>
 
-      {expanded && (
+      {effectiveExpanded && (
         <div className="ms-item-body">
           <table className="ms-match-table">
             <thead>
@@ -350,6 +379,31 @@ const MySubmissionsTab: React.FC<Props> = ({
   const [error, setError]           = useState<string | null>(null);
   const [sseStatus, setSseStatus]   = useState<SseStatus>(getSseStatus);
   const [sortOrder, setSortOrder]   = useState<SortOrder>("newest");
+
+  // 코드 선택(토너먼트 출전) 모드
+  const [selectMode,   setSelectMode]   = useState(false);
+  const [pendingId,    setPendingId]    = useState<number | null>(null); // 확인 대기 중인 submissionId
+  const [selecting,    setSelecting]    = useState(false);
+  const [selectError,  setSelectError]  = useState<string | null>(null);
+  const [chosenId,     setChosenId]     = useState<number | null>(null); // 출전 확정된 submissionId
+  const [showHelp,     setShowHelp]     = useState(false);
+
+  const handleConfirmSelect = async () => {
+    if (pendingId == null) return;
+    setSelecting(true);
+    setSelectError(null);
+    try {
+      await selectSubmissionCode(contestId, pendingId);
+      setChosenId(pendingId);
+      setPendingId(null);
+      setSelectMode(false);
+    } catch (e: any) {
+      const msg = e?.response?.data?.error ?? e?.response?.data?.message ?? "코드 선택에 실패했습니다.";
+      setSelectError(typeof msg === "string" ? msg : "코드 선택에 실패했습니다.");
+    } finally {
+      setSelecting(false);
+    }
+  };
 
   useEffect(() => {
     setStatusCallback(setSseStatus);
@@ -480,26 +534,94 @@ const MySubmissionsTab: React.FC<Props> = ({
 
       {error && <div className="ms-error">{error}</div>}
 
-      {sorted.length === 0 ? (
-        <div className="ms-empty-state">
-          {loading ? "불러오는 중..." : "아직 제출한 코드가 없습니다."}
+      {selectMode && (
+        <div className="ms-select-banner">
+          토너먼트에 출전시킬 코드를 선택하세요. 카드를 클릭하면 선택됩니다.
         </div>
-      ) : (
-        <div className="ms-list">
-          {sorted.map((sub, i) => {
-            // 제출 번호: 오래된 것부터 #1. 최신순 표시 시 n-i, 오래된 순 시 i+1
-            const seqNum = sortOrder === "newest" ? total - i : i + 1;
-            return (
-              <SubmissionItem
-                key={sub.submittedAt.toISOString()}
-                sub={sub}
-                seqNum={seqNum}
-                userId={userId}
-                hasVisualization={hasVisualization}
-                onLogClick={onLogClick}
-              />
-            );
-          })}
+      )}
+
+      <div className="ms-list-area">
+        {sorted.length === 0 ? (
+          <div className="ms-empty-state">
+            {loading ? "불러오는 중..." : "아직 제출한 코드가 없습니다."}
+          </div>
+        ) : (
+          <div className="ms-list">
+            {sorted.map((sub, i) => {
+              // 제출 번호: 오래된 것부터 #1. 최신순 표시 시 n-i, 오래된 순 시 i+1
+              const seqNum = sortOrder === "newest" ? total - i : i + 1;
+              return (
+                <SubmissionItem
+                  key={sub.submittedAt.toISOString()}
+                  sub={sub}
+                  seqNum={seqNum}
+                  userId={userId}
+                  hasVisualization={hasVisualization}
+                  onLogClick={onLogClick}
+                  selectMode={selectMode}
+                  isSelected={sub.submissionId != null && sub.submissionId === chosenId}
+                  onSelect={(id) => { setPendingId(id); setSelectError(null); }}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* 우측 레일 — 코드 선택 / 도움말 */}
+        <div className="ms-select-rail">
+          <button
+            className={`ms-select-btn${selectMode ? " ms-select-btn--active" : ""}`}
+            onClick={() => { setSelectMode(m => !m); setPendingId(null); setSelectError(null); }}
+            title="토너먼트에 출전할 코드를 선택합니다"
+          >
+            {selectMode ? "선택 취소" : "코드 선택"}
+          </button>
+          <button
+            className="ms-help-btn"
+            onClick={() => setShowHelp(true)}
+            aria-label="코드 선택 도움말"
+          >
+            ?
+          </button>
+        </div>
+      </div>
+
+      {/* 코드 선택 확인 팝업 */}
+      {pendingId != null && (
+        <div className="ms-modal-overlay" onClick={() => !selecting && setPendingId(null)}>
+          <div className="ms-modal" onClick={e => e.stopPropagation()}>
+            <h3 className="ms-modal-title">코드 출전 확인</h3>
+            <p className="ms-modal-text">이 코드를 토너먼트에 출전시키겠습니까?</p>
+            <p className="ms-modal-sub">선택한 코드가 스위스 세션과 최종 풀 리그에 참가합니다.</p>
+            {selectError && <p className="ms-modal-error">{selectError}</p>}
+            <div className="ms-modal-actions">
+              <button className="ms-modal-btn ms-modal-btn--ghost" onClick={() => setPendingId(null)} disabled={selecting}>
+                취소
+              </button>
+              <button className="ms-modal-btn ms-modal-btn--primary" onClick={handleConfirmSelect} disabled={selecting}>
+                {selecting ? "처리 중..." : "확인"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 코드 선택 도움말 팝업 — 다른 영역 클릭 시 최소화 */}
+      {showHelp && (
+        <div className="ms-help-overlay" onClick={() => setShowHelp(false)}>
+          <div className="ms-help-pop" onClick={e => e.stopPropagation()}>
+            <div className="ms-help-pop-title">코드 선택이란?</div>
+            <p>
+              여러 번 제출한 코드 중 <strong>토너먼트에 출전시킬 코드 하나</strong>를 직접 고르는 기능입니다.
+            </p>
+            <p>
+              선택한 코드가 이후 진행되는 <strong>스위스 세션</strong>과 <strong>최종 풀 리그</strong>에 참가하여
+              다른 참가자들의 코드와 대결합니다.
+            </p>
+            <p className="ms-help-pop-tip">
+              "코드 선택" 버튼을 누른 뒤 원하는 제출 카드를 클릭하면 출전 코드로 지정할 수 있습니다.
+            </p>
+          </div>
         </div>
       )}
     </div>
