@@ -61,6 +61,7 @@
 
 /* ── 순위 영역 ── */
 .fr-rank {
+  position: relative;
   width: 48px;
   height: 48px;
   display: flex;
@@ -75,6 +76,7 @@
 .fr-card--rank1 .fr-rank { background: #fef3c7; border-color: #fcd34d; }
 .fr-card--rank2 .fr-rank { background: #f3f4f6; border-color: #d1d5db; }
 .fr-card--rank3 .fr-rank { background: #fef3f2; border-color: #fecaca; }
+
 
 .fr-medal    { font-size: 1.8rem; line-height: 1; }
 .fr-rank-num {
