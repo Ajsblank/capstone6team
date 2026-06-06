@@ -29,7 +29,15 @@ public class SseService {
 
         emitter.onCompletion(() -> emitters.remove(userId));
         emitter.onTimeout(() -> emitters.remove(userId));
-
+        // 연결 확립용 초기 전송 — 이게 있어야 헤더가 flush되어 브라우저 onopen 발생
+        try {
+            emitter.send(SseEmitter.event().name("connect").data("ok"));
+            // 또는 주석 핑: emitter.send(SseEmitter.event().comment("connected"));
+        } catch (IOException e) {
+            emitters.remove(userId);
+            emitter.completeWithError(e);
+            return emitter;
+        }
         return emitter;
     }
 
