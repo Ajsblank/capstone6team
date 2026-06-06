@@ -3,8 +3,10 @@ package com.asap.server.controller;
 import java.util.List;
 
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +23,7 @@ import com.asap.server.dto.request.CodeBattleTestRequest;
 import com.asap.server.dto.request.CodeSubmitRequest;
 import com.asap.server.dto.request.ManualSubmissionRequest;
 import com.asap.server.dto.response.CodeSubmitResponse;
+import com.asap.server.dto.response.SubmissionCodeResponse;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
@@ -149,6 +152,29 @@ public class CodeController {
 
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new CodeSubmitResponse(false, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/submission/{submissionId}")
+    @Operation(summary = "제출 코드 조회", description = "submissionId로 본인이 제출한 코드 내용을 조회합니다. 본인 제출만 조회 가능합니다.")
+    public ResponseEntity<?> getSubmissionCode(
+            @PathVariable Long submissionId,
+            @AuthenticationPrincipal Long userId) {
+        try {
+            CodeBattleSubmission submission = submissionRepository.findById(submissionId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 제출입니다."));
+
+            if (!submission.getUser().getId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("본인의 제출만 조회할 수 있습니다.");
+            }
+
+            String code = s3Service.readFileAsString(submission.getCodeUrl());
+            return ResponseEntity.ok(SubmissionCodeResponse.of(submission, code));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            log.error("제출 코드 조회 실패 - submissionId: {}", submissionId, e);
+            return ResponseEntity.internalServerError().body("코드 조회 중 오류가 발생했습니다.");
         }
     }
 
