@@ -65,20 +65,23 @@ public class SwissLeagueService {
       CodeBattleContest contest = contestRepository.findById(contestId)
           .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
 
+      // 1. 세션 값 초기화
+      ContestSwissSession session = swissSessionRepository.findById(sessionId)
+          .orElseThrow(() -> new EntityNotFoundException("세션을 찾을 수 없습니다. id=" + sessionId));
+
       if (contest.getStatus() != ContestStatus.RUNNING) {
         log.info("[스위스리그] contestId={} 대회가 RUNNING 상태가 아니므로 세션 {} 스킵. 현재={}",
             contestId, sessionNumber, contest.getStatus());
+        // 비정상 종료
+        session.setStatus(ContestStatus.END);
         return;
       }
-      log.info("[스위스리그] contestId={} 세션 {} 시작", contestId, sessionNumber);
-
-      // 1. 세션 값 초기화
-      ContestSwissSession session = swissSessionRepository.findById(sessionId)
-          .orElseThrow(() -> new EntityNotFoundException("Session not found"));
       if (session.getStatus() == ContestStatus.END) {
         log.info("이미 종료된 세션이므로 스킵합니다.");
         return;
       }
+      log.info("[스위스리그] contestId={} 세션 {} 시작", contestId, sessionNumber);
+
       // 중간에 멈춘 세션 재실행 로직 없음
 
       // 비정상 종료 라운드 무시 로직
@@ -462,15 +465,22 @@ public class SwissLeagueService {
       });
 
       List<Map<String, Object>> standings = new ArrayList<>();
+      int rank = 1;
+      int prevPoints = Integer.MIN_VALUE;
       for (int i = 0; i < userIds.size(); i++) {
         Long userId = userIds.get(i);
+        int points = pointsMap.getOrDefault(userId, 0);
+        if (points != prevPoints) {
+          rank = i + 1; // dense ranking이 아니라 건너뛰기지만 여기선 i+1 대신 별도 카운터
+          prevPoints = points;
+        }
         Map<String, Object> s = new LinkedHashMap<>();
         s.put("user_id", userId);
         s.put("wins", winsMap.getOrDefault(userId, 0));
         s.put("draws", drawsMap.getOrDefault(userId, 0));
         s.put("losses", lossesMap.getOrDefault(userId, 0));
         s.put("points", pointsMap.getOrDefault(userId, 0));
-        s.put("rank", i + 1);
+        s.put("rank", rank);
         s.put("opponents", opponentsMap.getOrDefault(userId, List.of()));
         s.put("match_ids", userMatchIds.getOrDefault(userId, List.of()));
         standings.add(s);

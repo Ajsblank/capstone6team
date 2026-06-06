@@ -112,6 +112,7 @@ public class FullLeagueService {
                         // Redis 카운터 정리
                         redisTemplate.delete("contest:total:" + contestId);
                         redisTemplate.delete("contest:done:" + contestId);
+                        redisTemplate.delete("contest:matchIds:" + contestId);
 
                         throw new RuntimeException("풀리그 큐 적재 실패로 전체 중단", e);
                     }
