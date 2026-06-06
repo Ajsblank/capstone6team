@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -22,6 +26,8 @@ public class SseService {
 
     // 세션 최신 상태 캐시 - Object로 받아서 DTO 그대로 저장 가능
     private final Map<String, Object> sessionStates = new ConcurrentHashMap<>();
+    // 현재는 sse 풀 하나만 생성
+    private final ScheduledExecutorService heartbeatScheduler = Executors.newScheduledThreadPool(1);
 
     public SseEmitter subscribe(Long userId) {
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
@@ -29,6 +35,38 @@ public class SseService {
 
         emitter.onCompletion(() -> emitters.remove(userId));
         emitter.onTimeout(() -> emitters.remove(userId));
+        // 연결 확립용 초기 전송 — 이게 있어야 헤더가 flush되어 브라우저 onopen 발생
+        try {
+            emitter.send(SseEmitter.event().name("connect").data("ok"));
+            // 또는 주석 핑: emitter.send(SseEmitter.event().comment("connected"));
+        } catch (IOException e) {
+            emitters.remove(userId);
+            emitter.completeWithError(e);
+            return emitter;
+        }
+        // 55초마다 heartbeat (CloudFront 연결 끊김 방지)
+        ScheduledFuture<?> heartbeatTask = heartbeatScheduler.scheduleAtFixedRate(() -> {
+            try {
+                emitter.send(SseEmitter.event().comment("heartbeat"));
+            } catch (IOException e) {
+                emitters.remove(userId);
+                emitter.complete();
+            }
+        }, 55, 55, TimeUnit.SECONDS);
+
+        // 콜백 하나로 통합 (덮어쓰기 방지)
+        emitter.onCompletion(() -> {
+            emitters.remove(userId);
+            heartbeatTask.cancel(true);
+        });
+        emitter.onTimeout(() -> {
+            emitters.remove(userId);
+            heartbeatTask.cancel(true);
+        });
+        emitter.onError(e -> {
+            emitters.remove(userId);
+            heartbeatTask.cancel(true);
+        });
 
         return emitter;
     }
