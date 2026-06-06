@@ -50,9 +50,7 @@ public class SseService {
         }
 
         // 재연결 시 대기 중이던 이벤트 순서대로 재전송
-        if (!drainQueue(userId, emitter)) {
-            return emitter;
-        }
+        drainQueue(userId, emitter);
         // 55초마다 heartbeat (CloudFront 연결 끊김 방지)
         ScheduledFuture<?> heartbeatTask = heartbeatScheduler.scheduleAtFixedRate(() -> {
             try {
@@ -85,46 +83,40 @@ public class SseService {
     }
 
     public void sendToUser(Long userId, Object data, String eventName) {
+        // 항상 큐에 먼저 추가 → 순서 보장
+        Deque<PendingEvent> queue = pendingEvents.computeIfAbsent(userId, k -> new ConcurrentLinkedDeque<>());
+        queue.offerLast(new PendingEvent(data, eventName));
+        log.info("[SSE] 이벤트 큐 추가 userId={} event={}", userId, eventName);
+
         SseEmitter emitter = emitters.get(userId);
-        log.info("[SSE] sendToUser userId={} event={} emitterPresent={}", userId, eventName, emitter != null);
         if (emitter != null) {
-            try {
-                emitter.send(SseEmitter.event().name(eventName).data(data));
-                log.info("[SSE] 전송 성공 userId={} event={}", userId, eventName);
-                pendingEvents.remove(userId);
-                return;
-            } catch (IOException e) {
-                log.warn("[SSE] 전송 실패 userId={} → 캐싱", userId);
-                emitters.remove(userId, emitter);
-            }
+            drainQueue(userId, emitter);
+        } else {
+            log.warn("[SSE] emitter 없음 → 재연결 대기 userId={}", userId);
         }
-        // emitter 없거나 전송 실패 → 재연결 대기 큐 끝에 추가
-        pendingEvents.computeIfAbsent(userId, k -> new ConcurrentLinkedDeque<>())
-                     .offerLast(new PendingEvent(data, eventName));
-        log.warn("[SSE] emitter 없음 or 전송 실패 → 큐 추가 userId={} event={}", userId, eventName);
     }
 
-    // 대기 큐의 이벤트를 순서대로 전송. 성공한 이벤트만 poll로 제거.
-    // 전송 실패 시 해당 이벤트를 offerFirst로 복원하고 false 반환.
-    private boolean drainQueue(Long userId, SseEmitter emitter) {
+    // synchronized로 단일 스레드만 drain 진입.
+    // pollFirst로 꺼내고 전송 성공 시만 제거, 실패 시 offerFirst로 복원.
+    private void drainQueue(Long userId, SseEmitter emitter) {
         Deque<PendingEvent> queue = pendingEvents.get(userId);
-        if (queue == null) return true;
+        if (queue == null || queue.isEmpty()) return;
 
-        PendingEvent pending;
-        while ((pending = queue.pollFirst()) != null) {
-            try {
-                emitter.send(SseEmitter.event().name(pending.eventName()).data(pending.data()));
-                log.info("[SSE] 재전송 성공 userId={} event={}", userId, pending.eventName());
-            } catch (IOException e) {
-                queue.offerFirst(pending); // 전송 실패한 이벤트 맨 앞에 복원
-                log.warn("[SSE] 재전송 실패 userId={}", userId);
-                emitters.remove(userId, emitter);
-                emitter.completeWithError(e);
-                return false;
+        synchronized (queue) {
+            PendingEvent pending;
+            while ((pending = queue.pollFirst()) != null) {
+                try {
+                    emitter.send(SseEmitter.event().name(pending.eventName()).data(pending.data()));
+                    log.info("[SSE] 전송 성공 userId={} event={}", userId, pending.eventName());
+                } catch (IOException e) {
+                    queue.offerFirst(pending); // 실패한 이벤트 맨 앞에 복원
+                    log.warn("[SSE] 전송 실패 userId={}", userId);
+                    emitters.remove(userId, emitter);
+                    emitter.completeWithError(e);
+                    return;
+                }
             }
         }
-        pendingEvents.remove(userId, queue);
-        return true;
     }
 
     // session 구독
