@@ -601,6 +601,13 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
         <span className="home-logo" onClick={() => navigate("landing")}>
           <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
         </span>
+        <nav className="home-tab-nav">
+          <button className="home-tab-btn" onClick={() => navigate("battle")}>대회</button>
+          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/ranking"; }}>랭킹</button>
+          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/previous-problems"; }}>이전 문제</button>
+          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/help"; }}>도움말</button>
+          <button className="home-tab-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/contact"; }}>문의</button>
+        </nav>
         <div className="cc-header-spacer" />
         <div className="home-auth-area">
 {user ? (
