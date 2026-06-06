@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +19,7 @@ import com.asap.server.domain.CodeBattleSubmission;
 import com.asap.server.domain.Users;
 import com.asap.server.dto.request.CodeBattleTestRequest;
 import com.asap.server.dto.request.CodeSubmitRequest;
+import com.asap.server.dto.request.ManualSubmissionRequest;
 import com.asap.server.dto.response.CodeSubmitResponse;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
@@ -100,7 +103,14 @@ public class CodeController {
                 log.info("최신 제출 코드를 저장");
                 participant.setSubmission(submission);
                 participantRepository.save(participant);
+            } else if (participant.getSubmission() == null) {
+                log.info("MANUAL 모드이나 기존 제출 없음 - 최초 제출 코드 저장");
+                participant.setSubmission(submission);
+                participantRepository.save(participant);
+            } else {
+                log.info("MANUAL 모드 - 최신 제출 코드 저장 스킵 (기존 선택 유지)");
             }
+
             for (CodeBattleExampleAI ai : aiList) {
                 Users aiUser = userRepository.getReferenceById(1L);
                 Users submitter = submission.getUser();
@@ -176,6 +186,39 @@ public class CodeController {
 
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/submit/codebattle/{contestId}/codeSelect")
+    @Operation(description = "MANUAL 모드로 전환하고 지정한 제출 코드를 최종 코드로 저장합니다.")
+    public ResponseEntity<CodeSubmitResponse> manualSelectSubmission(
+            @PathVariable Long contestId,
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody ManualSubmissionRequest request) {
+        try {
+            CodeBattleSubmission submission = submissionRepository.findById(request.getSubmissionId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 제출입니다."));
+
+            if (!contestId.equals(submission.getContest().getId())) {
+                throw new IllegalArgumentException("해당 대회의 제출이 아닙니다.");
+            }
+
+            CodeBattleParticipant participant = participantRepository
+                    .findByUserIdAndContestId(userId, contestId)
+                    .orElseThrow(() -> new IllegalArgumentException("대회 참가 이력이 없습니다."));
+
+            // MANUAL 모드로 전환 + 선택한 제출 저장
+            participant.setManual(true);
+            participant.setSubmission(submission);
+            participantRepository.save(participant);
+
+            log.info("MANUAL 모드 전환 및 제출 코드 저장 - userId: {}, submissionId: {}", userId, request.getSubmissionId());
+
+            return ResponseEntity.ok(new CodeSubmitResponse(true,
+                    "수동 제출 설정 완료 (submissionId: " + request.getSubmissionId() + ")"));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new CodeSubmitResponse(false, e.getMessage()));
         }
     }
 }
