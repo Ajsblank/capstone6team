@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>영역 전쟁 (Flood Fill) — 번갈아 플레이</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      background: #1a1a2e; min-height: 100vh; color: #e0e0e0;
+      display: flex; flex-direction: column; user-select: none;
+    }
+    header {
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px 24px; background: #16213e; border-bottom: 1px solid #2a2a4a;
+    }
+    header h1 { font-size: 1.3rem; font-weight: 700; color: #87ceeb; }
+    .main {
+      display: flex; gap: 16px; padding: 20px 16px 24px;
+      max-width: 1200px; margin: 0 auto; width: 100%; align-items: flex-start;
+    }
+    .game-col { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; }
+    .game-row { display: flex; align-items: center; gap: 16px; }
+
+    .player-card {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 16px 18px 14px; background: #16213e; border-radius: 14px;
+      border: 2px solid #2a2a4a; transition: border-color 0.3s, box-shadow 0.3s;
+      position: relative; min-width: 110px;
+    }
+    .player-card[data-player="first"].active  { border-color: #87ceeb; box-shadow: 0 0 18px 2px rgba(135,206,235,0.35); }
+    .player-card[data-player="second"].active { border-color: #ce93d8; box-shadow: 0 0 18px 2px rgba(206,147,216,0.35); }
+    .turn-badge {
+      position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+      font-size: 0.65rem; font-weight: 700; padding: 2px 9px; border-radius: 99px;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s; white-space: nowrap;
+    }
+    .player-card[data-player="first"]  .turn-badge { background: #87ceeb; color: #000; }
+    .player-card[data-player="second"] .turn-badge { background: #ce93d8; color: #000; }
+    .player-card.active .turn-badge { opacity: 1; }
+    .player-emoji { font-size: 2.4rem; line-height: 1; }
+    .player-name  { font-size: 0.85rem; font-weight: 600; }
+    .player-card[data-player="first"]  .player-name  { color: #87ceeb; }
+    .player-card[data-player="second"] .player-name  { color: #ce93d8; }
+    .player-score { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .player-card[data-player="first"]  .player-score { color: #87ceeb; }
+    .player-card[data-player="second"] .player-score { color: #ce93d8; }
+
+    .board-wrap {
+      background: #0d0d1a; border-radius: 12px; padding: 8px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.5);
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(10, 48px);
+      grid-template-rows: repeat(10, 48px);
+      gap: 2px;
+    }
+    .cell {
+      width: 48px; height: 48px; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: 700; position: relative;
+    }
+    /* Ownership indicator: overlay border */
+    .cell::after {
+      content: ''; position: absolute; inset: 2px; border-radius: 3px;
+      pointer-events: none;
+    }
+    .cell.owned-first::after  { border: 3px solid rgba(135,206,235,0.9); }
+    .cell.owned-second::after { border: 3px solid rgba(206,147,216,0.9); }
+    .cell.preview-cell { filter: brightness(1.4); outline: 2px dashed rgba(255,255,255,0.6); outline-offset: -2px; }
+
+    /* Color picker */
+    .controls-area { width: 100%; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .ctrl-row { display: flex; align-items: center; gap: 8px; background: #16213e; border-radius: 10px; padding: 8px 12px; }
+    .color-picker { display: flex; gap: 6px; }
+    .color-btn {
+      width: 36px; height: 36px; border-radius: 8px; border: 3px solid transparent;
+      cursor: pointer; transition: transform 0.1s, border-color 0.15s;
+    }
+    .color-btn:hover   { transform: scale(1.15); border-color: rgba(255,255,255,0.6); }
+    .color-btn.chosen  { border-color: #fff; transform: scale(1.1); }
+    button {
+      padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer;
+      font-size: 0.85rem; font-family: inherit; font-weight: 500;
+      background: #0f3460; color: #ccc; transition: background 0.15s;
+    }
+    button:hover { background: #1a5276; color: #fff; }
+
+    .status-bar {
+      width: 100%; background: #111; border-radius: 8px; padding: 7px 14px;
+      font-size: 0.82rem; min-height: 2.2rem; display: flex; align-items: center; margin-top: 6px;
+    }
+    .result-banner {
+      display: none; background: #16213e; border-radius: 12px; padding: 18px 20px;
+      text-align: center; border: 1px solid #2a2a4a; margin-top: 8px; width: 100%;
+    }
+    .result-banner.show { display: block; }
+    .result-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 10px; }
+    .result-scores { display: flex; justify-content: center; gap: 28px; font-size: 1rem; font-weight: 600; }
+
+    .rule-hint {
+      margin-top: 8px; font-size: 0.75rem; color: #556; line-height: 1.5;
+      background: #16213e; border-radius: 8px; padding: 8px 12px; width: 100%;
+    }
+
+    .log-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .log-header { background: #16213e; border-radius: 10px 10px 0 0; padding: 8px 14px; font-size: 0.88rem; font-weight: 700; color: #87ceeb; }
+    .log-box { background: #1e1e2e; border-radius: 0 0 10px 10px; overflow-y: auto; max-height: calc(100vh - 110px); font-family: 'Consolas','Menlo',monospace; font-size: 0.78rem; }
+    .log-entry { display: flex; align-items: baseline; }
+    .log-entry:hover { background: #252535; }
+    .log-no  { flex: 0 0 3.6em; text-align: right; padding: 3px 8px; color: #555; }
+    .log-sep { color: #444; padding: 3px 0; }
+    .log-text { flex: 1; padding: 3px 10px; white-space: pre-wrap; color: #dedfe0; }
+
+    @media (max-width: 900px) { .main { flex-direction: column; } .log-box { max-height: 260px; } }
+  </style>
+</head>
+<body>
+
+<header><h1>🌊 영역 전쟁 — 번갈아 플레이</h1></header>
+
+<div class="main">
+  <div class="game-col">
+    <div class="game-row">
+
+      <div class="player-card" id="card-first" data-player="first">
+        <div class="turn-badge">내 차례</div>
+        <div class="player-emoji">🔵</div>
+        <div class="player-name">선공</div>
+        <div class="player-score" id="score-first">0</div>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board" id="board"></div>
+      </div>
+
+      <div class="player-card" id="card-second" data-player="second">
+        <div class="turn-badge">내 차례</div>
+        <div class="player-emoji">🟣</div>
+        <div class="player-name">후공</div>
+        <div class="player-score" id="score-second">0</div>
+      </div>
+
+    </div>
+
+    <div class="controls-area">
+      <div class="ctrl-row">
+        <span style="font-size:0.82rem;color:#888;margin-right:4px">색상 선택:</span>
+        <div class="color-picker" id="colorPicker"></div>
+        <button id="btnNew" style="margin-left:auto">새 게임</button>
+      </div>
+    </div>
+
+    <div class="status-bar" id="statusBar"></div>
+
+    <div class="rule-hint">
+      📌 선공은 좌상단, 후공은 우하단에서 시작. 색상을 선택하면 내 영역이 그 색으로 바뀌고, 인접한 같은 색의 중립 칸을 흡수합니다.
+    </div>
+
+    <div class="result-banner" id="resultBanner">
+      <div class="result-title" id="resultTitle"></div>
+      <div class="result-scores" id="resultScores"></div>
+    </div>
+  </div>
+
+  <div class="log-col">
+    <div class="log-header">게임 로그</div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+</div>
+
+<script>
+const NR = 10, NC = 10, NUM_COLORS = 6;
+const PALETTE = ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#3498db','#9b59b6'];
+const COLOR_NAMES = ['빨강','주황','노랑','초록','파랑','보라'];
+const LOG_COLOR = { INIT:'#ffb74d', FIRST:'#64b5f6', SECOND:'#ba68c8', WIN:'#81c784', LOSE:'#81c784' };
+
+let grid;       // grid[r][c] = { color: 0~5, owner: 0=neutral, 1=first, 2=second }
+let scores, currentPlayer, finished;
+let hoverColor = -1;
+
+// --- expand logic ---
+function getExpansion(player, chosenColor) {
+  const pNum = player === 'first' ? 1 : 2;
+  const visited = new Set();
+  const queue = [];
+  for (let r = 0; r < NR; r++)
+    for (let c = 0; c < NC; c++)
+      if (grid[r][c].owner === pNum) {
+        visited.add(r * NC + c);
+        queue.push([r, c]);
+      }
+  const newCells = new Set();
+  while (queue.length) {
+    const [r, c] = queue.shift();
+    for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      const nr = r+dr, nc = c+dc;
+      if (nr<0||nr>=NR||nc<0||nc>=NC) continue;
+      const key = nr * NC + nc;
+      if (visited.has(key)) continue;
+      if (grid[nr][nc].owner !== 0) continue;
+      if (grid[nr][nc].color !== chosenColor) continue;
+      visited.add(key);
+      newCells.add(key);
+      queue.push([nr, nc]);
+    }
+  }
+  return newCells;
+}
+
+function applyMove(player, chosenColor) {
+  if (finished) return;
+  const pNum = player === 'first' ? 1 : 2;
+  const tag  = player === 'first' ? 'FIRST' : 'SECOND';
+
+  // Change all owned cells to chosen color
+  for (let r = 0; r < NR; r++)
+    for (let c = 0; c < NC; c++)
+      if (grid[r][c].owner === pNum) grid[r][c].color = chosenColor;
+
+  // Absorb expansion
+  const newCells = getExpansion(player, chosenColor);
+  for (const key of newCells) {
+    const r = Math.floor(key / NC), c = key % NC;
+    grid[r][c].owner = pNum;
+  }
+
+  scores[player] = 0;
+  for (let r=0; r<NR; r++) for (let c=0; c<NC; c++) if (grid[r][c].owner===pNum) scores[player]++;
+
+  pushLog(`${tag} ${chosenColor + 1}`); // 1-indexed color in log
+  hoverColor = -1;
+
+  // Check game end: no neutral cells
+  const neutral = countNeutral();
+  if (neutral === 0) { renderBoard(); endGame(); return; }
+
+  // Check if stuck (neither player can expand)
+  currentPlayer = currentPlayer === 'first' ? 'second' : 'first';
+  renderBoard(); updateStatus();
+}
+
+function countNeutral() {
+  let n = 0;
+  for (let r=0; r<NR; r++) for (let c=0; c<NC; c++) if (grid[r][c].owner===0) n++;
+  return n;
+}
+
+function renderBoard() {
+  const previewSet = hoverColor >= 0 ? getExpansion(currentPlayer, hoverColor) : new Set();
+  document.getElementById('score-first').textContent  = scores.first;
+  document.getElementById('score-second').textContent = scores.second;
+  document.getElementById('card-first').classList.toggle('active',  currentPlayer==='first'  && !finished);
+  document.getElementById('card-second').classList.toggle('active', currentPlayer==='second' && !finished);
+
+  for (let r = 0; r < NR; r++) {
+    for (let c = 0; c < NC; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      const { color, owner } = grid[r][c];
+      const key = r * NC + c;
+      el.style.background = PALETTE[color];
+      el.style.opacity = owner === 0 ? '0.55' : '1';
+      let cls = 'cell';
+      if (owner === 1) cls += ' owned-first';
+      else if (owner === 2) cls += ' owned-second';
+      if (previewSet.has(key)) cls += ' preview-cell';
+      el.className = cls;
+    }
+  }
+
+  // update color buttons
+  document.querySelectorAll('.color-btn').forEach((btn, i) => {
+    btn.classList.toggle('chosen', i === hoverColor);
+  });
+}
+
+function buildBoardDOM() {
+  const container = document.getElementById('board');
+  container.innerHTML = '';
+  for (let r = 0; r < NR; r++) {
+    for (let c = 0; c < NC; c++) {
+      const el = document.createElement('div');
+      el.id = `cell-${r}-${c}`;
+      container.appendChild(el);
+    }
+  }
+}
+
+function buildColorPicker() {
+  const picker = document.getElementById('colorPicker');
+  picker.innerHTML = '';
+  PALETTE.forEach((color, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'color-btn';
+    btn.style.background = color;
+    btn.title = COLOR_NAMES[i];
+    btn.addEventListener('click',     () => { if (!finished) applyMove(currentPlayer, i); });
+    btn.addEventListener('mouseenter',() => { if (!finished) { hoverColor = i; renderBoard(); } });
+    btn.addEventListener('mouseleave',() => { if (!finished) { hoverColor = -1; renderBoard(); } });
+    picker.appendChild(btn);
+  });
+}
+
+function endGame() {
+  finished = true;
+  let result = scores.first > scores.second ? 'WIN LOSE'
+             : scores.second > scores.first  ? 'LOSE WIN' : 'WIN WIN';
+  pushLog(result);
+  const title = document.getElementById('resultTitle');
+  const sc    = document.getElementById('resultScores');
+  let winText, winColor;
+  if      (scores.first  > scores.second) { winText = '🎉 선공 승리!'; winColor = '#87ceeb'; }
+  else if (scores.second > scores.first)  { winText = '🎉 후공 승리!'; winColor = '#ce93d8'; }
+  else                                     { winText = '🤝 무승부!';   winColor = '#ffd54f'; }
+  title.textContent = winText; title.style.color = winColor;
+  sc.innerHTML = `<span style="color:#87ceeb">선공 ${scores.first}칸</span><span style="color:#ce93d8">후공 ${scores.second}칸</span>`;
+  document.getElementById('resultBanner').classList.add('show');
+  document.getElementById('statusBar').innerHTML = '<span style="color:#81c784;font-weight:600">게임 종료</span>';
+}
+
+function updateStatus() {
+  const name  = currentPlayer === 'first' ? '선공' : '후공';
+  const color = currentPlayer === 'first' ? '#87ceeb' : '#ce93d8';
+  document.getElementById('statusBar').innerHTML =
+    `<span style="color:${color};font-weight:600">${name}의 차례</span><span style="color:#555"> — 색상 버튼에 마우스를 올리면 흡수 범위 미리보기</span>`;
+}
+
+function pushLog(line) {
+  const box = document.getElementById('logBox');
+  const idx = box.children.length + 1;
+  const parts = line.trim().split(/\s+/);
+  const cmd = parts[0];
+  const color = LOG_COLOR[cmd] || '#dedfe0';
+  const row = document.createElement('div'); row.className = 'log-entry';
+  const no  = document.createElement('div'); no.className = 'log-no'; no.textContent = idx;
+  const sep = document.createElement('div'); sep.className = 'log-sep'; sep.textContent = '│';
+  const txt = document.createElement('div'); txt.className = 'log-text';
+  const s0  = document.createElement('span'); s0.style.color = color; s0.textContent = cmd;
+  txt.appendChild(s0);
+  parts.slice(1).forEach((p, i) => {
+    const s = document.createElement('span');
+    // show color name in log
+    if ((cmd === 'FIRST' || cmd === 'SECOND') && i === 0) {
+      const ci = parseInt(p) - 1;
+      s.style.color = PALETTE[ci] || '#fff';
+      s.textContent = ` ${p}(${COLOR_NAMES[ci] || ''})`;
+    } else {
+      s.textContent = ' ' + p;
+    }
+    txt.appendChild(s);
+  });
+  row.appendChild(no); row.appendChild(sep); row.appendChild(txt);
+  box.appendChild(row); box.scrollTop = box.scrollHeight;
+}
+
+function initGame() {
+  grid = Array.from({length: NR}, () =>
+    Array.from({length: NC}, () => ({ color: Math.floor(Math.random() * NUM_COLORS), owner: 0 })));
+
+  // P1 owns top-left, P2 owns bottom-right
+  grid[0][0].owner = 1;
+  grid[NR-1][NC-1].owner = 2;
+
+  // Ensure starting corners have different colors
+  while (grid[NR-1][NC-1].color === grid[0][0].color)
+    grid[NR-1][NC-1].color = Math.floor(Math.random() * NUM_COLORS);
+
+  scores = { first: 1, second: 1 };
+  currentPlayer = 'first';
+  finished = false;
+  hoverColor = -1;
+
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('resultBanner').classList.remove('show');
+
+  // Log init: color grid
+  const rows = grid.map(row => row.map(c => c.color + 1).join('')).join(' ');
+  pushLog('INIT ' + rows);
+
+  buildBoardDOM();
+  buildColorPicker();
+  renderBoard();
+  updateStatus();
+}
+
+document.getElementById('btnNew').addEventListener('click', initGame);
+initGame();
+</script>
+</body>
+</html>

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chain Reaction — 번갈아 플레이</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      background: #1a1a2e; min-height: 100vh; color: #e0e0e0;
+      display: flex; flex-direction: column; user-select: none;
+    }
+    header {
+      display: flex; align-items: center; justify-content: center;
+      padding: 14px 24px; background: #16213e; border-bottom: 1px solid #2a2a4a;
+    }
+    header h1 { font-size: 1.3rem; font-weight: 700; color: #87ceeb; }
+
+    .main {
+      display: flex; gap: 16px; padding: 20px 16px 24px;
+      max-width: 1200px; margin: 0 auto; width: 100%; align-items: flex-start;
+    }
+    .game-col { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; }
+    .game-row { display: flex; align-items: center; gap: 16px; }
+
+    /* Player cards */
+    .player-card {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 16px 18px 14px; background: #16213e; border-radius: 14px;
+      border: 2px solid #2a2a4a; transition: border-color 0.3s, box-shadow 0.3s;
+      position: relative; min-width: 110px;
+    }
+    .player-card[data-player="first"].active  { border-color: #64b5f6; box-shadow: 0 0 18px 2px rgba(100,181,246,0.4); }
+    .player-card[data-player="second"].active { border-color: #e57373; box-shadow: 0 0 18px 2px rgba(229,115,115,0.4); }
+    .turn-badge {
+      position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+      font-size: 0.65rem; font-weight: 700; padding: 2px 9px; border-radius: 99px;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s; white-space: nowrap;
+    }
+    .player-card[data-player="first"]  .turn-badge { background: #64b5f6; color: #000; }
+    .player-card[data-player="second"] .turn-badge { background: #e57373; color: #000; }
+    .player-card.active .turn-badge { opacity: 1; }
+    .player-emoji { font-size: 2.4rem; line-height: 1; }
+    .player-name  { font-size: 0.85rem; font-weight: 600; }
+    .player-card[data-player="first"]  .player-name  { color: #64b5f6; }
+    .player-card[data-player="second"] .player-name  { color: #e57373; }
+    .player-score { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .player-card[data-player="first"]  .player-score { color: #64b5f6; }
+    .player-card[data-player="second"] .player-score { color: #e57373; }
+    .player-turns { font-size: 0.75rem; color: #666; }
+    .player-turns span { font-weight: 700; color: #aaa; }
+
+    /* Board */
+    .board-wrap {
+      background: #0d0d1a; border-radius: 14px; padding: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(6, 72px);
+      grid-template-rows: repeat(6, 72px);
+      gap: 3px;
+    }
+
+    /* Cell */
+    .cell {
+      width: 72px; height: 72px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; cursor: pointer;
+      background: #1e1e35;
+      transition: background 0.15s;
+    }
+    .cell:hover { background: #2a2a4a; }
+    .cell.p1 { background: #0d2a5e; }
+    .cell.p2 { background: #5e0d0d; }
+    .cell.p1:hover { background: #1040a0; }
+    .cell.p2:hover { background: #a01040; }
+
+    /* Critical cells (1 away from explosion) */
+    @keyframes pulsep1 { 0%,100%{box-shadow:0 0 6px rgba(100,181,246,0.5)} 50%{box-shadow:0 0 18px rgba(100,181,246,1)} }
+    @keyframes pulsep2 { 0%,100%{box-shadow:0 0 6px rgba(229,115,115,0.5)} 50%{box-shadow:0 0 18px rgba(229,115,115,1)} }
+    .cell.crit-p1 { animation: pulsep1 0.7s infinite; }
+    .cell.crit-p2 { animation: pulsep2 0.7s infinite; }
+
+    /* Explosion flash */
+    @keyframes explode {
+      0%   { transform: scale(1); }
+      35%  { transform: scale(1.25); background: #ffffff !important; }
+      100% { transform: scale(1); }
+    }
+    .cell.exploding { animation: explode 0.2s ease-out; pointer-events: none; }
+
+    /* Orbs */
+    .orbs {
+      position: absolute; inset: 0;
+      display: grid;
+      pointer-events: none;
+    }
+    /* orb count layouts */
+    .orbs[data-n="1"] { place-items: center; }
+    .orbs[data-n="2"] { grid-template-columns: 1fr 1fr; place-items: center; padding: 0 4px; }
+    .orbs[data-n="3"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; padding: 4px; }
+
+    .orb {
+      width: 17px; height: 17px; border-radius: 50%;
+    }
+    .orb.n3-last {
+      grid-column: 1 / -1;
+      justify-self: center;
+    }
+    .orb.p1 {
+      background: radial-gradient(circle at 35% 30%, #90caf9, #1565c0);
+      box-shadow: 0 0 8px rgba(100,181,246,0.8);
+    }
+    .orb.p2 {
+      background: radial-gradient(circle at 35% 30%, #ef9a9a, #b71c1c);
+      box-shadow: 0 0 8px rgba(229,115,115,0.8);
+    }
+
+    /* Controls */
+    .controls-area { width: 100%; margin-top: 10px; }
+    .ctrl-row {
+      display: flex; align-items: center; gap: 8px;
+      background: #16213e; border-radius: 10px; padding: 8px 12px;
+    }
+    button {
+      padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer;
+      font-size: 0.85rem; font-family: inherit; font-weight: 500;
+      background: #0f3460; color: #ccc; transition: background 0.15s;
+    }
+    button:hover { background: #1a5276; color: #fff; }
+
+    .status-bar {
+      width: 100%; background: #111; border-radius: 8px; padding: 7px 14px;
+      font-size: 0.82rem; min-height: 2.2rem; display: flex; align-items: center; margin-top: 6px;
+    }
+    .rule-hint {
+      margin-top: 8px; font-size: 0.75rem; color: #556; line-height: 1.5;
+      background: #16213e; border-radius: 8px; padding: 8px 12px; width: 100%;
+    }
+    .result-banner {
+      display: none; background: #16213e; border-radius: 12px; padding: 18px 20px;
+      text-align: center; border: 1px solid #2a2a4a; margin-top: 8px; width: 100%;
+    }
+    .result-banner.show { display: block; }
+    .result-title  { font-size: 1.5rem; font-weight: 800; margin-bottom: 10px; }
+    .result-scores { display: flex; justify-content: center; gap: 28px; font-size: 1rem; font-weight: 600; }
+
+    /* Log */
+    .log-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .log-header { background: #16213e; border-radius: 10px 10px 0 0; padding: 8px 14px; font-size: 0.88rem; font-weight: 700; color: #87ceeb; }
+    .log-box { background: #1e1e2e; border-radius: 0 0 10px 10px; overflow-y: auto; max-height: calc(100vh - 110px); font-family: 'Consolas','Menlo',monospace; font-size: 0.78rem; }
+    .log-entry { display: flex; align-items: baseline; }
+    .log-entry:hover { background: #252535; }
+    .log-no  { flex: 0 0 3.6em; text-align: right; padding: 3px 8px; color: #555; }
+    .log-sep { color: #444; padding: 3px 0; }
+    .log-text { flex: 1; padding: 3px 10px; white-space: pre-wrap; color: #dedfe0; }
+
+    @media (max-width: 900px) { .main { flex-direction: column; } .log-box { max-height: 260px; } }
+  </style>
+</head>
+<body>
+
+<header><h1>⚛️ Chain Reaction — 번갈아 플레이</h1></header>
+
+<div class="main">
+  <div class="game-col">
+    <div class="game-row">
+
+      <div class="player-card" id="card-first" data-player="first">
+        <div class="turn-badge">내 차례</div>
+        <div class="player-emoji">🔵</div>
+        <div class="player-name">선공</div>
+        <div class="player-score" id="score-first">0</div>
+        <div class="player-turns">남은 턴 <span id="turns-first">25</span></div>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board" id="board"></div>
+      </div>
+
+      <div class="player-card" id="card-second" data-player="second">
+        <div class="turn-badge">내 차례</div>
+        <div class="player-emoji">🔴</div>
+        <div class="player-name">후공</div>
+        <div class="player-score" id="score-second">0</div>
+        <div class="player-turns">남은 턴 <span id="turns-second">25</span></div>
+      </div>
+
+    </div>
+
+    <div class="controls-area">
+      <div class="ctrl-row">
+        <button id="btnNew">새 게임</button>
+        <span style="font-size:0.78rem;color:#555;margin-left:6px">칸을 클릭해 구슬을 놓으세요</span>
+      </div>
+    </div>
+
+    <div class="status-bar" id="statusBar"></div>
+
+    <div class="rule-hint">
+      📌 칸의 인접 수(모서리=2, 가장자리=3, 내부=4)만큼 구슬이 쌓이면 폭발 → 인접 칸으로 전파, 연쇄 폭발 발생.<br>
+      상대방 구슬도 내 색으로 전환됩니다. 상대 구슬을 모두 없애면 승리!
+    </div>
+
+    <div class="result-banner" id="resultBanner">
+      <div class="result-title" id="resultTitle"></div>
+      <div class="result-scores" id="resultScores"></div>
+    </div>
+  </div>
+
+  <div class="log-col">
+    <div class="log-header">게임 로그</div>
+    <div class="log-box" id="logBox"></div>
+  </div>
+</div>
+
+<script>
+const NR = 6, NC = 6;
+const MAX_MOVES = 25; // 플레이어당 최대 턴
+const LOG_COLOR = { INIT:'#ffb74d', FIRST:'#64b5f6', SECOND:'#e57373', WIN:'#81c784' };
+
+function cap(r, c) {
+  return 4 - (r===0||r===NR-1 ? 1 : 0) - (c===0||c===NC-1 ? 1 : 0);
+}
+function neighbors(r, c) {
+  return [[-1,0],[1,0],[0,-1],[0,1]]
+    .map(([dr,dc]) => [r+dr, c+dc])
+    .filter(([nr,nc]) => nr>=0&&nr<NR&&nc>=0&&nc<NC);
+}
+function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+
+// cells[r][c] = { n: orb count, p: 0|1|2 }
+let cells, turn, done, busy, p1Moves, p2Moves;
+
+// ── Game logic ────────────────────────────────────────────
+async function handleClick(r, c) {
+  if (done || busy) return;
+  const pn = turn === 'first' ? 1 : 2;
+  if (cells[r][c].p !== 0 && cells[r][c].p !== pn) return;
+
+  busy = true;
+  cells[r][c].p = pn;
+  cells[r][c].n++;
+  if (turn === 'first') p1Moves++; else p2Moves++;
+
+  pushLog(`${turn === 'first' ? 'FIRST' : 'SECOND'} ${r} ${c}`);
+  renderBoard();
+
+  await processExplosions(pn);
+
+  if (!done) {
+    // 턴 제한 초과 시 구슬 수로 결판
+    if (p1Moves >= MAX_MOVES && p2Moves >= MAX_MOVES) {
+      endGameByScore();
+      busy = false;
+      return;
+    }
+    turn = turn === 'first' ? 'second' : 'first';
+    updateStatus();
+    renderBoard();
+  }
+  busy = false;
+}
+
+async function processExplosions(pn) {
+  for (let iter = 0; iter < 500; iter++) {
+    const wave = [];
+    for (let r = 0; r < NR; r++)
+      for (let c = 0; c < NC; c++)
+        if (cells[r][c].n >= cap(r, c)) wave.push([r, c]);
+
+    if (wave.length === 0) break;
+
+    // Flash exploding cells
+    wave.forEach(([r, c]) => document.getElementById(`c-${r}-${c}`).classList.add('exploding'));
+    renderBoard();
+    await sleep(110);
+
+    // Process
+    wave.forEach(([r, c]) => {
+      document.getElementById(`c-${r}-${c}`).classList.remove('exploding');
+      cells[r][c].n -= cap(r, c);
+      if (cells[r][c].n === 0) cells[r][c].p = 0;
+      neighbors(r, c).forEach(([nr, nc]) => {
+        cells[nr][nc].n++;
+        cells[nr][nc].p = pn;
+      });
+    });
+
+    renderBoard();
+    await sleep(80);
+
+    // Win check mid-explosion
+    if (p1Moves >= 1 && p2Moves >= 1 && checkWin(pn)) {
+      endGame(turn);
+      return;
+    }
+  }
+}
+
+function checkWin(pn) {
+  if (p1Moves < 1 || p2Moves < 1) return false;
+  const opp = pn === 1 ? 2 : 1;
+  for (let r = 0; r < NR; r++)
+    for (let c = 0; c < NC; c++)
+      if (cells[r][c].p === opp) return false;
+  return true;
+}
+
+function countCells(pn) {
+  let n = 0;
+  for (let r = 0; r < NR; r++) for (let c = 0; c < NC; c++) if (cells[r][c].p === pn) n++;
+  return n;
+}
+
+function countOrbs(pn) {
+  let n = 0;
+  for (let r = 0; r < NR; r++) for (let c = 0; c < NC; c++) if (cells[r][c].p === pn) n += cells[r][c].n;
+  return n;
+}
+
+function endGameByScore() {
+  done = true;
+  const o1 = countOrbs(1), o2 = countOrbs(2);
+  let winner;
+  if (o1 > o2) winner = 'first';
+  else if (o2 > o1) winner = 'second';
+  else winner = null;
+
+  pushLog(`TURN_LIMIT ${o1} ${o2}`);
+  const title = document.getElementById('resultTitle');
+  const sc    = document.getElementById('resultScores');
+  if (winner === 'first')  { title.textContent = '🎉 선공 승리! (턴 제한)'; title.style.color = '#64b5f6'; }
+  else if (winner === 'second') { title.textContent = '🎉 후공 승리! (턴 제한)'; title.style.color = '#e57373'; }
+  else                          { title.textContent = '🤝 무승부! (턴 제한)';   title.style.color = '#ffd54f'; }
+  sc.innerHTML = `<span style="color:#64b5f6">선공 ${o1}개</span><span style="color:#e57373">후공 ${o2}개</span>`;
+  document.getElementById('resultBanner').classList.add('show');
+  document.getElementById('statusBar').innerHTML = '<span style="color:#81c784;font-weight:600">게임 종료 (턴 제한)</span>';
+  document.getElementById('card-first').classList.remove('active');
+  document.getElementById('card-second').classList.remove('active');
+  renderBoard();
+}
+
+function endGame(winner) {
+  done = true;
+  const sc1 = countCells(1), sc2 = countCells(2);
+  pushLog(winner === 'first' ? 'WIN LOSE' : 'LOSE WIN');
+
+  const title = document.getElementById('resultTitle');
+  const sc    = document.getElementById('resultScores');
+  const isFirst = winner === 'first';
+  title.textContent = isFirst ? '🎉 선공 승리!' : '🎉 후공 승리!';
+  title.style.color = isFirst ? '#64b5f6' : '#e57373';
+  sc.innerHTML = `<span style="color:#64b5f6">선공 ${sc1}칸</span><span style="color:#e57373">후공 ${sc2}칸</span>`;
+  document.getElementById('resultBanner').classList.add('show');
+  document.getElementById('statusBar').innerHTML = '<span style="color:#81c784;font-weight:600">게임 종료</span>';
+  document.getElementById('card-first').classList.remove('active');
+  document.getElementById('card-second').classList.remove('active');
+  renderBoard();
+}
+
+// ── Rendering ────────────────────────────────────────────
+function renderBoard() {
+  const sc1 = countOrbs(1), sc2 = countOrbs(2);
+  document.getElementById('score-first').textContent  = sc1;
+  document.getElementById('score-second').textContent = sc2;
+  document.getElementById('turns-first').textContent  = Math.max(0, MAX_MOVES - p1Moves);
+  document.getElementById('turns-second').textContent = Math.max(0, MAX_MOVES - p2Moves);
+  document.getElementById('card-first').classList.toggle('active',  turn==='first'  && !done);
+  document.getElementById('card-second').classList.toggle('active', turn==='second' && !done);
+
+  for (let r = 0; r < NR; r++) {
+    for (let c = 0; c < NC; c++) {
+      const el = document.getElementById(`c-${r}-${c}`);
+      const { n, p } = cells[r][c];
+      const critical = p !== 0 && n === cap(r, c) - 1;
+
+      // Base class
+      let cls = 'cell';
+      if (p === 1) cls += ' p1';
+      else if (p === 2) cls += ' p2';
+      if (critical && p === 1) cls += ' crit-p1';
+      if (critical && p === 2) cls += ' crit-p2';
+      if (el.classList.contains('exploding')) cls += ' exploding';
+      el.className = cls;
+
+      // Orbs
+      let orbsEl = el.querySelector('.orbs');
+      if (!orbsEl) { orbsEl = document.createElement('div'); orbsEl.className = 'orbs'; el.appendChild(orbsEl); }
+
+      const pClass = p === 1 ? 'p1' : 'p2';
+      if (n === 0) {
+        orbsEl.innerHTML = '';
+        orbsEl.removeAttribute('data-n');
+      } else {
+        orbsEl.setAttribute('data-n', Math.min(n, 3));
+        orbsEl.innerHTML = '';
+        const count = Math.min(n, 3);
+        for (let i = 0; i < count; i++) {
+          const orb = document.createElement('div');
+          orb.className = `orb ${pClass}${count === 3 && i === 2 ? ' n3-last' : ''}`;
+          orbsEl.appendChild(orb);
+        }
+        // If n > 3 (during chain), show number overlay
+        if (n > 3) {
+          orbsEl.innerHTML = '';
+          orbsEl.removeAttribute('data-n');
+          orbsEl.style.display = 'flex';
+          orbsEl.style.alignItems = 'center';
+          orbsEl.style.justifyContent = 'center';
+          orbsEl.style.fontSize = '1.3rem';
+          orbsEl.style.fontWeight = '800';
+          orbsEl.style.color = p === 1 ? '#90caf9' : '#ef9a9a';
+          orbsEl.textContent = n;
+        } else {
+          orbsEl.style.display = '';
+          orbsEl.style.fontSize = '';
+          orbsEl.style.color = '';
+          orbsEl.textContent = '';
+          for (let i = 0; i < count; i++) {
+            const orb = document.createElement('div');
+            orb.className = `orb ${pClass}${count === 3 && i === 2 ? ' n3-last' : ''}`;
+            orbsEl.appendChild(orb);
+          }
+        }
+      }
+    }
+  }
+}
+
+function buildBoardDOM() {
+  const el = document.getElementById('board');
+  el.innerHTML = '';
+  for (let r = 0; r < NR; r++) {
+    for (let c = 0; c < NC; c++) {
+      const cell = document.createElement('div');
+      cell.id = `c-${r}-${c}`;
+      cell.className = 'cell';
+      cell.addEventListener('click', () => handleClick(r, c));
+      el.appendChild(cell);
+    }
+  }
+}
+
+function updateStatus() {
+  const name  = turn === 'first' ? '선공' : '후공';
+  const color = turn === 'first' ? '#64b5f6' : '#e57373';
+  document.getElementById('statusBar').innerHTML =
+    `<span style="color:${color};font-weight:600">${name}의 차례</span>`+
+    `<span style="color:#555"> — 빈 칸 또는 내 구슬이 있는 칸에 놓을 수 있습니다</span>`;
+}
+
+// ── Log ──────────────────────────────────────────────────
+function pushLog(line) {
+  const box = document.getElementById('logBox');
+  const idx = box.children.length + 1;
+  const parts = line.trim().split(/\s+/);
+  const cmd = parts[0];
+  const color = LOG_COLOR[cmd] || '#dedfe0';
+  const row = document.createElement('div'); row.className = 'log-entry';
+  const no  = document.createElement('div'); no.className = 'log-no'; no.textContent = idx;
+  const sep = document.createElement('div'); sep.className = 'log-sep'; sep.textContent = '│';
+  const txt = document.createElement('div'); txt.className = 'log-text';
+  const s0  = document.createElement('span'); s0.style.color = color; s0.textContent = cmd;
+  txt.appendChild(s0);
+  parts.slice(1).forEach(p => { const s = document.createElement('span'); s.textContent=' '+p; txt.appendChild(s); });
+  row.appendChild(no); row.appendChild(sep); row.appendChild(txt);
+  box.appendChild(row); box.scrollTop = box.scrollHeight;
+}
+
+// ── Init ─────────────────────────────────────────────────
+function placeRandomOrbs() {
+  // Place 4~5 orbs per player, count stays below capacity (stable)
+  [1, 2].forEach(pn => {
+    let placed = 0;
+    let attempts = 0;
+    while (placed < 4 && attempts++ < 500) {
+      const r = Math.floor(Math.random() * NR);
+      const c = Math.floor(Math.random() * NC);
+      if (cells[r][c].p !== 0) continue;              // occupied
+      if (1 >= cap(r, c)) continue;                   // would explode immediately
+      cells[r][c].p = pn;
+      cells[r][c].n = 1;
+      placed++;
+    }
+  });
+}
+
+function initGame() {
+  cells = Array.from({length: NR}, () =>
+    Array.from({length: NC}, () => ({ n: 0, p: 0 })));
+  turn = 'first';
+  done = false;
+  busy = false;
+  p1Moves = 0;
+  p2Moves = 0;
+
+  placeRandomOrbs();
+
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('resultBanner').classList.remove('show');
+
+  // Log initial state
+  const initRows = cells.map(row => row.map(c => `${c.p}${c.n}`).join(' ')).join(' | ');
+  pushLog('INIT ' + initRows);
+
+  buildBoardDOM();
+  renderBoard();
+  updateStatus();
+}
+
+document.getElementById('btnNew').addEventListener('click', initGame);
+initGame();
+</script>
+</body>
+</html>
