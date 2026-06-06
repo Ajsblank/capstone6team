@@ -265,8 +265,8 @@ const ContestSettingsPage: React.FC = () => {
         <div className="home-auth-area">
           {user ? (
             <>
+              <span className="home-avatar" onClick={() => navigate("profile")} title="프로필" />
               <span className="home-username" onClick={() => navigate("profile")}>{user.username}</span>
-              <button className="btn btn-secondary btn-sm" onClick={() => navigate("account-settings")}>설정</button>
               <button className="btn btn-ghost btn-sm" onClick={() => logout()}>로그아웃</button>
             </>
           ) : (

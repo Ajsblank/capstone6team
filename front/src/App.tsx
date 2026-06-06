@@ -6,7 +6,6 @@ import SignUpPage from "./pages/SignUpPage";
 import BattleHomePage from "./pages/BattleHomePage";
 import BattleSubmitPage from "./pages/BattleSubmitPage";
 import ProfilePage from "./pages/ProfilePage";
-import AccountSettingsPage from "./pages/AccountSettingsPage";
 import BattleCreateContestPage from "./pages/BattleCreateContestPage";
 import BattleCreateCertifiedPage from "./pages/BattleCreateCertifiedPage";
 import ContestSettingsPage from "./pages/ContestSettingsPage";
@@ -219,7 +218,6 @@ const PageRouter: React.FC = () => {
     case "battle":           return <BattleHomePage />;
     case "submit":           return <BattleSubmitPage />;
     case "profile":          return <ProfilePage />;
-    case "account-settings": return <AccountSettingsPage />;
     case "create-contest":            return <BattleCreateContestPage />;
     case "create-certified-contest":  return <BattleCreateCertifiedPage />;
     case "contest-settings":          return <ContestSettingsPage />;
