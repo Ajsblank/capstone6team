@@ -1,15 +1,20 @@
 package com.asap.server.controller;
 
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.asap.server.dto.request.ProfileBulkRequest;
 import com.asap.server.dto.request.UpdateProfileRequest;
+import com.asap.server.dto.response.ProfileListResponse;
 import com.asap.server.dto.response.ProfileResponse;
 import com.asap.server.service.ProfileService;
 
@@ -46,4 +51,10 @@ public class ProfileController {
         return ResponseEntity.ok(profileService.getOtherProfile(nicknameTag));
     }
 
+    @Operation(summary = "유저 목록 프로필 조회")
+    @PostMapping("/bulk")
+    public ResponseEntity<Map<Long, ProfileListResponse>> getBulkProfiles(
+            @RequestBody ProfileBulkRequest request) {
+        return ResponseEntity.ok(profileService.getBulkProfiles(request.getUserIds()));
+    }
 }

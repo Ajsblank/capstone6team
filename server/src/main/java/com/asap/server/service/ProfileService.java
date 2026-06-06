@@ -1,6 +1,9 @@
 package com.asap.server.service;
 
 import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -9,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.asap.server.domain.Profile;
 import com.asap.server.domain.Users;
 import com.asap.server.dto.request.UpdateProfileRequest;
+import com.asap.server.dto.response.ProfileListResponse;
 import com.asap.server.dto.response.ProfileResponse;
 import com.asap.server.repository.ProfileReposiroty;
 import com.asap.server.repository.usersRepository;
@@ -81,6 +85,26 @@ public class ProfileService {
         .nickname(nickname)
         .tag(tag)
         .build();
+  }
+
+  @Transactional(readOnly = true)
+  public Map<Long, ProfileListResponse> getBulkProfiles(List<Long> userIds) {
+    List<Profile> profiles = profileRepository.findAllByUserIdIn(userIds);
+
+    return profiles.stream()
+        .collect(Collectors.toMap(
+            profile -> profile.getUser().getId(),
+            profile -> {
+              String tagCode = String.format("%04d", profile.getTag());
+              String nicknameTag = profile.getNickname() + "-" + tagCode;
+              String imageUrl = profile.getImage_url() != null
+                  ? cloudFrontDomain + profile.getImage_url()
+                  : null;
+              return ProfileListResponse.builder()
+                  .nicknameTag(nicknameTag)
+                  .imageUrl(imageUrl)
+                  .build();
+            }));
   }
 
   private int allocateNextTag(String nickname) {
