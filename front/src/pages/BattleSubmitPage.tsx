@@ -466,6 +466,7 @@ const SubmitPage: React.FC = () => {
               onLocalUpdate={setLocalSubmissions}
               onLogClick={handleLogClick}
               userId={user?.id ?? ""}
+              hasVisualization={viz1Available}
             />
           </div>
         )}
