@@ -1073,7 +1073,7 @@ const BattlePage: React.FC = () => {
                   <span className="bp-contact-icon">✉</span>
                   <div>
                     <div className="bp-contact-label">이메일</div>
-                    <div className="bp-contact-value">team06asap@ajou.ac.kr</div>
+                    <div className="bp-contact-value">ajs8780@ajou.ac.kr</div>
                   </div>
                 </div>
                 <div className="bp-contact-card">
