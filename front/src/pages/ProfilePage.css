@@ -69,16 +69,17 @@
 
 .pp-back-btn {
   background: none;
-  border: none;
-  color: #7e8694;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  color: #4b5563;
   font-size: 0.82rem;
   font-family: inherit;
   cursor: pointer;
-  padding: 0;
+  padding: 5px 12px;
   white-space: nowrap;
-  transition: color 0.15s;
+  transition: color 0.15s, border-color 0.15s;
 }
-.pp-back-btn:hover { color: #ea580c; }
+.pp-back-btn:hover { color: #ea580c; border-color: #ea580c; }
 
 .pp-edit-actions {
   display: flex;
@@ -130,31 +131,89 @@
   gap: 20px 24px;
 }
 
-/* ── 아바타 ── */
-.pp-avatar-wrap {
+/* ── 아바타 섹션 ── */
+.pp-avatar-section {
   grid-column: 1 / -1;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 4px;
 }
+.pp-label--img {
+  align-self: flex-start;
+}
+
+.pp-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+}
 .pp-avatar-img {
-  width: 88px;
-  height: 88px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #fed7aa;
 }
 .pp-avatar-default {
-  width: 88px;
-  height: 88px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   background: #fff7ed;
   border: 2px solid #fed7aa;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.4rem;
+  font-size: 3rem;
 }
+
+/* 편집(연필) 버튼 — 우측 하단 */
+.pp-avatar-pencil {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  transition: background 0.15s;
+}
+.pp-avatar-pencil:hover { background: #c2410c; }
+
+.pp-avatar-btn-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+
+/* 제거(−) 버튼 — 좌측 하단, 편집 버튼과 같은 수평선 */
+.pp-avatar-remove {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  padding: 0;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.pp-avatar-remove:hover { background: #dc2626; }
 
 /* ── 필드 ── */
 .pp-field {
@@ -263,16 +322,8 @@
   margin: 0;
 }
 
-/* 프로필 이미지 업로드 */
-.pp-image-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.pp-upload-btn { cursor: pointer; display: inline-flex; align-items: center; }
 .pp-upload-hint {
-  margin: 6px 0 0;
+  margin: 0;
   font-size: 0.78rem;
   color: #9ca3af;
 }
