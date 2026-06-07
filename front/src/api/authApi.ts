@@ -48,11 +48,19 @@ export const saveRefreshToken = (token: string) =>
 export const getRefreshToken = () =>
   localStorage.getItem("refreshToken");
 
+// 세션 식별자 — 로그인 응답(LoginResponse.sessionId)에서 받아 보관, 로그아웃 시 X-Session-Id로 전송
+export const setSessionId = (id: string | null) => {
+  if (id) localStorage.setItem("sessionId", id);
+  else    localStorage.removeItem("sessionId");
+};
+export const getSessionId = () => localStorage.getItem("sessionId");
+
 export const clearTokens = () => {
   setAccessToken(null);
   setUserId(null);
   setUsername(null);
   localStorage.removeItem("refreshToken");
+  localStorage.removeItem("sessionId");
 };
 
 // ──────────────────────────────────────────
@@ -117,6 +125,7 @@ export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
   userId: string;
+  sessionId?: string;
   joinedContests?: number[];
   hostedContests?: number[];
   createdContests?: number[];
@@ -144,13 +153,17 @@ export const loginApi = async (body: LoginRequest): Promise<TokenResponse> => {
   setAccessToken(data.accessToken);
   saveRefreshToken(data.refreshToken);
   setUserId(data.userId);
+  setSessionId(data.sessionId ?? null);   // 백엔드가 발급한 세션 ID 보관(로그아웃 시 사용)
   return data;
 };
 
 export const logoutApi = async (): Promise<void> => {
-  const refreshToken = getRefreshToken();
-  if (refreshToken) {
-    await api.post("/api/auth/logout", { refreshToken }).catch(() => {});
+  const sessionId = getSessionId();
+  // 백엔드 /logout 은 Authorization(자동 첨부) + X-Session-Id 헤더로 현재 세션을 무효화 (body 미사용)
+  if (sessionId) {
+    await api.post("/api/auth/logout", null, {
+      headers: { "X-Session-Id": sessionId },
+    }).catch(() => {});
   }
   clearTokens();
 };
@@ -160,6 +173,7 @@ export const refreshTokenApi = async (): Promise<string> => {
   const { data } = await api.post<TokenResponse>("/api/auth/refresh", { refreshToken });
   setAccessToken(data.accessToken);
   saveRefreshToken(data.refreshToken);
+  if (data.sessionId) setSessionId(data.sessionId);   // 회전된 세션 ID가 오면 갱신, 없으면 기존 유지
   return data.accessToken;
 };
 
