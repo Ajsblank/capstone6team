@@ -1,6 +1,7 @@
 import React from "react";
 import { useApp } from "../context/AppContext";
 import ProfileBadge from "./ProfileBadge";
+import ResponsiveNavMenu from "./ResponsiveNavMenu";
 import "../pages/AppLayout.css";
 
 interface BattleTopNavProps {
@@ -57,6 +58,14 @@ const BattleTopNav: React.FC<BattleTopNavProps> = ({ spacer, saveLoginRedirect }
           </>
         )}
       </div>
+      {/* 좁은 화면용 햄버거 + 드로어 (탭/프로필이 숨겨질 때 노출) */}
+      <ResponsiveNavMenu tabs={[
+        { label: "대회",      onClick: () => navigate("battle") },
+        { label: "랭킹",      onClick: () => goSubTab("ranking") },
+        { label: "이전 문제", onClick: () => goSubTab("previous-problems") },
+        { label: "도움말",    onClick: () => goSubTab("help") },
+        { label: "문의",      onClick: () => goSubTab("contact") },
+      ]} />
     </header>
   );
 };

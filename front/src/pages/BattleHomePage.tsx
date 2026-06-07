@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useApp } from "../context/AppContext";
 import ProfileBadge from "../components/ProfileBadge";
+import ResponsiveNavMenu from "../components/ResponsiveNavMenu";
 import { getContestList, ContestItem } from "../api/codeBattleApi";
 import TermsAgreementModal from "../components/TermsAgreementModal";
 import "./AppLayout.css";
@@ -630,6 +631,13 @@ const BattlePage: React.FC = () => {
             </>
           )}
         </div>
+        <ResponsiveNavMenu tabs={[
+          { label: "대회",      onClick: () => handleTabChange("contest"),           active: activeTab === "contest" },
+          { label: "랭킹",      onClick: () => handleTabChange("ranking"),           active: activeTab === "ranking" },
+          { label: "이전 문제", onClick: () => handleTabChange("previous-problems"), active: activeTab === "previous-problems" },
+          { label: "도움말",    onClick: () => handleTabChange("help"),              active: activeTab === "help" },
+          { label: "문의",      onClick: () => handleTabChange("contact"),           active: activeTab === "contact" },
+        ]} />
       </header>
 
       <main className="home-body">

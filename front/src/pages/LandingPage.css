@@ -50,7 +50,7 @@
   cursor: pointer;
   font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
   font-size: 1.05rem;
-  padding: 0 22px;
+  padding: 0 clamp(10px, 1.6vw, 22px);   /* 화면이 좁아지면 탭 간격 점진 축소 */
   transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
   outline: none;
@@ -59,6 +59,12 @@
 .lp-nav-btn:focus-visible { outline: 3px solid rgba(22, 163, 74, 0.6); outline-offset: -4px; }
 .lp-nav-btn--disabled { opacity: 0.38; cursor: not-allowed; }
 .lp-nav-btn--disabled:hover { color: #4b5563; }
+
+/* 좁은 화면(<=880px): 탭/프로필 숨기고 햄버거(ResponsiveNavMenu)로 대체 */
+@media (max-width: 880px) {
+  .lp-header .lp-nav,
+  .lp-header .lp-auth { display: none; }
+}
 
 .lp-auth { display: flex; align-items: center; gap: 8px; }
 

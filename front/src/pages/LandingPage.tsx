@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import ProfileBadge from "../components/ProfileBadge";
+import ResponsiveNavMenu from "../components/ResponsiveNavMenu";
 import "./LandingPage.css";
 
 const BATTLE_FEATURES = [
@@ -60,6 +61,13 @@ const LandingPage: React.FC = () => {
             </>
           )}
         </div>
+        <ResponsiveNavMenu tabs={[
+          { label: "대회",      onClick: () => navigate("battle") },
+          { label: "랭킹",      onClick: () => { navigate("battle"); window.location.hash = "battle/ranking"; } },
+          { label: "이전 문제", onClick: () => { navigate("battle"); window.location.hash = "battle/previous-problems"; } },
+          { label: "도움말",    onClick: () => { navigate("battle"); window.location.hash = "battle/help"; } },
+          { label: "문의",      onClick: () => { navigate("battle"); window.location.hash = "battle/contact"; } },
+        ]} />
       </header>
 
       {/* ── CodeBattle Hero ── */}
