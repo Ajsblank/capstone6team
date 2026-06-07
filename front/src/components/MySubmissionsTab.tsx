@@ -504,32 +504,55 @@ const MySubmissionsTab: React.FC<Props> = ({
   return (
     <div className="ms-container">
       <div className="ms-header-row">
-        <h2 className="ms-title">내 제출 이력</h2>
-        <span
-          className={`ms-sse-badge ms-sse-badge--${sseStatus}`}
-          title="클릭 시 SSE 상태를 콘솔에 출력"
-          onClick={debugSse}
-          style={{ cursor: "pointer" }}
-        >
-          {sseStatus === "connected" ? "● SSE 연결됨" : sseStatus === "connecting" ? "◌ SSE 연결 중" : "○ SSE 끊김"}
-        </span>
-        <div className="ms-sort-group">
-          <button
-            className={`ms-sort-btn${sortOrder === "newest" ? " ms-sort-btn--active" : ""}`}
-            onClick={() => setSortOrder("newest")}
-          >
-            최신순
-          </button>
-          <button
-            className={`ms-sort-btn${sortOrder === "oldest" ? " ms-sort-btn--active" : ""}`}
-            onClick={() => setSortOrder("oldest")}
-          >
-            오래된 순
+        {/* 좌측: 제목 + SSE 뱃지 / 모바일에서 코드 선택 추가 */}
+        <div className="ms-header-left">
+          <div className="ms-header-title-row">
+            <h2 className="ms-title">내 제출 이력</h2>
+            <span
+              className={`ms-sse-badge ms-sse-badge--${sseStatus}`}
+              title="클릭 시 SSE 상태를 콘솔에 출력"
+              onClick={debugSse}
+              style={{ cursor: "pointer" }}
+            >
+              {sseStatus === "connected" ? "● SSE 연결됨" : sseStatus === "connecting" ? "◌ SSE 연결 중" : "○ SSE 끊김"}
+            </span>
+          </div>
+          <div className="ms-mobile-select-area">
+            <button
+              className={`ms-mobile-select-btn${selectMode ? " ms-mobile-select-btn--active" : ""}`}
+              onClick={() => { setSelectMode(m => !m); setPendingId(null); setSelectError(null); }}
+            >
+              {selectMode ? "선택 취소" : "코드 선택"}
+            </button>
+            <button
+              className="ms-help-btn"
+              onClick={() => setShowHelp(true)}
+              aria-label="코드 선택 도움말"
+            >
+              ?
+            </button>
+          </div>
+        </div>
+        {/* 우측: 정렬 버튼 + 새로고침 */}
+        <div className="ms-header-right">
+          <div className="ms-sort-group">
+            <button
+              className={`ms-sort-btn${sortOrder === "newest" ? " ms-sort-btn--active" : ""}`}
+              onClick={() => setSortOrder("newest")}
+            >
+              최신순
+            </button>
+            <button
+              className={`ms-sort-btn${sortOrder === "oldest" ? " ms-sort-btn--active" : ""}`}
+              onClick={() => setSortOrder("oldest")}
+            >
+              오래된 순
+            </button>
+          </div>
+          <button className="ms-refresh-btn" onClick={fetchFromServer} disabled={loading} title="새로고침" aria-label="새로고침">
+            ↻
           </button>
         </div>
-        <button className="ms-refresh-btn" onClick={fetchFromServer} disabled={loading}>
-          {loading ? "불러오는 중..." : "새로고침"}
-        </button>
       </div>
 
       {error && <div className="ms-error">{error}</div>}

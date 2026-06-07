@@ -22,6 +22,7 @@
   width: 90%;
   max-width: 600px;
   max-height: 85vh;
+  max-height: 85dvh;   /* 짧은 화면/모바일 주소창 대응 */
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);

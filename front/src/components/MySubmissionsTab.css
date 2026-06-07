@@ -15,6 +15,25 @@
   flex-wrap: wrap;
 }
 
+.ms-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ms-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ms-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
 .ms-title {
   font-size: 1.2rem;
   font-weight: 700;
@@ -39,7 +58,6 @@
 .ms-sort-group {
   display: flex;
   gap: 4px;
-  margin-left: auto;
 }
 
 .ms-sort-btn {
@@ -69,10 +87,11 @@
   background: #f5f5ff;
   border: 1px solid #c8c8e0;
   color: #555577;
-  font-size: 0.82rem;
-  padding: 4px 12px;
+  font-size: 1.1rem;
+  padding: 4px 10px;
   border-radius: 6px;
   cursor: pointer;
+  line-height: 1;
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
@@ -570,6 +589,34 @@
 .ms-modal-btn--primary { background: #5a3aaa; color: #fff; }
 .ms-modal-btn--primary:hover:not(:disabled) { background: #4a2f8f; }
 
+/* ── 모바일 전용 코드 선택 영역 (데스크탑에서 숨김) ── */
+.ms-mobile-select-area {
+  display: none;
+}
+
+.ms-mobile-select-btn {
+  flex: 1;
+  padding: 10px 20px;
+  border: 1.5px solid #7755cc;
+  border-radius: 10px;
+  background: #f3eeff;
+  color: #5a3aaa;
+  font-weight: 700;
+  font-size: 0.92rem;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.ms-mobile-select-btn:hover {
+  background: #e9e0ff;
+  box-shadow: 0 0 0 3px rgba(119, 85, 204, 0.15);
+}
+.ms-mobile-select-btn--active {
+  background: #5a3aaa;
+  color: #fff;
+  border-color: #5a3aaa;
+}
+
 /* ── 코드 선택 도움말 팝업 ── */
 .ms-help-overlay {
   position: fixed;
@@ -595,3 +642,88 @@
 .ms-help-pop p { margin: 0 0 8px; }
 .ms-help-pop strong { color: #5a3aaa; }
 .ms-help-pop-tip { color: #6b7280; font-size: 0.82rem; }
+
+/* ══ 내 제출 탭 모바일 반응형 ══ */
+@media (max-width: 768px) {
+  .ms-container {
+    padding: 16px;
+  }
+
+  /* 코드 선택 레일: 모바일에서 숨겨 카드가 전체 폭을 사용하도록 */
+  .ms-select-rail {
+    display: none;
+  }
+
+  /* 펼침 바디: 좌우 패딩 축소 */
+  .ms-item-body {
+    padding: 8px;
+  }
+
+  /* 매치 테이블 셀 패딩·폰트 축소 */
+  .ms-match-table th,
+  .ms-match-row td {
+    padding: 5px 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  /* 카드 헤더: flex-wrap 2행 리플로우
+     행1: #번호 | [출전코드] | 결과라벨 ··· 펼치기
+     행2: 승W 무D 패L / 전체전
+     행3: 날짜 (소형)                              */
+  .ms-item-header {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    padding: 10px 12px;
+  }
+
+  /* 승패 기록: 행2 — 전체폭 */
+  .ms-item-record {
+    order: 9;
+    flex: none;
+    width: 100%;
+    font-size: 0.88rem;
+  }
+
+  /* 날짜: 행3 — 전체폭, 소형 */
+  .ms-item-date {
+    order: 10;
+    width: 100%;
+    font-size: 0.72rem;
+    color: #9090aa;
+  }
+
+  /* 펼치기 버튼: 행1 우측 끝으로 */
+  .ms-expand-btn {
+    margin-left: auto;
+  }
+  .ms-select-cue {
+    margin-left: auto;
+  }
+
+  /* 헤더: 좌(제목+코드선택) / 우(정렬+새로고침) 2열 */
+  .ms-header-row {
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .ms-header-left {
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+  .ms-header-right {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    margin-left: 0;
+    flex-shrink: 0;
+  }
+
+  /* 모바일 코드 선택 영역 표시 */
+  .ms-mobile-select-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}

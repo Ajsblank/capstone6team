@@ -412,3 +412,10 @@ td.row-output {
 .prob-ai-result--lose    { background: #fee2e2; color: #dc2626; }
 .prob-ai-result--draw    { background: #fef9c3; color: #ca8a04; }
 .prob-ai-result--pending { background: #f3f4f6; color: #9ca3af; }
+
+/* ══ 문제 상세 모바일 반응형 ══ */
+@media (max-width: 768px) {
+  .prob {
+    padding: 20px 16px;
+  }
+}
