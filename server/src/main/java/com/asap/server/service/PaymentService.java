@@ -50,16 +50,23 @@ public class PaymentService {
 
     // 트랜잭션 없음 — 토스 API 호출 중 DB 커넥션 점유 방지
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request, Long userId) {
-        if (paymentRepository.existsByOrderId(request.getOrderId())) {
-            throw new IllegalArgumentException("이미 처리된 주문입니다.");
-        }
-
         // 트랜잭션 밖에서 외부 API 호출
         TossPaymentResponse tossResponse = callTossConfirmApi(
                 request.getPaymentKey(), request.getOrderId(), request.getAmount());
 
-        // DB 저장만 트랜잭션으로 분리
+        // Toss 승인 금액이 요청 금액과 다르면 위변조 차단
+        if (!request.getAmount().equals(tossResponse.totalAmount())) {
+            log.warn("[결제 금액 불일치] 요청={}, Toss승인={}, orderId={}",
+                    request.getAmount(), tossResponse.totalAmount(), request.getOrderId());
+            throw new IllegalArgumentException("결제 금액이 일치하지 않습니다.");
+        }
+
+        // DB 저장만 트랜잭션으로 분리 — 중복 체크도 트랜잭션 안에서 수행하여 이중 저장 방지
         return transactionTemplate.execute(status -> {
+            if (paymentRepository.existsByOrderId(request.getOrderId())) {
+                throw new IllegalArgumentException("이미 처리된 주문입니다.");
+            }
+
             Users user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
