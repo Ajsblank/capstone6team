@@ -109,7 +109,10 @@ const ProfilePage: React.FC = () => {
     );
   }
 
-  const displayNickname = profile?.nicknameTag || profile?.nickname || user.username;
+  const displayNickname = profile?.nickname || user.username;
+  const displayTag = profile && profile.tag > 0
+    ? (profile.tagCode || String(profile.tag).padStart(4, "0"))
+    : null;
   // 편집 중: 새로 올린 base64(있으면 우선, 제거 시 빈 문자열), 미변경 시 기존 S3 URL
   const displayImageUrl = editing
     ? (draft.imageBase64 !== undefined ? draft.imageBase64 : (profile?.imageUrl ?? ""))
@@ -120,7 +123,7 @@ const ProfilePage: React.FC = () => {
       <div className="pp-card">
         {/* 상단 헤더 */}
         <div className="pp-card-header">
-          <button className="pp-back-btn" onClick={() => window.history.back()}>← 이전으로</button>
+          <button className="pp-back-btn" onClick={() => window.history.back()}>이전으로</button>
           <h1 className="pp-card-title">프로필</h1>
           {!editing && !loading && (
             <button className="pp-btn pp-btn--primary" onClick={startEdit}>
@@ -145,42 +148,41 @@ const ProfilePage: React.FC = () => {
               <p className="pp-fetch-notice">프로필 정보를 불러오지 못했습니다. 프로필을 새로 추가할 수 있습니다.</p>
             )}
 
-            {/* 아바타 */}
-            <div className="pp-avatar-wrap">
-              {displayImageUrl ? (
-                <img
-                  className="pp-avatar-img"
-                  src={displayImageUrl}
-                  alt="프로필 이미지"
-                  onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-                />
-              ) : (
-                <div className="pp-avatar-default">👤</div>
-              )}
-            </div>
-
-            {/* 이미지 업로드 (편집 모드) — base64로 변환되어 서버에 전송됨 */}
-            {editing && (
-              <div className="pp-field pp-field--full">
-                <label className="pp-label">프로필 이미지</label>
-                <div className="pp-image-actions">
-                  <label className="pp-btn pp-btn--ghost pp-upload-btn">
-                    이미지 업로드
-                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
-                  </label>
-                  {displayImageUrl ? (
-                    <button
-                      type="button"
-                      className="pp-btn pp-btn--ghost"
-                      onClick={() => setDraft(prev => ({ ...prev, imageBase64: "" }))}
-                    >
-                      이미지 제거
-                    </button>
-                  ) : null}
-                </div>
-                <p className="pp-upload-hint">JPG/PNG 등 이미지 파일, 최대 2MB</p>
+            {/* 아바타 섹션 */}
+            <div className="pp-avatar-section">
+              {editing && <span className="pp-label pp-label--img">프로필 이미지</span>}
+              <div className={`pp-avatar-wrap${editing ? " pp-avatar-wrap--editing" : ""}`}>
+                {displayImageUrl ? (
+                  <img
+                    className="pp-avatar-img"
+                    src={displayImageUrl}
+                    alt="프로필 이미지"
+                    onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                ) : (
+                  <div className="pp-avatar-default">👤</div>
+                )}
+                {editing && (
+                  <>
+                    <label className="pp-avatar-pencil" title="이미지 변경">
+                      <img src="/resources/edit.svg" alt="편집" className="pp-avatar-btn-icon" />
+                      <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
+                    </label>
+                    {displayImageUrl && (
+                      <button
+                        type="button"
+                        className="pp-avatar-remove"
+                        title="이미지 제거"
+                        onClick={() => setDraft(prev => ({ ...prev, imageBase64: "" }))}
+                      >
+                        −
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
-            )}
+              {editing && <p className="pp-upload-hint">JPG/PNG 등 이미지 파일, 최대 2MB</p>}
+            </div>
 
             {/* 닉네임 */}
             <div className="pp-field">
@@ -190,9 +192,7 @@ const ProfilePage: React.FC = () => {
               ) : (
                 <span className="pp-value pp-value--name">
                   {displayNickname}
-                  {profile && profile.tag > 0 && !profile.nicknameTag && (
-                    <span className="pp-tag">#{profile.tagCode || String(profile.tag).padStart(4, "0")}</span>
-                  )}
+                  {displayTag && <span className="pp-tag">#{displayTag}</span>}
                 </span>
               )}
             </div>
