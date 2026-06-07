@@ -1817,3 +1817,154 @@
   font-weight: 700;
 }
 
+/* ══════════════════════════════════════════
+   모바일 반응형 — ≤768px / ≤480px
+   breakpoint: 880px(햄버거) 이하이므로 충돌 없음
+   ══════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* ── 대회 목록 · 이전 문제 · 문의 탭: 좌우 패딩 축소 ── */
+  .bp-contest,
+  .bp-problems,
+  .bp-previous-problems,
+  .bp-info-page {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 24px;
+  }
+
+  /* 대회 목록 헤더 — 버튼이 제목 아래로 줄바꿈 */
+  .bp-contest-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* 필터 바 날짜 그룹 — 줄바꿈 허용 */
+  .bp-filter-date-group {
+    flex-wrap: wrap;
+  }
+
+  /* 결과 알림 배너 우측 카드 패널 — 고정폭 해제 */
+  .bp-result-notify-cards {
+    width: 100%;
+  }
+
+  /* 대회 카드 우측 영역 — 너무 빽빽하면 숨김 */
+  .bp-problem-dates {
+    display: none;
+  }
+
+  /* ── 랭킹 탭: 패딩 축소 + 독립 스크롤 해제 → 문서 스크롤로 위임 ── */
+  .bp-ranking-page {
+    padding: 20px 16px 40px;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* 포디움 3장 — 고정폭 해제, flex로 균등 분배 */
+  .bp-ranking-podium {
+    gap: 8px;
+  }
+  .bp-podium-card {
+    width: auto;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 12px 6px 0;
+    border-radius: 14px;
+  }
+  .bp-podium-card--1st {
+    width: auto;
+    flex: 1.15 1 0;
+  }
+  .bp-podium-rank-num {
+    font-size: 1.4rem;
+  }
+  .bp-podium-avatar--1st {
+    width: 52px;
+    height: 52px;
+    font-size: 1.2rem;
+  }
+  .bp-podium-avatar--2nd,
+  .bp-podium-avatar--3rd {
+    width: 40px;
+    height: 40px;
+    font-size: 0.95rem;
+  }
+  .bp-podium-name {
+    font-size: 0.7rem;
+  }
+  .bp-podium-pts {
+    font-size: 0.88rem;
+  }
+  .bp-podium-card--1st .bp-podium-pts {
+    font-size: 1rem;
+  }
+  .bp-podium-stats {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px;
+    margin-bottom: 10px;
+  }
+
+  /* top5 행 */
+  .bp-top5-row {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  /* 인증/비인증 배지 — 좁은 화면에서 숨김 */
+  .bp-top5-stats {
+    display: none;
+  }
+
+  /* ── 도움말 탭: 2열 → 1열 수직 스택 ── */
+  .bp-help-page {
+    height: auto;
+    overflow: visible;
+  }
+  .bp-help-layout {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+  .bp-help-nav {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 16px 16px 0;
+    overflow-y: visible;
+    max-height: none;
+  }
+  .bp-help-nav-heading {
+    padding-right: 0;
+  }
+  .bp-help-nav-item {
+    padding: 11px 16px 11px 0;
+  }
+  .bp-help-detail-wrap {
+    padding: 20px 16px;
+    overflow-y: visible;
+  }
+
+  /* 인증/비인증 비교 — 세로 스택 */
+  .bp-help-compare {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 결과 알림 배너 — 카드 패널을 세로로 */
+  .bp-result-notify {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  /* 랭킹 6–20위 테이블 — 인증/비인증 컬럼 숨김 */
+  .bp-th-cert,
+  .bp-th-uncert,
+  .bp-rank-row td.bp-rank-cert,
+  .bp-rank-row td.bp-rank-uncert {
+    display: none;
+  }
+}
+

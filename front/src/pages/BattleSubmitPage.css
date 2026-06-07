@@ -4,6 +4,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;   /* 모바일 주소창 등 동적 뷰포트 대응 */
   background: #ffffff;
   overflow: hidden;
   position: relative;
@@ -126,5 +127,34 @@
   flex: 1; overflow: hidden;
   border-radius: 8px; border: 1px solid #e5e7eb;
   background: #ffffff;
+}
+
+/* ══ 대회 상세 페이지 모바일 반응형 ══ */
+@media (max-width: 768px) {
+  /* 문제 제목 바 좌우 패딩 축소 */
+  .sp-problem-bar {
+    padding: 0 16px;
+  }
+
+  /* 서브탭 바 — 4개씩 2행으로 감싸기 (탭 8개 전부 한눈에 표시) */
+  .sp-sub-tab-bar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 2px 0 0;
+    gap: 0;
+  }
+  .sp-sub-tab-btn {
+    flex: 1 1 25%;   /* 4개씩 한 줄 */
+    min-width: 0;
+    height: 36px;
+    padding: 0 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  /* 코드 제출 패널 패딩 축소 */
+  .code-submit-panel {
+    padding: 16px;
+  }
 }
 

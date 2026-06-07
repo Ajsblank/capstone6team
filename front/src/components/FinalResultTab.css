@@ -288,6 +288,19 @@
 
 .fr-go-viz-btn:hover { background: #fef08a; }
 
+/* ── 모바일 힌트 텍스트 ── */
+.fr-mobile-hint {
+  text-align: right;
+  font-size: 0.72rem;
+  color: #c8c8d0;
+  padding: 0 0 6px;
+}
+
+/* ── 모바일 카드 클릭 커서 ── */
+.fr-card--mobile-clickable {
+  cursor: pointer;
+}
+
 /* ── 로그 텍스트 ── */
 .fr-log-text {
   background: #f9fafb;

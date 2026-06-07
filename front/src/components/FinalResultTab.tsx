@@ -30,6 +30,17 @@ const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLo
   const [loading, setLoading]                     = useState(false);
   const [error, setError]                         = useState<string | null>(null);
 
+  const [isMobile, setIsMobile] = useState(() =>
+    window.matchMedia("(max-width: 768px)").matches
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
   const [expandedUserId, setExpandedUserId]     = useState<number | null>(null);
   const [selectedMatchId, setSelectedMatchId]   = useState<number | null>(null);
   const [selectedMatchIdx, setSelectedMatchIdx] = useState<number | null>(null);
@@ -96,6 +107,10 @@ const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLo
         <span className="fr-meta">총 {totalParticipants}명 참가</span>
       </div>
 
+      {isMobile && (
+        <div className="fr-mobile-hint">목록을 눌러 자세히 보기</div>
+      )}
+
       <div className="fr-list">
         {computeTiedRanks(standings).map(s => {
           const total       = s.wins + s.draws + s.losses;
@@ -106,7 +121,10 @@ const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLo
 
           return (
             <div key={s.user_id} className="fr-card-wrap">
-              <div className={`fr-card${s.displayRank <= 3 ? ` fr-card--rank${s.displayRank}` : ""}${isExpanded ? " fr-card--expanded" : ""}`}>
+              <div
+                className={`fr-card${s.displayRank <= 3 ? ` fr-card--rank${s.displayRank}` : ""}${isExpanded ? " fr-card--expanded" : ""}${isMobile && hasMatchIds ? " fr-card--mobile-clickable" : ""}`}
+                onClick={isMobile && hasMatchIds ? () => toggleExpanded(s.user_id) : undefined}
+              >
                 <div className="fr-rank">
                   <span className="fr-rank-num">{s.displayRank}</span>
                 </div>
@@ -120,7 +138,7 @@ const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLo
                     <span className="fr-wins">{s.wins}승</span>
                     <span className="fr-draws">{s.draws}무</span>
                     <span className="fr-losses">{s.losses}패</span>
-                    {total > 0 && <span className="fr-total"> / {total}전</span>}
+                    {total > 0 && <span className="fr-total">· {total}전</span>}
                   </span>
                 </div>
 
@@ -129,7 +147,7 @@ const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLo
                   <span className="fr-points-label">pts</span>
                 </div>
 
-                {hasMatchIds && (
+                {hasMatchIds && !isMobile && (
                   <button
                     className={`fr-detail-btn${isExpanded ? " fr-detail-btn--open" : ""}`}
                     onClick={() => toggleExpanded(s.user_id)}
