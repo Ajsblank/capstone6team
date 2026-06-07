@@ -1,6 +1,7 @@
 import React from "react";
 import { useApp } from "../context/AppContext";
 import ProfileBadge from "./ProfileBadge";
+import ResponsiveNavMenu from "./ResponsiveNavMenu";
 import "../pages/AppLayout.css";
 
 interface AppHeaderProps {
@@ -79,6 +80,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           </>
         )}
       </div>
+      <ResponsiveNavMenu tabs={[
+        { label: "홈",     onClick: () => (onHomeClick ? onHomeClick() : navigate("home")), active: activePage === "home" },
+        { label: "문제",   onClick: () => navigate("problems"),                              active: activePage === "problems" },
+        { label: "대회",   onClick: () => onContestClick?.(),                                active: activePage === "contest" },
+        { label: "도움말", onClick: () => onHelpClick?.(),                                   active: activePage === "help" },
+      ]} />
     </header>
   );
 };

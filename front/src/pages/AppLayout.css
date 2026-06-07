@@ -101,7 +101,7 @@
   color: #4b5563;
   font-size: 1.05rem;
   font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
-  padding: 0 22px;
+  padding: 0 clamp(10px, 1.6vw, 22px);   /* 화면이 좁아지면 탭 간격이 점진적으로 줄어듦 */
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
@@ -123,6 +123,14 @@
   cursor: not-allowed;
 }
 .home-tab-btn--disabled:hover { color: #4b5563; }
+
+/* 좁은 화면(<=880px): 탭이 너무 가까워지는 하한에 도달 → 탭·프로필 숨기고 햄버거로 대체 */
+@media (max-width: 880px) {
+  .home-header .home-tab-nav,
+  .home-header .home-auth-area {
+    display: none;
+  }
+}
 
 /* Auth area — 로고 다음에 오지만 우측으로 밀어냄 */
 .home-auth-area {
