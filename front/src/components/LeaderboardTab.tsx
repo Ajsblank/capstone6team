@@ -14,6 +14,12 @@ interface Props {
 
 const RANK_MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
+function renderNickTag(value: string): React.ReactNode {
+  const i = value.lastIndexOf('-');
+  if (i === -1) return value;
+  return <>{value.slice(0, i)}<span className="lb-nick-tag">#{value.slice(i + 1)}</span></>;
+}
+
 function getResultForUser(match: MyMatchInfo, userId: number): { label: string; cls: string } {
   if (match.result === "BYE")   return { label: "부전승", cls: "lb-result--bye" };
   if (match.winner === null)    return { label: "진행 중", cls: "lb-result--pending" };
@@ -34,16 +40,18 @@ interface DetailPanelProps {
   contestId: number;
   sessionNumber: number | null;
   viewUserId: number;
+  viewNick: string;
   isMe: boolean;
   hasVisualization: boolean;
   matches: MyMatchInfo[] | null;
   loading: boolean;
   error: string | null;
   onLogView?: (log: string) => void;
+  nickMap: Map<number, string>;
 }
 
 const MatchDetailPanel: React.FC<DetailPanelProps> = ({
-  contestId, sessionNumber, viewUserId, isMe, hasVisualization, matches, loading, error, onLogView,
+  contestId, sessionNumber, viewUserId, viewNick, isMe, hasVisualization, matches, loading, error, onLogView, nickMap,
 }) => {
   const [logMap,        setLogMap]        = useState<Map<number, string>>(new Map());
   const [logLoadingId,  setLogLoadingId]  = useState<number | null>(null);
@@ -86,7 +94,7 @@ const MatchDetailPanel: React.FC<DetailPanelProps> = ({
   return (
     <div className="lb-detail-panel">
       <div className="lb-detail-header">
-        세션 {sessionNumber} · {isMe ? "내" : `User ${viewUserId}의`} 매치 기록
+        세션 {sessionNumber} · {isMe ? "내" : `${viewNick}의`} 매치 기록
       </div>
       <div className="lb-match-list">
         {matches.map(match => {
@@ -102,7 +110,9 @@ const MatchDetailPanel: React.FC<DetailPanelProps> = ({
               <div className="lb-match-row">
                 <span className="lb-match-round">{match.round_number}R</span>
                 <span className="lb-match-opponent">
-                  {opponent !== null ? `vs  User ${opponent}` : "부전승"}
+                  {opponent !== null
+                    ? <>vs {renderNickTag(nickMap.get(opponent) ?? `User ${opponent}`)}</>
+                    : "부전승"}
                 </span>
                 <span className={`lb-match-result ${cls}`}>{label}</span>
                 <div className="lb-match-actions">
@@ -272,10 +282,13 @@ const LeaderboardTab: React.FC<Props> = ({
 
       {!loading && data && data.final_standings.length > 0 && (
         <div className="lb-list">
-          {computeTiedRanks(data.final_standings).map((s) => {
+          {(() => {
+            const nickMap = new Map(data.final_standings.map(s => [s.user_id, s.nickname_tag ?? `User ${s.user_id}`]));
+            return computeTiedRanks(data.final_standings).map((s) => {
             const isMe       = myUserId !== undefined && s.user_id === myUserId;
             const isExpanded = expandedUserId === s.user_id;
             const rankClass  = s.displayRank <= 3 ? ` lb-card--rank${s.displayRank}` : "";
+            const displayName = s.nickname_tag ?? `User ${s.user_id}`;
 
             return (
               <React.Fragment key={s.user_id}>
@@ -288,7 +301,7 @@ const LeaderboardTab: React.FC<Props> = ({
                   </div>
                   <div className="lb-info">
                     <span className="lb-user-id">
-                      User {s.user_id}
+                      {renderNickTag(displayName)}
                       {isMe && <span className="lb-me-badge">나</span>}
                     </span>
                     <span className="lb-record">
@@ -310,17 +323,20 @@ const LeaderboardTab: React.FC<Props> = ({
                     contestId={contestId}
                     sessionNumber={selectedSession}
                     viewUserId={s.user_id}
+                    viewNick={displayName}
                     isMe={isMe}
                     hasVisualization={hasVisualization}
                     matches={middleCache.get(s.user_id) ?? null}
                     loading={detailLoading && !middleCache.has(s.user_id)}
                     error={detailError}
                     onLogView={onLogView}
+                    nickMap={nickMap}
                   />
                 )}
               </React.Fragment>
             );
-          })}
+          });
+          })()}
         </div>
       )}
     </div>

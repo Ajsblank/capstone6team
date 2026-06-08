@@ -373,6 +373,11 @@
   font-size: 0.8rem;
   font-weight: 600;
   color: #475569;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .st-bye-badge {
@@ -905,6 +910,9 @@
 .st-rec-w { color: #4ade80; font-weight: 700; }
 .st-rec-d { color: #fbbf24; font-weight: 700; }
 .st-rec-l { color: #f87171; font-weight: 700; }
+.st-rec-sep { color: #334155; margin: 0 1px; }
+
+.st-nick-tag { color: #64748b; font-weight: 400; }
 
 /* ── 본인 행 하이라이트 ── */
 .st-sidebar-row--me {

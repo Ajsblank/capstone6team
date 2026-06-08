@@ -121,21 +121,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener("auth:logout", handleForceLogout);
   }, []);
 
-  // 페이지 최초 진입 / 새로고침 시 토큰 갱신 시도
-  useEffect(() => {
-    const token = getAccessToken();
-    console.log("[Auth] 페이지 진입/새로고침 — accessToken 존재 여부:", !!token, "| user:", !!user);
-    if (token && user) {
-      console.log("[Auth] refreshTokenApi 호출 (초기 진입)");
-      refreshTokenApi()
-        .then(newToken => console.log("[Auth] refreshTokenApi 성공 — 새 accessToken:", newToken))
-        .catch(err => console.warn("[Auth] refreshTokenApi 실패 (초기 진입):", err?.response?.status, err?.message));
-    } else {
-      console.log("[Auth] refreshTokenApi 호출 생략 — 토큰 또는 user 없음");
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // 탭 복귀 시 토큰 만료 여부 선제적 감지
   useEffect(() => {
     const checkOnFocus = async () => {
@@ -157,7 +142,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.log("[Auth] refreshTokenApi 성공 — 새 accessToken:", newToken);
         } catch (err: any) {
           console.warn("[Auth] refreshTokenApi 실패 (탭 복귀):", err?.response?.status, err?.message);
-          // 실패 시 인터셉터의 auth:logout 이벤트가 처리
+          await logoutApi().catch(() => {});
+          window.dispatchEvent(new CustomEvent("auth:logout"));
         }
       }
     };

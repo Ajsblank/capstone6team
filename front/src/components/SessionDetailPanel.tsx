@@ -24,6 +24,7 @@ export interface SessionPayload {
   session_number: number;
   status: "RUNNING" | "FINISHED" | "END";
   total_rounds: number;
+  participants?: Record<string, string>;
   rounds: SessionRound[];
 }
 

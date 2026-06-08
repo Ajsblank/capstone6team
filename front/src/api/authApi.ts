@@ -98,7 +98,7 @@ export const applyAuthInterceptor = (instance: AxiosInstance): void => {
         return instance(original);
       } catch {
         pendingQueue = [];
-        clearTokens();
+        logoutApi().catch(() => {});
         window.dispatchEvent(new CustomEvent("auth:logout"));
         return Promise.reject(error);
       } finally {
