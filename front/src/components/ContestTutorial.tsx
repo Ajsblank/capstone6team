@@ -187,18 +187,23 @@ const STEPS: Step[] = [
     text: "이상으로 대회 개최 튜토리얼을 마칩니다. 이제 여러분만의 아이디어가 담긴 게임으로 **멋진 대회를 개최**해보세요!" },
 ];
 
-// ─── 블러 마스크 (rect 변경 시에만 리렌더 — 타이핑 리렌더와 분리) ────────────────
+// ─── 블러 패널만 (ct-overlay 안에서 z-index 1000 그룹으로 렌더) ─────────────────
 const PAD = 8;
-const BlurMask = React.memo<{ rect: DOMRect }>(({ rect }) => (
+const BlurPanels = React.memo<{ rect: DOMRect }>(({ rect }) => (
   <>
     <div className="ct-blur" style={{ left: 0, top: 0, width: "100%", height: Math.max(0, rect.top - PAD) }} />
     <div className="ct-blur" style={{ left: 0, top: rect.bottom + PAD, width: "100%", height: Math.max(0, window.innerHeight - (rect.bottom + PAD)) }} />
     <div className="ct-blur" style={{ left: 0, top: rect.top - PAD, width: Math.max(0, rect.left - PAD), height: rect.height + PAD * 2 }} />
     <div className="ct-blur" style={{ left: rect.right + PAD, top: rect.top - PAD, width: Math.max(0, window.innerWidth - (rect.right + PAD)), height: rect.height + PAD * 2 }} />
-    <div className="ct-frame" style={{ left: rect.left - PAD, top: rect.top - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }} />
   </>
 ), (a, b) => a.rect === b.rect);
-BlurMask.displayName = "BlurMask";
+BlurPanels.displayName = "BlurPanels";
+
+// ─── 타겟 프레임 (root stacking context에서 z-index 1011로 렌더) ────────────────
+const TargetFrame = React.memo<{ rect: DOMRect }>(({ rect }) => (
+  <div className="ct-frame" style={{ left: rect.left - PAD, top: rect.top - PAD, width: rect.width + PAD * 2, height: rect.height + PAD * 2 }} />
+), (a, b) => a.rect === b.rect);
+TargetFrame.displayName = "TargetFrame";
 
 // ─── 메인 ──────────────────────────────────────────────────────────────────────
 const ContestTutorial: React.FC<Props> = ({ snap, previewOpen, applyFile, setUncertified, onFinish, onStepChange }) => {
@@ -294,15 +299,19 @@ const ContestTutorial: React.FC<Props> = ({ snap, previewOpen, applyFile, setUnc
 
   // ── 말풍선 위치 계산 ──
   const pad = PAD;
-  const bubbleW = 380;
+  const bubbleW = Math.min(380, window.innerWidth - 32);
   const gap = 18;
+  // 파일박스 우측 끝 + 여유(breakpoint별 수치와 동기화)
+  const fileboxRight = window.innerWidth <= 600 ? 0 : window.innerWidth <= 800 ? 208 : window.innerWidth <= 1024 ? 254 : 300;
+  const leftMin = window.innerWidth <= 600 ? 8 : fileboxRight;
+  const leftMax = window.innerWidth - bubbleW - 16;
   let bubbleStyle: React.CSSProperties = {};
   let connector: { x1: number; y1: number; x2: number; y2: number } | null = null;
   if (rect) {
     const cx = rect.left + rect.width / 2;
     if (step.placement === "top") {
       const top = rect.top - gap;
-      bubbleStyle = { left: Math.min(Math.max(cx - bubbleW / 2, 16), window.innerWidth - bubbleW - 16), bottom: window.innerHeight - top, width: bubbleW };
+      bubbleStyle = { left: Math.min(Math.max(cx - bubbleW / 2, leftMin), leftMax), bottom: window.innerHeight - top, width: bubbleW };
       connector = { x1: cx, y1: rect.top - pad, x2: cx, y2: top };
     } else if (step.placement === "left") {
       bubbleStyle = { right: window.innerWidth - rect.left + gap, top: Math.max(rect.top, 16), width: bubbleW };
@@ -312,7 +321,7 @@ const ContestTutorial: React.FC<Props> = ({ snap, previewOpen, applyFile, setUnc
       connector = { x1: rect.right + pad, y1: rect.top + rect.height / 2, x2: rect.right + gap, y2: rect.top + rect.height / 2 };
     } else {
       const top = rect.bottom + gap;
-      bubbleStyle = { left: Math.min(Math.max(cx - bubbleW / 2, 16), window.innerWidth - bubbleW - 16), top, width: bubbleW };
+      bubbleStyle = { left: Math.min(Math.max(cx - bubbleW / 2, leftMin), leftMax), top, width: bubbleW };
       connector = { x1: cx, y1: rect.bottom + pad, x2: cx, y2: top };
     }
   }
@@ -368,17 +377,23 @@ const ContestTutorial: React.FC<Props> = ({ snap, previewOpen, applyFile, setUnc
         <p className="ct-filebox-note">현재 단계에 필요한 파일이 강조됩니다.</p>
       </aside>
 
-      {/* 오버레이 */}
+      {/* 오버레이 — 블러 패널만 (z-index 1000 stacking context) */}
       {!rect ? (
         <div className="ct-overlay ct-overlay--center">
           <div className="ct-bubble ct-bubble--center">{bubbleInner}</div>
         </div>
       ) : (
         <div className="ct-overlay">
-          {/* 블러 마스크 — rect 변경 시에만 리렌더 */}
-          <BlurMask rect={rect} />
+          <BlurPanels rect={rect} />
+        </div>
+      )}
 
-          {/* 드롭존 (드롭 스텝에서만) */}
+      {/* 타겟 프레임·드롭존·연결선·말풍선 — ct-overlay 바깥에서 root stacking context로 렌더
+          → z-index 1011/1012가 글로벌하게 vrm-overlay(1010)보다 우선됨 */}
+      {rect && (
+        <>
+          <TargetFrame rect={rect} />
+
           {dropKinds.length > 0 && (
             <div
               className={`ct-dropzone${dropActive ? " ct-dropzone--active" : ""}`}
@@ -391,7 +406,6 @@ const ContestTutorial: React.FC<Props> = ({ snap, previewOpen, applyFile, setUnc
             </div>
           )}
 
-          {/* 연결선 */}
           {connector && (
             <svg className="ct-connector">
               <line x1={connector.x1} y1={connector.y1} x2={connector.x2} y2={connector.y2}
@@ -399,8 +413,9 @@ const ContestTutorial: React.FC<Props> = ({ snap, previewOpen, applyFile, setUnc
               <circle cx={connector.x1} cy={connector.y1} r={3} fill="#ea580c" />
             </svg>
           )}
+
           <div className="ct-bubble" style={bubbleStyle}>{bubbleInner}</div>
-        </div>
+        </>
       )}
     </>
   );

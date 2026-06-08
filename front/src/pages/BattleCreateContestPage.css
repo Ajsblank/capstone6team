@@ -213,8 +213,8 @@
 .cc-pow2-btn:active { background: #d1d5db; }
 .cc-pow2-btn + .cc-pow2-btn { border-top: 1px solid #e5e7eb; }
 
-.cc-row { display: flex; gap: 24px; }
-.cc-row .cc-field { flex: 1; }
+.cc-row { display: flex; gap: 24px; flex-wrap: wrap; }
+.cc-row .cc-field { flex: 1; min-width: 220px; }
 
 /* Markdown editor */
 .cc-md-editor {
@@ -1201,7 +1201,83 @@
   box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
 }
 
-/* ── 모바일: AI 도우미 패널 숨김 ── */
+/* ── 모바일 반응형 ── */
+
+/* 버튼·입력 전체: 더블탭 줌 방지 */
+.cc-page button,
+.cc-page input,
+.cc-page select,
+.cc-page textarea,
+.cc-page label {
+  touch-action: manipulation;
+}
+
+@media (max-width: 1024px) {
+  .cc-ai-col { display: none; }
+}
+
 @media (max-width: 768px) {
   .cc-ai-col { display: none; }
+
+  /* 레이아웃: 2단 → 1단 세로 스택 */
+  .cc-layout {
+    flex-direction: column;
+  }
+  .cc-form-col  { order: 1; }
+  .cc-checklist-col {
+    order: 2;
+    width: 100%;
+    position: static;
+  }
+
+  /* 콘텐츠 패딩 축소 */
+  .cc-content { padding: 24px 16px; }
+
+  /* 제목 행: 이름 + 인증 토글 수직 스택 */
+  .cc-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  /* 파일 행: 줄바꿈 허용 */
+  .cc-file-row { flex-wrap: wrap; }
+
+  /* 결제 확인 모달: 좌우 여백 확보 */
+  .cc-pay-modal {
+    min-width: unset;
+    width: calc(100vw - 32px);
+    max-width: 100%;
+  }
+
+  /* 성공 모달 가로 범위 제한 */
+  .cc-success-modal { max-width: calc(100vw - 32px); }
+
+  /* 토스트 가로 범위 제한 */
+  .cc-toast { max-width: calc(100vw - 32px); }
+
+  /* 미리보기 패널 패딩 축소 */
+  .cc-preview-body { padding: 20px 18px; }
+}
+
+@media (max-width: 480px) {
+  .cc-content { padding: 16px 12px; }
+  .cc-section  { padding: 16px 14px 12px; }
+
+  /* 인증 여부 버튼 그룹: 전체 너비 */
+  .cc-cert-group { width: 100%; }
+  .cc-cert-btn   { flex: 1; padding: 10px 8px; }
+
+  /* 제출 버튼 영역: 수직 스택 */
+  .cc-submit-area {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .cc-submit-area > button,
+  .cc-submit-area > span { width: 100%; }
+  .cc-submit-area > span > button { width: 100%; }
+
+  /* 체크리스트 패널 패딩 축소 */
+  .cc-checklist-panel { padding: 14px; }
 }

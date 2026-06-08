@@ -14,7 +14,6 @@ import {
 import { validateContestCode, subscribeToValidationResults, unsubscribeFromValidationResults, ValidationResult } from "../api/validationApi";
 import ContestSidebar from "../components/ContestSidebar";
 import RichTextEditor from "../components/RichTextEditor";
-import AiAssistPanel from "../components/AiAssistPanel";
 import ContestPreviewModal from "../components/ContestPreviewModal";
 import ContestTutorial, { TutSnapshot, TutFileKind } from "../components/ContestTutorial";
 import ValidationResultModal from "../components/ValidationResultModal";
@@ -502,8 +501,12 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
 
       {/* 결제 확인 모달 */}
       {showPayConfirm && (
-        <div className="cc-modal-overlay" onClick={() => !payLoading && setShowPayConfirm(false)}>
-          <div className="cc-modal cc-pay-modal" onClick={e => e.stopPropagation()}>
+        <div
+          className="cc-modal-overlay"
+          onClick={() => !payLoading && setShowPayConfirm(false)}
+          onTouchEnd={(e) => { if (e.target === e.currentTarget && !payLoading) setShowPayConfirm(false); }}
+        >
+          <div className="cc-modal cc-pay-modal" onClick={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()}>
             <div className="cc-pay-modal-header">
               <span className="cc-pay-modal-title">결제 확인</span>
               <span className={`cc-pay-badge${certification ? " cc-pay-badge--cert" : ""}`}>
@@ -862,19 +865,6 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
 
           </div>
         </div>
-      {/* ── AI 도우미 패널 (좌측 여백 고정) ── */}
-      <div className="cc-ai-col">
-        <AiAssistPanel
-          description={description}
-          sampleCode={sampleCodes[0] ?? null}
-          onApplySampleCode={(f) => { setSampleCodes([f]); setValidationPassed(false); setValidationResult(null); }}
-          onApplyJudgeCode={(f) => { setJudgeCode(f); setValidationPassed(false); setValidationResult(null); }}
-          onAddExampleAICode={(f) => setExampleAiCodes(prev => [...prev, { file: f, description: "" }])}
-          onApplyVisualization={(f) => setVisualizationHtml(f)}
-          onApplySoloPlay={(f) => setSoloPlayHtml(f)}
-        />
-      </div>
-
       </main>
 
       {/* ── 튜토리얼 오버레이 ── */}

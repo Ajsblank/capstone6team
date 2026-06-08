@@ -39,7 +39,6 @@ const BattleTopNav: React.FC<BattleTopNavProps> = ({ spacer, saveLoginRedirect }
       </span>
       <nav className="home-tab-nav">
         <button className="home-tab-btn" onClick={() => navigate("battle")}>대회</button>
-        <button className="home-tab-btn" onClick={() => goSubTab("ranking")}>랭킹</button>
         <button className="home-tab-btn" onClick={() => goSubTab("previous-problems")}>이전 문제</button>
         <button className="home-tab-btn" onClick={() => goSubTab("help")}>도움말</button>
         <button className="home-tab-btn" onClick={() => goSubTab("contact")}>문의</button>
@@ -61,7 +60,6 @@ const BattleTopNav: React.FC<BattleTopNavProps> = ({ spacer, saveLoginRedirect }
       {/* 좁은 화면용 햄버거 + 드로어 (탭/프로필이 숨겨질 때 노출) */}
       <ResponsiveNavMenu tabs={[
         { label: "대회",      onClick: () => navigate("battle") },
-        { label: "랭킹",      onClick: () => goSubTab("ranking") },
         { label: "이전 문제", onClick: () => goSubTab("previous-problems") },
         { label: "도움말",    onClick: () => goSubTab("help") },
         { label: "문의",      onClick: () => goSubTab("contact") },

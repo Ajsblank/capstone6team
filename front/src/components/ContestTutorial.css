@@ -1,5 +1,5 @@
-/* 튜토리얼 모드: 좌측 파일박스 공간 확보 */
-.cc-page--tutorial .cc-content { padding-left: 270px; }
+/* 튜토리얼 모드: 좌측 파일박스 공간 확보 (20px offset + 260px width + 12px gap) */
+.cc-page--tutorial .cc-content { padding-left: 292px; }
 
 /* ── 좌측 파일 보관함 (fixed) ── */
 .ct-filebox {
@@ -7,6 +7,8 @@
   left: 20px;
   top: 90px;
   width: 260px;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
   background: #fff;
   border: 1.5px solid #fed7aa;
   border-radius: 14px;
@@ -17,6 +19,77 @@
   flex-direction: column;
   gap: 12px;
   font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: #fed7aa transparent;
+}
+.ct-filebox::-webkit-scrollbar { width: 4px; }
+.ct-filebox::-webkit-scrollbar-thumb { background: #fed7aa; border-radius: 4px; }
+
+/* ── 좁은 화면 대응 ── */
+@media (max-width: 1024px) {
+  .ct-filebox { width: 220px; left: 12px; }
+  .cc-page--tutorial .cc-content { padding-left: 246px; } /* 12 + 220 + 14 */
+}
+
+@media (max-width: 800px) {
+  .ct-filebox { width: 180px; left: 8px; top: 80px; }
+  .cc-page--tutorial .cc-content { padding-left: 200px; } /* 8 + 180 + 12 */
+  .ct-filebox-title { font-size: 0.8rem; }
+  .ct-file { padding: 8px 10px; }
+  .ct-file-name { font-size: 0.66rem; }
+}
+
+/* ── 모바일: 파일박스를 화면 하단 가로 strip으로 전환 ── */
+@media (max-width: 600px) {
+  .cc-page--tutorial .cc-content {
+    padding-left: 0;
+    padding-bottom: 120px; /* 하단 filebox 높이 확보 */
+  }
+
+  .ct-filebox {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    max-height: 108px;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: 14px 14px 0 0;
+    border-bottom: none;
+    padding: 10px 12px;
+    gap: 8px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    scrollbar-width: none;
+  }
+  .ct-filebox::-webkit-scrollbar { display: none; }
+
+  .ct-filebox-title {
+    white-space: nowrap;
+    font-size: 0.7rem;
+    flex-shrink: 0;
+  }
+
+  .ct-filebox-list {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+
+  .ct-file {
+    flex-shrink: 0;
+    padding: 7px 10px;
+  }
+
+  .ct-file-name { font-size: 0.64rem; }
+
+  /* 안내 문구 생략 */
+  .ct-filebox-note { display: none; }
+
+  /* 튜토리얼 종료 버튼: 파일박스와 겹치지 않게 위쪽으로 */
+  .ct-exit { top: 12px; right: 12px; }
 }
 .ct-filebox-title { font-size: 0.88rem; font-weight: 800; color: #c2410c; }
 .ct-filebox-list { display: flex; flex-direction: column; gap: 8px; }
@@ -71,7 +144,7 @@
   transform: translateZ(0);  /* 별도 합성 레이어로 승격 — 재합성 비용 절감 */
 }
 
-/* 타겟 테두리 */
+/* 타겟 테두리 — root stacking context, 글로벌 z-index 1011 */
 .ct-frame {
   position: fixed;
   border-radius: 10px;
@@ -79,10 +152,10 @@
   box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.2);
   pointer-events: none;
   transition: all 0.25s ease;
-  z-index: 1011;   /* 검증 결과 모달(1010) 위에서 타겟을 강조 */
+  z-index: 1011;
 }
 
-/* 드롭존 (드롭 스텝) */
+/* 드롭존 (드롭 스텝) — root stacking context, 페이지 폼 요소 위 / vrm-overlay(1010) 아래 */
 .ct-dropzone {
   position: fixed;
   border-radius: 10px;
@@ -92,6 +165,7 @@
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  z-index: 1005;
 }
 .ct-dropzone--active {
   outline-color: #16a34a;
@@ -125,9 +199,10 @@
 }
 .ct-exit:hover { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
 
+/* root stacking context, 글로벌 z-index 1011 */
 .ct-connector { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1011; }
 
-/* ── 말풍선 ── */
+/* ── 말풍선 — root stacking context, 글로벌 z-index 1012 (미리보기 제외 모든 모달·오버레이보다 앞) ── */
 .ct-bubble {
   position: fixed;
   background: #fff;
@@ -136,7 +211,7 @@
   padding: 18px 20px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
   pointer-events: auto;
-  z-index: 1012;   /* 검증 결과 모달(1010)·강조 프레임(1011) 위 — 설명이 가려지지 않도록 */
+  z-index: 1012;
 }
 .ct-bubble--center { position: static; max-width: 480px; width: 100%; }
 

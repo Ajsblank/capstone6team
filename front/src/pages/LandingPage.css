@@ -31,12 +31,15 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .lp-logo-img {
-  height: 112px;
+  height: 64px;
   width: auto;
+  max-width: none;
   display: block;
+  margin-left: -36px;
 }
 
 /* 대회 목록 페이지(.home-tab-btn)와 동일한 밑줄형 탭 — 헤더 풀하이트 */
