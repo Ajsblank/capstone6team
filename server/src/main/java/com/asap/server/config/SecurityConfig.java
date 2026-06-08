@@ -92,6 +92,8 @@ public class SecurityConfig {
                         .authenticated()
                         .requestMatchers("/api/auth/logout", "/api/auth/logout-all", "/api/auth/withdraw")
                         .authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/profile/me").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/profile/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/payment/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/code/submission/**").authenticated()
                         .anyRequest().permitAll())
