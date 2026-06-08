@@ -21,6 +21,7 @@ import com.asap.server.domain.CodeBattleSubmission;
 import com.asap.server.domain.ContestSwissMatch;
 import com.asap.server.domain.ContestSwissRound;
 import com.asap.server.domain.ContestSwissSession;
+import com.asap.server.domain.Profile;
 import com.asap.server.dto.response.CodeBattleMatchResult;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.global.type.MatchStatus;
@@ -153,6 +154,7 @@ public class SwissLeagueService {
       sessionState.put("session_number", sessionNumber);
       sessionState.put("status", "RUNNING");
       sessionState.put("total_rounds", roundsPerSession);
+      sessionState.put("participants", buildParticipantMap(participants));
       sessionState.put("rounds", new ArrayList<>());
       sseService.updateSessionState(contestId, session.getId(), sessionState);
 
@@ -614,7 +616,7 @@ public class SwissLeagueService {
     state.put("session_number", session.getSessionNumber());
     state.put("status", session.getStatus().name());
     state.put("total_rounds", totalRounds);
-
+    state.put("participants", buildParticipantMap(participantRepository.findByContestId(contestId)));
     List<Map<String, Object>> roundsList = new ArrayList<>();
     for (ContestSwissRound round : rounds) {
       Map<String, Object> roundState = new LinkedHashMap<>();
@@ -652,5 +654,17 @@ public class SwissLeagueService {
 
     sseService.updateSessionState(contestId, sessionId, state);
     log.info("[스위스리그] sessionId={} DB에서 상태 복원 완료. rounds={}", sessionId, rounds.size());
+  }
+
+  private Map<Long, String> buildParticipantMap(List<CodeBattleParticipant> participants) {
+    Map<Long, String> map = new LinkedHashMap<>();
+    for (CodeBattleParticipant p : participants) {
+      Profile profile = p.getUser().getProfile();
+      if (profile == null)
+        continue;
+      String nameTag = profile.getNickname() + "-" + String.format("%04d", profile.getTag());
+      map.put(p.getUser().getId(), nameTag);
+    }
+    return map;
   }
 }
