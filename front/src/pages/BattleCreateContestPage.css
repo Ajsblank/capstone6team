@@ -779,10 +779,11 @@
 }
 
 .cc-ai-col {
-  flex-shrink: 0;
-  position: sticky;
-  top: 24px;
-  align-self: flex-start;
+  position: fixed;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 400;
 }
 
 .cc-checklist-col {
@@ -1148,4 +1149,9 @@
 .cc-success-btn:active {
   transform: translateY(0);
   box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+}
+
+/* ── 모바일: AI 도우미 패널 숨김 ── */
+@media (max-width: 768px) {
+  .cc-ai-col { display: none; }
 }
