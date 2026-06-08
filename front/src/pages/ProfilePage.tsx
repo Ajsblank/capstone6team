@@ -46,6 +46,10 @@ const ProfilePage: React.FC = () => {
       setSaveErr("닉네임은 필수입니다.");
       return;
     }
+    if (draft.nickname.trim().length > 8) {
+      setSaveErr("닉네임은 8자 이내로 입력해주세요.");
+      return;
+    }
     setSaving(true);
     setSaveErr(null);
     try {
@@ -188,7 +192,10 @@ const ProfilePage: React.FC = () => {
             <div className="pp-field">
               <label className="pp-label">닉네임</label>
               {editing ? (
-                <input className="pp-input" value={draft.nickname ?? ""} onChange={set("nickname")} maxLength={20} />
+                <>
+                  <input className="pp-input" value={draft.nickname ?? ""} onChange={set("nickname")} maxLength={8} />
+                  <p className="pp-field-hint">{(draft.nickname ?? "").length} / 8자</p>
+                </>
               ) : (
                 <span className="pp-value pp-value--name">
                   {displayNickname}
