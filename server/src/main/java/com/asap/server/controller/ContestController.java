@@ -29,7 +29,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.asap.server.config.CustomUserDetails;
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.ContestSwissMatch;
@@ -225,7 +224,10 @@ public class ContestController {
     public ResponseEntity<List<CodeBattleMySubmissionResponse>> getMySubmissions(
             @PathVariable Long contestId,
             @PathVariable Long targetUserId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal Long userId) {
+        if (!targetUserId.equals(userId)) {
+            throw new IllegalArgumentException("본인의 제출 이력만 조회할 수 있습니다.");
+        }
         log.info("조회 시도: {} / {}", contestId, targetUserId);
         List<CodeBattleMySubmissionResponse> responses = contestService.getMySubmissionsWithAi(contestId,
                 targetUserId);
