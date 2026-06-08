@@ -749,7 +749,7 @@ public class ContestService {
 
         // 해당 유저가 AI와 진행한 모든 매치 기록 조회
         List<CodeBattleMatch> matches = matchRepository.findByContestIdAndUser1Id(contestId, userId);
-        System.out.println("조회 시도 - contestId: " + contestId + ", userId: " + userId);
+        log.info("조회 시도 - contestId: {}, userId: {}", contestId, userId);
 
         return matches.stream()
                 .filter(match -> match.getSubmission() != null)

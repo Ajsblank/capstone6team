@@ -79,7 +79,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/mail",
-                                "/api/auth/mail/send", "/api/auth/sms/send", "/api/auth/sms/verify")
+                                "/api/auth/mail/send", "/api/auth/sms/send", "/api/auth/sms/verify",
+                                "/api/auth/refresh")
                         .permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/contests", "/api/contests/**").permitAll()
@@ -89,8 +90,7 @@ public class SecurityConfig {
                         .authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/contests/**", "/api/contests/*/resources/**")
                         .authenticated()
-                        .requestMatchers("/api/auth/logout", "/api/auth/logout-all", "/api/auth/refresh",
-                                "/api/auth/withdraw")
+                        .requestMatchers("/api/auth/logout", "/api/auth/logout-all", "/api/auth/withdraw")
                         .authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/payment/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/code/submission/**").authenticated()
