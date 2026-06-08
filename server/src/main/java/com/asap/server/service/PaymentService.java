@@ -50,6 +50,11 @@ public class PaymentService {
 
     // 트랜잭션 없음 — 토스 API 호출 중 DB 커넥션 점유 방지
     public PaymentConfirmResponse confirmPayment(PaymentConfirmRequest request, Long userId) {
+        // 1차 중복 체크 — 외부 API 호출 전 Fail-Fast
+        if (paymentRepository.existsByOrderId(request.getOrderId())) {
+            throw new IllegalArgumentException("이미 처리된 주문입니다.");
+        }
+
         // 트랜잭션 밖에서 외부 API 호출
         TossPaymentResponse tossResponse = callTossConfirmApi(
                 request.getPaymentKey(), request.getOrderId(), request.getAmount());
@@ -61,7 +66,7 @@ public class PaymentService {
             throw new IllegalArgumentException("결제 금액이 일치하지 않습니다.");
         }
 
-        // DB 저장만 트랜잭션으로 분리 — 중복 체크도 트랜잭션 안에서 수행하여 이중 저장 방지
+        // 2차 중복 체크 — 트랜잭션 안에서 동시 요청으로 인한 이중 저장 방지
         return transactionTemplate.execute(status -> {
             if (paymentRepository.existsByOrderId(request.getOrderId())) {
                 throw new IllegalArgumentException("이미 처리된 주문입니다.");
