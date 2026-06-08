@@ -11,6 +11,12 @@ interface Props {
 
 // ── 공동 순위 계산 (같은 승점 → 같은 등수, 다음 등수는 건너뜀) ────────────────────
 // 모든 행에 등수를 부여하되 동점이면 같은 숫자(예: 1,1,1,4)
+function renderNickTag(value: string): React.ReactNode {
+  const i = value.lastIndexOf('-');
+  if (i === -1) return value;
+  return <>{value.slice(0, i)}<span className="fr-nick-tag">#{value.slice(i + 1)}</span></>;
+}
+
 function computeTiedRanks<T extends { points: number }>(entries: T[]): (T & { displayRank: number })[] {
   const sorted = [...entries].sort((a, b) => b.points - a.points);
   let lastRank = 0;
@@ -115,6 +121,7 @@ const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLo
         {computeTiedRanks(standings).map(s => {
           const total       = s.wins + s.draws + s.losses;
           const isMe        = myUserId !== undefined && s.user_id === myUserId;
+          const displayName = s.nickname_tag ?? `User ${s.user_id}`;
           const isExpanded  = expandedUserId === s.user_id;
           const sortedMatchIds = [...(s.match_ids ?? [])].sort((a, b) => a - b);
           const hasMatchIds = sortedMatchIds.length > 0;
@@ -131,7 +138,7 @@ const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLo
 
                 <div className="fr-info">
                   <span className="fr-user-id">
-                    User {s.user_id}
+                    {renderNickTag(displayName)}
                     {isMe && <span className="fr-me-badge">나</span>}
                   </span>
                   <span className="fr-record">

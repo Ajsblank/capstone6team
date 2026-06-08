@@ -70,6 +70,7 @@ export interface UserProfilePatch {
 
 export interface LeaderboardStanding {
   user_id: number;
+  nickname_tag?: string;
   wins: number;
   draws: number;
   losses: number;
@@ -197,6 +198,7 @@ export const getContestSessions = async (contestId: number): Promise<ContestSess
 // ── 최종 결과 조회 — GET /api/contests/{contestId}/final-result ──
 export interface FinalStanding {
   user_id: number;
+  nickname_tag?: string;
   wins: number;
   draws: number;
   losses: number;

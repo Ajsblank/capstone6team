@@ -42,7 +42,15 @@ interface VStanding {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function pName(id: number) { return `U${id}`; }
+function makePName(participants?: Record<string, string>) {
+  return (id: number) => participants?.[String(id)] ?? `U${id}`;
+}
+
+function renderNickTag(value: string): React.ReactNode {
+  const i = value.lastIndexOf('-');
+  if (i === -1) return value;
+  return <>{value.slice(0, i)}<span className="st-nick-tag">#{value.slice(i + 1)}</span></>;
+}
 
 function pointsBeforeRound(rounds: SessionRound[], playerId: number, beforeRoundNumber: number): number {
   let pts = 0;
@@ -152,9 +160,10 @@ interface VMatchRowProps {
   hasVisualization: boolean;
   logLoading: boolean;
   onShowLog: (matchId: number) => void;
+  nickOf: (id: number) => string;
 }
 
-const VMatchRow: React.FC<VMatchRowProps> = ({ match, trackedId, selected, onSelect, setRef, hasVisualization, logLoading, onShowLog }) => {
+const VMatchRow: React.FC<VMatchRowProps> = ({ match, trackedId, selected, onSelect, setRef, hasVisualization, logLoading, onShowLog, nickOf }) => {
   const { result, isBye, p1Id, p2Id, id } = match;
   const p1Win  = result === "p1";
   const p2Win  = result === "p2";
@@ -167,7 +176,7 @@ const VMatchRow: React.FC<VMatchRowProps> = ({ match, trackedId, selected, onSel
         className={`st-bye-row${trackedId === p1Id ? " st-bye-row--tracked" : ""}`}
       >
         <span className={`st-bye-name${trackedId === p1Id ? " st-bye-name--tracked" : ""}`}>
-          {pName(p1Id)}
+          {renderNickTag(nickOf(p1Id))}
         </span>
         <span className="st-bye-badge">부전승</span>
       </div>
@@ -201,7 +210,7 @@ const VMatchRow: React.FC<VMatchRowProps> = ({ match, trackedId, selected, onSel
       <div ref={el => setRef(id, el)} className={rowCls} onClick={onSelect}>
         {/* 좌측 — 플레이어 1 */}
         <div className={p1HalfCls}>
-          <span className="st-match-pname">{pName(p1Id)}</span>
+          <span className="st-match-pname">{renderNickTag(nickOf(p1Id))}</span>
           <span className="st-result-slot">
             {p1Win  && <span className="st-win-icon">W</span>}
             {p2Win  && <span className="st-lose-icon">L</span>}
@@ -222,7 +231,7 @@ const VMatchRow: React.FC<VMatchRowProps> = ({ match, trackedId, selected, onSel
             {p2Win  && <span className="st-win-icon">W</span>}
             {isDraw && <span className="st-draw-icon">D</span>}
           </span>
-          <span className="st-match-pname">{pName(p2Id)}</span>
+          <span className="st-match-pname">{renderNickTag(nickOf(p2Id))}</span>
         </div>
       </div>
 
@@ -253,6 +262,7 @@ interface VPoolCardProps {
   hasVisualization: boolean;
   logLoadingMatchId: number | null;
   onShowLog: (matchId: number) => void;
+  nickOf: (id: number) => string;
 }
 
 function poolHsl(t: number, lightness = 62, sat = 80): string {
@@ -260,7 +270,7 @@ function poolHsl(t: number, lightness = 62, sat = 80): string {
   return `hsl(${hue}, ${sat}%, ${lightness}%)`;
 }
 
-const VPoolCard: React.FC<VPoolCardProps> = ({ pool, trackedId, selectedMatchId, onSelect, setRef, hasVisualization, logLoadingMatchId, onShowLog }) => {
+const VPoolCard: React.FC<VPoolCardProps> = ({ pool, trackedId, selectedMatchId, onSelect, setRef, hasVisualization, logLoadingMatchId, onShowLog, nickOf }) => {
   const hasTracked = trackedId !== null &&
     pool.matches.some(m => m.p1Id === trackedId || m.p2Id === trackedId);
 
@@ -288,6 +298,7 @@ const VPoolCard: React.FC<VPoolCardProps> = ({ pool, trackedId, selectedMatchId,
             hasVisualization={hasVisualization}
             logLoading={logLoadingMatchId === m.matchId}
             onShowLog={onShowLog}
+            nickOf={nickOf}
           />
         ))}
       </div>
@@ -304,8 +315,9 @@ interface VSidebarProps {
   rankDeltaMap: Map<number, { delta: number; key: number }>;
   myUserId?: number;
   sessionDone?: boolean;
+  nickOf: (id: number) => string;
 }
-const VSidebar: React.FC<VSidebarProps> = ({ standings, trackedId, onTrack, rankDeltaMap, myUserId, sessionDone }) => (
+const VSidebar: React.FC<VSidebarProps> = ({ standings, trackedId, onTrack, rankDeltaMap, myUserId, sessionDone, nickOf }) => (
   <div className="st-ranking-sidebar">
     <div className="st-sidebar-header">
       <span className="st-sidebar-title">{sessionDone ? "최종 결과" : "실시간 순위"}</span>
@@ -333,13 +345,15 @@ const VSidebar: React.FC<VSidebarProps> = ({ standings, trackedId, onTrack, rank
               #{s.rank}
             </span>
             <span className="st-sidebar-name">
-              {pName(s.playerId)}
+              {renderNickTag(nickOf(s.playerId))}
               {isMe && <span className="st-sidebar-me-badge">나</span>}
             </span>
             <span className="st-sidebar-record">
-              <span className="st-rec-w">{s.wins}W</span>
-              {s.draws > 0 && <span className="st-rec-d"> {s.draws}D</span>}
-              <span className="st-rec-l"> {s.losses}L</span>
+              <span className="st-rec-w">{s.wins}승</span>
+              <span className="st-rec-sep">/</span>
+              <span className="st-rec-d">{s.draws}무</span>
+              <span className="st-rec-sep">/</span>
+              <span className="st-rec-l">{s.losses}패</span>
             </span>
             {delta && (
               <span key={delta.key} className={`st-rank-delta st-rank-delta--${delta.delta > 0 ? "up" : "down"}`}>
@@ -499,6 +513,8 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId, contestId, 
     }
   }, [trackedId, vRounds]);
 
+  const nickOf = useMemo(() => makePName(payload?.participants), [payload?.participants]);
+
   if (!payload || vRounds.length === 0) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "#6b7280", fontSize: "0.9rem" }}>
@@ -578,6 +594,7 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId, contestId, 
                           hasVisualization={hasVisualization}
                           logLoadingMatchId={logLoadingMatchId}
                           onShowLog={handleShowLog}
+                          nickOf={nickOf}
                         />
                       ))
                     )}
@@ -619,6 +636,7 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId, contestId, 
           rankDeltaMap={rankDeltaMap}
           myUserId={myUserId}
           sessionDone={sessionDone}
+          nickOf={nickOf}
         />
       </div>
 
