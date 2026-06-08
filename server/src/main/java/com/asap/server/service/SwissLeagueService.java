@@ -329,7 +329,7 @@ public class SwissLeagueService {
           .range(swissRound + roundId + matchKey, 0, -1);
       List<Long> matchIds = matchIdStrs.stream().map(Long::parseLong).collect(Collectors.toList());
 
-      List<ContestSwissMatch> allMatches = swissMatchRepository.findAllById(matchIds);
+      List<ContestSwissMatch> allMatches = swissMatchRepository.findAllByIdWithFetch(matchIds);
 
       for (ContestSwissMatch m : allMatches) {
         if (m.getResult() == ResultType.BYE) {

@@ -636,7 +636,7 @@ public class ContestController {
             @PathVariable Long matchId) {
         CodeBattleMatch match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new EntityNotFoundException("Match not found: " + matchId));
-        if (match.getContest().getId() != contestId) {
+        if (!match.getContest().getId().equals(contestId)) {
             log.info("요청한 매치의 대회 ID={}와 입력된 대회 ID={}가 일치하지 않습니다.", match.getId(), contestId);
         }
         return match.getLog();
