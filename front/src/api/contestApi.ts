@@ -137,7 +137,8 @@ export const createContest = async (data: CreateContestData): Promise<ContestRes
       language: extToLanguage(f.name),
     }))
   );
-  const judgeCode = await data.judgeCode.text();
+  const judgeCode         = await data.judgeCode.text();
+  const judgeLanguage     = extToLanguage(data.judgeCode.name);
   const exampleAiCodes = await Promise.all(
     data.exampleAiCodes.map(async ({ file, description }) => ({
       code: await file.text(),
@@ -161,6 +162,7 @@ export const createContest = async (data: CreateContestData): Promise<ContestRes
     creatorId:       data.creatorId,
     sampleCodes,
     judgeCode,
+    judgeLanguage,
     exampleAiCodes,
     visualizationHtml,
     soloPlayHtml,
@@ -179,7 +181,8 @@ export const createCertifiedContest = async (
       language: extToLanguage(f.name),
     }))
   );
-  const judgeCode = await data.judgeCode.text();
+  const judgeCode         = await data.judgeCode.text();
+  const judgeLanguage     = extToLanguage(data.judgeCode.name);
   const exampleAiCodes = await Promise.all(
     data.exampleAiCodes.map(async ({ file, description }) => ({
       code: await file.text(),
@@ -203,6 +206,7 @@ export const createCertifiedContest = async (
     creatorId:       data.creatorId,
     sampleCodes,
     judgeCode,
+    judgeLanguage,
     exampleAiCodes,
     visualizationHtml,
     soloPlayHtml,

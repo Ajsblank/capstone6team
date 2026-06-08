@@ -121,6 +121,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener("auth:logout", handleForceLogout);
   }, []);
 
+  // 새로고침/초기 진입 시 현재 토큰 로그 + 만료 여부 확인
+  useEffect(() => {
+    const access  = getAccessToken();
+    const refresh = localStorage.getItem("refreshToken");
+    console.log("[Auth] 새로고침/진입 — accessToken:", access);
+    console.log("[Auth] 새로고침/진입 — refreshToken:", refresh);
+
+    if (!access || !user) return;
+
+    try {
+      const payload = JSON.parse(atob(access.split('.')[1]));
+      const isExpired = Date.now() >= payload.exp * 1000;
+      console.log("[Auth] accessToken 만료 여부:", isExpired, "| exp:", new Date(payload.exp * 1000).toLocaleString());
+
+      if (isExpired) {
+        console.warn("[Auth] accessToken 만료 → refreshTokenApi 호출");
+        refreshTokenApi().catch(async (err) => {
+          console.warn("[Auth] refreshTokenApi 실패:", err?.response?.status, err?.message);
+          await logoutApi().catch(() => {});
+          window.dispatchEvent(new CustomEvent("auth:logout"));
+        });
+      }
+    } catch (e) {
+      console.warn("[Auth] accessToken 디코딩 실패:", e);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // 탭 복귀 시 토큰 만료 여부 선제적 감지
   useEffect(() => {
     const checkOnFocus = async () => {
