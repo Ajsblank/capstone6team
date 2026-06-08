@@ -8,11 +8,11 @@ import TermsAgreementModal from "../components/TermsAgreementModal";
 import "./AppLayout.css";
 import "./BattleHomePage.css";
 
-type BattleTab = "contest" | "previous-problems" | "ranking" | "help" | "contact";
+type BattleTab = "contest" | "previous-problems" | "help" | "contact";
 type StatusFilter = "" | "RUNNING" | "PLANNED" | "END";
 
 const FETCH_SIZE = 100;
-const VALID_BATTLE_TABS: BattleTab[] = ["contest", "previous-problems", "ranking", "help", "contact"];
+const VALID_BATTLE_TABS: BattleTab[] = ["contest", "previous-problems", "help", "contact"];
 
 // ── Judge 뼈대 코드 (MD 파일 섹션 5) ──
 const JUDGE_SKELETON_CPP = `#include <iostream>
@@ -692,28 +692,6 @@ function statusCardClass(status?: string): string {
   return "";
 }
 
-const RANKING_DATA = [
-  { rank: 1,  username: "CodeMaster_Kim",    points: 9840, cert: 15, uncert: 8  },
-  { rank: 2,  username: "AlgoQueen_Park",    points: 8920, cert: 12, uncert: 11 },
-  { rank: 3,  username: "ByteWizard_Lee",    points: 8100, cert: 10, uncert: 14 },
-  { rank: 4,  username: "NeuroHacker_Choi",  points: 7560, cert: 9,  uncert: 7  },
-  { rank: 5,  username: "QuantumCoder_Jung", points: 7200, cert: 8,  uncert: 10 },
-  { rank: 6,  username: "DataStorm_Han",     points: 6880, cert: 7,  uncert: 9  },
-  { rank: 7,  username: "NullPointer_Oh",    points: 6430, cert: 6,  uncert: 12 },
-  { rank: 8,  username: "RecursiveKim",      points: 5970, cert: 8,  uncert: 5  },
-  { rank: 9,  username: "SortedShin",        points: 5510, cert: 5,  uncert: 8  },
-  { rank: 10, username: "BitFlipper_Yoon",   points: 5200, cert: 6,  uncert: 6  },
-  { rank: 11, username: "HashQueen_Kang",    points: 4890, cert: 4,  uncert: 9  },
-  { rank: 12, username: "GreedyLim",         points: 4440, cert: 5,  uncert: 7  },
-  { rank: 13, username: "DPMaster_Jang",     points: 4100, cert: 4,  uncert: 6  },
-  { rank: 14, username: "GraphHero_Bae",     points: 3760, cert: 3,  uncert: 8  },
-  { rank: 15, username: "SegTree_Son",       points: 3420, cert: 3,  uncert: 5  },
-  { rank: 16, username: "KnightCoder_Kwon",  points: 3080, cert: 2,  uncert: 7  },
-  { rank: 17, username: "XorMaster_Ahn",     points: 2740, cert: 2,  uncert: 6  },
-  { rank: 18, username: "LoopBreaker_Baek",  points: 2310, cert: 1,  uncert: 5  },
-  { rank: 19, username: "HeapSort_Jeon",     points: 1980, cert: 1,  uncert: 4  },
-  { rank: 20, username: "Rookie_Noh",        points: 1540, cert: 0,  uncert: 3  },
-];
 
 function getTabFromHash(): BattleTab {
   const parts = window.location.hash.replace("#", "").split("/");
@@ -913,12 +891,6 @@ const BattlePage: React.FC = () => {
             대회
           </button>
           <button
-            className={`home-tab-btn${activeTab === "ranking" ? " home-tab-btn--active" : ""}`}
-            onClick={() => handleTabChange("ranking")}
-          >
-            랭킹
-          </button>
-          <button
             className={`home-tab-btn${activeTab === "previous-problems" ? " home-tab-btn--active" : ""}`}
             onClick={() => handleTabChange("previous-problems")}
           >
@@ -955,7 +927,6 @@ const BattlePage: React.FC = () => {
         </div>
         <ResponsiveNavMenu tabs={[
           { label: "대회",      onClick: () => handleTabChange("contest"),           active: activeTab === "contest" },
-          { label: "랭킹",      onClick: () => handleTabChange("ranking"),           active: activeTab === "ranking" },
           { label: "이전 문제", onClick: () => handleTabChange("previous-problems"), active: activeTab === "previous-problems" },
           { label: "도움말",    onClick: () => handleTabChange("help"),              active: activeTab === "help" },
           { label: "문의",      onClick: () => handleTabChange("contact"),           active: activeTab === "contact" },
@@ -1230,100 +1201,6 @@ const BattlePage: React.FC = () => {
                 </table>
               </div>
             )}
-          </div>
-        )}
-
-        {/* 랭킹 탭 */}
-        {activeTab === "ranking" && (
-          <div className="bp-ranking-page">
-            <div className="bp-ranking-header">
-              <h2 className="bp-ranking-title">글로벌 랭킹</h2>
-              <p className="bp-ranking-subtitle">포인트 기준 전체 순위 (목업 데이터)</p>
-            </div>
-
-            {/* 포디움 Top 3 */}
-            <div className="bp-ranking-podium">
-              <div className="bp-podium-card bp-podium-card--2nd">
-                <div className="bp-podium-rank-num">2</div>
-                <div className="bp-podium-avatar bp-podium-avatar--2nd">{RANKING_DATA[1].username.charAt(0)}</div>
-                <div className="bp-podium-name">{RANKING_DATA[1].username}</div>
-                <div className="bp-podium-pts">{RANKING_DATA[1].points.toLocaleString()}<span>pts</span></div>
-                <div className="bp-podium-stats">
-                  <span className="bp-podium-cert-badge">인증 {RANKING_DATA[1].cert}</span>
-                  <span className="bp-podium-uncert-badge">비인증 {RANKING_DATA[1].uncert}</span>
-                </div>
-                <div className="bp-podium-plinth bp-podium-plinth--2nd"><span>2</span></div>
-              </div>
-              <div className="bp-podium-card bp-podium-card--1st">
-                <div className="bp-podium-rank-num">1</div>
-                <div className="bp-podium-avatar bp-podium-avatar--1st">{RANKING_DATA[0].username.charAt(0)}</div>
-                <div className="bp-podium-name">{RANKING_DATA[0].username}</div>
-                <div className="bp-podium-pts">{RANKING_DATA[0].points.toLocaleString()}<span>pts</span></div>
-                <div className="bp-podium-stats">
-                  <span className="bp-podium-cert-badge">인증 {RANKING_DATA[0].cert}</span>
-                  <span className="bp-podium-uncert-badge">비인증 {RANKING_DATA[0].uncert}</span>
-                </div>
-                <div className="bp-podium-plinth bp-podium-plinth--1st"><span>1</span></div>
-              </div>
-              <div className="bp-podium-card bp-podium-card--3rd">
-                <div className="bp-podium-rank-num">3</div>
-                <div className="bp-podium-avatar bp-podium-avatar--3rd">{RANKING_DATA[2].username.charAt(0)}</div>
-                <div className="bp-podium-name">{RANKING_DATA[2].username}</div>
-                <div className="bp-podium-pts">{RANKING_DATA[2].points.toLocaleString()}<span>pts</span></div>
-                <div className="bp-podium-stats">
-                  <span className="bp-podium-cert-badge">인증 {RANKING_DATA[2].cert}</span>
-                  <span className="bp-podium-uncert-badge">비인증 {RANKING_DATA[2].uncert}</span>
-                </div>
-                <div className="bp-podium-plinth bp-podium-plinth--3rd"><span>3</span></div>
-              </div>
-            </div>
-
-            {/* 4·5위 */}
-            <div className="bp-ranking-top5-wrap">
-              {RANKING_DATA.slice(3, 5).map(u => (
-                <div key={u.rank} className={`bp-top5-row bp-top5-row--${u.rank}`}>
-                  <span className="bp-top5-rank">{u.rank}</span>
-                  <div className="bp-top5-avatar">{u.username.charAt(0)}</div>
-                  <span className="bp-top5-name">{u.username}</span>
-                  <div className="bp-top5-stats">
-                    <span className="bp-top5-cert">인증 {u.cert}</span>
-                    <span className="bp-top5-uncert">비인증 {u.uncert}</span>
-                  </div>
-                  <span className="bp-top5-pts">{u.points.toLocaleString()} pts</span>
-                </div>
-              ))}
-            </div>
-
-            {/* 6–20위 */}
-            <div className="bp-ranking-table-wrap">
-              <table className="bp-ranking-table">
-                <thead>
-                  <tr>
-                    <th className="bp-th-num">순위</th>
-                    <th className="bp-th-user">사용자</th>
-                    <th className="bp-th-pts">포인트</th>
-                    <th className="bp-th-cert">인증 대회</th>
-                    <th className="bp-th-uncert">비인증 대회</th>
-                    <th className="bp-th-total">총 참가</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {RANKING_DATA.slice(5).map(u => (
-                    <tr key={u.rank} className="bp-rank-row">
-                      <td className="bp-rank-num">{u.rank}</td>
-                      <td className="bp-rank-user">
-                        <span className="bp-rank-avatar">{u.username.charAt(0)}</span>
-                        {u.username}
-                      </td>
-                      <td className="bp-rank-pts">{u.points.toLocaleString()}</td>
-                      <td className="bp-rank-cert">{u.cert}</td>
-                      <td className="bp-rank-uncert">{u.uncert}</td>
-                      <td className="bp-rank-total">{u.cert + u.uncert}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
         )}
 

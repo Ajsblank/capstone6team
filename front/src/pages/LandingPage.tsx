@@ -43,7 +43,6 @@ const LandingPage: React.FC = () => {
         </span>
         <nav className="lp-nav">
           <button className="lp-nav-btn" onClick={() => navigate("battle")}>대회</button>
-          <button className="lp-nav-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/ranking"; }}>랭킹</button>
           <button className="lp-nav-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/previous-problems"; }}>이전 문제</button>
           <button className="lp-nav-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/help"; }}>도움말</button>
           <button className="lp-nav-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/contact"; }}>문의</button>
@@ -63,7 +62,6 @@ const LandingPage: React.FC = () => {
         </div>
         <ResponsiveNavMenu tabs={[
           { label: "대회",      onClick: () => navigate("battle") },
-          { label: "랭킹",      onClick: () => { navigate("battle"); window.location.hash = "battle/ranking"; } },
           { label: "이전 문제", onClick: () => { navigate("battle"); window.location.hash = "battle/previous-problems"; } },
           { label: "도움말",    onClick: () => { navigate("battle"); window.location.hash = "battle/help"; } },
           { label: "문의",      onClick: () => { navigate("battle"); window.location.hash = "battle/contact"; } },
