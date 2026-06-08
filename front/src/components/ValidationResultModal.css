@@ -294,6 +294,21 @@
   background: #d1d5db;
 }
 
+/* 버튼 더블탭 줌 방지 */
+.vrm-btn,
+.vrm-close {
+  touch-action: manipulation;
+}
+
+/* ── 모바일 ── */
+@media (max-width: 480px) {
+  .vrm-header  { padding: 16px 18px; }
+  .vrm-content { padding: 16px 18px; }
+  .vrm-footer  { padding: 14px 18px; gap: 8px; }
+  .vrm-footer  { flex-direction: column; }
+  .vrm-btn     { width: 100%; }
+}
+
 /* 스크롤바 스타일 */
 .vrm-content::-webkit-scrollbar {
   width: 8px;

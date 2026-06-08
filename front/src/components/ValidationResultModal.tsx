@@ -39,8 +39,12 @@ const ValidationResultModal: React.FC<ValidationResultModalProps> = ({
   const allPassed = result?.passed ?? false;
 
   return (
-    <div className="vrm-overlay" onClick={onClose}>
-      <div className="vrm-modal" onClick={e => e.stopPropagation()}>
+    <div
+      className="vrm-overlay"
+      onClick={onClose}
+      onTouchEnd={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="vrm-modal" onClick={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()}>
         <div className="vrm-header">
           <h2 className="vrm-title">검증 결과</h2>
           <button className="vrm-close" onClick={onClose}>✕</button>
