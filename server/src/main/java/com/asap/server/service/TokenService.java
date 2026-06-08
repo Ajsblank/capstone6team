@@ -112,6 +112,8 @@ public class TokenService {
       }
 
       return tokenMeta;
+    } catch (IllegalStateException e) {
+      throw e;
     } catch (Exception e) {
       log.error("Refresh token 메타 조회 실패", e);
       throw new IllegalStateException("Refresh token 메타 조회 실패", e);

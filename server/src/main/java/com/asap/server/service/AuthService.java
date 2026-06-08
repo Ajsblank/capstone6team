@@ -148,10 +148,10 @@ public class AuthService {
         return response;
     }
 
-    public void logout(String accessToken, String sessionId) {
+    public void logout(Long userId, String accessToken, String sessionId) {
         tokenService.blacklistAccessToken(accessToken);
-        // sessionId에서 userId 추출 필요하면 토큰에서 추출
-        log.info("로그아웃 완료 - sessionId: {}", sessionId);
+        tokenService.revokeSession(userId, sessionId);
+        log.info("로그아웃 완료 - userId: {}, sessionId: {}", userId, sessionId);
     }
 
     public void logoutAll(Long userId) {
