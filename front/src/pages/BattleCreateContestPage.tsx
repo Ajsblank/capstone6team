@@ -695,9 +695,9 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                   </div>
                 </section>
 
-                {/* 파일 첨부 */}
+                {/* 코드 파일 */}
                 <section className="cc-section">
-                  <h3 className="cc-section-title">파일 첨부</h3>
+                  <h3 className="cc-section-title">코드 파일</h3>
                   {/* 검증 중에는 검증 대상 파일 3종(샘플/채점/예시 AI) 상호작용 차단 */}
                   <div className={isValidating ? "cc-section--disabled" : ""}>
                   {/* 샘플 코드 (다중) */}
@@ -776,11 +776,13 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                       </button>
                     </div>
                   )}
+                </section>
 
-                  <div data-tut="viz">
-                    <FileInput label="시각화 HTML 파일" accept=".html" value={visualizationHtml} onChange={setVisualizationHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
-                    <FileInput label="혼자서 플레이 HTML 파일" accept=".html" value={soloPlayHtml} onChange={setSoloPlayHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
-                  </div>
+                {/* 시각화 파일 */}
+                <section className="cc-section" data-tut="viz">
+                  <h3 className="cc-section-title">시각화 파일</h3>
+                  <FileInput label="시각화 HTML 파일" accept=".html" value={visualizationHtml} onChange={setVisualizationHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
+                  <FileInput label="혼자서 플레이 HTML 파일" accept=".html" value={soloPlayHtml} onChange={setSoloPlayHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
                 </section>
 
                 {/* 대회 설정 */}
