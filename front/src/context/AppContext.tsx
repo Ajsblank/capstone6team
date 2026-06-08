@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { logoutApi, getAccessToken, getUserId, getUsername } from "../api/authApi";
+import { logoutApi, getAccessToken, getUserId, getUsername, refreshTokenApi } from "../api/authApi";
 import { ensureSseConnected, unsubscribeFromResults } from "../api/sseApi";
 import { clearMyProfileCache } from "../components/ProfileBadge";
 
@@ -120,6 +120,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.addEventListener("auth:logout", handleForceLogout);
     return () => window.removeEventListener("auth:logout", handleForceLogout);
   }, []);
+
+  // 탭 복귀 시 토큰 만료 여부 선제적 감지
+  useEffect(() => {
+    const checkOnFocus = async () => {
+      if (document.hidden) return;
+      const token = getAccessToken();
+      if (!token && user) {
+        // 토큰은 사라졌는데 UI는 로그인 상태인 경우
+        clearMyProfileCache();
+        setUser(null);
+        window.location.hash = "login";
+        setCurrentPage("login");
+        return;
+      }
+      if (token && user) {
+        try {
+          await refreshTokenApi();
+        } catch {
+          // 실패 시 인터셉터의 auth:logout 이벤트가 처리
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", checkOnFocus);
+    return () => document.removeEventListener("visibilitychange", checkOnFocus);
+  }, [user]);
 
   const login = useCallback((u: User, joinedContests: number[] = [], hostedContests: number[] = [], createdContests: number[] = []) => {
     clearMyProfileCache();   // 이전 계정 프로필 캐시 제거 → 새 계정 정보로 재조회
