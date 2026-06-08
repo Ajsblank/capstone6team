@@ -92,7 +92,15 @@
 }
 
 /* Section */
-.cc-section { display: flex; flex-direction: column; gap: 16px; }
+.cc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #fafafa;
+  border: 1px solid #ebebf0;
+  border-radius: 10px;
+  padding: 20px 20px 16px;
+}
 
 .cc-section-title {
   font-size: 0.72rem;
@@ -1011,6 +1019,48 @@
 .cc-section--disabled select {
   cursor: not-allowed;
   background-color: #f3f4f6 !important;
+}
+
+/* ── 잠긴 섹션 (대회 진행 중 수정 불가 영역) ── */
+.cc-section--locked {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  border-left: 3px solid #b0b7c3;
+  opacity: 0.72;
+}
+
+.cc-section--locked .cc-section-title {
+  color: #9ca3af;
+  border-bottom-color: #e5e7eb;
+}
+
+/* ── 잠긴 개별 입력 필드 ── */
+.cc-input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+.cc-file-btn:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
+}
+.cc-file-btn:disabled:hover {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+}
+
+.cc-file-clear:disabled,
+.cc-file-clear:disabled:hover {
+  opacity: 0.35;
+  border-color: #e5e7eb;
+  color: #d1d5db;
+  cursor: not-allowed;
 }
 
 /* ── Validation Button ── */
