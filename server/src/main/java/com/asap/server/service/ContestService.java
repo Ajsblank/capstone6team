@@ -756,5 +756,6 @@ public class ContestService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         String.format("대회를 찾을 수 없습니다. 대회 ID = %d", contestId)));
         contestRepository.delete(contest);
+        log.info("대회 ID = {} 삭제 완료", contestId);
     }
 }

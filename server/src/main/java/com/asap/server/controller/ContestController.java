@@ -393,6 +393,11 @@ public class ContestController {
                         response_.put("session_number", result.getSessionNumber());
                         response_.put("status", "END");
                         response_.put("total_rounds", result.getTotalRounds());
+                        // participants 추가
+                        List<Long> userIds = result.getFinalStandings().stream()
+                                .map(SwissResultResponse.StandingDto::getUserId)
+                                .toList();
+                        response_.put("participants", getNicknameTagMap(userIds));
                         response_.put("rounds", result.getRounds());
                         emitter.send(SseEmitter.event().name("init").data(response_));
                     } catch (JsonProcessingException e) {
