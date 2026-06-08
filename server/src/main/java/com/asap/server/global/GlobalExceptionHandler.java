@@ -10,10 +10,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice // 모든 컨트롤러에서 발생하는 에러
 public class GlobalExceptionHandler {
 
-    // IllegalArgumentException
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
         return ResponseEntity.status(400).body(e.getMessage());
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<String> handleIllegalStateException(IllegalStateException e) {
+        return ResponseEntity.status(401).body(e.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
