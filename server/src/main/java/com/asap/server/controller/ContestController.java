@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -728,4 +729,28 @@ public class ContestController {
                         p -> p.getNickname() + "-" + String.format("%04d", p.getTag())));
     }
 
+    @DeleteMapping("/{contestId}/deleteContest")
+    public ResponseEntity<?> deleteContest(@PathVariable Long contestId,
+            @AuthenticationPrincipal Long userId) {
+        // admin 계정 userId = 1 이거나 자기가 개최한 대회일 때 삭제 가능
+        try {
+            CodeBattleContest contest = contestRepository.findById(contestId)
+                    .orElseThrow(
+                            () -> new IllegalArgumentException(String.format("대회를 찾을 수 없습니다. 대회 ID = %d", contestId)));
+            // 관리자 계정 ID 1로 하드코딩
+            if (!userId.equals(1L)) {
+                if (!contest.getCreator().getId().equals(userId)) {
+                    log.info("대회 개최자와 일치하지 않는 유저 contestId={} userId={}", contestId, userId);
+                    return ResponseEntity.status(403).body(null);
+                }
+            }
+            contestService.deleteContest(contestId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("대회 삭제 실패 - contestId: {}", contestId, e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "대회 삭제 중 오류 발생"));
+        }
+    }
 }

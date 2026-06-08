@@ -74,62 +74,60 @@ public class ContestService {
 
     // 의도적으로 오류를 발생시키는 probe 코드 — judge가 각 에러 상황을 올바르게 처리하는지 검증
     private static final Map<Language, String> RUNTIME_ERROR_PROBE = Map.of(
-        Language.CPP,    "int main(){int*p=nullptr;*p=1;return 0;}",
-        Language.JAVA,   "public class Main{public static void main(String[]a){throw new RuntimeException();}}",
-        Language.PYTHON, "raise RuntimeError()",
-        Language.C,      "int main(){int*p=0;*p=1;return 0;}"
-    );
+            Language.CPP, "int main(){int*p=nullptr;*p=1;return 0;}",
+            Language.JAVA, "public class Main{public static void main(String[]a){throw new RuntimeException();}}",
+            Language.PYTHON, "raise RuntimeError()",
+            Language.C, "int main(){int*p=0;*p=1;return 0;}");
 
     private static final Map<Language, String> COMPILE_ERROR_PROBE = Map.of(
-        Language.CPP,    "int main(){thisisnotvalidcpp",
-        Language.JAVA,   "public class Main{public static void",
-        Language.PYTHON, "def f(:",
-        Language.C,      "int main(){thisisnotvalidc"
-    );
+            Language.CPP, "int main(){thisisnotvalidcpp",
+            Language.JAVA, "public class Main{public static void",
+            Language.PYTHON, "def f(:",
+            Language.C, "int main(){thisisnotvalidc");
 
-    // TLE probe: READY/INIT/OPP는 정상 처리하고 TIME 명령을 받으면 무한루프 → judge가 TIME_LIMIT 판정해야 함
+    // TLE probe: READY/INIT/OPP는 정상 처리하고 TIME 명령을 받으면 무한루프 → judge가 TIME_LIMIT 판정해야
+    // 함
     // (단순 while(true)는 READY에 OK도 안 보내 RUNTIME_ERROR로 오판됨)
     private static final Map<Language, String> TLE_PROBE = Map.of(
-        Language.CPP,
+            Language.CPP,
             "#include<iostream>\n#include<string>\nusing namespace std;\n"
-            + "int main(){\n"
-            + "  string line;\n"
-            + "  while(getline(cin,line)){\n"
-            + "    if(line.find(\"READY\")==0){cout<<\"OK\"<<endl;}\n"
-            + "    else if(line.find(\"TIME\")==0){while(true){}}\n"
-            + "  }\n"
-            + "}",
-        Language.JAVA,
+                    + "int main(){\n"
+                    + "  string line;\n"
+                    + "  while(getline(cin,line)){\n"
+                    + "    if(line.find(\"READY\")==0){cout<<\"OK\"<<endl;}\n"
+                    + "    else if(line.find(\"TIME\")==0){while(true){}}\n"
+                    + "  }\n"
+                    + "}",
+            Language.JAVA,
             "import java.util.Scanner;\n"
-            + "public class Main{\n"
-            + "  public static void main(String[]a)throws Exception{\n"
-            + "    Scanner sc=new Scanner(System.in);\n"
-            + "    while(sc.hasNextLine()){\n"
-            + "      String line=sc.nextLine();\n"
-            + "      if(line.startsWith(\"READY\")){System.out.println(\"OK\");System.out.flush();}\n"
-            + "      else if(line.startsWith(\"TIME\")){while(true){}}\n"
-            + "    }\n"
-            + "  }\n"
-            + "}",
-        Language.PYTHON,
+                    + "public class Main{\n"
+                    + "  public static void main(String[]a)throws Exception{\n"
+                    + "    Scanner sc=new Scanner(System.in);\n"
+                    + "    while(sc.hasNextLine()){\n"
+                    + "      String line=sc.nextLine();\n"
+                    + "      if(line.startsWith(\"READY\")){System.out.println(\"OK\");System.out.flush();}\n"
+                    + "      else if(line.startsWith(\"TIME\")){while(true){}}\n"
+                    + "    }\n"
+                    + "  }\n"
+                    + "}",
+            Language.PYTHON,
             "import sys\n"
-            + "for line in sys.stdin:\n"
-            + "    line=line.strip()\n"
-            + "    if line.startswith('READY'):\n"
-            + "        print('OK',flush=True)\n"
-            + "    elif line.startswith('TIME'):\n"
-            + "        while True:pass\n",
-        Language.C,
+                    + "for line in sys.stdin:\n"
+                    + "    line=line.strip()\n"
+                    + "    if line.startswith('READY'):\n"
+                    + "        print('OK',flush=True)\n"
+                    + "    elif line.startswith('TIME'):\n"
+                    + "        while True:pass\n",
+            Language.C,
             "#include<stdio.h>\n#include<string.h>\n"
-            + "int main(){\n"
-            + "  char buf[256];\n"
-            + "  while(fgets(buf,sizeof(buf),stdin)){\n"
-            + "    if(strncmp(buf,\"READY\",5)==0){printf(\"OK\\n\");fflush(stdout);}\n"
-            + "    else if(strncmp(buf,\"TIME\",4)==0){while(1){}}\n"
-            + "  }\n"
-            + "  return 0;\n"
-            + "}"
-    );
+                    + "int main(){\n"
+                    + "  char buf[256];\n"
+                    + "  while(fgets(buf,sizeof(buf),stdin)){\n"
+                    + "    if(strncmp(buf,\"READY\",5)==0){printf(\"OK\\n\");fflush(stdout);}\n"
+                    + "    else if(strncmp(buf,\"TIME\",4)==0){while(1){}}\n"
+                    + "  }\n"
+                    + "  return 0;\n"
+                    + "}");
 
     /**
      * 비인증 대회 생성
@@ -607,9 +605,9 @@ public class ContestService {
     }
 
     public void validateContestCodes(Long userId, ValidateContestRequest req) {
-        String pendingKey    = "validate:" + userId + ":pending";
-        String labelsKey     = "validate:" + userId + ":labels";
-        String resultsKey    = "validate:" + userId + ":results";
+        String pendingKey = "validate:" + userId + ":pending";
+        String labelsKey = "validate:" + userId + ":labels";
+        String resultsKey = "validate:" + userId + ":results";
         String probeTypesKey = "validate:" + userId + ":probe_types";
         String queuedJobsKey = "validate:" + userId + ":queued_jobs"; // Phase 2 대기 잡 목록
 
@@ -656,7 +654,7 @@ public class ContestService {
             int probeBase = 1 + aiCodes.size();
 
             String rteJobId = userId + "_" + probeBase;
-            redisTemplate.opsForHash().put(labelsKey,     rteJobId, "런타임 에러 처리 검증");
+            redisTemplate.opsForHash().put(labelsKey, rteJobId, "런타임 에러 처리 검증");
             redisTemplate.opsForHash().put(probeTypesKey, rteJobId, "RUNTIME_ERROR");
             redisTemplate.opsForList().rightPush(queuedJobsKey,
                     buildTestJobJson(rteJobId, userId, req.getJudgeCode(),
@@ -664,7 +662,7 @@ public class ContestService {
                             RUNTIME_ERROR_PROBE.get(sampleLang), skeletonLang));
 
             String ceJobId = userId + "_" + (probeBase + 1);
-            redisTemplate.opsForHash().put(labelsKey,     ceJobId, "컴파일 에러 처리 검증");
+            redisTemplate.opsForHash().put(labelsKey, ceJobId, "컴파일 에러 처리 검증");
             redisTemplate.opsForHash().put(probeTypesKey, ceJobId, "COMPILE_ERROR");
             redisTemplate.opsForList().rightPush(queuedJobsKey,
                     buildTestJobJson(ceJobId, userId, req.getJudgeCode(),
@@ -672,7 +670,7 @@ public class ContestService {
                             COMPILE_ERROR_PROBE.get(sampleLang), skeletonLang));
 
             String tleJobId = userId + "_" + (probeBase + 2);
-            redisTemplate.opsForHash().put(labelsKey,     tleJobId, "시간 초과 처리 검증");
+            redisTemplate.opsForHash().put(labelsKey, tleJobId, "시간 초과 처리 검증");
             redisTemplate.opsForHash().put(probeTypesKey, tleJobId, "TIME_LIMIT");
             redisTemplate.opsForList().rightPush(queuedJobsKey,
                     buildTestJobJson(tleJobId, userId, req.getJudgeCode(),
@@ -680,8 +678,8 @@ public class ContestService {
                             TLE_PROBE.get(sampleLang), skeletonLang));
 
             redisTemplate.expire(queuedJobsKey, 10, java.util.concurrent.TimeUnit.MINUTES);
-            redisTemplate.expire(labelsKey,     10, java.util.concurrent.TimeUnit.MINUTES);
-            redisTemplate.expire(resultsKey,    10, java.util.concurrent.TimeUnit.MINUTES);
+            redisTemplate.expire(labelsKey, 10, java.util.concurrent.TimeUnit.MINUTES);
+            redisTemplate.expire(resultsKey, 10, java.util.concurrent.TimeUnit.MINUTES);
             redisTemplate.expire(probeTypesKey, 10, java.util.concurrent.TimeUnit.MINUTES);
 
             // ── Phase 1: smoke test 잡만 제출 ─────────────────────────────
@@ -706,25 +704,16 @@ public class ContestService {
             String p1Code, String p1Lang,
             String p2Code, String p2Lang) throws JsonProcessingException {
         ObjectNode payload = objectMapper.createObjectNode();
-        payload.put("jobId",   jobId);
-        payload.put("userId",  userId);
-        payload.put("judge",   judgeCode);
+        payload.put("jobId", jobId);
+        payload.put("userId", userId);
+        payload.put("judge", judgeCode);
         payload.put("player1", p1Code);
         payload.put("player2", p2Code);
         ObjectNode languages = payload.putObject("languages");
-        languages.put("judge",   "cpp");
+        languages.put("judge", "cpp");
         languages.put("player1", p1Lang);
         languages.put("player2", p2Lang);
         return objectMapper.writeValueAsString(payload);
-    }
-
-    /** job JSON 직렬화 후 큐에 즉시 적재 */
-    private void pushTestJob(String jobId, Long userId,
-            String judgeCode,
-            String p1Code, String p1Lang,
-            String p2Code, String p2Lang) throws JsonProcessingException {
-        redisTemplate.opsForList().leftPush(CODE_BATTLE_TEST_QUEUE_KEY,
-                buildTestJobJson(jobId, userId, judgeCode, p1Code, p1Lang, p2Code, p2Lang));
     }
 
     /** smoke test 전용: timeoutSec=10 으로 채점서버 타임아웃을 단축해 빠른 무한루프 탐지 */
@@ -739,7 +728,6 @@ public class ContestService {
         redisTemplate.opsForList().leftPush(CODE_BATTLE_TEST_QUEUE_KEY,
                 objectMapper.writeValueAsString(payload));
     }
-
 
     private record DatePolicy(LocalDateTime startDate, LocalDateTime endDate) {
     }
@@ -759,5 +747,14 @@ public class ContestService {
                     return CodeBattleMySubmissionResponse.of(match.getSubmission(), aiResult);
                 })
                 .collect(Collectors.toList());
+    }
+
+    // 여기 구현
+    @Transactional
+    public void deleteContest(Long contestId) {
+        CodeBattleContest contest = contestRepository.findById(contestId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        String.format("대회를 찾을 수 없습니다. 대회 ID = %d", contestId)));
+        contestRepository.delete(contest);
     }
 }
