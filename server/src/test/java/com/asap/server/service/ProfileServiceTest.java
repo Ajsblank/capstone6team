@@ -20,7 +20,7 @@ import com.asap.server.domain.Profile;
 import com.asap.server.domain.Users;
 import com.asap.server.dto.request.UpdateProfileRequest;
 import com.asap.server.dto.response.ProfileResponse;
-import com.asap.server.repository.ProfileReposiroty;
+import com.asap.server.repository.ProfileRepository;
 import com.asap.server.repository.usersRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,7 +30,7 @@ class ProfileServiceTest {
     @Mock
     private usersRepository userRepository;
     @Mock
-    private ProfileReposiroty profileRepository;
+    private ProfileRepository profileRepository;
 
     @InjectMocks
     private ProfileService profileService;

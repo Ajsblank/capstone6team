@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.asap.server.global.json.FlexibleMinuteLocalDateTimeDeserializer;
 import com.asap.server.global.type.ContestStatus;
+import com.asap.server.global.type.Language;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -94,6 +95,9 @@ public class CreateCertifiedContestRequest {
   @NotBlank(message = "judgeCode는 필수입니다.")
   @Schema(description = "채점 코드 파일 내용", example = "int main() { return 0; }")
   private String judgeCode;
+
+  @Schema(description = "저지 코드 언어", example = "CPP")
+  private Language judgeLanguage = Language.CPP;
 
   @NotEmpty(message = "sampleCode는 최소 1개 이상 필요입니다.")
   @Schema(description = "샘플 코드 파일 내용", example = "[{\"code\": \"int main() { return 0; }\", \"language\": \"CPP\"}]")

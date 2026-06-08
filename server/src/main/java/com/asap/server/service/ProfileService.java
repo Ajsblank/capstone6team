@@ -14,7 +14,7 @@ import com.asap.server.domain.Users;
 import com.asap.server.dto.request.UpdateProfileRequest;
 import com.asap.server.dto.response.ProfileListResponse;
 import com.asap.server.dto.response.ProfileResponse;
-import com.asap.server.repository.ProfileReposiroty;
+import com.asap.server.repository.ProfileRepository;
 import com.asap.server.repository.usersRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ import lombok.RequiredArgsConstructor;
 public class ProfileService {
 
   private final usersRepository userRepository;
-  private final ProfileReposiroty profileRepository;
+  private final ProfileRepository profileRepository;
   private final S3Service s3Service;
   @Value("${cloud.aws.cloudfront.url}")
   private String cloudFrontDomain;
