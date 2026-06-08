@@ -5,7 +5,7 @@ import mammoth from "mammoth";
 import { useApp } from "../context/AppContext";
 import BattleTopNav from "../components/BattleTopNav";
 import { getContestDetail } from "../api/codeBattleApi";
-import { modifyContest, modifyCertifiedContest } from "../api/contestApi";
+import { modifyContest, modifyCertifiedContest, patchContest } from "../api/contestApi";
 import Breadcrumb from "../components/Breadcrumb";
 import RichTextEditor from "../components/RichTextEditor";
 import "./AppLayout.css";
@@ -39,8 +39,9 @@ interface FileInputProps {
   value: File | null;
   onChange: (f: File | null) => void;
   hint?: string;
+  disabled?: boolean;
 }
-const FileInput: React.FC<FileInputProps> = ({ label, required, accept, value, onChange, hint }) => {
+const FileInput: React.FC<FileInputProps> = ({ label, required, accept, value, onChange, hint, disabled }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
     <div className="cc-field">
@@ -50,15 +51,15 @@ const FileInput: React.FC<FileInputProps> = ({ label, required, accept, value, o
         {hint && <span className="cc-optional-hint">{hint}</span>}
       </label>
       <div className="cc-file-row">
-        <button type="button" className="cc-file-btn" onClick={() => inputRef.current?.click()}>파일 선택</button>
+        <button type="button" className="cc-file-btn" onClick={() => inputRef.current?.click()} disabled={disabled}>파일 선택</button>
         <span className={`cc-file-name${!value ? " cc-file-name--empty" : ""}`}>
           {value ? value.name : "선택된 파일 없음"}
         </span>
         {value && (
-          <button type="button" className="cc-file-clear" onClick={() => { onChange(null); if (inputRef.current) inputRef.current.value = ""; }}>✕</button>
+          <button type="button" className="cc-file-clear" onClick={() => { onChange(null); if (inputRef.current) inputRef.current.value = ""; }} disabled={disabled}>✕</button>
         )}
       </div>
-      <input ref={inputRef} type="file" accept={accept} style={{ display: "none" }} onChange={(e) => onChange(e.target.files?.[0] ?? null)} />
+      <input ref={inputRef} type="file" accept={accept} style={{ display: "none" }} onChange={(e) => onChange(e.target.files?.[0] ?? null)} disabled={disabled} />
     </div>
   );
 };
@@ -97,6 +98,7 @@ const ContestSettingsPage: React.FC = () => {
   const [hasVisHtml, setHasVisHtml]           = useState(false);
   const [hasSoloHtml, setHasSoloHtml]         = useState(false);
   const [existingAiCount, setExistingAiCount] = useState(0);
+  const [contestStatus, setContestStatus]     = useState<string>("");
 
   const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg]         = useState("");
@@ -106,6 +108,9 @@ const ContestSettingsPage: React.FC = () => {
   const [aiCodeInputKey, setAiCodeInputKey] = useState(0);
   const [importing, setImporting]           = useState(false);
   const docImportRef = useRef<HTMLInputElement>(null);
+
+  // PLANNED / TEST 상태일 때만 구조적 필드 수정 허용
+  const structureLocked = contestStatus !== "" && contestStatus !== "PLANNED" && contestStatus !== "TEST";
 
   useEffect(() => {
     if (!contestId) { setLoadError("잘못된 대회 ID입니다."); setLoading(false); return; }
@@ -123,6 +128,7 @@ const ContestSettingsPage: React.FC = () => {
         setHasVisHtml(!!detail.visualizationHtml);
         setHasSoloHtml(!!detail.soloPlayHtml);
         setExistingAiCount(detail.exampleAiCodes?.length ?? 0);
+        setContestStatus(detail.status ?? "");
       })
       .catch(() => setLoadError("대회 정보를 불러오지 못했습니다."))
       .finally(() => setLoading(false));
@@ -163,33 +169,41 @@ const ContestSettingsPage: React.FC = () => {
 
   const handleSubmit = async () => {
     const missing: string[] = [];
-    if (!title.trim())            missing.push("대회 이름");
-    if (isDescEmpty(description)) missing.push("문제 설명");
-    if (!startDate)               missing.push("시작 일시");
-    if (!endDate)                 missing.push("종료 일시");
-    if (missing.length > 0)       { setToastMessages(missing); return; }
+    if (!structureLocked && !title.trim()) missing.push("대회 이름");
+    if (isDescEmpty(description))          missing.push("문제 설명");
+    if (!structureLocked && !startDate)    missing.push("시작 일시");
+    if (!endDate)                          missing.push("종료 일시");
+    if (missing.length > 0) { setToastMessages(missing); return; }
 
     setSubmitStatus("submitting");
     setErrorMsg("");
     try {
-      const data = {
-        title: title.trim(),
-        description: description.trim(),
-        timeLimitSec,
-        memoryLimitMb,
-        sampleCode,
-        judgeCode,
-        exampleAiCodes,
-        visualizationHtml,
-        soloPlayHtml,
-        startDate,
-        endDate,
-        maxParticipants,
-      };
-      if (certification) {
-        await modifyCertifiedContest(contestId!, data);
+      if (structureLocked) {
+        // 대회 진행 중 — 문제 설명과 종료 일시만 수정 가능
+        await patchContest(contestId!, {
+          description: description.trim(),
+          endDate: endDate ? endDate.replace("T", " ").slice(0, 16) : undefined,
+        });
       } else {
-        await modifyContest(contestId!, data);
+        const data = {
+          title: title.trim(),
+          description: description.trim(),
+          timeLimitSec,
+          memoryLimitMb,
+          sampleCode,
+          judgeCode,
+          exampleAiCodes,
+          visualizationHtml,
+          soloPlayHtml,
+          startDate,
+          endDate,
+          maxParticipants,
+        };
+        if (certification) {
+          await modifyCertifiedContest(contestId!, data);
+        } else {
+          await modifyContest(contestId!, data);
+        }
       }
       setSubmitStatus("idle");
       setModifySuccess(true);
@@ -270,9 +284,16 @@ const ContestSettingsPage: React.FC = () => {
             ]} />
               <h2 className="cc-page-title">대회 설정</h2>
 
+              {structureLocked && (
+                <div className="ecm-lock-notice" style={{ marginBottom: 16 }}>
+                  <span className="ecm-lock-icon">🔒</span>
+                  <span>대회가 이미 시작되어 <strong>대회명 · 시작 일시 · 최대 참가자 · 시간/메모리 제한 · 파일</strong>은 수정할 수 없습니다. <strong>종료 일시 · 문제 설명</strong>만 변경 가능합니다.</span>
+                </div>
+              )}
+
               <div className="cc-form">
                 {/* 기본 정보 */}
-                <section className="cc-section">
+                <section className={`cc-section${structureLocked ? " cc-section--locked" : ""}`}>
                   <h3 className="cc-section-title">기본 정보</h3>
                   <div className="cc-title-row">
                     <div className="cc-field cc-field--grow">
@@ -283,6 +304,7 @@ const ContestSettingsPage: React.FC = () => {
                         placeholder="대회 이름을 입력하세요"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
+                        disabled={structureLocked}
                       />
                     </div>
                     <div className="cc-field cc-field--cert-inline">
@@ -328,29 +350,30 @@ const ContestSettingsPage: React.FC = () => {
                 </section>
 
                 {/* 제한 */}
-                <section className="cc-section">
+                <section className={`cc-section${structureLocked ? " cc-section--locked" : ""}`}>
                   <h3 className="cc-section-title">제한</h3>
                   <div className="cc-row">
                     <div className="cc-field">
                       <label className="cc-label">시간 제한 (초/턴) <span className="cc-required">*</span></label>
-                      <input className="cc-input" type="number" min={10} max={60} value={timeLimitSec} onChange={(e) => setTimeLimitSec(Number(e.target.value))} />
+                      <input className="cc-input" type="number" min={10} max={60} value={timeLimitSec} onChange={(e) => setTimeLimitSec(Number(e.target.value))} disabled={structureLocked} />
                     </div>
                     <div className="cc-field">
                       <label className="cc-label">메모리 제한 (MB) <span className="cc-required">*</span></label>
-                      <input className="cc-input" type="number" min={128} max={512} value={memoryLimitMb} onChange={(e) => setMemoryLimitMb(Number(e.target.value))} />
+                      <input className="cc-input" type="number" min={128} max={512} value={memoryLimitMb} onChange={(e) => setMemoryLimitMb(Number(e.target.value))} disabled={structureLocked} />
                     </div>
                   </div>
                 </section>
 
-                {/* 파일 첨부 */}
-                <section className="cc-section">
-                  <h3 className="cc-section-title">파일 첨부</h3>
+                {/* 코드 파일 */}
+                <section className={`cc-section${structureLocked ? " cc-section--locked" : ""}`}>
+                  <h3 className="cc-section-title">코드 파일</h3>
                   <FileInput
                     label="샘플 코드"
                     accept=".py,.cpp,.java,.js,.ts"
                     value={sampleCode}
                     onChange={setSampleCode}
                     hint={hasSampleCode ? " (현재 파일 있음 — 변경 시 업로드)" : undefined}
+                    disabled={structureLocked}
                   />
                   <FileInput
                     label="채점 코드"
@@ -358,6 +381,7 @@ const ContestSettingsPage: React.FC = () => {
                     value={judgeCode}
                     onChange={setJudgeCode}
                     hint=" (변경 시 업로드)"
+                    disabled={structureLocked}
                   />
 
                   {/* 예시 AI 코드 */}
@@ -379,18 +403,26 @@ const ContestSettingsPage: React.FC = () => {
                         ))}
                       </div>
                     )}
-                    <label htmlFor="cs-ai-code-input" className="cc-reviewer-add">+ AI 코드 추가</label>
-                    <input
-                      key={aiCodeInputKey}
-                      id="cs-ai-code-input"
-                      type="file"
-                      accept=".py,.cpp,.java,.js,.ts"
-                      multiple
-                      style={{ display: "none" }}
-                      onChange={(e) => handleAiCodeAdd(e.target.files)}
-                    />
+                    {!structureLocked && (
+                      <>
+                        <label htmlFor="cs-ai-code-input" className="cc-reviewer-add">+ AI 코드 추가</label>
+                        <input
+                          key={aiCodeInputKey}
+                          id="cs-ai-code-input"
+                          type="file"
+                          accept=".py,.cpp,.java,.js,.ts"
+                          multiple
+                          style={{ display: "none" }}
+                          onChange={(e) => handleAiCodeAdd(e.target.files)}
+                        />
+                      </>
+                    )}
                   </div>
+                </section>
 
+                {/* 시각화 파일 */}
+                <section className="cc-section">
+                  <h3 className="cc-section-title">시각화 파일</h3>
                   <FileInput
                     label="시각화 HTML 파일"
                     accept=".html"
@@ -415,7 +447,7 @@ const ContestSettingsPage: React.FC = () => {
                   <div className="cc-row">
                     <div className="cc-field">
                       <label className="cc-label">시작 일시 <Req show={!startDate} /></label>
-                      <input className="cc-input cc-input--date" type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                      <input className="cc-input cc-input--date" type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} disabled={structureLocked} />
                     </div>
                     <div className="cc-field">
                       <label className="cc-label">종료 일시 <Req show={!endDate} /></label>
@@ -424,7 +456,7 @@ const ContestSettingsPage: React.FC = () => {
                   </div>
                   <div className="cc-field cc-field--narrow">
                     <label className="cc-label">최대 참가자 수 <span className="cc-required">*</span></label>
-                    <input className="cc-input" type="number" min={1} max={10000} value={maxParticipants} onChange={(e) => setMaxParticipants(Number(e.target.value))} />
+                    <input className="cc-input" type="number" min={1} max={10000} value={maxParticipants} onChange={(e) => setMaxParticipants(Number(e.target.value))} disabled={structureLocked} />
                   </div>
                 </section>
 
