@@ -55,7 +55,15 @@ int setup_role(const std::string& role, const std::string& code, const std::stri
     if (lang == "java") {
         std::string java_dir = abs_work_dir + "/" + role + "_src";
         fs::create_directories(java_dir);
-        write_file(java_dir + "/Main.java", code);
+        // U+00A0 (non-breaking space) → regular space to prevent javac "illegal character" errors
+        std::string sanitized_code = code;
+        std::string nbsp = "\xc2\xa0"; // UTF-8 encoding of U+00A0
+        size_t pos = 0;
+        while ((pos = sanitized_code.find(nbsp, pos)) != std::string::npos) {
+            sanitized_code.replace(pos, nbsp.size(), " ");
+            pos += 1;
+        }
+        write_file(java_dir + "/Main.java", sanitized_code);
         compile_cmd = "docker run --rm -v " + abs_work_dir + ":/app -w /app " + docker_img + " javac -encoding UTF-8 " + role + "_src/Main.java";
         run_cmd = "java -cp /app/" + role + "_src Main";
     } else if (lang == "python" || lang == "py") {
