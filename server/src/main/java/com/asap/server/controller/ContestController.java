@@ -223,6 +223,9 @@ public class ContestController {
             @PathVariable Long contestId,
             @PathVariable Long targetUserId,
             @AuthenticationPrincipal Long userId) {
+        if (!targetUserId.equals(userId)) {
+            throw new IllegalArgumentException("본인의 제출 이력만 조회할 수 있습니다.");
+        }
         log.info("조회 시도: {} / {}", contestId, targetUserId);
         List<CodeBattleMySubmissionResponse> responses = contestService.getMySubmissionsWithAi(contestId,
                 targetUserId);
