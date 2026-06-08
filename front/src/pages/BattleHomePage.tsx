@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import Editor from "@monaco-editor/react";
 import { useApp } from "../context/AppContext";
 import ProfileBadge from "../components/ProfileBadge";
 import ResponsiveNavMenu from "../components/ResponsiveNavMenu";
@@ -13,83 +14,378 @@ type StatusFilter = "" | "RUNNING" | "PLANNED" | "END";
 const FETCH_SIZE = 100;
 const VALID_BATTLE_TABS: BattleTab[] = ["contest", "previous-problems", "ranking", "help", "contact"];
 
-// ── 설명 항목 ↔ 코드 연결 가이드 (도움말용) ──
-// 각 단계 항목을 클릭하면 코드를 펼치고 해당 라인 범위로 스크롤·하이라이트한다.
-// 코드는 public/tutorial 의 .cpp 파일을 처음 펼칠 때 한 번만 fetch.
-interface CodeStep { text: React.ReactNode; start: number; end: number; }
+// ── Judge 뼈대 코드 (MD 파일 섹션 5) ──
+const JUDGE_SKELETON_CPP = `#include <iostream>
+#include <string>
+#include <sstream>
+#include <chrono>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <poll.h>
+using namespace std;
 
-const CodeGuide: React.FC<{ src: string; codeLabel: string; steps: CodeStep[] }> = ({ src, codeLabel, steps }) => {
-  const [lines, setLines] = useState<string[] | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [range, setRange] = useState<[number, number] | null>(null);
-  const [pending, setPending] = useState<number | null>(null);
-  const detailsRef = useRef<HTMLDetailsElement>(null);
-  const preRef = useRef<HTMLPreElement>(null);
+// === 결과 열거형 (채점 서버가 인식하는 값 그대로 사용) ===
+enum Result { NONE, WIN, LOSE, TIME_LIMIT, MEMORY_LIMIT, RUNTIME_ERROR };
 
-  const load = useCallback(() => {
-    if (loaded) return;
-    setLoaded(true);
-    fetch(src)
-      .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.text(); })
-      .then(t => setLines(t.replace(/\n+$/, "").split("\n")))
-      .catch(() => setLines(["// 코드를 불러오지 못했습니다."]));
-  }, [loaded, src]);
-
-  const scrollToLine = useCallback((ln: number) => {
-    const pre = preRef.current;
-    const el = pre?.querySelector<HTMLElement>(`[data-ln="${ln}"]`);
-    if (pre && el) {
-      pre.scrollTo({ top: el.offsetTop - pre.clientHeight / 2 + el.clientHeight / 2, behavior: "smooth" });
+string resultToString(Result r) {
+    switch(r) {
+        case WIN:           return "WIN";
+        case LOSE:          return "LOSE";
+        case TIME_LIMIT:    return "TIME_LIMIT";
+        case MEMORY_LIMIT:  return "MEMORY_LIMIT";
+        case RUNTIME_ERROR: return "RUNTIME_ERROR";
+        default:            return "NONE";
     }
+}
+
+// === AI 프로세스 정보 ===
+struct Player {
+    int pid;
+    int write_fd; // Judge → AI (AI의 stdin)
+    int read_fd;  // AI → Judge (AI의 stdout)
+    int time_left_ms;
+    Result result;
+};
+
+// === AI 프로세스 시작 ===
+Player startPlayer(const string& cmd, int totalTimeMs) {
+    int p_in[2], p_out[2];
+    pipe(p_in); pipe(p_out);
+    int pid = fork();
+    if (pid == 0) { // 자식: AI
+        dup2(p_in[0], STDIN_FILENO);
+        dup2(p_out[1], STDOUT_FILENO);
+        close(p_in[0]); close(p_in[1]);
+        close(p_out[0]); close(p_out[1]);
+        execl("/bin/sh", "sh", "-c", cmd.c_str(), nullptr);
+        exit(1);
+    }
+    close(p_in[0]); close(p_out[1]);
+    return {pid, p_in[1], p_out[0], totalTimeMs, WIN};
+}
+
+// === AI에게 메시지 전송 ===
+void sendMsg(Player& p, const string& msg) {
+    string s = msg + "\\n";
+    write(p.write_fd, s.c_str(), s.size());
+}
+
+// === AI로부터 응답 수신 (타임아웃 포함) ===
+string recvMsg(Player& p, int timeoutMs, int& elapsedMs) {
+    auto start = chrono::steady_clock::now();
+    string res;
+    char c;
+    struct pollfd pfd = {p.read_fd, POLLIN, 0};
+
+    while (true) {
+        int elapsed = chrono::duration_cast<chrono::milliseconds>(
+            chrono::steady_clock::now() - start).count();
+        int remain = timeoutMs - elapsed;
+        if (remain <= 0) { elapsedMs = elapsed; return "TIMEOUT"; }
+
+        if (poll(&pfd, 1, remain) > 0) {
+            if (read(p.read_fd, &c, 1) > 0) {
+                if (c == '\\n') { elapsedMs = elapsed; return res; }
+                if (c != '\\r') res += c;
+            } else { break; }
+        } else { break; }
+    }
+    elapsedMs = chrono::duration_cast<chrono::milliseconds>(
+        chrono::steady_clock::now() - start).count();
+    return "TIMEOUT";
+}
+
+// === AI 종료 ===
+void terminatePlayer(Player& p) {
+    kill(p.pid, SIGKILL);
+    waitpid(p.pid, nullptr, 0);
+    close(p.write_fd);
+    close(p.read_fd);
+}
+
+int main(int argc, char* argv[]) {
+    if (argc != 3) {
+        cerr << "사용법: ./judge <player1> <player2>\\n";
+        return 1;
+    }
+
+    const int TOTAL_TIME_MS = 10000;  // ← 게임 제한 시간 설정
+    const int READY_TIMEOUT_MS = 3000;
+
+    Player p1 = startPlayer(argv[1], TOTAL_TIME_MS);
+    Player p2 = startPlayer(argv[2], TOTAL_TIME_MS);
+
+    // ── 게임 시작: AI에게 초기 정보 전송 ────────────
+    // TODO: 게임 상태 초기화
+    // TODO: 초기 정보 포맷은 자유롭게 설계
+    //   예) sendMsg(p1, "초기정보 문자열");
+    //       sendMsg(p2, "초기정보 문자열");
+    // TODO: 필요하다면 AI의 준비 응답을 받아 검증
+    //   예) int dummy; string ack = recvMsg(p1, 3000, dummy);
+    //       if (ack != "OK") { p1.result = ERROR; ... }
+
+    // ── 게임 루프 ──────────────────────────────────
+    // 프로토콜 구조는 게임마다 다릅니다.
+    // 아래는 "현재 플레이어에게 게임 상태를 보내고 행동을 받는" 일반적인 패턴입니다.
+    Player* players[2] = {&p1, &p2};
+    int turn = 0;
+
+    while (true) {
+        Player& cur = *players[turn];
+        Player& opp = *players[1 - turn];
+
+        // TODO: 현재 플레이어에게 게임 상태 / 요청 전송
+        //   예) sendMsg(cur, buildGameStateString());
+        int elapsed = 0;
+        string resp = recvMsg(cur, cur.time_left_ms + 500, elapsed);
+        cur.time_left_ms -= max(0, elapsed);
+
+        if (resp == "TIMEOUT" || cur.time_left_ms < 0) {
+            cur.result = TIME_LIMIT;
+            break;
+        }
+
+        // TODO: 행동 파싱 및 유효성 검사
+        // if (!isValidMove(resp)) { cur.result = ERROR; break; }
+        // applyMove(resp, turn + 1);
+
+        // TODO: 필요하다면 상대 AI에게 이번 턴 결과 전달
+        //   예) sendMsg(opp, buildOpponentMoveString(resp));
+
+        // TODO: 게임 종료 조건 확인
+        // if (isGameOver()) break;
+
+        turn = 1 - turn;
+    }
+
+    // ── 게임 종료 신호 전송 ────────────────────────
+    // TODO: AI에게 종료를 알리는 메시지 전송 (형식 자유)
+    //   예) sendMsg(p1, "END"); sendMsg(p2, "END");
+    usleep(500000);
+    terminatePlayer(p1);
+    terminatePlayer(p2);
+
+    // TODO: 최종 승자 판정 (보드 상태 등으로 WIN/LOSE 결정)
+    // if (p1Score > p2Score) p2.result = LOSE;
+    // else if (p2Score > p1Score) p1.result = LOSE;
+
+    // ★ 마지막 줄 반드시 이 형식으로 출력 (채점 서버가 이 줄만 읽음)
+    cout << resultToString(p1.result) << " " << resultToString(p2.result) << "\\n";
+    return 0;
+}`;
+
+// ── Sample AI 뼈대 코드 (MD 파일 섹션 6) ──
+const SAMPLE_CODE_CPP = `#include <iostream>
+#include <string>
+#include <sstream>
+using namespace std;
+
+int main() {
+    while (true) {
+        string line;
+        getline(cin, line);
+        if (line.empty()) continue;
+
+        istringstream iss(line);
+        string cmd;
+        iss >> cmd;
+
+        if (cmd == "<초기화_명령>") {
+            // TODO: Judge가 보낸 초기 정보 파싱 (게임 상태, 보드 등)
+            // 응답이 필요하다면: cout << "OK" << endl;
+        }
+        else if (cmd == "<행동_요청_명령>") {
+            // TODO: 게임 상태를 바탕으로 행동 계산
+            cout << "<행동 문자열>" << endl;  // endl로 즉시 flush 필수!
+        }
+        else if (cmd == "<상대행동_알림_명령>") {
+            // TODO: 상대방 행동을 게임 상태에 반영 (응답 불필요)
+        }
+        else if (cmd == "<종료_명령>") {
+            break;
+        }
+    }
+    return 0;
+}`;
+
+const SAMPLE_CODE_JAVA = `import java.util.Scanner;
+
+public class player1 {  // 파일명과 클래스명 일치 필수
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        while (sc.hasNextLine()) {
+            String line = sc.nextLine().trim();
+            String[] parts = line.split(" ");
+            String cmd = parts[0];
+
+            if (cmd.equals("<초기화_명령>")) {
+                // TODO: 초기 정보 파싱
+                // 응답 필요 시: System.out.println("OK"); System.out.flush();
+            } else if (cmd.equals("<행동_요청_명령>")) {
+                // TODO: 행동 계산
+                System.out.println("<행동 문자열>");
+                System.out.flush();  // flush 필수!
+            } else if (cmd.equals("<종료_명령>")) {
+                break;
+            }
+        }
+    }
+}`;
+
+const SAMPLE_CODE_PYTHON = `import sys
+
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    parts = line.split()
+    cmd = parts[0]
+
+    if cmd == "<초기화_명령>":
+        # TODO: 초기 정보 파싱
+        # 응답 필요 시: print("OK", flush=True)
+        pass
+    elif cmd == "<행동_요청_명령>":
+        # TODO: 행동 계산
+        print("<행동 문자열>", flush=True)  # flush=True 필수!
+    elif cmd == "<종료_명령>":
+        break`;
+
+// ── Monaco 기반 Judge 코드 가이드 (펼쳐보기 + 스텝 하이라이트) ──
+interface MonacoStep { text: React.ReactNode; start: number; end: number; }
+
+const MonacoCodeGuide: React.FC<{
+  codeLabel: string;
+  code: string;
+  language?: string;
+  steps?: MonacoStep[];
+}> = ({ codeLabel, code, language = "cpp", steps = [] }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeRange, setActiveRange] = useState<[number, number] | null>(null);
+  const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
+  const decsRef = useRef<string[]>([]);
+
+  const applyDec = useCallback((start: number, end: number) => {
+    if (!editorRef.current || !monacoRef.current) return;
+    decsRef.current = editorRef.current.deltaDecorations(decsRef.current, [{
+      range: new monacoRef.current.Range(start, 1, end, 1),
+      options: { isWholeLine: true, className: "bp-monaco-line-active" },
+    }]);
+    editorRef.current.revealLineInCenter(start, 0);
   }, []);
 
-  const handleStepClick = (s: CodeStep) => {
-    if (detailsRef.current && !detailsRef.current.open) detailsRef.current.open = true;
-    setRange([s.start, s.end]);
-    if (lines) {
-      requestAnimationFrame(() => scrollToLine(s.start));
-    } else {
-      setPending(s.start);
-      load();
+  const handleStepClick = (start: number, end: number) => {
+    setActiveRange([start, end]);
+    setIsOpen(true);
+    if (editorRef.current && monacoRef.current) {
+      requestAnimationFrame(() => applyDec(start, end));
     }
   };
 
-  // fetch 완료 후 대기 중인 스크롤 처리
-  useEffect(() => {
-    if (lines && pending != null) {
-      requestAnimationFrame(() => { scrollToLine(pending); setPending(null); });
+  const handleMount = (editor: any, monaco: any) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+    if (activeRange) {
+      requestAnimationFrame(() => applyDec(activeRange[0], activeRange[1]));
     }
-  }, [lines, pending, scrollToLine]);
+  };
 
   return (
     <>
-      <ol className="bp-info-list bp-code-steps">
-        {steps.map((s, i) => (
-          <li key={i}>
-            <button type="button" className="bp-code-step-btn" onClick={() => handleStepClick(s)}>
-              {s.text}
-            </button>
-          </li>
-        ))}
-      </ol>
-      <details ref={detailsRef} className="bp-code-collapse" onToggle={e => { if (e.currentTarget.open) load(); }}>
+      {steps.length > 0 && (
+        <ol className="bp-info-list bp-code-steps">
+          {steps.map((s, i) => (
+            <li key={i}>
+              <button type="button" className="bp-code-step-btn" onClick={() => handleStepClick(s.start, s.end)}>
+                {s.text}
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
+      <details
+        className="bp-code-collapse"
+        open={isOpen}
+        onToggle={e => setIsOpen(e.currentTarget.open)}
+      >
         <summary className="bp-code-summary">{codeLabel}</summary>
-        <pre ref={preRef} className="bp-tut-code bp-code-pre">
-          {lines === null
-            ? "불러오는 중…"
-            : lines.map((ln, i) => {
-                const n = i + 1;
-                const active = range != null && n >= range[0] && n <= range[1];
-                return (
-                  <div key={n} data-ln={n} className={"bp-code-line" + (active ? " bp-code-line--active" : "")}>
-                    <span className="bp-code-ln">{n}</span>
-                    <span className="bp-code-txt">{ln || " "}</span>
-                  </div>
-                );
-              })}
-        </pre>
+        {isOpen && (
+          <div style={{ height: 480 }}>
+            <Editor
+              height="100%"
+              language={language}
+              value={code}
+              theme="vs-dark"
+              options={{
+                readOnly: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 13,
+                lineNumbers: "on",
+                wordWrap: "off",
+              }}
+              onMount={handleMount}
+            />
+          </div>
+        )}
       </details>
     </>
+  );
+};
+
+// ── Monaco 기반 Sample AI 코드 가이드 (언어 선택 + 펼쳐보기) ──
+const MonacoSampleGuide: React.FC<{
+  codeLabel: string;
+  codes: { cpp: string; java: string; python: string };
+}> = ({ codeLabel, codes }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [lang, setLang] = useState<"cpp" | "java" | "python">("cpp");
+
+  const LANG_LABELS: Record<string, string> = { cpp: "C++", java: "Java", python: "Python" };
+  const MONACO_LANG: Record<string, string> = { cpp: "cpp", java: "java", python: "python" };
+
+  return (
+    <details
+      className="bp-code-collapse"
+      open={isOpen}
+      onToggle={e => setIsOpen(e.currentTarget.open)}
+    >
+      <summary className="bp-code-summary">{codeLabel}</summary>
+      {isOpen && (
+        <>
+          <div className="bp-sample-lang-tabs">
+            {(["cpp", "java", "python"] as const).map(l => (
+              <button
+                key={l}
+                type="button"
+                className={"bp-lang-tab" + (lang === l ? " bp-lang-tab--active" : "")}
+                onClick={() => setLang(l)}
+              >
+                {LANG_LABELS[l]}
+              </button>
+            ))}
+          </div>
+          <div style={{ height: 380 }}>
+            <Editor
+              key={lang}
+              height="100%"
+              language={MONACO_LANG[lang]}
+              value={codes[lang]}
+              theme="vs-dark"
+              options={{
+                readOnly: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 13,
+                lineNumbers: "on",
+                wordWrap: "off",
+              }}
+            />
+          </div>
+        </>
+      )}
+    </details>
   );
 };
 
@@ -160,66 +456,75 @@ const HELP_ITEMS: { title: string; summary: string; body: React.ReactNode; hasTu
     body: (
       <>
         <p className="bp-info-text">
-          처음 대회를 개최하는 분을 위한 가이드입니다. 대회 개최의 핵심은 <strong>게임 규칙을 담은 Judge 코드</strong>와
-          <strong> 참가자에게 제공할 Sample AI 코드</strong>를 작성하는 것입니다.
+          처음 대회를 개최하는 분을 위한 가이드입니다.
         </p>
 
         <table className="bp-tut-table">
           <thead>
-            <tr><th>파일</th><th>필수</th><th>설명</th></tr>
+            <tr><th>파일</th><th>필수 여부</th><th>설명</th></tr>
           </thead>
           <tbody>
             <tr><td>Judge 코드</td><td><strong>필수</strong></td><td>게임 규칙 판단</td></tr>
-            <tr><td>Sample AI 코드</td><td><strong>필수</strong></td><td>참가자에게 제공하는 예시 AI 스켈레톤</td></tr>
+            <tr><td>Sample AI 코드</td><td><strong>필수</strong></td><td>참가자에게 제공하는 예시 AI 스켈레톤 코드</td></tr>
             <tr><td>로그 시각화 HTML</td><td>선택</td><td>대결 로그를 브라우저에서 재생</td></tr>
-            <tr><td>혼자 플레이 HTML</td><td>선택</td><td>브라우저에서 직접 게임 체험</td></tr>
+            <tr><td>혼자 플레이 HTML</td><td>선택</td><td>브라우저에서 직접 게임을 체험</td></tr>
           </tbody>
         </table>
 
         {/* 1 */}
         <h4 className="bp-tut-h">1. 전체 구조 이해하기</h4>
-        <p className="bp-info-text">두 AI 봇이 대결할 때 채점 서버는 다음 순서로 동작합니다.</p>
+        <p className="bp-info-text">대회에서 두 AI 봇이 대결할 때, 채점 서버는 다음 순서로 동작합니다.</p>
         <pre className="bp-tut-code">{`채점 서버
-  ├─ Judge 실행   ← 개최자가 제출한 judge 코드
-  │     ├─ Player1 실행  ← 참가자 AI
-  │     └─ Player2 실행  ← 참가자 AI (또는 Sample AI)
-  └─ Judge의 마지막 출력을 읽어 승자 판정`}</pre>
+    │
+    ├─ Judge 실행  ←  개최자가 제출한 judge 코드
+    │       │
+    │       ├─ Player1 실행  ←  참가자 AI
+    │       └─ Player2 실행  ←  참가자 AI (또는 Sample AI)
+    │
+    └─ Judge의 마지막 출력을 읽어 승자 판정`}</pre>
         <ul className="bp-info-list">
-          <li><strong>Judge</strong> — 게임 규칙의 심판. 두 AI를 자식 프로세스로 실행하고 stdin/stdout으로 통신합니다.</li>
-          <li><strong>AI (Player)</strong> — Judge의 지시에 따라 stdin으로 명령을 받고 stdout으로 행동을 출력합니다.</li>
-          <li><strong>Sample AI</strong> — 참가자에게 제공하는 예시 코드. 참가자는 이를 기반으로 전략을 개선합니다.</li>
+          <li><strong>Judge</strong> — 게임 규칙의 심판. 두 AI를 자식 프로세스로 직접 실행하고, stdin/stdout으로 통신하며 게임을 진행합니다.</li>
+          <li><strong>AI (Player)</strong> — Judge의 지시에 따라 stdin으로 명령을 받고, stdout으로 행동을 출력합니다.</li>
+          <li><strong>Sample AI</strong> — 참가자들에게 제공하는 AI 예시 코드입니다. 이 코드를 기반으로 참가자들이 전략을 개선합니다.</li>
         </ul>
 
         {/* 2 */}
         <h4 className="bp-tut-h">2. Judge 코드란?</h4>
         <p className="bp-info-text">
-          Judge 코드는 <strong>게임 규칙 그 자체</strong>입니다. 보드 · 규칙 · 승패 조건을 모두 Judge 코드 안에 구현합니다.
-          Judge가 하는 일은 ① 두 AI 프로세스 실행 ② 시작 전 초기 정보 전송 ③ 매 턴 행동 요청·검증·상대 전달
-          ④ 종료 시 결과를 stdout 마지막 줄에 출력입니다.
+          Judge 코드는 <strong>게임 규칙 그 자체</strong>입니다. 개최자가 직접 설계한 게임의 보드, 규칙, 승패 조건을 모두 Judge 코드 안에 구현합니다.
         </p>
+        <p className="bp-info-text">Judge가 해야 할 일:</p>
+        <ol className="bp-info-list">
+          <li>두 AI를 자식 프로세스로 실행 (<code>./player1</code>, <code>./player2</code>)</li>
+          <li>게임 시작 전 초기 메시지 전송</li>
+          <li>매 턴마다 현재 플레이어에게 상태 전송 → 행동을 받아 유효성 검사 → 상대에게 전달</li>
+          <li>게임 종료 시 종료 신호 전송 후 결과를 stdout 마지막 줄에 출력</li>
+        </ol>
         <div className="bp-tut-callout">
           <span><strong>핵심:</strong> Judge 실행 결과의 <strong>마지막 줄</strong>만 채점 서버가 읽습니다.</span>
         </div>
 
         {/* 3 */}
         <h4 className="bp-tut-h">3. Sample AI 코드란?</h4>
+        <p className="bp-info-text">Sample AI는 참가자들이 참고하는 <strong>기본 AI 템플릿</strong>입니다.</p>
         <ul className="bp-info-list">
-          <li>완전히 동작하는 AI여야 합니다 (게임을 끝까지 진행 가능).</li>
-          <li>전략이 단순해도 괜찮습니다 (참가자가 개선하는 것이 목적).</li>
-          <li>Judge와 동일한 통신 프로토콜을 따라야 합니다.</li>
+          <li>완전히 동작하는 AI여야 합니다 (게임을 끝까지 진행 가능해야 함)</li>
+          <li>전략이 단순해도 괜찮습니다 (참가자들이 자신들의 코드를 개선하는 것이 목적)</li>
+          <li>Judge와 동일한 통신 프로토콜을 따라야 합니다</li>
         </ul>
 
         {/* 4 */}
         <h4 className="bp-tut-h">4. 통신 프로토콜</h4>
+        <h5 className="bp-tut-sub">유일한 규칙: stdin/stdout</h5>
         <p className="bp-info-text">
-          Judge와 AI는 <strong>표준 입출력(stdin/stdout)</strong>으로만 통신합니다. 메시지 형식 · 명령어 이름 · 순서는
-          <strong> 개최자가 자유롭게 설계</strong>합니다.
+          Judge와 AI는 <strong>표준 입출력(stdin/stdout)</strong>으로만 통신합니다.
+          그 외의 메시지 형식, 명령어 이름, 주고받는 순서는 <strong>개최자가 자유롭게 설계</strong>합니다.
         </p>
         <div className="bp-tut-callout">
           <span>디버그 메시지는 반드시 <strong>stderr</strong>에만 출력하세요. stdout에 쓰면 Judge가 오파싱합니다.</span>
         </div>
         <h5 className="bp-tut-sub">Judge 최종 출력 형식</h5>
-        <p className="bp-info-text">stdout 마지막 줄은 반드시 <code>{"<P1_결과> <P2_결과>"}</code> 형식이어야 합니다.</p>
+        <p className="bp-info-text">Judge의 stdout <strong>마지막 줄</strong>은 반드시 <code>{"<P1_결과> <P2_결과>"}</code> 형식이어야 합니다.</p>
         <table className="bp-tut-table">
           <thead><tr><th>값</th><th>의미</th></tr></thead>
           <tbody>
@@ -227,77 +532,94 @@ const HELP_ITEMS: { title: string; summary: string; body: React.ReactNode; hasTu
             <tr><td><code>LOSE</code></td><td>졌음</td></tr>
             <tr><td><code>TIME_LIMIT</code></td><td>시간 초과</td></tr>
             <tr><td><code>MEMORY_LIMIT</code></td><td>메모리 초과</td></tr>
-            <tr><td><code>ERROR</code></td><td>잘못된 행동 또는 런타임 오류</td></tr>
+            <tr><td><code>RUNTIME_ERROR</code></td><td>게임 실행 중 잘못된 행동 또는 AI 프로세스 비정상 종료</td></tr>
+            <tr><td><code>COMPILE_ERROR</code></td><td>AI 코드 컴파일 실패 (채점 서버가 설정, judge는 실행되지 않음)</td></tr>
             <tr><td><code>NONE</code></td><td>무승부</td></tr>
           </tbody>
         </table>
-        <pre className="bp-tut-code">{`WIN LOSE        ← P1 승
-LOSE WIN        ← P2 승
-NONE NONE       ← 무승부
-WIN TIME_LIMIT  ← P2 시간초과로 P1 승`}</pre>
+        <pre className="bp-tut-code">{`WIN LOSE              ← P1 승
+LOSE WIN              ← P2 승
+NONE NONE             ← 무승부
+WIN TIME_LIMIT        ← P2 시간 초과로 P1 승
+RUNTIME_ERROR WIN     ← P1 런타임 에러로 P2 승
+WIN COMPILE_ERROR     ← P2 컴파일 에러로 P1 승`}</pre>
         <p className="bp-info-text">
-          서버는 이 줄을 파싱해 P1=WIN이면 winner=1, P2=WIN이면 winner=2, 그 외는 winner=0으로 결정합니다.
+          채점 서버는 이 마지막 줄을 파싱해서 <code>winner</code>를 결정합니다.
+          P1=WIN이면 winner=1, P2=WIN이면 winner=2, 그 외는 winner=0(무효/무승부).
         </p>
 
         {/* 5 */}
         <h4 className="bp-tut-h">5. Judge 코드 작성법</h4>
         <p className="bp-info-text">구현해야 할 핵심 흐름입니다. <strong>각 항목을 클릭하면</strong> 아래 코드의 해당 부분으로 이동합니다.</p>
-        <div className="bp-tut-callout">
-          <span>Judge · Sample AI의 전체 C++ 뼈대 코드는 아래 <strong>빠른 생성(사과게임)</strong> 예시 파일과 별도 튜토리얼 문서에서 제공됩니다.</span>
-        </div>
-        <CodeGuide
-          src="/tutorial/apple_judge.cpp"
-          codeLabel="📄 apple_judge.cpp — 전체 코드 펼쳐보기"
+        <MonacoCodeGuide
+          codeLabel="📄 Judge 코드 뼈대 (C++) — 펼쳐보기"
+          code={JUDGE_SKELETON_CPP}
+          language="cpp"
           steps={[
-            { text: "게임 보드/상태 초기화", start: 135, end: 144 },
-            { text: "AI 프로세스 실행 (fork + pipe)", start: 52, end: 78 },
-            { text: "게임 시작 시 초기 정보를 AI에게 전송 (형식 자유)", start: 215, end: 219 },
-            { text: "매 턴 AI와 데이터 주고받기 (형식·순서 자유)", start: 229, end: 234 },
-            { text: "각 AI의 행동 유효성 검사", start: 157, end: 175 },
-            { text: <>타임아웃 처리 (무응답 시 <code>TIME_LIMIT</code>)</>, start: 238, end: 241 },
-            { text: "종료 조건 판단 후 종료 신호 전송", start: 264, end: 272 },
-            { text: "마지막 줄에 결과 출력 (이것만 채점 서버가 읽음)", start: 278, end: 296 },
+            { text: "게임 보드/상태 초기화", start: 102, end: 108 },
+            { text: "AI 프로세스 실행 (fork + pipe)", start: 34, end: 48 },
+            { text: "게임 시작 시 초기 정보를 AI에게 전송 (형식은 자유)", start: 101, end: 108 },
+            { text: "매 턴 또는 필요한 시점에 AI와 데이터 주고받기 (형식·순서는 자유)", start: 116, end: 142 },
+            { text: "각 AI의 행동 유효성 검사", start: 131, end: 133 },
+            { text: <>타임아웃 처리 (AI가 응답하지 않을 경우 <code>TIME_LIMIT</code>)</>, start: 126, end: 129 },
+            { text: "게임 종료 조건 판단 후 AI에 종료 신호 전송", start: 144, end: 149 },
+            { text: "마지막 줄에 결과 출력 (이것만 채점 서버가 읽음)", start: 155, end: 158 },
           ]}
         />
 
         {/* 6 */}
         <h4 className="bp-tut-h">6. Sample AI 코드 작성법</h4>
-        <p className="bp-info-text">AI가 해야 할 일은 세 가지입니다. <strong>각 항목을 클릭하면</strong> 아래 코드의 해당 부분으로 이동합니다.</p>
+        <p className="bp-info-text">
+          Sample AI가 처리해야 할 명령어는 <strong>개최자가 Judge에서 정의한 프로토콜</strong>을 그대로 따릅니다.
+          AI가 해야 할 일은 세 가지입니다.
+        </p>
+        <ol className="bp-info-list">
+          <li>Judge에서 보내는 메시지를 stdin으로 읽는다</li>
+          <li>행동을 요청하는 메시지에 대해서만 stdout으로 응답한다</li>
+          <li>게임 종료 신호를 받으면 프로그램을 정상 종료한다</li>
+        </ol>
         <div className="bp-tut-callout">
-          <span><strong>핵심:</strong> 행동 출력 시 반드시 <code>endl</code>/<code>flush</code>로 즉시 전송하세요. 버퍼에 남으면 Judge가 타임아웃 처리합니다.</span>
+          <span><strong>핵심 주의:</strong> 행동을 출력할 때는 반드시 <code>endl</code> / <code>flush</code>로 즉시 전송해야 합니다.
+          버퍼에 남아있으면 Judge가 응답을 기다리다 타임아웃 처리됩니다.</span>
         </div>
-        <p className="bp-info-text"><code>calculateMove</code> 부분이 참가자가 개선할 전략 영역입니다.</p>
-        <CodeGuide
-          src="/tutorial/apple_sample_ai_code.cpp"
-          codeLabel="📄 apple_sample_ai_code.cpp — 전체 코드 펼쳐보기"
-          steps={[
-            { text: "Judge가 보내는 메시지를 stdin으로 읽는다", start: 93, end: 101 },
-            { text: "행동 요청 메시지에만 stdout으로 응답한다", start: 131, end: 142 },
-            { text: "종료 신호를 받으면 정상 종료한다", start: 153, end: 157 },
-          ]}
+        <p className="bp-info-text">명령어 이름과 데이터 형식은 Judge가 정의한 프로토콜에 맞게 수정하세요.</p>
+        <MonacoSampleGuide
+          codeLabel="📄 Sample AI 뼈대 — 언어 선택 후 펼쳐보기"
+          codes={{ cpp: SAMPLE_CODE_CPP, java: SAMPLE_CODE_JAVA, python: SAMPLE_CODE_PYTHON }}
         />
 
         {/* 7 */}
         <h4 className="bp-tut-h">7. 완성된 예시 — 사과 게임</h4>
+        <h5 className="bp-tut-sub">게임 규칙</h5>
         <ul className="bp-info-list">
           <li><strong>보드</strong>: 10행 × 17열, 각 칸에 1~9 숫자</li>
-          <li><strong>행동</strong>: 직사각형 영역 선택, 영역 내 합이 정확히 <strong>10</strong>이어야 하며 네 변에 각각 숫자가 1개 이상 포함</li>
+          <li><strong>행동</strong>: 직사각형 영역 <code>(r1, c1) ~ (r2, c2)</code> 선택, 영역 내 합이 정확히 <strong>10</strong>이어야 하며 네 변에 각각 숫자가 1개 이상 포함</li>
           <li><strong>패스</strong>: <code>-1 -1 -1 -1</code> 출력</li>
-          <li><strong>종료</strong>: 양쪽 연속 패스 시</li>
-          <li><strong>승자</strong>: 더 많은 칸을 소유한 플레이어</li>
+          <li><strong>종료</strong>: 양쪽이 연속으로 패스하면 게임 종료</li>
+          <li><strong>승자</strong>: 더 많은 칸을 소유한 플레이어가 승리</li>
         </ul>
         <p className="bp-info-text">사과 게임 프로토콜: <code>READY</code> → <code>INIT</code> → (<code>TIME</code> → <code>OPP</code>) 반복 → <code>FINISH</code></p>
+        <h5 className="bp-tut-sub">대회 제출 시 첨부 파일</h5>
+        <table className="bp-tut-table">
+          <thead><tr><th>파일</th><th>설명</th><th>비고</th></tr></thead>
+          <tbody>
+            <tr><td><code>judge.cpp</code></td><td>게임 심판 코드</td><td>참가자에게 비공개</td></tr>
+            <tr><td><code>sample_code.cpp</code></td><td>기본 AI 예시</td><td>참가자에게 공개됨</td></tr>
+          </tbody>
+        </table>
 
         {/* 8 */}
         <h4 className="bp-tut-h">8. 시각화 HTML 제출하기 (선택)</h4>
-        <h5 className="bp-tut-sub">로그 시각화 HTML</h5>
+        <h5 className="bp-tut-sub">로그 시각화 HTML (대결 리플레이)</h5>
         <p className="bp-info-text">
-          Judge가 출력한 로그 파일을 업로드하면 대결을 턴별로 재생하는 뷰어입니다. 슬라이더 · 재생(0.5×~16×) · 힌트 · 키보드 단축키를 지원합니다.
+          Judge가 출력한 로그 파일을 업로드하면 대결을 턴별로 재생하는 뷰어입니다.
+          슬라이더 · 재생(0.5×~16×) · 힌트 · 키보드 단축키(<code>←</code> <code>→</code> <code>Space</code>)를 지원합니다.
           Judge가 <code>INIT</code> / <code>FIRST</code> / <code>SECOND</code> / 마지막 <code>WIN LOSE</code> 형식으로 로그를 출력해야 합니다.
         </p>
-        <h5 className="bp-tut-sub">혼자 플레이 HTML</h5>
+        <h5 className="bp-tut-sub">혼자 플레이 HTML (게임 직접 체험)</h5>
         <p className="bp-info-text">
-          참가자가 AI를 만들기 전 게임 규칙을 직접 체험하는 인터랙티브 플레이어입니다. 마우스 드래그 선택 · 실시간 합계 피드백 · 힌트를 지원합니다.
+          참가자가 AI를 만들기 전 게임 규칙을 직접 체험하는 인터랙티브 플레이어입니다.
+          마우스 드래그 선택 · 실시간 합계 피드백 · 힌트 · 모바일 터치를 지원합니다.
         </p>
         <div className="bp-tut-callout">
           <span>시각화 HTML은 <strong>독립 실행 가능한 단일 파일</strong>이어야 합니다. iframe 삽입 시 <code>window.postMessage</code>(<code>{"{ type: \"LOAD_LOG\", log }"}</code>)로 로그를 전달받을 수 있습니다.</span>
@@ -308,20 +630,30 @@ WIN TIME_LIMIT  ← P2 시간초과로 P1 승`}</pre>
         <h5 className="bp-tut-sub">Judge 코드</h5>
         <ul className="bp-tut-check">
           <li><code>./judge ./player1 ./player2</code> 형태로 실행 가능한가?</li>
-          <li>마지막 stdout 줄이 <code>{"<P1결과> <P2결과>"}</code> 형식인가?</li>
-          <li>타임아웃 · 잘못된 행동 · 무승부 처리가 있는가?</li>
+          <li>마지막 stdout 줄이 <code>{"<P1결과> <P2결과>"}</code> 형식인가? (<code>WIN LOSE</code> 등)</li>
+          <li>타임아웃 처리가 있는가? (AI가 무응답 시 <code>TIME_LIMIT</code> 처리)</li>
+          <li>잘못된 행동(유효하지 않은 수) 처리가 있는가?</li>
+          <li>두 플레이어가 모두 NONE일 때(무승부) 처리가 있는가?</li>
         </ul>
         <h5 className="bp-tut-sub">Sample AI 코드</h5>
         <ul className="bp-tut-check">
-          <li>행동 요청에 유효한 행동을 출력하는가?</li>
+          <li>행동 요청 시 유효한 행동을 출력하는가?</li>
           <li>모든 출력에 <code>endl</code>/<code>flush</code>가 있는가?</li>
           <li>종료 신호 수신 시 정상 종료하는가?</li>
-          <li>디버그 메시지를 <code>stderr</code>에만 출력하는가?</li>
+          <li>디버그 메시지를 <code>stderr</code>에만 출력하는가? (<code>cerr</code> / <code>sys.stderr</code>)</li>
+          <li>Judge가 설정한 타임아웃 내에 항상 응답하는가?</li>
         </ul>
         <h5 className="bp-tut-sub">공통</h5>
         <ul className="bp-tut-check">
-          <li>C++ 기준 <code>g++ -O2</code>로 빌드 오류 없이 컴파일되는가?</li>
-          <li>로컬에서 Judge와 Sample AI를 직접 실행해 정상 동작을 확인했는가?</li>
+          <li>C++ 기준 <code>g++ -O2</code>로 컴파일 오류 없이 빌드되는가?</li>
+          <li>Judge와 Sample AI를 로컬에서 직접 실행해 정상 동작을 확인했는가?</li>
+        </ul>
+        <h5 className="bp-tut-sub">시각화 HTML (제출하는 경우)</h5>
+        <ul className="bp-tut-check">
+          <li><strong>로그 시각화 HTML</strong>: Judge 출력 로그를 업로드했을 때 보드가 정상 렌더링되는가?</li>
+          <li><strong>로그 시각화 HTML</strong>: 슬라이더, 재생, 힌트 버튼이 정상 동작하는가?</li>
+          <li><strong>혼자 플레이 HTML</strong>: 브라우저에서 열었을 때 보드가 바로 표시되는가?</li>
+          <li><strong>혼자 플레이 HTML</strong>: 마우스 드래그로 선택 → 합 피드백 → 확정이 정상 동작하는가?</li>
         </ul>
 
         <div className="bp-tut-cta">
