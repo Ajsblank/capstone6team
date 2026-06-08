@@ -193,7 +193,7 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
             String resultLog = rootNode.get("log").asText();
 
             String pendingKey = "validate:" + targetUserId + ":pending";
-            String labelsKey  = "validate:" + targetUserId + ":labels";  // hash: jobId -> label
+            String labelsKey = "validate:" + targetUserId + ":labels"; // hash: jobId -> label
             String resultsKey = "validate:" + targetUserId + ":results"; // hash: jobId -> log
 
             // 검증 요청인지 확인 (pendingKey 존재 여부로 판단)
@@ -212,7 +212,7 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
 
             if (remaining != null && remaining <= 0) {
                 // 모든 결과 수집 완료 → jobId 기준으로 label과 매칭하여 SSE 1회 전송
-                java.util.Map<Object, Object> labelMap  = redisTemplate.opsForHash().entries(labelsKey);
+                java.util.Map<Object, Object> labelMap = redisTemplate.opsForHash().entries(labelsKey);
                 java.util.Map<Object, Object> resultMap = redisTemplate.opsForHash().entries(resultsKey);
 
                 // jobId 정렬 (userId_0, userId_1, ... 순서 보장)
@@ -228,7 +228,7 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
                 boolean passed = true;
 
                 for (String jid : sortedJobIds) {
-                    String target    = String.valueOf(labelMap.getOrDefault(jid, "알 수 없음"));
+                    String target = String.valueOf(labelMap.getOrDefault(jid, "알 수 없음"));
                     String singleLog = String.valueOf(resultMap.getOrDefault(jid, ""));
 
                     java.util.Map<String, Object> detail = new java.util.LinkedHashMap<>();
@@ -285,7 +285,8 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
 
     private boolean isValidResultLine(String line) {
         String[] parts = line.split("\\s+");
-        if (parts.length != 2) return false;
+        if (parts.length != 2)
+            return false;
         return VALID_RESULTS.contains(parts[0]) && VALID_RESULTS.contains(parts[1]);
     }
 

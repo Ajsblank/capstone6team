@@ -80,7 +80,7 @@ class CodeControllerTest {
 
         testContest = CodeBattleContest.create(
                 "Test Contest", "Description", ContestStatus.TEST,
-                false, 3, 256, "int main(){return 0;}", 10,
+                false, 3, 256, "int main(){return 0;}", Language.CPP, 10,
                 null, null, null, null, testUser);
     }
 
