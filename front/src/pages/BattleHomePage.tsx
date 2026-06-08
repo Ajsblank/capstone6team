@@ -398,8 +398,6 @@ const BattlePage: React.FC = () => {
   const [contests, setContests] = useState<ContestItem[]>([]);
   const [contestLoading, setContestLoading] = useState(false);
   const [contestError, setContestError] = useState<string | null>(null);
-  const [blockedPopup, setBlockedPopup] = useState(false);
-
   // 대회 개최 비용 안내 팝업
   const [showCostPopup, setShowCostPopup] = useState(false);
 
@@ -571,14 +569,6 @@ const BattlePage: React.FC = () => {
         </div>
       )}
 
-      {blockedPopup && (
-        <div className="bp-popup-overlay" onClick={() => setBlockedPopup(false)}>
-          <div className="bp-popup" onClick={e => e.stopPropagation()}>
-            <p className="bp-popup-msg">아직 대회 참가할 수 없습니다.</p>
-            <button className="bp-popup-btn" onClick={() => setBlockedPopup(false)}>확인</button>
-          </div>
-        </div>
-      )}
       <header className="home-header">
         <span className="home-logo" onClick={() => navigate("landing")}>
           <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
@@ -790,7 +780,6 @@ const BattlePage: React.FC = () => {
                           key={c.id}
                           className={`bp-problem-card${statusCardClass(c.status)}`}
                           onClick={() => {
-                            if (c.status === "PLANNED" && !hostedContestIds.includes(c.id) && !createdContestIds.includes(c.id)) { setBlockedPopup(true); return; }
                             window.location.hash = `submit/${c.id}`;
                           }}
                         >

@@ -97,6 +97,7 @@ export const applyAuthInterceptor = (instance: AxiosInstance): void => {
         original.headers["Authorization"] = `Bearer ${newToken}`;
         return instance(original);
       } catch {
+        pendingQueue = [];
         clearTokens();
         window.dispatchEvent(new CustomEvent("auth:logout"));
         return Promise.reject(error);
