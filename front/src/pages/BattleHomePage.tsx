@@ -804,7 +804,7 @@ const BattlePage: React.FC = () => {
                                   window.location.hash = `contest-settings/${c.id}`;
                                 }}
                               >
-                                ⚙
+                                <img src="/resources/settings.svg" alt="설정" className="bp-settings-icon" />
                               </button>
                             )}
                             <div className="bp-problem-info">

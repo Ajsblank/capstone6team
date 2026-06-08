@@ -404,9 +404,8 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     handleValidateAndCreate();
   };
 
-  // 비인증 — 검증 완료 후 결제 확인 모달 열기
+  // 비인증 — 결제 확인 모달 열기
   const handleSubmit = () => {
-    if (!validationPassed) return;
     const missing = validate(false);
     if (missing.length > 0) { setToastMessages(missing); return; }
     setShowPayConfirm(true);
@@ -763,8 +762,8 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                   </div>
                   </div>{/* /검증 중 비활성화 래퍼 */}
 
-                  {/* 검증 후 계속 버튼 - 필수 파일 3개 모두 업로드 후 표시 */}
-                  {areRequiredFilesUploaded() && !validationPassed && (
+                  {/* 검증 버튼 - 필수 파일 3개 모두 업로드 후 표시 */}
+                  {areRequiredFilesUploaded() && (
                     <div className="cc-validate-btn-wrapper">
                       <button
                         type="button"
@@ -773,33 +772,33 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                         disabled={isValidating}
                         data-tut="validate"
                       >
-                        {isValidating ? `검증 중${".".repeat(loadingDots)}` : "검증 후 계속"}
+                        {isValidating ? `검증 중${".".repeat(loadingDots)}` : "코드 검증"}
                       </button>
                     </div>
                   )}
 
-                  <div data-tut="viz" className={!validationPassed ? "cc-section--disabled" : ""}>
-                    <FileInput label="시각화 HTML 파일" accept=".html" value={visualizationHtml} onChange={setVisualizationHtml} required={certification} hint={!certification ? " (선택)" : undefined} disabled={!validationPassed} />
-                    <FileInput label="혼자서 플레이 HTML 파일" accept=".html" value={soloPlayHtml} onChange={setSoloPlayHtml} required={certification} hint={!certification ? " (선택)" : undefined} disabled={!validationPassed} />
+                  <div data-tut="viz">
+                    <FileInput label="시각화 HTML 파일" accept=".html" value={visualizationHtml} onChange={setVisualizationHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
+                    <FileInput label="혼자서 플레이 HTML 파일" accept=".html" value={soloPlayHtml} onChange={setSoloPlayHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
                   </div>
                 </section>
 
                 {/* 대회 설정 */}
-                <section className={`cc-section${!validationPassed ? " cc-section--disabled" : ""}`}>
+                <section className="cc-section">
                   <h3 className="cc-section-title">대회 설정</h3>
                   <div className="cc-row" data-tut="date">
                     <div className="cc-field">
                       <label className="cc-label">시작 일시 <Req show={!startDate} /></label>
-                      <input className="cc-input cc-input--date" type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} disabled={!validationPassed} />
+                      <input className="cc-input cc-input--date" type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                     </div>
                     <div className="cc-field">
                       <label className="cc-label">종료 일시 <Req show={!endDate} /></label>
-                      <input className="cc-input cc-input--date" type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} disabled={!validationPassed} />
+                      <input className="cc-input cc-input--date" type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                     </div>
                   </div>
                   <div className="cc-field cc-field--narrow" data-tut="max">
                     <label className="cc-label">최대 참가자 수 <span className="cc-required">*</span></label>
-                    <input className="cc-input" type="number" min={1} max={10000} value={maxParticipants} onChange={(e) => setMaxParticipants(Number(e.target.value))} disabled={!validationPassed} />
+                    <input className="cc-input" type="number" min={1} max={10000} value={maxParticipants} onChange={(e) => setMaxParticipants(Number(e.target.value))} />
                   </div>
                 </section>
 
@@ -827,7 +826,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                   ) : certification ? (
                     <button type="button" className="cc-next-btn" onClick={handleNextStep}>다음 단계 (검수자 설정) →</button>
                   ) : (
-                    <button type="button" className="cc-submit-btn" onClick={handleSubmit} disabled={!validationPassed}>
+                    <button type="button" className="cc-submit-btn" onClick={handleSubmit}>
                       결제 후 생성
                     </button>
                   )}
@@ -861,6 +860,19 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
 
           </div>
         </div>
+      {/* ── AI 도우미 패널 (좌측 여백 고정) ── */}
+      <div className="cc-ai-col">
+        <AiAssistPanel
+          description={description}
+          sampleCode={sampleCodes[0] ?? null}
+          onApplySampleCode={(f) => { setSampleCodes([f]); setValidationPassed(false); setValidationResult(null); }}
+          onApplyJudgeCode={(f) => { setJudgeCode(f); setValidationPassed(false); setValidationResult(null); }}
+          onAddExampleAICode={(f) => setExampleAiCodes(prev => [...prev, { file: f, description: "" }])}
+          onApplyVisualization={(f) => setVisualizationHtml(f)}
+          onApplySoloPlay={(f) => setSoloPlayHtml(f)}
+        />
+      </div>
+
       </main>
 
       {/* ── 튜토리얼 오버레이 ── */}
