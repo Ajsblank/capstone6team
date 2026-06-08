@@ -36,6 +36,7 @@ import {
   getFinalResult,
   getSessionLeaderboard,
   getSwissMatchLog,
+  getFullLeagueMatchLog,
 } from './codeBattleApi';
 import { SubmitRequest } from '../types';
 
@@ -253,5 +254,43 @@ describe('getSwissMatchLog()', () => {
 
     expect(result.log).toBe('round1: player1 wins');
     expect(mockApi.get).toHaveBeenCalledWith('/api/contests/3/swiss/viewMatchLog/101');
+  });
+});
+
+// ─────────────────────────────────────────────────────────
+describe('getFullLeagueMatchLog()', () => {
+  it('서버가 string을 직접 반환하면 그대로 반환한다', async () => {
+    mockApi.get.mockResolvedValue({ data: 'round1: player1 wins by score' });
+
+    const result = await getFullLeagueMatchLog(5, 201);
+
+    expect(result).toBe('round1: player1 wins by score');
+    expect(mockApi.get).toHaveBeenCalledWith(
+      '/api/contests/5/fullLeague/viewMatchLog/201'
+    );
+  });
+
+  it('서버가 { log: string } 객체를 반환하면 log 필드를 추출한다', async () => {
+    mockApi.get.mockResolvedValue({ data: { log: 'round2: draw after 10 turns' } });
+
+    const result = await getFullLeagueMatchLog(5, 202);
+
+    expect(result).toBe('round2: draw after 10 turns');
+  });
+
+  it('객체에 log 필드가 없으면 빈 문자열을 반환한다', async () => {
+    mockApi.get.mockResolvedValue({ data: {} });
+
+    const result = await getFullLeagueMatchLog(5, 203);
+
+    expect(result).toBe('');
+  });
+
+  it('빈 string이 반환되면 빈 문자열을 그대로 반환한다', async () => {
+    mockApi.get.mockResolvedValue({ data: '' });
+
+    const result = await getFullLeagueMatchLog(5, 204);
+
+    expect(result).toBe('');
   });
 });
