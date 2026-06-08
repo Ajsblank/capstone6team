@@ -1078,7 +1078,7 @@ const BattlePage: React.FC = () => {
                   <>
                     <p className="bp-filter-count">총 {filteredContests.length}개 대회</p>
                     <div className="bp-problem-list">
-                      {filteredContests.map(c => (
+                      {filteredContests.map((c, idx) => (
                         <div
                           key={c.id}
                           className={`bp-problem-card${statusCardClass(c.status)}`}
@@ -1100,7 +1100,7 @@ const BattlePage: React.FC = () => {
                               </button>
                             )}
                             <div className="bp-problem-info">
-                              <span className="bp-problem-num">#{c.id}</span>
+                              <span className="bp-problem-num">#{idx + 1}</span>
                               <p className="bp-problem-title">
                                 {c.title}
                                 {joinedContestIds.includes(c.id) && (
@@ -1184,9 +1184,9 @@ const BattlePage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {previousProblems.map(c => (
+                    {previousProblems.map((c, idx) => (
                       <tr key={c.id} className="bp-prev-row" onClick={() => { window.location.hash = `submit/${c.id}`; }}>
-                        <td className="bp-prev-id">#{c.id}</td>
+                        <td className="bp-prev-id">#{idx + 1}</td>
                         <td className="bp-prev-name">{c.title}</td>
                         <td className="bp-prev-info">
                           {isParticipant(c.id) ? (
