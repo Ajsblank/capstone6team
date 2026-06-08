@@ -6,6 +6,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import com.asap.server.global.type.ContestStatus;
+import com.asap.server.global.type.Language;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -67,6 +68,11 @@ public class CodeBattleContest {
 
   @Column(columnDefinition = "TEXT", name = "sample_code")
   private String sampleCode;
+
+  @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+  @Enumerated(EnumType.STRING)
+  @Column(name = "judge_language", columnDefinition = "language", nullable = false)
+  private Language judgeLanguage = Language.CPP;
 
   @Column(name = "max_participants", nullable = false)
   private int maxParticipants;

@@ -307,7 +307,7 @@ public class SwissLeagueService {
     codesNode.put("player1", player1Code);
     codesNode.put("player2", player2Code);
     ObjectNode languagesNode = rootNode.putObject("languages");
-    languagesNode.put("judge", "cpp");
+    languagesNode.put("judge", contest.getJudgeLanguage().name().toLowerCase());
     languagesNode.put("player1", s1.getLanguage().name().toLowerCase());
     languagesNode.put("player2", s2.getLanguage().name().toLowerCase());
 

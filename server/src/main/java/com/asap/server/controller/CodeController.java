@@ -140,7 +140,7 @@ public class CodeController {
                 codesNode.put("player2", ai.getCode());
 
                 ObjectNode languagesNode = rootNode.putObject("languages");
-                languagesNode.put("judge", "cpp");
+                languagesNode.put("judge", contest.getJudgeLanguage().name().toLowerCase());
                 languagesNode.put("player1", request.getLanguage().name().toLowerCase());
                 languagesNode.put("player2", ai.getLanguage().name().toLowerCase());
 
@@ -201,7 +201,7 @@ public class CodeController {
             rootNode.put("player2", request.getSourceCode2());
 
             ObjectNode languagesNode = rootNode.putObject("languages");
-            languagesNode.put("judge", "cpp");
+            languagesNode.put("judge", request.getJudgeLanguage().name().toLowerCase());
             languagesNode.put("player1", request.getLanguage1().name().toLowerCase());
             languagesNode.put("player2", request.getLanguage2().name().toLowerCase());
 
