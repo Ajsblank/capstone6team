@@ -26,6 +26,7 @@ import {
   loginApi,
   signUp,
   logoutApi,
+  refreshTokenApi,
   clearTokens,
   setAccessToken,
   getAccessToken,
@@ -232,5 +233,73 @@ describe('logoutApi()', () => {
     await logoutApi(); // .catch(() => {}) 처리로 예외 미전파
 
     expect(getAccessToken()).toBeNull();
+  });
+});
+
+describe('refreshTokenApi()', () => {
+  it('성공 시 새 accessToken을 저장하고 반환한다', async () => {
+    saveRefreshToken('old_refresh');
+    mockApi.post.mockResolvedValue({
+      data: {
+        accessToken: 'new_access',
+        refreshToken: 'new_refresh',
+        userId: 'user_1',
+      },
+    });
+
+    const result = await refreshTokenApi();
+
+    expect(result).toBe('new_access');
+    expect(getAccessToken()).toBe('new_access');
+    expect(getRefreshToken()).toBe('new_refresh');
+    expect(mockApi.post).toHaveBeenCalledWith('/api/auth/refresh', {
+      refreshToken: 'old_refresh',
+    });
+  });
+
+  it('응답에 sessionId가 있으면 sessionId를 업데이트한다', async () => {
+    mockApi.post.mockResolvedValue({
+      data: {
+        accessToken: 'new_access',
+        refreshToken: 'new_refresh',
+        sessionId: 'rotated_session',
+      },
+    });
+
+    await refreshTokenApi();
+
+    expect(getSessionId()).toBe('rotated_session');
+  });
+
+  it('응답에 sessionId가 없으면 기존 sessionId를 유지한다', async () => {
+    setSessionId('existing_session');
+    mockApi.post.mockResolvedValue({
+      data: {
+        accessToken: 'new_access',
+        refreshToken: 'new_refresh',
+        // sessionId 없음
+      },
+    });
+
+    await refreshTokenApi();
+
+    expect(getSessionId()).toBe('existing_session');
+  });
+
+  it('실패 시 에러를 그대로 전파한다', async () => {
+    mockApi.post.mockRejectedValue(new Error('Refresh token expired'));
+
+    await expect(refreshTokenApi()).rejects.toThrow('Refresh token expired');
+  });
+
+  it('실패 시 기존 토큰은 그대로 유지된다', async () => {
+    setAccessToken('old_access');
+    mockApi.post.mockRejectedValue(new Error('Refresh failed'));
+
+    await expect(refreshTokenApi()).rejects.toThrow();
+
+    // refreshTokenApi 자체는 토큰을 삭제하지 않음
+    // (clearTokens는 applyAuthInterceptor의 catch에서 호출)
+    expect(getAccessToken()).toBe('old_access');
   });
 });

@@ -40,6 +40,7 @@ const renderWithProvider = () =>
 beforeEach(() => {
   localStorage.clear();
   window.location.hash = '';
+  jest.clearAllMocks();
 });
 
 describe('초기 상태', () => {
@@ -200,5 +201,54 @@ describe('useApp()', () => {
     const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => render(<BrokenConsumer />)).toThrow('useApp must be used within AppProvider');
     spy.mockRestore();
+  });
+});
+
+describe('SSE 연결 관리', () => {
+  it('login() 후 ensureSseConnected가 해당 userId로 호출된다', async () => {
+    const { ensureSseConnected } = require('../api/sseApi');
+    renderWithProvider();
+    ensureSseConnected.mockClear(); // 초기 render 시 user=null로 인한 호출 이력 초기화
+
+    await act(async () => {
+      contextRef.login({ id: 'user_42', username: 'alice' });
+    });
+
+    expect(ensureSseConnected).toHaveBeenCalledWith('user_42');
+    expect(ensureSseConnected).toHaveBeenCalledTimes(1);
+  });
+
+  it('logout() 후 unsubscribeFromResults가 호출된다', async () => {
+    const { unsubscribeFromResults } = require('../api/sseApi');
+    renderWithProvider();
+
+    await act(async () => {
+      contextRef.login({ id: 'user_42', username: 'alice' });
+    });
+    unsubscribeFromResults.mockClear(); // login 이전 호출 이력 초기화
+
+    await act(async () => {
+      await contextRef.logout();
+    });
+
+    expect(unsubscribeFromResults).toHaveBeenCalledTimes(1);
+  });
+
+  it('auth:logout 이벤트 발생 시에도 unsubscribeFromResults가 호출된다', async () => {
+    const { unsubscribeFromResults } = require('../api/sseApi');
+    renderWithProvider();
+
+    await act(async () => {
+      contextRef.login({ id: 'user_42', username: 'alice' });
+    });
+    unsubscribeFromResults.mockClear();
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent('auth:logout'));
+    });
+
+    await waitFor(() => {
+      expect(unsubscribeFromResults).toHaveBeenCalledTimes(1);
+    });
   });
 });
