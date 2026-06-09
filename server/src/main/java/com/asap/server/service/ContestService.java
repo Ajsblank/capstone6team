@@ -281,6 +281,7 @@ public class ContestService {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
+                    contestRun.initSwissContest(savedContest);
                     contestRun.registerContest(savedContest);
                 }
             });

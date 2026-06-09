@@ -186,10 +186,10 @@ public class SwissLeagueService {
       }
 
       generateSwissRound(contest, session, participants, nextRound);
-      log.info("[스위스리그] contestId={} session={} 시작 완료", contestId, sessionNumber);
+      log.info("[스위스리그] contestId={} session Id={} SessionNumber={} 시작 완료", contestId, sessionId, sessionNumber);
 
     } catch (Exception e) {
-      log.error("[스위스리그] contestId={} session={} 시작 중 오류 발생", contestId, sessionNumber, e);
+      log.error("[스위스리그] contestId={} session Id={} 시작 중 오류 발생", contestId, sessionId, e);
     }
   }
 
@@ -223,6 +223,13 @@ public class SwissLeagueService {
     // 라운드 Redis 초기화 - total을 마지막에 세팅 (경합 방지)
     redisTemplate.opsForValue().set(swissRound + round.getId() + totalKey, String.valueOf(matchsPerRound));
     redisTemplate.opsForValue().set(swissRound + round.getId() + doneKey, "0");
+
+    Map<Long, String> codeCache = new HashMap<>();
+    for (CodeBattleParticipant p : participants) {
+      codeCache.put(p.getSubmission().getId(),
+          s3Service.readFileAsString(p.getSubmission().getCodeUrl()));
+    }
+
     int matchCount = 0;
     for (int j = 0; j + 1 < participants.size(); j += 2) {
       CodeBattleParticipant p1 = participants.get(j);
@@ -242,14 +249,16 @@ public class SwissLeagueService {
       matchInfo.put("result", null);
       sseService.addMatch(contest.getId(), session.getId(), roundNumber, matchInfo);
 
-      redisTemplate.opsForList().leftPush(swissRound + round.getId() + matchKey, String.valueOf(savedMatch.getId()));
       try {
         enqueueSwissMatchToGradingQueue(
             savedMatch.getId(),
             contest,
             p1.getSubmission(),
             p2.getSubmission(),
+            codeCache.get(p1.getSubmission().getId()),
+            codeCache.get(p2.getSubmission().getId()),
             0);
+        redisTemplate.opsForList().leftPush(swissRound + round.getId() + matchKey, String.valueOf(savedMatch.getId()));
         matchCount++;
       } catch (Exception e) {
         log.error("[스위스리그] matchId={} 큐 적재 실패", savedMatch.getId(), e);
@@ -291,11 +300,11 @@ public class SwissLeagueService {
       CodeBattleContest contest,
       CodeBattleSubmission s1,
       CodeBattleSubmission s2,
+      String player1Code,
+      String player2Code,
       int aiOrder) throws Exception {
 
     String judgeCode = contest.getJudgeCode();
-    String player1Code = s3Service.readFileAsString(s1.getCodeUrl());
-    String player2Code = s3Service.readFileAsString(s2.getCodeUrl());
 
     ObjectNode rootNode = objectMapper.createObjectNode();
     rootNode.put("submissionId", matchId);
@@ -331,19 +340,20 @@ public class SwissLeagueService {
 
       List<ContestSwissMatch> allMatches = swissMatchRepository.findAllByIdWithFetch(matchIds);
 
+      List<CodeBattleParticipant> toSave = new ArrayList<>();
+      List<CodeBattleParticipant> allParticipants = participantRepository.findByContestId(contestId);
+      Map<Long, CodeBattleParticipant> participantMap = allParticipants.stream()
+          .collect(Collectors.toMap(p -> p.getUser().getId(), p -> p));
       for (ContestSwissMatch m : allMatches) {
+        Long user1Id = m.getUser1().getId();
         if (m.getResult() == ResultType.BYE) {
-          CodeBattleParticipant p = participantRepository
-              .findByContestIdAndUserId(contestId, m.getUser1().getId());
+          CodeBattleParticipant p = participantMap.get(user1Id);
           p.setScore(p.getScore() + 1);
-          participantRepository.save(p);
+          toSave.add(p);
           continue;
         }
-        Long u1 = m.getUser1().getId();
-        Long u2 = m.getUser2().getId();
-
-        CodeBattleParticipant p1 = participantRepository.findByContestIdAndUserId(contestId, u1);
-        CodeBattleParticipant p2 = participantRepository.findByContestIdAndUserId(contestId, u2);
+        CodeBattleParticipant p1 = participantMap.get(user1Id);
+        CodeBattleParticipant p2 = participantMap.get(m.getUser2().getId());
 
         if (m.getResult() == ResultType.WIN1) {
           p1.setScore(p1.getScore() + 1);
@@ -352,8 +362,8 @@ public class SwissLeagueService {
           p2.setScore(p2.getScore() + 1);
           p1.setScore(p1.getScore() - 1);
         }
-        participantRepository.save(p1);
-        participantRepository.save(p2);
+        toSave.add(p1);
+        toSave.add(p2);
       }
 
       // 라운드 완료 처리
@@ -395,6 +405,7 @@ public class SwissLeagueService {
     }
   }
 
+  @Transactional
   public void aggregateSwissSession(Long sessionId) {
     log.info("[스위스리그] sessionId={} 집계 시작", sessionId);
 

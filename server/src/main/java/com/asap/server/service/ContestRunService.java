@@ -97,7 +97,7 @@ public class ContestRunService {
       log.info("[Scheduler] contestId={} startDate 또는 endDate가 없어 스위스 세션을 생성하지 않습니다.", contestId);
       return;
     }
-
+    LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
     List<ContestSwissSession> sessions = new ArrayList<>();
     LocalDate cur = contest.getStartDate().toLocalDate();
     LocalDate end = contest.getEndDate().toLocalDate();
@@ -105,7 +105,7 @@ public class ContestRunService {
 
     while (!cur.isAfter(end)) {
       LocalDateTime scheduledAt = cur.atTime(15, 0);
-      if (scheduledAt.isBefore(contest.getEndDate())) {
+      if (scheduledAt.isBefore(contest.getEndDate()) && scheduledAt.isAfter(now)) {
         ContestSwissSession session = new ContestSwissSession();
         session.setContest(contest);
         session.setScheduledAt(scheduledAt);
@@ -173,7 +173,7 @@ public class ContestRunService {
         redisTemplate.delete("swiss:round:" + round.getId() + ":done");
         redisTemplate.delete("swiss:round:" + round.getId() + ":matchIds");
       }
-      swissLeagueService.generateSwissSession(contestId, session.getSessionNumber(), sessionId);
+      swissLeagueService.generateSwissSession(contestId, sessionId);
       log.info("[Scheduler] 시작 안된 스위스 세션 즉시 다시 실행.(임시 방편) contestId={} sessionId={}", contestId, session.getId());
       return;
     } else if (session.getStatus() != ContestStatus.PLANNED) {
@@ -182,13 +182,12 @@ public class ContestRunService {
     }
     if (scheduledAt.isBefore(now)) {
       // 시작처리 안된 세션 실행 (현재 세션 중복 검사 없음)
-      swissLeagueService.generateSwissSession(contestId, session.getSessionNumber(), session.getId());
+      swissLeagueService.generateSwissSession(contestId, session.getId());
       log.info("[Scheduler] 시작 안된 스위스 세션 즉시 실행. contestId={} sessionId={}", contestId, session.getId());
       return;
     }
 
-    Runnable sessionTask = () -> swissLeagueService.generateSwissSession(contestId, session.getSessionNumber(),
-        session.getId());
+    Runnable sessionTask = () -> swissLeagueService.generateSwissSession(contestId, session.getId());
     Instant sessionInstant = scheduledAt
         .atZone(ZoneId.of("Asia/Seoul")).toInstant();
 
