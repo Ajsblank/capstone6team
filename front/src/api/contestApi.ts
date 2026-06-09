@@ -72,6 +72,7 @@ export interface PatchContestData {
   timeLimitSec?: number;
   memoryLimitMb?: number;
   judgeCode?: string;
+  judgeLanguage?: string;
   sampleCode?: string;
   status?: ContestStatus;
   startDate?: string;

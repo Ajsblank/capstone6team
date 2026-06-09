@@ -41,6 +41,7 @@ const EditContestModal: React.FC<Props> = ({ contestId, initial, onClose, onSave
   const [endDate, setEndDate]             = useState(toInputDatetime(initial.endDate));
   const [sampleCode, setExampleCode]     = useState(initial.sampleCodes?.[0]?.code ?? "");
   const [judgeCode, setJudgeCode]         = useState("");
+  const [judgeLanguage, setJudgeLanguage] = useState("CPP");
 
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
@@ -83,6 +84,7 @@ const EditContestModal: React.FC<Props> = ({ contestId, initial, onClose, onSave
           endDate:         endDate   ? toApiDatetime(endDate)   : undefined,
           sampleCode:      sampleCode || undefined,
           judgeCode:       judgeCode.trim() || undefined,
+          judgeLanguage:   judgeCode.trim() ? judgeLanguage : undefined,
         };
 
     try {
@@ -192,6 +194,16 @@ const EditContestModal: React.FC<Props> = ({ contestId, initial, onClose, onSave
           {/* 채점 코드 */}
           <div className="ecm-field">
             <label className="ecm-label">채점 코드 <span className="ecm-label--hint">(변경 시에만 입력)</span></label>
+            <select className="ecm-select ecm-select--inline" value={judgeLanguage} onChange={e => setJudgeLanguage(e.target.value)} disabled={structureLocked} style={{ marginBottom: 6, width: "auto" }}>
+              <option value="CPP">C++</option>
+              <option value="JAVA">Java</option>
+              <option value="PYTHON">Python</option>
+              <option value="JAVASCRIPT">JavaScript</option>
+              <option value="TYPESCRIPT">TypeScript</option>
+              <option value="CSHARP">C#</option>
+              <option value="GO">Go</option>
+              <option value="RUST">Rust</option>
+            </select>
             <textarea className="ecm-textarea ecm-textarea--code" value={judgeCode} onChange={e => setJudgeCode(e.target.value)} placeholder="변경하지 않으면 비워두세요." spellCheck={false} disabled={structureLocked} />
           </div>
 
