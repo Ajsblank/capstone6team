@@ -158,7 +158,7 @@ jobs:
 
               "chmod 600 .env",
               "chmod +x deploy.sh",
-              "bash deploy.sh $ECR_IMAGE"
+              "bash deploy.sh ${{steps.build-image.outputs.image}}"
             ]
           }' \
           --query "Command.CommandId" \
@@ -167,3 +167,5 @@ jobs:
           aws ssm wait command-executed \
           --command-id $COMMAND_ID \
           --instance-id ${{vars.EC2_ID_INSTANCE}}
+          --cli-read-timeout 300 \
+          --cli-connect-timeout 300
