@@ -150,13 +150,10 @@ export const verifyEmailCode = async (email: string, code: string): Promise<void
 
 export const loginApi = async (body: LoginRequest): Promise<TokenResponse> => {
   const { data } = await api.post<TokenResponse>("/api/auth/login", body);
-  console.log("[loginApi] 백엔드 응답 원본:", data);
   setAccessToken(data.accessToken);
   saveRefreshToken(data.refreshToken);
   setUserId(data.userId);
   setSessionId(data.sessionId ?? null);   // 백엔드가 발급한 세션 ID 보관(로그아웃 시 사용)
-  console.log("[Auth] 로그인 완료 — accessToken:", data.accessToken);
-  console.log("[Auth] 로그인 완료 — refreshToken:", data.refreshToken);
   return data;
 };
 
@@ -174,7 +171,6 @@ export const logoutApi = async (): Promise<void> => {
 export const refreshTokenApi = async (): Promise<string> => {
   const refreshToken = getRefreshToken();
   const { data } = await api.post<TokenResponse>("/api/auth/refresh", { refreshToken });
-  console.log("[Auth] refreshTokenApi 서버 응답:", data);
   setAccessToken(data.accessToken);
   saveRefreshToken(data.refreshToken);
   if (data.sessionId) setSessionId(data.sessionId);   // 회전된 세션 ID가 오면 갱신, 없으면 기존 유지

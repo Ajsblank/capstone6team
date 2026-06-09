@@ -401,8 +401,7 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId, contestId, 
           setLogModal({ open: true, text: log, error: null });
         }
       })
-      .catch(err => {
-        console.error(`[SwissViewer] viewMatchLog 오류 — contest=${contestId} match=${matchId}`, err?.response ?? err);
+      .catch(() => {
         setLogModal({ open: true, text: "", error: "로그를 불러오지 못했습니다." });
       })
       .finally(() => setLogLoadingMatchId(null));

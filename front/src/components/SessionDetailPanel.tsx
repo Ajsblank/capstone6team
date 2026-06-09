@@ -51,57 +51,37 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack,
     const tag = `[SSE][contest=${contestId}][session=${sessionNumber}]`;
     const url = `${BASE_URL}/api/contests/${contestId}/${sessionNumber}/subscribe?token=${token}`;
 
-    console.info(`${tag} 연결 시도 →`, url.replace(/token=[^&]*/, "token=***"));
     const es = new EventSource(url);
     esRef.current = es;
 
     es.onopen = () => {
       setSseStatus("connected");
-      console.info(`${tag} ✅ 연결 성공`);
     };
 
-    es.onerror = (e) => {
+    es.onerror = () => {
       setSseStatus("disconnected");
-      console.error(`${tag} ❌ 연결 오류 (readyState=${es.readyState})`, e);
       es.close();
     };
 
     const handleInit = (e: MessageEvent) => {
-      console.group(`${tag} 📥 [init]`);
       try {
         const parsed = JSON.parse(e.data) as SessionPayload;
-        console.log("session_number:", parsed.session_number);
-        console.log("status        :", parsed.status);
-        console.log("total_rounds  :", parsed.total_rounds);
-        console.log("rounds        :", parsed.rounds);
-        console.groupEnd();
         setPayload(parsed);
-      } catch (err) {
-        console.warn("파싱 실패:", e.data);
-        console.groupEnd();
+      } catch {
+        // 파싱 실패 무시
       }
     };
 
     const handleUpdate = (e: MessageEvent) => {
-      console.group(`${tag} 🔄 [update]`);
       try {
         const parsed = JSON.parse(e.data) as SessionPayload;
-        const runningRound = parsed.rounds.find(r => r.status === "RUNNING");
-        const resolvedCount = parsed.rounds.flatMap(r => r.matches).filter(m => m.winner !== null).length;
-        console.log("status        :", parsed.status);
-        console.log("현재 라운드   :", runningRound ? `Round ${runningRound.round_number}` : "없음 (종료)");
-        console.log("완료 매치 수  :", resolvedCount);
-        console.log("payload       :", parsed);
-        console.groupEnd();
         setPayload(parsed);
         if (parsed.status === "END" || parsed.status === "FINISHED") {
-          console.info(`${tag} 세션 종료 수신 → SSE 연결 해제`);
           es.close();
           setSseStatus("disconnected");
         }
-      } catch (err) {
-        console.warn("파싱 실패:", e.data);
-        console.groupEnd();
+      } catch {
+        // 파싱 실패 무시
       }
     };
 
@@ -109,7 +89,6 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack,
     es.addEventListener("update", handleUpdate);
 
     return () => {
-      console.info(`${tag} 🔌 구독 해제`);
       es.removeEventListener("init",   handleInit);
       es.removeEventListener("update", handleUpdate);
       es.close();

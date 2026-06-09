@@ -70,18 +70,13 @@ const MatchDetailPanel: React.FC<DetailPanelProps> = ({
     getSwissMatchLog(contestId, matchId)
       .then(res => {
         const raw: any = res;
-        console.group(`[LeaderboardTab] matchLog — contest=${contestId} match=${matchId}`);
-        console.log("raw response :", raw);
-        console.log("typeof       :", typeof raw);
-        console.groupEnd();
         const display: string =
           typeof raw === "string" ? raw :
           (typeof raw?.log === "string" ? raw.log : JSON.stringify(raw, null, 2));
         setLogMap(prev => new Map(prev).set(matchId, display));
         setOpenLogId(matchId);
       })
-      .catch(err => {
-        console.error(`[LeaderboardTab] matchLog 오류 — contest=${contestId} match=${matchId}`, err?.response ?? err);
+      .catch(() => {
         setLogErrorId(matchId);
       })
       .finally(() => setLogLoadingId(null));
@@ -210,15 +205,6 @@ const LeaderboardTab: React.FC<Props> = ({
     getSessionLeaderboard(contestId, selectedSession)
       .then(res => {
         if (cancelled) return;
-        console.group(`[LeaderboardTab] 세션 ${selectedSession} 리더보드 수신`);
-        console.log("session_number     :", res.session_number);
-        console.log("total_participants :", res.total_participants);
-        console.log("total_rounds       :", res.total_rounds);
-        console.table(res.final_standings.map(s => ({
-          rank: s.rank, user_id: s.user_id,
-          wins: s.wins, draws: s.draws, losses: s.losses, points: s.points,
-        })));
-        console.groupEnd();
         setData(res);
       })
       .catch(() => { if (!cancelled) setError("리더보드를 불러오지 못했습니다."); })
@@ -234,13 +220,9 @@ const LeaderboardTab: React.FC<Props> = ({
     setDetailLoading(true);
     getMiddleRanking(contestId, selectedSession, userId)
       .then(res => {
-        console.group(`[LeaderboardTab] middleRanking — contest=${contestId} session=${selectedSession} user=${userId}`);
-        console.log("raw response :", res);
-        console.groupEnd();
         setMiddleCache(prev => new Map(prev).set(userId, res));
       })
-      .catch(err => {
-        console.error(`[LeaderboardTab] middleRanking 오류 — contest=${contestId} session=${selectedSession} user=${userId}`, err?.response ?? err);
+      .catch(() => {
         setDetailError("매치 정보를 불러오지 못했습니다.");
       })
       .finally(() => setDetailLoading(false));
