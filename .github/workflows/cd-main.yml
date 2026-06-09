@@ -81,8 +81,10 @@ jobs:
       - name: add permission to execute
         run: chmod +x gradlew 
 
+      - name: server test
+        run: ./gradlew test
       - name: server build
-        run: ./gradlew build
+        run: ./gradlew build -x test
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
