@@ -710,6 +710,8 @@ const BattlePage: React.FC = () => {
   const [contestError, setContestError] = useState<string | null>(null);
   // 대회 개최 비용 안내 팝업
   const [showCostPopup, setShowCostPopup] = useState(false);
+  // 로그인 필요 팝업
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
 
   // 약관 동의 모달
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -853,6 +855,18 @@ const BattlePage: React.FC = () => {
         type="contest-hosting"
       />
 
+      {/* ── 로그인 필요 팝업 ── */}
+      {showLoginPopup && (
+        <div className="bp-popup-overlay" onClick={() => setShowLoginPopup(false)}>
+          <div className="bp-popup" onClick={e => e.stopPropagation()}>
+            <p className="bp-popup-msg">로그인이 필요한 기능입니다.<br />로그인하러 이동하시겠습니까?</p>
+            <button className="bp-popup-btn" onClick={() => { setShowLoginPopup(false); navigate("login"); }}>
+              이동
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── 대회 개최 비용 안내 팝업 ── */}
       {showCostPopup && (
         <div className="bp-popup-overlay" onClick={() => setShowCostPopup(false)}>
@@ -995,7 +1009,7 @@ const BattlePage: React.FC = () => {
 
             <div className="bp-contest-header">
               <h2 className="bp-contest-title">대회 목록</h2>
-              <button className="bp-create-contest-btn" onClick={() => setShowCostPopup(true)}>
+              <button className="bp-create-contest-btn" onClick={() => user ? setShowCostPopup(true) : setShowLoginPopup(true)}>
                 + 대회 개최
               </button>
             </div>
