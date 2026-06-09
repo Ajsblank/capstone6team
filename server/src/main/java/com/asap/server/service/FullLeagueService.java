@@ -71,7 +71,7 @@ public class FullLeagueService {
                     })
                     .collect(Collectors.toList());
             if (submissions == null || submissions.size() < 2) {
-                log.warn("[풀리그] 풀리그 대회 ID {} 제출 코드 부족으로 매칭을 생성하지 못했습니다. {}", contestId);
+                log.warn("[풀리그] 풀리그 대회 ID {} 제출 코드 부족으로 매칭을 생성하지 못했습니다.", contestId);
                 return;
             }
 

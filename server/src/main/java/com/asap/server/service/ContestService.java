@@ -181,15 +181,18 @@ public class ContestService {
 
         saveExampleAiCodes(savedContest, request.getExampleAiCodes());
         saveSampleCodes(savedContest, request.getSampleCodes());
-
+        final Long savedContestId = savedContest.getId();
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
+                    // afterCommit 시점에 savedContest는 detach 상태이므로 ID만 전달한다.
+                    contestRun.initSwissContest(savedContestId);
                     contestRun.registerContest(savedContest);
                 }
             });
         } else {
+            contestRun.initSwissContest(savedContestId);
             contestRun.registerContest(savedContest);
         }
         List<ExampleAiResponse> exampleAiCodes = request.getExampleAiCodes().stream()
@@ -277,14 +280,18 @@ public class ContestService {
         saveExampleAiCodes(savedContest, request.getExampleAiCodes());
         saveSampleCodes(savedContest, request.getSampleCodes());
 
+        final Long savedContestId = savedContest.getId();
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
+                    // afterCommit 시점에 savedContest는 detach 상태이므로 ID만 전달한다.
+                    contestRun.initSwissContest(savedContestId);
                     contestRun.registerContest(savedContest);
                 }
             });
         } else {
+            contestRun.initSwissContest(savedContestId);
             contestRun.registerContest(savedContest);
         }
         List<ExampleAiResponse> exampleAiCodes = request.getExampleAiCodes().stream()
