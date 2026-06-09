@@ -166,6 +166,6 @@ jobs:
 
           aws ssm wait command-executed \
           --command-id $COMMAND_ID \
-          --instance-id ${{vars.EC2_ID_INSTANCE}}
+          --instance-id ${{vars.EC2_ID_INSTANCE}} \
           --cli-read-timeout 300 \
           --cli-connect-timeout 300
