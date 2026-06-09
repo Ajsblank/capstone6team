@@ -986,22 +986,12 @@ const BattlePage: React.FC = () => {
                           <span className="bp-canceled-warn" title="참가자 수 부족으로 최종 결과가 집계되지 않았습니다">!</span>
                         )}
                         <span className="bp-problem-difficulty bp-problem-difficulty--ended">종료</span>
-                        <span className="bp-problem-arrow">›</span>
                       </div>
                     </button>
                   ))}
                 </div>
               </div>
             )}
-
-            <a
-              href="/softcon.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bp-softcon-btn"
-            >
-              소프트콘 페이지
-            </a>
 
             <div className="bp-contest-header">
               <h2 className="bp-contest-title">대회 목록</h2>
@@ -1149,7 +1139,6 @@ const BattlePage: React.FC = () => {
                                 </span>
                               </div>
                             )}
-                            <span className="bp-problem-arrow">→</span>
                           </div>
                         </div>
                       ))}

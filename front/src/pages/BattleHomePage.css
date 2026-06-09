@@ -156,32 +156,6 @@
 }
 
 /* ── 소프트콘 페이지 버튼 ── */
-.bp-softcon-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  position: fixed;
-  left: 24px;
-  top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
-  transform-origin: center;
-  background: #ea580c;
-  color: #fff;
-  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
-  font-size: 0.82rem;
-  font-weight: 700;
-  padding: 8px 18px;
-  border-radius: 0 0 10px 10px;
-  text-decoration: none;
-  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.3);
-  z-index: 30;
-  white-space: nowrap;
-  transition: background 0.15s, box-shadow 0.15s;
-}
-.bp-softcon-btn:hover {
-  background: #c2410c;
-  box-shadow: 0 6px 18px rgba(234, 88, 12, 0.45);
-}
 
 /* ── 비용 안내 팝업 ── */
 .bp-cost-popup { min-width: 320px; gap: 16px; }
@@ -493,15 +467,6 @@
   border-color: #15803d;
 }
 
-.bp-problem-arrow {
-  font-size: 1.1rem;
-  color: #7e8694;
-  transition: color 0.15s, transform 0.15s;
-}
-.bp-problem-card:hover .bp-problem-arrow {
-  color: #ea580c;
-  transform: translateX(3px);
-}
 
 /* ── 대회 탭 ── */
 .bp-contest {

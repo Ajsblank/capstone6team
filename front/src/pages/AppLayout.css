@@ -161,8 +161,8 @@
 
 /* 프로필 이미지용 동그라미 (이메일/이름 왼쪽) */
 .home-avatar {
-  width: 30px;
-  height: 30px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: #e5e7eb;
   border: 1px solid #d1d5db;
