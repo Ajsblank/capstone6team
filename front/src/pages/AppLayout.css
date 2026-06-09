@@ -82,11 +82,11 @@
 }
 
 .home-logo-img {
-  height: 64px;
+  height: 96px;
   width: auto;
   max-width: none;
   display: block;
-  margin-left: -36px;
+  margin-left: -54px;
 }
 
 /* Tab nav — 로고 우측에 좌측 정렬 */
