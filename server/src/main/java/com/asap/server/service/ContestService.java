@@ -190,6 +190,7 @@ public class ContestService {
                 }
             });
         } else {
+            contestRun.initSwissContest(savedContest);
             contestRun.registerContest(savedContest);
         }
         List<ExampleAiResponse> exampleAiCodes = request.getExampleAiCodes().stream()
@@ -286,6 +287,7 @@ public class ContestService {
                 }
             });
         } else {
+            contestRun.initSwissContest(savedContest);
             contestRun.registerContest(savedContest);
         }
         List<ExampleAiResponse> exampleAiCodes = request.getExampleAiCodes().stream()

@@ -29,6 +29,8 @@ import com.asap.server.repository.ContestSwissSessionRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 
 @Slf4j
 @Service
@@ -45,6 +47,10 @@ public class ContestRunService {
   private final ContestSwissRoundRepository roundRepository;
   private final ContestSwissSessionRepository sessionRepository;
 
+  @Autowired
+  @Lazy
+  private ContestRunService self;
+
   // 서버 실행 시 대회 예약
   @PostConstruct
   public void initContestSchedules() {
@@ -57,10 +63,14 @@ public class ContestRunService {
         continue;
       }
       // 시작 처리가 안된 부분
+      if (contest.getStartDate() == null) {
+        log.warn("[Scheduler] startDate가 null인 대회 스킵 contestId={}", contest.getId());
+        continue;
+      }
       if (contest.getStartDate().isBefore(now)) {
         if (contest.getStatus() == ContestStatus.PLANNED) {
 
-          processMatching(contest.getId());
+          self.processMatching(contest.getId());
           log.info("시작 처리가 안된 대회, 대회 Id={} 처리 완료", contest.getId());
           continue;
         }
@@ -68,11 +78,11 @@ public class ContestRunService {
         else if (contest.getStatus() == ContestStatus.RUNNING) {
           if (contest.getEndDate().isBefore(now)) {
             // 즉시 종료
-            processEnd(contest.getId());
+            self.processEnd(contest.getId());
             log.info("종료일 지난 RUNNING 대회 즉시 종료 처리. contestId={}", contest.getId());
           } else {
             // 예약 종료
-            processMatching(contest.getId());
+            self.processMatching(contest.getId());
             log.info("서버 재시작으로 끊긴 RUNNING 대회 종료 재예약. contestId={}", contest.getId());
           }
           continue;
@@ -126,7 +136,7 @@ public class ContestRunService {
 
   public void registerContest(CodeBattleContest contest) {
     Long contestId = contest.getId();
-    Runnable task = () -> processMatching(contestId);
+    Runnable task = () -> self.processMatching(contestId);
 
     Instant startInstant = contest.getStartDate().atZone(ZoneId.of("Asia/Seoul")).toInstant();
 
@@ -230,7 +240,7 @@ public class ContestRunService {
   }
 
   @Transactional
-  private void processMatching(Long contestId) {
+  public void processMatching(Long contestId) {
     try {
       CodeBattleContest contest = contestRepository.findById(contestId)
           .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
@@ -240,7 +250,7 @@ public class ContestRunService {
       log.info("[Scheduler] contestId={} 대회를 RUNNING 상태로 시작합니다.", contestId);
 
       // 종료 예약
-      Runnable task = () -> processEnd(contestId);
+      Runnable task = () -> self.processEnd(contestId);
       Instant endInstant = contest.getEndDate().atZone(ZoneId.of("Asia/Seoul")).toInstant();
       log.info("대회 종료 시간: {}", contest.getEndDate());
 
@@ -262,7 +272,7 @@ public class ContestRunService {
   }
 
   @Transactional
-  private void processEnd(Long contestId) {
+  public void processEnd(Long contestId) {
     try {
       CodeBattleContest contest = contestRepository.findById(contestId)
           .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));

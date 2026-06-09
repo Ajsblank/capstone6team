@@ -335,6 +335,10 @@ public class SwissLeagueService {
 
       List<String> matchIdStrs = redisTemplate.opsForList()
           .range(swissRound + roundId + matchKey, 0, -1);
+      if (matchIdStrs == null || matchIdStrs.isEmpty()) {
+        log.warn("[스위스리그] roundId={} Redis 매치 키 없음, 집계 스킵", roundId);
+        return;
+      }
       List<Long> matchIds = matchIdStrs.stream().map(Long::parseLong).collect(Collectors.toList());
 
       List<ContestSwissMatch> allMatches = swissMatchRepository.findAllByIdWithFetch(matchIds);
@@ -364,6 +368,7 @@ public class SwissLeagueService {
         toSave.add(p1);
         toSave.add(p2);
       }
+      participantRepository.saveAll(toSave);
 
       // 라운드 완료 처리
       round.setFinishedAt(LocalDateTime.now());
@@ -373,6 +378,10 @@ public class SwissLeagueService {
       ContestSwissSession session = round.getSession();
       String totalStr = redisTemplate.opsForValue()
           .get("swiss:session:" + session.getId() + totalKey);
+      if (totalStr == null) {
+        log.error("[스위스리그] roundId={} 세션 totalRounds 키 없음, 집계 중단", roundId);
+        return;
+      }
 
       sseService.updateRoundStatus(contestId, session.getId(), round.getRoundNumber(), "FINISHED");
 
