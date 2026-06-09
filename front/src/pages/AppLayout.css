@@ -73,6 +73,7 @@
 .home-logo {
   cursor: pointer;
   white-space: nowrap;
+  margin-left: 12px;
   margin-right: 16px;
   user-select: none;
   display: flex;
@@ -82,7 +83,7 @@
 }
 
 .home-logo-img {
-  height: 96px;
+  height: 112px;
   width: auto;
   max-width: none;
   display: block;
