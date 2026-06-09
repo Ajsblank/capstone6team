@@ -1,13 +1,16 @@
 package com.asap.server.service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
+import java.util.stream.Collectors;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.TaskScheduler;
@@ -22,6 +25,7 @@ import com.asap.server.global.type.ContestStatus;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.ContestSwissRoundRepository;
+import com.asap.server.repository.ContestSwissSessionRepository;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +44,7 @@ public class ContestRunService {
   private final SwissLeagueService swissLeagueService;
   private final StringRedisTemplate redisTemplate;
   private final ContestSwissRoundRepository roundRepository;
+  private final ContestSwissSessionRepository sessionRepository;
 
   // 서버 실행 시 대회 예약
   @PostConstruct
@@ -105,7 +110,49 @@ public class ContestRunService {
     }
     log.info("[Scheduler] contestId={} 대회의 시작 시간이 등록되었습니다. 등록 시간={}", contestId, contest.getStartDate());
 
-    // 중간 대회 일정 조회 → 스위스 세션 예약 (존재 시)
+    // ✅ 최초 초기화: startDate ~ endDate 매일 오후 3시 세션 생성 + 예약
+    if (contest.getStartDate() == null || contest.getEndDate() == null) {
+      log.info("[Scheduler] contestId={} startDate 또는 endDate가 없어 스위스 세션을 생성하지 않습니다.", contestId);
+      return;
+    }
+    Set<LocalDateTime> existingTimes = sessionRepository.findByContestId(contestId)
+        .stream()
+        .map(ContestSwissSession::getScheduledAt)
+        .collect(Collectors.toSet());
+    // 기존 세션 예약 재등록 (서버 재시작 대비)
+    if (!existingTimes.isEmpty()) {
+      sessionRepository.findByContestId(contestId)
+          .forEach(session -> registSwissContest(contest, session));
+    }
+    // 최초 or 부분 생성
+    List<ContestSwissSession> newSessions = new ArrayList<>();
+    LocalDate cur = contest.getStartDate().toLocalDate();
+    LocalDate end = contest.getEndDate().toLocalDate();
+    int lastSessionNumber = existingTimes.isEmpty() ? 0
+        : sessionRepository.findByContestId(contestId).stream()
+            .mapToInt(ContestSwissSession::getSessionNumber)
+            .max().orElse(0);
+
+    while (!cur.isAfter(end)) {
+      LocalDateTime scheduledAt = cur.atTime(15, 0);
+      if (scheduledAt.isBefore(contest.getEndDate()) && !existingTimes.contains(scheduledAt)) {
+        // ✅ 동 시간 세션 없을 때만 생성
+        ContestSwissSession session = new ContestSwissSession();
+        session.setContest(contest);
+        session.setScheduledAt(scheduledAt);
+        session.setStatus(ContestStatus.PLANNED);
+        session.setSessionNumber(++lastSessionNumber);
+        newSessions.add(session);
+      }
+      cur = cur.plusDays(1);
+    }
+    if (!newSessions.isEmpty()) {
+      sessionRepository.saveAll(newSessions);
+      newSessions.forEach(session -> registSwissContest(contest, session));
+      log.info("[Scheduler] contestId={} 신규 스위스 세션 {}개 생성 및 예약 완료", contestId, newSessions.size());
+    } else {
+      log.info("[Scheduler] contestId={} 추가할 신규 세션 없음 (전부 기존 세션과 중복)", contestId);
+    }
 
   }
 

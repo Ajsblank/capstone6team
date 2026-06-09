@@ -661,7 +661,11 @@ public class ContestController {
             @RequestBody List<LocalDateTime> scheduledTimes) {
 
         CodeBattleContest contest = contestRepository.findById(contestId)
-                .orElseThrow(() -> new EntityNotFoundException("Contest not found: " + contestId));
+                .orElseThrow(() -> new EntityNotFoundException("대회를 찾을 수 없습니다 : " + contestId));
+        if (contest.getStatus() == ContestStatus.CANCELED || contest.getStatus() == ContestStatus.END) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "종료되거나 취소된 대회는 세션을 예약할 수 없습니다. contestId=" + contestId));
+        }
         List<ContestSwissSession> sessions = new ArrayList<>();
         List<LocalDateTime> sorted = scheduledTimes.stream()
                 .sorted()
