@@ -3,13 +3,28 @@ import { useApp } from "../context/AppContext";
 import { getMyProfile, UserProfile } from "../api/codeBattleApi";
 import "./ProfileBadge.css";
 
-// ── 프로필 캐시 (헤더가 페이지마다 마운트되어도 1회만 조회) ──
-let cachedProfile: UserProfile | null = null;
+// ── 프로필 캐시 (로그인 시 저장, 로그아웃 전까지 localStorage에 유지) ──
+const PROFILE_STORAGE_KEY = "myProfile";
+
+function loadProfileFromStorage(): UserProfile | null {
+  try {
+    const s = localStorage.getItem(PROFILE_STORAGE_KEY);
+    return s ? (JSON.parse(s) as UserProfile) : null;
+  } catch { return null; }
+}
+
+let cachedProfile: UserProfile | null = loadProfileFromStorage();
 let inflight: Promise<UserProfile> | null = null;
 
 export function clearMyProfileCache() {
   cachedProfile = null;
   inflight = null;
+  localStorage.removeItem(PROFILE_STORAGE_KEY);
+}
+
+export function setMyProfileCache(profile: UserProfile) {
+  cachedProfile = profile;
+  try { localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile)); } catch { /* quota 초과 등 무시 */ }
 }
 
 interface Props {
@@ -32,7 +47,7 @@ const ProfileBadge: React.FC<Props> = ({
     setProfile(null);   // 계정 전환 시 이전 계정 정보 즉시 제거(재조회 전까지 stale 방지)
     if (!inflight) {
       inflight = getMyProfile()
-        .then(p => { cachedProfile = p; return p; })
+        .then(p => { setMyProfileCache(p); return p; })
         .finally(() => { inflight = null; });
     }
     let active = true;
