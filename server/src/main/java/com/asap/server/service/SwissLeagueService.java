@@ -223,11 +223,11 @@ public class SwissLeagueService {
     // 라운드 Redis 초기화 - total을 마지막에 세팅 (경합 방지)
     redisTemplate.opsForValue().set(swissRound + round.getId() + totalKey, String.valueOf(matchsPerRound));
     redisTemplate.opsForValue().set(swissRound + round.getId() + doneKey, "0");
-    Map<Long, String> codeCache = new HashMap<>();
-    for (CodeBattleParticipant p : participants) {
-      codeCache.put(p.getSubmission().getId(),
-          s3Service.readFileAsString(p.getSubmission().getCodeUrl()));
-    }
+    // S3 읽기를 병렬로 수행해 DB 커넥션 보유 시간을 단축한다.
+    Map<Long, String> codeCache = participants.parallelStream()
+        .collect(Collectors.toConcurrentMap(
+            p -> p.getSubmission().getId(),
+            p -> s3Service.readFileAsString(p.getSubmission().getCodeUrl())));
 
     int matchCount = 0;
     for (int j = 0; j + 1 < participants.size(); j += 2) {
@@ -351,12 +351,25 @@ public class SwissLeagueService {
         Long user1Id = m.getUser1().getId();
         if (m.getResult() == ResultType.BYE) {
           CodeBattleParticipant p = participantMap.get(user1Id);
+          if (p == null) {
+            log.warn("[스위스리그] roundId={} BYE matchId={} userId={} participantMap 없음, 스킵", roundId, m.getId(), user1Id);
+            continue;
+          }
           p.setScore(p.getScore() + 1);
           toSave.add(p);
           continue;
         }
+        if (m.getUser2() == null) {
+          log.warn("[스위스리그] roundId={} matchId={} user2 null, 스킵", roundId, m.getId());
+          continue;
+        }
         CodeBattleParticipant p1 = participantMap.get(user1Id);
         CodeBattleParticipant p2 = participantMap.get(m.getUser2().getId());
+        if (p1 == null || p2 == null) {
+          log.warn("[스위스리그] roundId={} matchId={} 참가자 없음 (p1={}, p2={}), 스킵",
+              roundId, m.getId(), user1Id, m.getUser2().getId());
+          continue;
+        }
 
         if (m.getResult() == ResultType.WIN1) {
           p1.setScore(p1.getScore() + 1);

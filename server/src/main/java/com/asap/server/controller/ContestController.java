@@ -664,12 +664,22 @@ public class ContestController {
         }
         sessionRepository.saveAll(sessions);
         List<ContestSwissSession> allSessions = sessionRepository.findByContestId(contestId);
-        allSessions.sort(Comparator.comparing(ContestSwissSession::getScheduledAt));
-        // 현재 예약된 세션 넘버 다음 세션부터 예약
-        for (int i = 0; i < allSessions.size(); i++) {
-            allSessions.get(i).setSessionNumber(i + 1);
+        // RUNNING·END 세션의 sessionNumber는 히스토리/S3 키/SSE 구독에 연결되므로 절대 변경 금지.
+        // PLANNED 세션만 scheduledAt 순으로 재번호 부여 (잠긴 번호 다음부터 시작).
+        int maxLockedNumber = allSessions.stream()
+                .filter(s -> s.getStatus() != ContestStatus.PLANNED)
+                .mapToInt(s -> s.getSessionNumber() != null ? s.getSessionNumber() : 0)
+                .max()
+                .orElse(0);
+        List<ContestSwissSession> plannedSessions = allSessions.stream()
+                .filter(s -> s.getStatus() == ContestStatus.PLANNED)
+                .sorted(Comparator.comparing(ContestSwissSession::getScheduledAt))
+                .collect(Collectors.toList());
+        int nextNumber = maxLockedNumber + 1;
+        for (ContestSwissSession s : plannedSessions) {
+            s.setSessionNumber(nextNumber++);
         }
-        sessionRepository.saveAll(allSessions);
+        sessionRepository.saveAll(plannedSessions);
 
         for (ContestSwissSession session : sessions) {
             contestRunService.registSwissContest(contest, session);

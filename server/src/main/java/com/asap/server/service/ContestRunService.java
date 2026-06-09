@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
@@ -29,8 +31,6 @@ import com.asap.server.repository.ContestSwissSessionRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 
 @Slf4j
 @Service
@@ -101,8 +101,10 @@ public class ContestRunService {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void initSwissContest(CodeBattleContest contest) {
-    Long contestId = contest.getId();
+  public void initSwissContest(Long contestId) {
+    // afterCommit 이후 엔티티는 detach 상태이므로 새 트랜잭션 안에서 직접 조회
+    CodeBattleContest contest = contestRepository.findById(contestId)
+        .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
     if (contest.getStartDate() == null || contest.getEndDate() == null) {
       log.info("[Scheduler] contestId={} startDate 또는 endDate가 없어 스위스 세션을 생성하지 않습니다.", contestId);
       return;
