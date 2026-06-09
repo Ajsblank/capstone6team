@@ -1,0 +1,91 @@
+package com.asap.server.domain;
+
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "profile")
+@Getter
+@NoArgsConstructor
+public class Profile {
+
+  @Id // Primary Key
+  @Column(name = "user_id")
+  private Long id;
+
+  @OneToOne
+  @MapsId
+  @JoinColumn(name = "user_id")
+  private Users user;
+
+  @Column(length = 50, nullable = false)
+  private String nickname;
+
+  @Column(nullable = false)
+  private Integer tag;
+
+  @Column(columnDefinition = "TEXT", nullable = true)
+  private String bio;
+
+  @Column(length = 50, nullable = true)
+  private String affiliation;
+
+  @Column(nullable = true)
+  private String image_url;
+
+  @Column(nullable = false)
+  private LocalDateTime updated_at;
+
+  @Builder
+  public Profile(Users user, String nickname, Integer tag, String bio, String image_url, String affiliation) {
+    this.user = user;
+    this.nickname = nickname;
+    this.tag = tag;
+    this.bio = bio;
+    this.image_url = image_url;
+    this.affiliation = affiliation;
+  }
+
+  public void setUser(Users user) {
+    this.user = user;
+  }
+
+  public void updateNicknameAndTag(String nickname, Integer tag) {
+    this.nickname = nickname;
+    this.tag = tag;
+  }
+
+  public void updateDetails(String bio, String affiliation, String image_url) {
+    if (bio != null) {
+      this.bio = bio;
+    }
+    if (affiliation != null) {
+      this.affiliation = affiliation;
+    }
+    if (image_url != null) {
+      this.image_url = image_url;
+    }
+  }
+
+  @PrePersist
+  protected void onCreate() {
+    updated_at = LocalDateTime.now();
+  }
+
+  @PreUpdate
+  protected void onUpdate() {
+    updated_at = LocalDateTime.now();
+  }
+}

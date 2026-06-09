@@ -2,3 +2,5 @@ node_modules/
 build/
 .gradle
 .env
+.vscode
+DB/**

@@ -35,3 +35,11 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# H2 Database
+*.db
+mydocs*
+DB/**
+
+server_log.txt
+.env_server
