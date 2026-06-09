@@ -3,6 +3,8 @@ name: Build & Deploy to EC2
 on:
   push:
     branches: [dev/grading-server]
+    paths:
+      - 'grading-server/**'
 
 jobs:
   build-and-deploy:
@@ -30,7 +32,7 @@ jobs:
         id: build-image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: grading-server/
           push: true
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
