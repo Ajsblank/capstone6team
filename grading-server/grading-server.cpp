@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <regex>
 #include <ctime>
+#include <thread>
+#include <chrono>
 #include <sw/redis++/redis++.h> // redis-plus-plus
 #include <nlohmann/json.hpp>    // json
 
@@ -376,6 +378,9 @@ int main(int argc, char* argv[]) {
                 
                 std::cout << "▶ 매치 처리 완료. 다음 대결을 대기합니다." << std::endl;
             }
+            } catch (const sw::redis::Error& e) {
+                std::cerr << "[Redis 오류] " << e.what() << " - 5초 후 재연결 시도..." << std::endl;
+                std::this_thread::sleep_for(std::chrono::seconds(5));
             } catch (const std::exception& e) {
                 std::cerr << "[에러] 작업 처리 중 예외 발생: " << e.what() << std::endl;
             }

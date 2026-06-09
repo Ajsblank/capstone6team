@@ -1,0 +1,69 @@
+name: Build & Deploy to EC2
+
+on:
+  push:
+    branches: [dev/grading-server]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.GRADING_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.GRADING_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image to ECR
+        id: build-image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Set image output
+        id: set-image
+        run: |
+          echo "image=${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Deploy to all ASG instances via SSM
+        run: |
+          REGISTRY="${{ steps.login-ecr.outputs.registry }}"
+          IMAGE="${{ steps.set-image.outputs.image }}"
+          REGION="${{ secrets.AWS_REGION }}"
+          ASG="${{ secrets.ASG_NAME }}"
+          REDIS="${{ secrets.REDIS_HOST }}"
+
+          # jq로 명령어를 JSON으로 안전하게 직렬화
+          PARAMS=$(jq -n \
+            --arg c1 "aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REGISTRY" \
+            --arg c2 "docker pull $IMAGE" \
+            --arg c3 "docker stop grading-server || true" \
+            --arg c4 "docker rm grading-server || true" \
+            --arg c5 "mkdir -p /tmp/grading" \
+            --arg c6 "docker run -d --name grading-server --restart always -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/grading:/tmp/grading -e REDIS_HOST=$REDIS $IMAGE" \
+            '{"commands": [$c1,$c2,$c3,$c4,$c5,$c6]}')
+
+          # ASG 인스턴스 + 고정 인스턴스(asap-judge-server) 모두 배포
+          aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:aws:autoscaling:groupName,Values=$ASG" "Key=tag:Name,Values=asap-judge-server" \
+            --parameters "$PARAMS" \
+            --output table
