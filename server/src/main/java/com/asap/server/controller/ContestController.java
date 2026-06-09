@@ -3,6 +3,7 @@ package com.asap.server.controller;
 import java.io.IOException;
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,7 +31,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.asap.server.config.CustomUserDetails;
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleMatch;
 import com.asap.server.domain.ContestSwissMatch;
@@ -38,6 +39,7 @@ import com.asap.server.dto.request.CreateCertifiedContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
 import com.asap.server.dto.request.UpdateContestCertifiedRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
+import com.asap.server.dto.request.ValidateContestRequest;
 import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestListResponse;
@@ -52,6 +54,7 @@ import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.ContestSwissMatchRepository;
 import com.asap.server.repository.ContestSwissSessionRepository;
+import com.asap.server.repository.ProfileRepository;
 import com.asap.server.service.ContestRunService;
 import com.asap.server.service.ContestService;
 import com.asap.server.service.FullLeagueService;
@@ -90,6 +93,7 @@ public class ContestController {
     private final SseService sseService;
     private final ContestSwissMatchRepository swissMatchRepository;
     private final CodeBattleMatchRepository matchRepository;
+    private final ProfileRepository profileRepository;
 
     @Operation(summary = "비인증 대회 생성(JSON)", description = "POST /api/contests/create/uncertified application/json")
     @PostMapping(value = "/create/uncertified", consumes = "application/json")
@@ -222,7 +226,10 @@ public class ContestController {
     public ResponseEntity<List<CodeBattleMySubmissionResponse>> getMySubmissions(
             @PathVariable Long contestId,
             @PathVariable Long targetUserId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            @AuthenticationPrincipal Long userId) {
+        if (!targetUserId.equals(userId)) {
+            throw new IllegalArgumentException("본인의 제출 이력만 조회할 수 있습니다.");
+        }
         log.info("조회 시도: {} / {}", contestId, targetUserId);
         List<CodeBattleMySubmissionResponse> responses = contestService.getMySubmissionsWithAi(contestId,
                 targetUserId);
@@ -255,6 +262,10 @@ public class ContestController {
                         .body(Map.of("message", "아직 집계 중이거나 데이터가 존재하지 않습니다."));
             }
             FinalResultResponse response = objectMapper.readValue(json, FinalResultResponse.class);
+            Map<Long, String> nicknameTagMap = getNicknameTagMap(
+                    response.getFinalStandings().stream().map(FinalResultResponse.StandingDto::getUserId).toList());
+            response.getFinalStandings()
+                    .forEach(s -> s.setNicknameTag(nicknameTagMap.getOrDefault(s.getUserId(), "")));
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
@@ -290,27 +301,6 @@ public class ContestController {
             return ResponseEntity.ok("풀리그 채점 대기열에 등록되었습니다.");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @PostMapping("/{contestId}/temporarySessionTest")
-    @Operation(summary = "세션을 생성 실행합니다.", description = "대회에 세션을 새로 생성하고 강제 실행합니다.")
-    public ResponseEntity<String> testSwissSession(
-            @PathVariable Long contestId,
-            @RequestParam int sessionNumber) {
-        try {
-            CodeBattleContest contest = contestRepository.findById(contestId)
-                    .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
-            // 1. 세션 값 초기화
-            ContestSwissSession session = new ContestSwissSession();
-            session.setContest(contest);
-            session = sessionRepository.save(session);
-
-            swissService.generateSwissSession(contestId, sessionNumber, session.getId());
-            return ResponseEntity.ok("스위스 세션 " + sessionNumber + " 실행됨. sessionId=" + session.getId());
-        } catch (Exception e) {
-            log.error("[스위스 테스트] 예외 발생", e);
-            return ResponseEntity.badRequest().body(e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 
@@ -385,17 +375,34 @@ public class ContestController {
                         response_.put("session_number", result.getSessionNumber());
                         response_.put("status", "END");
                         response_.put("total_rounds", result.getTotalRounds());
+                        // participants 추가
+                        List<Long> userIds = result.getFinalStandings() != null
+                                ? result.getFinalStandings().stream()
+                                        .map(SwissResultResponse.StandingDto::getUserId)
+                                        .toList()
+                                : List.of();
+                        response_.put("participants", getNicknameTagMap(userIds));
                         response_.put("rounds", result.getRounds());
                         emitter.send(SseEmitter.event().name("init").data(response_));
                     } catch (JsonProcessingException e) {
                         log.error("[SSE][END] JSON 파싱 실패. key={}", key, e);
-                        emitter.send(SseEmitter.event().name("init")
-                                .data(Map.of("status", "END", "message", "결과 데이터 파싱 중 오류가 발생했습니다.")));
+                        Map<String, Object> errResp = new LinkedHashMap<>();
+                        errResp.put("status", "END");
+                        errResp.put("total_rounds", 0);
+                        errResp.put("participants", Map.of());
+                        errResp.put("rounds", List.of());
+                        errResp.put("message", "결과 데이터 파싱 중 오류가 발생했습니다.");
+                        emitter.send(SseEmitter.event().name("init").data(errResp));
                     } catch (Exception e) {
-                        // S3 파일 없음 = 종료는 됐지만 아직 집계 중
+                        // S3 파일 없음 = 종료는 됐지만 아직 집계 중이거나 비정상 종료
                         log.warn("[SSE][END] S3 파일 없음 또는 조회 실패. key={}", key, e);
-                        emitter.send(SseEmitter.event().name("init")
-                                .data(Map.of("status", "END", "message", "아직 집계 중이거나 데이터가 존재하지 않습니다.")));
+                        Map<String, Object> emptyResp = new LinkedHashMap<>();
+                        emptyResp.put("status", "END");
+                        emptyResp.put("total_rounds", 0);
+                        emptyResp.put("participants", Map.of());
+                        emptyResp.put("rounds", List.of());
+                        emptyResp.put("message", "아직 집계 중이거나 데이터가 존재하지 않습니다.");
+                        emitter.send(SseEmitter.event().name("init").data(emptyResp));
                     }
                     emitter.complete();
                 } catch (IOException e) {
@@ -448,12 +455,22 @@ public class ContestController {
             try {
                 json = s3Service.readFileAsString(key);
             } catch (Exception e) {
-                // S3 파일 없음 = 종료는 됐지만 아직 집계 중
-                return ResponseEntity.accepted()
-                        .body(Map.of("message", "아직 집계 중이거나 데이터가 존재하지 않습니다."));
+                // S3 파일 없음 = 종료는 됐지만 아직 집계 중이거나 비정상 종료
+                Map<String, Object> emptyResp = new LinkedHashMap<>();
+                emptyResp.put("status", "END");
+                emptyResp.put("total_rounds", 0);
+                emptyResp.put("participants", Map.of());
+                emptyResp.put("rounds", List.of());
+                emptyResp.put("message", "아직 집계 중이거나 데이터가 존재하지 않습니다.");
+                return ResponseEntity.accepted().body(emptyResp);
             }
             try {
                 SwissResultResponse response = objectMapper.readValue(json, SwissResultResponse.class);
+                Map<Long, String> nicknameTagMap = getNicknameTagMap(
+                        response.getFinalStandings().stream().map(SwissResultResponse.StandingDto::getUserId).toList());
+                response.getFinalStandings()
+                        .forEach(s -> s.setNicknameTag(nicknameTagMap.getOrDefault(s.getUserId(), "")));
+
                 return ResponseEntity.ok(response);
             } catch (JsonProcessingException e) {
                 log.error("[스위스리그] JSON 파싱 실패. key={}", key, e);
@@ -493,6 +510,11 @@ public class ContestController {
 
             try {
                 SwissLeaderBoardResponse response = objectMapper.readValue(json, SwissLeaderBoardResponse.class);
+                Map<Long, String> nicknameTagMap = getNicknameTagMap(
+                        response.getFinalStandings().stream().map(SwissLeaderBoardResponse.StandingDto::getUserId)
+                                .toList());
+                response.getFinalStandings()
+                        .forEach(s -> s.setNicknameTag(nicknameTagMap.getOrDefault(s.getUserId(), "")));
                 return ResponseEntity.ok(response);
             } catch (JsonProcessingException e) {
                 log.error("[스위스리그] JSON 파싱 실패. key={}", key, e);
@@ -538,6 +560,11 @@ public class ContestController {
 
             try {
                 SwissLeaderBoardResponse response = objectMapper.readValue(json, SwissLeaderBoardResponse.class);
+                Map<Long, String> nicknameTagMap = getNicknameTagMap(
+                        response.getFinalStandings().stream().map(SwissLeaderBoardResponse.StandingDto::getUserId)
+                                .toList());
+                response.getFinalStandings()
+                        .forEach(s -> s.setNicknameTag(nicknameTagMap.getOrDefault(s.getUserId(), "")));
                 return ResponseEntity.ok(response);
             } catch (JsonProcessingException e) {
                 log.error("[스위스리그] JSON 파싱 실패. key={}", key, e);
@@ -602,20 +629,22 @@ public class ContestController {
             @PathVariable Long matchId) {
 
         ContestSwissMatch match = swissMatchRepository.findById(matchId)
-                .orElseThrow(() -> new EntityNotFoundException("Match not found: " + matchId));
-
+                .orElseThrow(() -> new EntityNotFoundException("매치가 존재하지 않습니다 : " + matchId));
+        if (!match.getRound().getSession().getContest().getId().equals(contestId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청한 매치가 해당 대회에 존재하지 않습니다.");
+        }
         return match.getLog();
     }
 
     @GetMapping("/{contestId}/fullLeague/viewMatchLog/{matchId}")
     @Operation(summary = "풀리그 매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
-    public String getContesttMatchLog(
+    public String getContestMatchLog(
             @PathVariable Long contestId,
             @PathVariable Long matchId) {
         CodeBattleMatch match = matchRepository.findById(matchId)
-                .orElseThrow(() -> new EntityNotFoundException("Match not found: " + matchId));
-        if (match.getContest().getId() != contestId) {
-            log.info("요청한 매치의 대회 ID={}와 입력된 대회 ID={}가 일치하지 않습니다.", match.getId(), contestId);
+                .orElseThrow(() -> new EntityNotFoundException("매치가 존재하지 않습니다 : " + matchId));
+        if (!match.getContest().getId().equals(contestId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청한 매치가 해당 대회에 존재하지 않습니다.");
         }
         return match.getLog();
     }
@@ -627,29 +656,46 @@ public class ContestController {
             @RequestBody List<LocalDateTime> scheduledTimes) {
 
         CodeBattleContest contest = contestRepository.findById(contestId)
-                .orElseThrow(() -> new EntityNotFoundException("Contest not found: " + contestId));
+                .orElseThrow(() -> new EntityNotFoundException("대회를 찾을 수 없습니다 : " + contestId));
+        if (contest.getStatus() == ContestStatus.CANCELED || contest.getStatus() == ContestStatus.END) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "종료되거나 취소된 대회는 세션을 예약할 수 없습니다. contestId=" + contestId));
+        }
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
         List<ContestSwissSession> sessions = new ArrayList<>();
         List<LocalDateTime> sorted = scheduledTimes.stream()
                 .sorted()
                 .toList();
-        int lastSessionNumber = sessionRepository.findByContestId(contestId)
-                .stream()
-                .mapToInt(ContestSwissSession::getSessionNumber)
-                .max()
-                .orElse(0);
-        // 현재 예약된 세션 넘버 다음 세션부터 예약
-        for (int i = 0; i < sorted.size(); i++) {
+        for (LocalDateTime time : sorted) {
+            if (!time.isAfter(now)) {
+                log.info("[스위스 리그 예약] 현재 시각 이전 세션 스킵. contestId={}, scheduledAt={}", contestId, time);
+                continue;
+            }
             ContestSwissSession session = new ContestSwissSession();
             session.setContest(contest);
-            session.setScheduledAt(sorted.get(i));
-            // 임시로 1부터 세션 번호를 매김
-            // 자동 예약 추가
+            session.setScheduledAt(time);
             session.setStatus(ContestStatus.PLANNED);
-            session.setSessionNumber(lastSessionNumber + i + 1);
             sessions.add(session);
         }
-
         sessionRepository.saveAll(sessions);
+        List<ContestSwissSession> allSessions = sessionRepository.findByContestId(contestId);
+        // RUNNING·END 세션의 sessionNumber는 히스토리/S3 키/SSE 구독에 연결되므로 절대 변경 금지.
+        // PLANNED 세션만 scheduledAt 순으로 재번호 부여 (잠긴 번호 다음부터 시작).
+        int maxLockedNumber = allSessions.stream()
+                .filter(s -> s.getStatus() != ContestStatus.PLANNED)
+                .mapToInt(s -> s.getSessionNumber() != null ? s.getSessionNumber() : 0)
+                .max()
+                .orElse(0);
+        List<ContestSwissSession> plannedSessions = allSessions.stream()
+                .filter(s -> s.getStatus() == ContestStatus.PLANNED)
+                .sorted(Comparator.comparing(ContestSwissSession::getScheduledAt))
+                .collect(Collectors.toList());
+        int nextNumber = maxLockedNumber + 1;
+        for (ContestSwissSession s : plannedSessions) {
+            s.setSessionNumber(nextNumber++);
+        }
+        sessionRepository.saveAll(plannedSessions);
+
         for (ContestSwissSession session : sessions) {
             contestRunService.registSwissContest(contest, session);
             log.info("[스위스 리그 예약] contestId={}, sessionId={}, 시작 시간={}", contestId, session.getId(),
@@ -669,7 +715,7 @@ public class ContestController {
                     .orElseThrow(() -> new EntityNotFoundException(
                             "세션을 찾을 수 없습니다. contestId=" + contestId + ", sessionNumber=" + sessionNumber));
 
-            swissService.generateSwissSession(contestId, sessionNumber, session.getId());
+            swissService.generateSwissSession(contestId, session.getId());
 
             return ResponseEntity.ok("스위스 세션 " + sessionNumber + " 실행 완료. sessionId=" + session.getId());
         } catch (EntityNotFoundException e) {
@@ -680,4 +726,55 @@ public class ContestController {
         }
     }
 
+    @Operation(summary = "대회 코드 유효성 검증", description = "Judge/Sample/ExampleAI 코드를 채점 서버에서 실행해 검증합니다. 결과는 SSE(event: test_result)로 수신합니다.")
+    @PostMapping("/validate")
+    public ResponseEntity<?> validateContestCodes(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody ValidateContestRequest request) {
+        try {
+            contestService.validateContestCodes(userId, request);
+            return ResponseEntity.accepted()
+                    .body(Map.of("message", "검증 요청이 접수되었습니다. SSE(validate_result)로 결과를 수신하세요."));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("[검증] 검증 요청 실패", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "검증 요청 중 오류 발생"));
+        }
+    }
+
+    private Map<Long, String> getNicknameTagMap(List<Long> userIds) {
+        return profileRepository.findByUserIdIn(userIds).stream()
+                .collect(Collectors.toMap(
+                        p -> p.getUser().getId(),
+                        p -> p.getNickname() + "-" + String.format("%04d", p.getTag())));
+    }
+
+    @DeleteMapping("/{contestId}/deleteContest")
+    @Operation(summary = "대회 강제 삭제 (연관 테이블 포함)", description = "참가자, 제출, 스위스 리그, 검증 관련 모든 연관 테이블을 삭제합니다. (하위 재귀 삭제)")
+    public ResponseEntity<?> deleteContest(@PathVariable Long contestId,
+            @AuthenticationPrincipal Long userId) {
+        // admin 계정 userId = 1 이거나 자기가 개최한 대회일 때 삭제 가능
+        try {
+            CodeBattleContest contest = contestRepository.findById(contestId)
+                    .orElseThrow(
+                            () -> new IllegalArgumentException(String.format("대회를 찾을 수 없습니다. 대회 ID = %d", contestId)));
+            // 관리자 계정 ID 1로 하드코딩
+            if (userId == null || !userId.equals(1L)) {
+                if (userId == null || !contest.getCreator().getId().equals(userId)) {
+                    log.info("대회 개최자와 일치하지 않는 유저 contestId={} userId={}", contestId, userId);
+                    return ResponseEntity.status(403).body(null);
+                }
+            }
+            contestService.deleteContest(contest);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            log.error("대회 삭제 실패 - contestId: {}", contestId, e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "대회 삭제 중 오류 발생"));
+        }
+    }
 }

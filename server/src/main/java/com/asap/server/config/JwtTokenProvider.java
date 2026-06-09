@@ -22,10 +22,11 @@ public class JwtTokenProvider {
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secretKey,
-            @Value("${jwt.expiration}") long accessTokenValidityMs) {
+            @Value("${jwt.expiration}") long accessTokenValidityMs,
+            @Value("${jwt.refresh-expiration:604800000}") long refreshTokenValidityMs) {
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
         this.accessTokenValidityMs = accessTokenValidityMs;
-        this.refreshTokenValidityMs = 7L * 24 * 60 * 60 * 1000; // 7 days
+        this.refreshTokenValidityMs = refreshTokenValidityMs;
     }
 
     // access token 생성 (userId, email, type claim 포함)

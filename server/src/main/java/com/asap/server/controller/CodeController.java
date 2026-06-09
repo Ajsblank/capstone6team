@@ -3,7 +3,11 @@ package com.asap.server.controller;
 import java.util.List;
 
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,13 +21,16 @@ import com.asap.server.domain.CodeBattleSubmission;
 import com.asap.server.domain.Users;
 import com.asap.server.dto.request.CodeBattleTestRequest;
 import com.asap.server.dto.request.CodeSubmitRequest;
+import com.asap.server.dto.request.ManualSubmissionRequest;
 import com.asap.server.dto.response.CodeSubmitResponse;
+import com.asap.server.dto.response.SubmissionCodeResponse;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.asap.server.repository.usersRepository;
+import com.asap.server.service.S3Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -46,8 +53,8 @@ public class CodeController {
     private final CodeBattleContestRepository contestRepository;
     private final CodeBattleSubmissionRepository submissionRepository;
     private final CodeBattleParticipantRepository participantRepository;
+    private final S3Service s3Service;
 
-    private static final String SUBMISSION_COUNT_KEY = "submission_count";
     private static final String CODE_BATTLE_GRADING_QUEUE_KEY = "code_battle_grading_queue";
     private static final String CODE_BATTLE_TEST_QUEUE_KEY = "code_battle_test_queue";
 
@@ -55,10 +62,10 @@ public class CodeController {
     @Operation(description = "language는 eunm 타입입니다. (CPP,PYTHON,JAVA,C)")
     public ResponseEntity<CodeSubmitResponse> submitBattle(@Valid @RequestBody CodeSubmitRequest request) {
         try {
-            CodeBattleContest contest = contestRepository.findById(Long.parseLong(request.getProblemId()))
+            CodeBattleContest contest = contestRepository.findById(request.getProblemId())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대회입니다."));
 
-            Users user = userRepository.findById(Long.parseLong(request.getUserId()))
+            Users user = userRepository.findById(request.getUserId())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
             List<CodeBattleExampleAI> aiList = exampleAIRepository
@@ -72,9 +79,17 @@ public class CodeController {
                     user,
                     contest,
                     request.getLanguage(),
-                    request.getSourceCode(),
                     "PENDING");
             submissionRepository.save(submission);
+
+            // S3 업로드
+            String key = s3Service.buildCodeSubmissionKey(request.getProblemId(),
+                    request.getUserId(), submission.getId());
+            s3Service.uploadCode(key, request.getSourceCode());
+
+            submission.changeCodeUrl(key);
+            submissionRepository.save(submission);
+
             // 참가자 테이블을 조회한다
             Long userId = submission.getUser().getId();
             Long contestId = submission.getContest().getId();
@@ -91,7 +106,14 @@ public class CodeController {
                 log.info("최신 제출 코드를 저장");
                 participant.setSubmission(submission);
                 participantRepository.save(participant);
+            } else if (participant.getSubmission() == null) {
+                log.info("MANUAL 모드이나 기존 제출 없음 - 최초 제출 코드 저장");
+                participant.setSubmission(submission);
+                participantRepository.save(participant);
+            } else {
+                log.info("MANUAL 모드 - 최신 제출 코드 저장 스킵 (기존 선택 유지)");
             }
+
             for (CodeBattleExampleAI ai : aiList) {
                 Users aiUser = userRepository.getReferenceById(1L);
                 Users submitter = submission.getUser();
@@ -118,7 +140,7 @@ public class CodeController {
                 codesNode.put("player2", ai.getCode());
 
                 ObjectNode languagesNode = rootNode.putObject("languages");
-                languagesNode.put("judge", "cpp");
+                languagesNode.put("judge", contest.getJudgeLanguage().name().toLowerCase());
                 languagesNode.put("player1", request.getLanguage().name().toLowerCase());
                 languagesNode.put("player2", ai.getLanguage().name().toLowerCase());
 
@@ -133,15 +155,36 @@ public class CodeController {
         }
     }
 
+    @GetMapping("/submission/{submissionId}")
+    @Operation(summary = "제출 코드 조회", description = "submissionId로 본인이 제출한 코드 내용을 조회합니다. 본인 제출만 조회 가능합니다.")
+    public ResponseEntity<?> getSubmissionCode(
+            @PathVariable Long submissionId,
+            @AuthenticationPrincipal Long userId) {
+        try {
+            CodeBattleSubmission submission = submissionRepository.findById(submissionId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 제출입니다."));
+
+            if (!submission.getUser().getId().equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("본인의 제출만 조회할 수 있습니다.");
+            }
+
+            String code = s3Service.readFileAsString(submission.getCodeUrl());
+            return ResponseEntity.ok(SubmissionCodeResponse.of(submission, code));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            log.error("제출 코드 조회 실패 - submissionId: {}", submissionId, e);
+            return ResponseEntity.internalServerError().body("코드 조회 중 오류가 발생했습니다.");
+        }
+    }
+
     // 현재 CPP만 지원
     @PostMapping("/submit/test")
     public ResponseEntity<String> submitCodeBattleTest(@Valid @RequestBody CodeBattleTestRequest request) {
         try {
-            CodeBattleContest contest = contestRepository.findById(Long.parseLong(request.getProblemId()))
+            CodeBattleContest contest = contestRepository.findById(request.getProblemId())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 대회입니다."));
 
-            Users user = userRepository.findById(Long.parseLong(request.getUserId()))
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
             if (request.getUserId() == null) {
                 return ResponseEntity.badRequest().body("userId는 필수입니다.");
             }
@@ -158,7 +201,7 @@ public class CodeController {
             rootNode.put("player2", request.getSourceCode2());
 
             ObjectNode languagesNode = rootNode.putObject("languages");
-            languagesNode.put("judge", "cpp");
+            languagesNode.put("judge", request.getJudgeLanguage().name().toLowerCase());
             languagesNode.put("player1", request.getLanguage1().name().toLowerCase());
             languagesNode.put("player2", request.getLanguage2().name().toLowerCase());
 
@@ -170,5 +213,61 @@ public class CodeController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @PostMapping("/submit/codebattle/{contestId}/codeSelect")
+    @Operation(description = "MANUAL 모드로 전환하고 지정한 제출 코드를 최종 코드로 저장합니다.")
+    public ResponseEntity<CodeSubmitResponse> manualSelectSubmission(
+            @PathVariable Long contestId,
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody ManualSubmissionRequest request) {
+        try {
+            CodeBattleSubmission submission = submissionRepository.findById(request.getSubmissionId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 제출입니다."));
+
+            if (!contestId.equals(submission.getContest().getId())) {
+                throw new IllegalArgumentException("해당 대회의 제출이 아닙니다.");
+            }
+            // 본인 submissionId인지 확인
+            if (!userId.equals(submission.getUser().getId())) {
+                throw new IllegalArgumentException("본인의 제출만 선택할 수 있습니다.");
+            }
+            CodeBattleParticipant participant = participantRepository
+                    .findByUserIdAndContestId(userId, contestId)
+                    .orElseThrow(() -> new IllegalArgumentException("대회 참가 이력이 없습니다."));
+
+            // MANUAL 모드로 전환 + 선택한 제출 저장
+            participant.setManual(true);
+            participant.setSubmission(submission);
+            participantRepository.save(participant);
+
+            log.info("MANUAL 모드 전환 및 제출 코드 저장 - userId: {}, submissionId: {}", userId, request.getSubmissionId());
+
+            return ResponseEntity.ok(new CodeSubmitResponse(true,
+                    "수동 제출 설정 완료 (submissionId: " + request.getSubmissionId() + ")"));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new CodeSubmitResponse(false, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/submit/{contestId}/getMySelect")
+    @Operation(summary = "최종 제출 코드 조회")
+    public ResponseEntity<Long> getParticipantSubmission(
+            @PathVariable Long contestId,
+            @AuthenticationPrincipal Long userId) {
+        if (userId == null) {
+            log.info("로그인이 필요합니다.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        CodeBattleParticipant participant = participantRepository
+                .findByUserIdAndContestId(userId, contestId)
+                .orElse(null);
+
+        if (participant == null || participant.getSubmission() == null) {
+            return ResponseEntity.ok(null);
+        }
+
+        return ResponseEntity.ok(participant.getSubmission().getId());
     }
 }

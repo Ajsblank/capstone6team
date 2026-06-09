@@ -71,10 +71,15 @@ public class FullLeagueService {
                     })
                     .collect(Collectors.toList());
             if (submissions == null || submissions.size() < 2) {
-                log.warn("[풀리그] 풀리그 대회 ID {} 제출 코드 부족으로 매칭을 생성하지 못했습니다. {}", contestId);
+                log.warn("[풀리그] 풀리그 대회 ID {} 제출 코드 부족으로 매칭을 생성하지 못했습니다.", contestId);
                 return;
             }
 
+            Map<Long, String> codeCache = new HashMap<>();
+            for (CodeBattleSubmission s : submissions) {
+                codeCache.put(s.getId(), s3Service.readFileAsString(s.getCodeUrl()));
+            }
+            log.info("[풀리그] 대회 ID={}을 위한 코드를 S3에서 불러옴", contestId);
             log.info("[풀리그] 풀리그 대회 ID: {}, {}개의 제출 코드로 매칭을 생성합니다.", contestId, submissions.size());
 
             int expected = (submissions.size() * (submissions.size() - 1)) / 2;
@@ -97,7 +102,8 @@ public class FullLeagueService {
                         redisTemplate.opsForList().leftPush("contest:matchIds:" + contestId,
                                 String.valueOf(match.getId()));
                         // 큐에 적재
-                        enqueueMatchToGradingQueue(match.getId(), contest, s1, s2, 0);
+                        enqueueMatchToGradingQueue(match.getId(), contest, s1, s2, codeCache.get(s1.getId()),
+                                codeCache.get(s2.getId()), 0);
                         enqueued++;
 
                     } catch (Exception e) {
@@ -106,6 +112,7 @@ public class FullLeagueService {
                         // Redis 카운터 정리
                         redisTemplate.delete("contest:total:" + contestId);
                         redisTemplate.delete("contest:done:" + contestId);
+                        redisTemplate.delete("contest:matchIds:" + contestId);
 
                         throw new RuntimeException("풀리그 큐 적재 실패로 전체 중단", e);
                     }
@@ -124,29 +131,11 @@ public class FullLeagueService {
             CodeBattleContest contest,
             CodeBattleSubmission s1,
             CodeBattleSubmission s2,
+            String player1Code,
+            String player2Code,
             int aiOrder) throws Exception {
 
-        // S3에서 코드 읽기 비활성화
-        // log.info("[S3] judge={}", contest.getJudgeCode());
-        // log.info("[S3] p1={}", s1.getCodeUrl());
-        // log.info("[S3] p2={}", s2.getCodeUrl());
-
-        // String judgeCode = s3Service.readFileAsString(contest.getJudgeCode());
-        // String player1Code = s3Service.readFileAsString(s1.getCodeUrl());
-        // String player2Code = s3Service.readFileAsString(s2.getCodeUrl());
-
-        // log.info("[S3] 읽기 완료. judge={}자, p1={}자, p2={}자",
-        // judgeCode.length(), player1Code.length(), player2Code.length());
         String judgeCode = contest.getJudgeCode();
-        String player1Code = s1.getCodeUrl();
-        String player2Code = s2.getCodeUrl();
-        // S3 시 사용
-        // log.info("[대회 처리] judge={}, 길이={}", judgeCode, judgeCode.length());
-        // log.info("[대회 처리] p1={}, 길이={}", player1Code, player1Code.length());
-        // log.info("[대회 처리] p2={}, 길이={}", player2Code, player2Code.length());
-        log.info("[대회 처리] 길이={}", judgeCode.length());
-        log.info("[대회 처리] 길이={}", player1Code.length());
-        log.info("[대회 처리] 길이={}", player2Code.length());
 
         // JSON 구성
         ObjectNode rootNode = objectMapper.createObjectNode();
@@ -159,7 +148,7 @@ public class FullLeagueService {
         codesNode.put("player1", player1Code);
         codesNode.put("player2", player2Code);
         ObjectNode languagesNode = rootNode.putObject("languages");
-        languagesNode.put("judge", "cpp");
+        languagesNode.put("judge", contest.getJudgeLanguage().name().toLowerCase());
         languagesNode.put("player1", s1.getLanguage().name().toLowerCase());
         languagesNode.put("player2", s2.getLanguage().name().toLowerCase());
 
@@ -206,6 +195,8 @@ public class FullLeagueService {
                     drawsMap.merge(user2Id, 1, Integer::sum);
                 }
             }
+
+            // 동점자 시간 순 정렬, 현재 동점자 동순위로 미사용 로직 상태
             Map<Long, LocalDateTime> submissionTimeMap = new HashMap<>();
             List<CodeBattleParticipant> participants = participantRepository.findByContestId(contestId);
             for (CodeBattleParticipant p : participants) {
@@ -216,8 +207,9 @@ public class FullLeagueService {
             // 유저 ID 목록 추출 후 points 기준 정렬
             List<Long> userIds = new ArrayList<>(userMatchIds.keySet());
             userIds.sort((a, b) -> { // Tim Sort 사용
-                double pointsA = winsMap.getOrDefault(a, 0) * 1.0 + drawsMap.getOrDefault(a, 0) * 0.5;
-                double pointsB = winsMap.getOrDefault(b, 0) * 1.0 + drawsMap.getOrDefault(b, 0) * 0.5;
+                // 정렬에 무승부 점수 0.5점 삭제
+                double pointsA = winsMap.getOrDefault(a, 0) * 1.0;
+                double pointsB = winsMap.getOrDefault(b, 0) * 1.0;
                 // 1순위: points 내림차순
                 int cmp = Double.compare(pointsB, pointsA);
                 if (cmp != 0)
@@ -228,6 +220,7 @@ public class FullLeagueService {
                 LocalDateTime timeB = submissionTimeMap.getOrDefault(b, LocalDateTime.MAX);
                 return timeA.compareTo(timeB);
             });
+            int currentRank = 1;
             // ✅ 4. standings 생성
             List<Map<String, Object>> standings = new ArrayList<>();
             for (int i = 0; i < userIds.size(); i++) {
@@ -236,14 +229,20 @@ public class FullLeagueService {
                 int wins = winsMap.getOrDefault(userId, 0);
                 int draws = drawsMap.getOrDefault(userId, 0);
                 int losses = lossesMap.getOrDefault(userId, 0);
-                double points = wins * 1.0 + draws * 0.5; // draw 값 정책
+                // draw 값은 현재 집계에 사용하지 않음 (0 점)
+                double points = wins * 1.0;
+
+                int rank = (i > 0 && (double) standings.get(i - 1).get("points") == points)
+                        ? (int) standings.get(i - 1).get("rank")
+                        : currentRank;
+                currentRank++;
 
                 Map<String, Object> standing = new LinkedHashMap<>();
                 standing.put("user_id", userId);
                 standing.put("wins", wins);
                 standing.put("draws", draws);
                 standing.put("losses", losses);
-                standing.put("rank", i + 1);
+                standing.put("rank", rank);
                 standing.put("points", points);
                 standing.put("match_ids", userMatchIds.getOrDefault(userId, List.of()));
                 standings.add(standing);

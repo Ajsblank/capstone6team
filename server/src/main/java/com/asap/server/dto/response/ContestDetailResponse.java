@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.global.type.ContestStatus;
+import com.asap.server.global.type.Language;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import lombok.Builder;
@@ -21,6 +22,7 @@ public class ContestDetailResponse {
   private Integer timeLimitSec;
   private Integer memoryLimitMb;
   private String judgeCode;
+  private Language judgeLanguage;
   private List<SampleCodeResponse> sampleCodes;
   private List<ExampleAiResponse> exampleAiCodes;
   private ContestStatus status;
@@ -46,6 +48,7 @@ public class ContestDetailResponse {
         .timeLimitSec(contest.getTimeLimitSec())
         .memoryLimitMb(contest.getMemoryLimitMB())
         .judgeCode(contest.getJudgeCode())
+        .judgeLanguage(contest.getJudgeLanguage())
         .exampleAiCodes(exampleAiCodes)
         .sampleCodes(sampleCodes)
         .status(contest.getStatus())

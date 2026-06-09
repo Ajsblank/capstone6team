@@ -10,10 +10,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CodeSubmitRequest {
-    @NotBlank
-    private String userId;
-    @NotBlank
-    private String problemId;
+    @NotNull
+    private Long userId;
+    @NotNull
+    private Long problemId;
     @NotNull
     private Language language;
     @NotBlank

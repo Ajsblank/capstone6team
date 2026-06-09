@@ -2,10 +2,16 @@ package com.asap.server.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -15,20 +21,60 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class SseService {
+    private record PendingEvent(Object data, String eventName) {
+    }
+
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
+
+    // 전송 실패 시 임시 보관 → 재연결 때 순서대로 재전송
+    private final Map<Long, Deque<PendingEvent>> pendingEvents = new ConcurrentHashMap<>();
 
     // 세션 구독자 목록 - List를 CopyOnWriteArrayList로 교체
     private final Map<String, CopyOnWriteArrayList<SseEmitter>> sessionEmitters = new ConcurrentHashMap<>();
 
     // 세션 최신 상태 캐시 - Object로 받아서 DTO 그대로 저장 가능
     private final Map<String, Object> sessionStates = new ConcurrentHashMap<>();
+    // 현재는 sse 풀 하나만 생성
+    private final ScheduledExecutorService heartbeatScheduler = Executors.newScheduledThreadPool(1);
 
     public SseEmitter subscribe(Long userId) {
         SseEmitter emitter = new SseEmitter(30 * 60 * 1000L);
         emitters.put(userId, emitter);
 
-        emitter.onCompletion(() -> emitters.remove(userId));
-        emitter.onTimeout(() -> emitters.remove(userId));
+        // 연결 확립용 초기 전송 — 이게 있어야 헤더가 flush되어 브라우저 onopen 발생
+        try {
+            emitter.send(SseEmitter.event().name("connect").data("ok"));
+        } catch (IOException e) {
+            emitters.remove(userId, emitter);
+            emitter.completeWithError(e);
+            return emitter;
+        }
+
+        // 재연결 시 대기 중이던 이벤트 순서대로 재전송
+        drainQueue(userId, emitter);
+        // 55초마다 heartbeat (CloudFront 연결 끊김 방지)
+        ScheduledFuture<?> heartbeatTask = heartbeatScheduler.scheduleAtFixedRate(() -> {
+            try {
+                emitter.send(SseEmitter.event().comment("heartbeat"));
+            } catch (IOException e) {
+                emitters.remove(userId, emitter);
+                emitter.complete();
+            }
+        }, 55, 55, TimeUnit.SECONDS);
+
+        // remove(key, value): 이 emitter가 현재 map에 있을 때만 삭제 (재연결 시 새 emitter 보호)
+        emitter.onCompletion(() -> {
+            emitters.remove(userId, emitter);
+            heartbeatTask.cancel(true);
+        });
+        emitter.onTimeout(() -> {
+            emitters.remove(userId, emitter);
+            heartbeatTask.cancel(true);
+        });
+        emitter.onError(e -> {
+            emitters.remove(userId, emitter);
+            heartbeatTask.cancel(true);
+        });
 
         return emitter;
     }
@@ -38,14 +84,39 @@ public class SseService {
     }
 
     public void sendToUser(Long userId, Object data, String eventName) {
+        // 항상 큐에 먼저 추가 → 순서 보장
+        Deque<PendingEvent> queue = pendingEvents.computeIfAbsent(userId, k -> new ConcurrentLinkedDeque<>());
+        queue.offerLast(new PendingEvent(data, eventName));
+        log.info("[SSE] 이벤트 큐 추가 userId={} event={}", userId, eventName);
+
         SseEmitter emitter = emitters.get(userId);
-        log.info("[SSE] : {}", emitters.toString());
         if (emitter != null) {
-            try {
-                emitter.send(SseEmitter.event().name(eventName).data(data));
-                log.info("[SSE] : success");
-            } catch (IOException e) {
-                emitters.remove(userId);
+            drainQueue(userId, emitter);
+        } else {
+            log.warn("[SSE] emitter 없음 → 재연결 대기 userId={}", userId);
+        }
+    }
+
+    // synchronized로 단일 스레드만 drain 진입.
+    // pollFirst로 꺼내고 전송 성공 시만 제거, 실패 시 offerFirst로 복원.
+    private void drainQueue(Long userId, SseEmitter emitter) {
+        Deque<PendingEvent> queue = pendingEvents.get(userId);
+        if (queue == null || queue.isEmpty())
+            return;
+
+        synchronized (queue) {
+            PendingEvent pending;
+            while ((pending = queue.pollFirst()) != null) {
+                try {
+                    emitter.send(SseEmitter.event().name(pending.eventName()).data(pending.data()));
+                    log.info("[SSE] 전송 성공 userId={} event={}", userId, pending.eventName());
+                } catch (IOException e) {
+                    queue.offerFirst(pending); // 실패한 이벤트 맨 앞에 복원
+                    log.warn("[SSE] 전송 실패 userId={}", userId);
+                    emitters.remove(userId, emitter);
+                    emitter.completeWithError(e);
+                    return;
+                }
             }
         }
     }
@@ -135,6 +206,7 @@ public class SseService {
             } catch (IOException e) {
                 log.warn("[SSE 브로드캐스트 실패] key={} emitter 제거", key);
                 dead.add(emitter);
+                emitter.complete();
             }
         }
         list.removeAll(dead);

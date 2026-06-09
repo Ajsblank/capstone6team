@@ -19,19 +19,21 @@ public class ProfileResponse {
   private String affiliation;
   private String imageUrl;
 
-  public static ProfileResponse from(Profile profile) {
+  public static ProfileResponse from(Profile profile, String cloudFrontDomain) {
     String tagCode = String.format("%04d", profile.getTag());
     String nicknameTag = profile.getNickname() + "-" + tagCode;
+    String imageUrl = profile.getImage_url() != null
+        ? (cloudFrontDomain.endsWith("/") ? cloudFrontDomain : cloudFrontDomain + "/") + profile.getImage_url()
+        : null;
     return ProfileResponse.builder()
-        .userId(profile.getId())
+        .userId(profile.getUser().getId())
         .nickname(profile.getNickname())
         .tag(profile.getTag())
-        .tagCode(tagCode)
         .nicknameTag(nicknameTag)
-        .profileUrl("/api/profile/" + nicknameTag)
         .bio(profile.getBio())
         .affiliation(profile.getAffiliation())
-        .imageUrl(profile.getImage_url())
+        .imageUrl(imageUrl)
         .build();
   }
+
 }

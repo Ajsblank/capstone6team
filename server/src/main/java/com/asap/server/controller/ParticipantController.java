@@ -72,7 +72,7 @@ public class ParticipantController {
 
   @PostMapping("/{contestId}/test/submit")
   @Operation(summary = "테스트 코드 자동 제출", description = "test_01@test.com 형식의 유저들이 자동으로 코드를 제출합니다.")
-  public ResponseEntity<String> multipleSubmitContest(
+  public ResponseEntity<String> multipleSubmitContest(  
       @PathVariable Long contestId,
       @RequestBody TestSubmitRequest req) {
     int from = req.getFrom();
@@ -92,8 +92,8 @@ public class ParticipantController {
         }
 
         CodeSubmitRequest request = new CodeSubmitRequest();
-        request.setUserId(String.valueOf(user.getId()));
-        request.setProblemId(String.valueOf(contestId));
+        request.setUserId(user.getId());
+        request.setProblemId(contestId);
         request.setLanguage(req.getLanguage());
         request.setSourceCode(req.getSourceCode());
         codeController.submitBattle(request);
