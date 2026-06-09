@@ -100,6 +100,8 @@
       display: flex;
       align-items: center;
       gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
     /* ── Player wrap (카드 + 점수) ── */
@@ -250,8 +252,8 @@
     }
     .board {
       display: grid;
-      grid-template-columns: repeat(17, 40px);
-      grid-template-rows: repeat(10, 40px);
+      grid-template-columns: repeat(11, 40px);
+      grid-template-rows: repeat(8, 40px);
       gap: 1px;
       background: #ccc;
       border: 1px solid #ccc;
@@ -365,7 +367,8 @@
       display: flex;
       justify-content: center;
       gap: 10px;
-      margin-top: 16px;
+      margin-top: 12px;
+      flex: 0 0 100%;   /* game-row 안에서 아래 행 차지 */
     }
     .board-controls button {
       background: #2563eb;
@@ -590,119 +593,188 @@
       }
     }
 
-    /* ── 모바일 공통 (터치 기기, 가로/세로) ─────────────────
-       타일은 화면 폭/높이 중 작은 쪽에 맞춰 CSS로 직접 크게 키운다.
-       (JS 균일 축소는 모바일에서 비활성화 → 타일이 작아지지 않음) */
+    /* ── 모바일(터치 기기) ──────────────────────────────────── */
     @media (pointer: coarse) {
-      /* ⭐ 스크롤 완전 차단 — 한 화면에 고정 (스크롤 대신 JS가 보드를 화면에 맞춤) */
+      /* 스크롤 차단 — JS가 보드를 화면에 맞춤 */
       html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
       .main { overflow: hidden; }
 
-      /* 헤더: 제목 ↔ '새 게임' 버튼 충돌 방지 */
-      header { padding: 14px 92px 14px 14px; justify-content: flex-start; }
+      /* 헤더 */
+      header { padding: 12px 88px 12px 14px; justify-content: flex-start; }
       header h1 { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .btn-new-fixed { top: 10px; right: 10px; }
-      .btn-new-fixed button { padding: 9px 16px; font-size: 0.85rem; }
-      .main { padding: 12px 6px 20px; }
+      .btn-new-fixed { top: 8px; right: 10px; }
+      .btn-new-fixed button { padding: 8px 14px; font-size: 0.82rem; }
+      .main { padding: 0 0 8px 0; flex-direction: column; align-items: stretch; }
 
-      /* 반응형 셀: 17열(폭) / 10행(높이) 중 더 빡빡한 쪽 기준으로 셀 크기 결정.
-         100dvh는 모바일 주소창 변화를 반영. 세로 reserve(아바타·헤더·버튼) 고려.
-         --cell은 부모 .board-wrap에 정의 → .board(자식)와 .board-wrap(margin) 둘 다 사용 가능 */
-      .board-wrap { padding: 6px; }
-      .board {
-        grid-template-columns: repeat(17, var(--cell));
-        grid-template-rows: repeat(10, var(--cell));
-      }
-      .cell { width: var(--cell); height: var(--cell); }
-      .cell-num { font-size: calc(var(--cell) * 0.52); }
-
-      /* 아바타·카드 축소 (실제 크기 줄임) */
-      .player-card { padding: 8px 12px 4px; min-width: 0; gap: 6px; }
-      .player-avatar,
-      .player-card[data-player="second"] .player-avatar {
-        width: 80px; height: 80px;
-        transform: none;
-      }
-      .turn-badge { top: -8px; font-size: 0.6rem; padding: 1px 8px; }
-      .player-name  { font-size: 1.1rem; top: 0; }
-      .player-score { font-size: 2.2rem; }
-
-      /* ⭐ 힌트·스킵 버튼 크게 */
-      .board-controls { gap: 14px; margin-top: 16px; }
-      .board-controls button { padding: 6px 20px; font-size: 1rem; border-radius: 10px; }
-    }
-
-    /* ── 모바일(터치): 항상 세로 회전 레이아웃 (가로 전용 없음) ── */
-    @media (pointer: coarse) {
-      /* 게임 규칙 버튼 아주 작게 */
-      .rules-panel { width: min(140px, 44vw); margin: 0 auto 6px; top: 0; }
-      .rules-toggle { padding: 5px 10px; font-size: 0.72rem; }
-      .rules-arrow { font-size: 0.65rem; }
-
-      /* 회전 컨테이너: 시각(회전 후) 크기(10칸×17칸)를 그대로 차지 → 보정 px 불필요.
-         --cell을 여기(부모)에 정의 → board-wrap·board·cell 모두 상속. JS가 실측값 덮어씀. */
+      /* 보드 회전 컨테이너: CSS 폴백값 — JS가 실측값으로 덮어씀
+         13*8 보드를 90° 회전 → 시각: 가로=8칸, 세로=13칸 */
       .board-rot {
-        --cell: min(calc((100vw - 24px) / 10), calc((100vh - 220px) / 17));
+        --cell: min(calc((100vw - 16px) / 8), calc((100dvh - 230px) / 11));
         position: relative;
-        /* 폴백 크기(JS가 정확값으로 덮어씀): 시각 너비≈10칸 / 높이≈17칸 + 패딩·보더 */
-        width:  calc(10 * var(--cell) + 30px);
-        height: calc(17 * var(--cell) + 30px);
+        width:  calc(8  * var(--cell) + 30px);
+        height: calc(13 * var(--cell) + 30px);
       }
-      /* 보드는 컨테이너 안에서 중앙 정렬 + 90° 회전 (보정 margin/translateX 없음 → 기기 독립적) */
+
+      /* 보드: 중앙 기준 90° 회전 */
       .board-wrap {
+        padding: 6px;
         position: absolute;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%) rotate(90deg);
         transform-origin: center center;
         margin: 0;
       }
-      /* 각 칸은 반대로 -90° → 사과·숫자는 똑바로(읽기 쉽게) 유지 */
-      .cell { transform: rotate(-90deg); }
+      .board {
+        grid-template-columns: repeat(11, var(--cell));
+        grid-template-rows: repeat(8, var(--cell));
+      }
+      /* 각 칸: -90° → 숫자·사과는 똑바로 */
+      .cell { width: var(--cell); height: var(--cell); transform: rotate(-90deg); }
+      /* AI 오버레이: 보드와 반대로 회전해 텍스트 똑바로 */
+      .ai-overlay { transform: rotate(-90deg); }
+      .cell-num { font-size: calc(var(--cell) * 0.52); }
 
-      /* [아바타L][아바타R] / [   보드   ] 그리드 배치 */
+      /* game-row: [카드1] [힌트/스킵] [카드2] 위 / 보드 아래 중앙 */
       .game-row {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr auto 1fr;
         grid-template-areas:
-          "p1 p2"
-          "board board";
-        align-items: start;
-        row-gap: 2px;
+          "p1 ctrl p2"
+          "board board board";
+        align-items: center;
+        column-gap: 6px;
+        row-gap: 6px;
+        flex-wrap: unset;
+        justify-content: unset;
+        width: 100%;
       }
-      /* 좌측(플레이어): 10% 확대 + 5vw 안쪽(오른쪽) 이동, 안쪽으로 자라게 */
+      .game-row > .board-rot {
+        grid-area: board;
+        justify-self: center;
+        transform: none;
+      }
       .game-row > .player-wrap:nth-child(1) {
-        grid-area: p1; justify-self: start;
-        transform: translateX(5vw) scale(1.1);
-        transform-origin: left center;
+        grid-area: p1;
+        justify-self: center;
+        transform: none;
+        transform-origin: unset;
       }
-      .game-row > .board-rot                { grid-area: board; justify-self: center; }
-      /* 우측(AI): 10% 확대 + 5vw 안쪽(왼쪽) 이동 */
       .game-row > .player-wrap:nth-child(3) {
-        grid-area: p2; justify-self: end;
-        transform: translateX(-5vw) scale(1.1);
-        transform-origin: right center;
+        grid-area: p2;
+        justify-self: center;
+        transform: none;
+        transform-origin: unset;
       }
-      /* 카드 px 보정 제거 → 컨테이너가 정확한 공간을 잡으므로 불필요(기기 독립적) */
-      .player-wrap { flex-direction: column; gap: 0; position: relative; top: 0; left: 0; }
-
-      /* 캐릭터 카드·아바타 더 작게 (보드에 안 묻히게) */
-      .player-card { padding: 4px 8px 2px; gap: 2px; border-width: 2px; }
-      .player-avatar,
-      .player-card[data-player="second"] .player-avatar { width: 52px; height: 52px; }
-      .player-name  { font-size: 0.9rem; }
-      .player-score { font-size: 1.5rem; }
-      .turn-badge { top: -6px; font-size: 0.5rem; padding: 1px 6px; }
-
-      /* 힌트·스킵 버튼: 상단 중앙(좌우), 세로 위치는 JS가 플레이어 카드 중심에 맞춤 */
-      .game-col { position: relative; }
-      .board-controls {
-        position: absolute;
-        top: 40px;             /* JS가 카드 중심으로 덮어씀(폴백값) */
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 30;
+      /* 힌트·스킵 버튼: 두 카드 사이 세로 배치 */
+      .game-row > .board-controls {
+        grid-area: ctrl;
+        position: static !important;
+        left: unset !important;
+        transform: none !important;
+        flex: unset;
+        flex-direction: column;
+        gap: 6px;
+        justify-content: center;
+        align-items: stretch;
+        align-self: center;
         margin-top: 0;
       }
+      .board-controls button {
+        padding: 8px 10px;
+        font-size: 0.78rem;
+        border-radius: 8px;
+        white-space: nowrap;
+      }
+
+      /* 게임 규칙 패널: 헤더 바로 아래 고정 */
+      .rules-panel {
+        position: relative;
+        left: auto; top: auto;
+        width: 100%;
+        max-width: none;
+        margin: 0 0 6px 0;
+        pointer-events: auto;
+        z-index: 60;
+        border-radius: 0;
+      }
+      .rules-toggle {
+        padding: 8px 14px;
+        font-size: 0.82rem;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+      }
+      .rules-arrow { font-size: 0.7rem; }
+      .rules-body {
+        position: absolute;
+        top: 100%; left: 0;
+        transform: none;
+        width: 100%;
+        z-index: 60;
+        box-shadow: 0 10px 28px rgba(0,0,0,0.2);
+        border-radius: 0 0 10px 10px;
+      }
+
+      /* ── 플레이어 카드: player-wrap을 시각적 박스로 (이름+아바타+점수 통합) ── */
+      .game-col { position: relative; padding: 0 6px; }
+
+      /* player-wrap = 통합 카드 박스 */
+      .player-wrap {
+        flex-direction: column;
+        gap: 4px;
+        position: relative;
+        top: 0; left: 0;
+        align-items: center;
+        padding: 10px 12px 10px;
+        border-radius: 14px;
+        border: 2px solid transparent;
+        background: transparent;
+        transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+      }
+
+      /* active 상태: player-wrap에 글로우+배경 적용 (:has() — iOS 15.4+/Chrome 105+ 지원) */
+      .player-wrap:has([data-player="first"].active) {
+        background: linear-gradient(
+          105deg, #f7eed8 30%, #ffe8a0 48%, #fdf3d0 52%, #f7eed8 70%
+        );
+        background-size: 300% 100%;
+        animation: card-wave 2.4s linear infinite;
+        border-color: #d9a441;
+        box-shadow: 0 0 18px 3px rgba(217,164,65,0.4);
+      }
+      .player-wrap:has([data-player="second"].active) {
+        background: #d7eefb;
+        border-color: #2f7fc4;
+        box-shadow: 0 0 18px 3px rgba(47,127,196,0.4);
+      }
+
+      /* player-card: 시각적 박스 제거 — 전폭으로 펼쳐 아바타 기준점 제공 */
+      .player-card {
+        background: transparent !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        gap: 0 !important;
+        min-width: 0 !important;
+        animation: none !important;
+        width: 100%;          /* player-wrap 내에서 전폭 차지 */
+        align-items: center;  /* 아바타 중앙 정렬 */
+      }
+      .player-card::before { display: none !important; }
+
+      /* 아바타: 카드 폭을 기준으로 크기 결정 — 박스 이탈 불가 */
+      .player-avatar,
+      .player-card[data-player="second"] .player-avatar {
+        width: 100%;          /* player-card(=player-wrap 내부 폭) 꽉 채움 */
+        height: auto;
+        aspect-ratio: 1 / 1;  /* 정사각형 유지 */
+        max-width: 135px;     /* 상한: 90px의 ~150% */
+        transform: none;
+      }
+
+      .player-name  { font-size: 0.88rem; top: 0; }
+      .player-score { font-size: 1.7rem; }
+      .turn-badge   { top: -9px; font-size: 0.55rem; padding: 2px 8px; }
     }
   </style>
 </head>
@@ -725,7 +797,7 @@
     </button>
     <div class="rules-body" id="rulesBody">
       <div class="rules-inner">
-        <p class="rules-lead">10×17 과수원에서 사과를 더 많이 차지하면 승리!</p>
+        <p class="rules-lead">8×11 과수원에서 사과를 더 많이 차지하면 승리!</p>
         <ul class="rules-list">
           <li>각 칸에는 <b>1~9개</b>의 사과가 있습니다.</li>
           <li>드래그로 <b>직사각형 구역</b>을 선택합니다.</li>
@@ -777,12 +849,12 @@
         <div class="player-score" id="score-second" data-player="second">0</div>
       </div>
 
-    </div>
+      <!-- 컨트롤 버튼: 데스크톱=보드 아래 행, 모바일=우측 하단 -->
+      <div class="board-controls">
+        <button id="btnHint">힌트 켜기</button>
+        <button id="btnSkip">스킵</button>
+      </div>
 
-    <!-- 보드 하단 중앙 컨트롤 -->
-    <div class="board-controls">
-      <button id="btnHint">힌트 켜기</button>
-      <button id="btnSkip">스킵</button>
     </div>
 
     <!-- 게임 종료 결과 오버레이 (배경 블러 + 텍스트 영역만 선명) -->
@@ -799,7 +871,7 @@
 </div>
 
 <script>
-const ROWS = 10, COLS = 17;
+const ROWS = 8, COLS = 11;
 const CELL_IMG = {
   number: '/resources/softcon/사과.svg',
   first:  '/resources/softcon/player_tile.png',
@@ -1415,45 +1487,36 @@ function fitGameToViewport() {
   if (coarse) {
     const boardRot = document.querySelector('.board-rot');
     if (!boardRot) return;
-    // 실제 보이는 뷰포트 (visualViewport가 있으면 더 정확)
+    // 실제 보이는 뷰포트
     const vw = (window.visualViewport && window.visualViewport.width)  || window.innerWidth;
     const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-    // 모바일은 항상 세로(회전) 레이아웃. 가로=10칸, 세로=17칸.
-    // 비-보드 영역(헤더·카드·규칙)만 실측해서 빼므로 기기 독립적. 버튼은 상단이라 제외.
-    const headerH = elH('header');
-    const cardH   = elH('.player-wrap');
-    const rulesH  = elH('.rules-toggle');
-    const reserve = headerH + cardH + rulesH + 24;   // ← 타일 크기 조절 노브(여백 여유)
 
-    // --cell은 board-rot(부모)에 설정 → board-wrap·board·cell 상속.
-    // 설정 후 회전된 board-wrap의 실제 시각 크기를 측정해 컨테이너 크기를 정확히 맞춤
-    // → 회전 footprint가 정확해져 보정 px이 전혀 필요 없음(기기 독립적).
+    // 카드+버튼 행이 위에 있음 → 세로 reserve에 카드 높이 포함, 가로는 화면 전체 사용
+    const playerWrap = document.querySelector('.player-wrap');
+    const cardH      = playerWrap ? playerWrap.offsetHeight : 140;
+
+    const headerH = elH('header');
+    const rulesH  = elH('.rules-toggle');
+    const gameRowGap = 6;
+    const reserve = headerH + rulesH + cardH + gameRowGap + 20;
+
+    // 회전 후 시각: 가로=ROWS칸, 세로=COLS칸
     const apply = (c) => {
       boardRot.style.setProperty('--cell', c + 'px');
-      const r = boardWrap.getBoundingClientRect();   // 동기 reflow → 회전 후 시각 w×h
+      const r = boardWrap.getBoundingClientRect();
       boardRot.style.width  = Math.ceil(r.width)  + 'px';
       boardRot.style.height = Math.ceil(r.height) + 'px';
     };
 
-    let cell = Math.min((vw - 16) / 10, (vh - reserve) / 17);
+    let cell = Math.min((vw - 16) / ROWS, (vh - reserve) / COLS);
     cell = Math.max(8, Math.floor(cell));
     apply(cell);
 
-    // 2차 보정: 컨테이너(=보드 footprint) 하단이 화면을 넘치면 셀을 줄여 화면 안으로.
+    // 2차 보정: 하단이 넘치면 줄임
     const overflow = boardRot.getBoundingClientRect().bottom - window.innerHeight;
     if (overflow > 0) {
-      cell = Math.max(8, Math.floor(cell - overflow / 17 - 1));
+      cell = Math.max(8, Math.floor(cell - overflow / COLS - 1));
       apply(cell);
-    }
-
-    // 힌트·스킵 버튼을 플레이어 카드의 세로 중심에 맞춤(실측 → 기기 독립적)
-    const controls = document.querySelector('.board-controls');
-    const card = document.querySelector('.player-card');
-    if (controls && card) {
-      const cardRect = card.getBoundingClientRect();
-      const colRect  = col.getBoundingClientRect();
-      const centerY  = cardRect.top + cardRect.height / 2 - colRect.top;
-      controls.style.top = centerY + 'px';   // transform: translate(-50%,-50%)로 중심 정렬
     }
     return;
   }
@@ -1462,8 +1525,6 @@ function fitGameToViewport() {
   boardWrap.style.removeProperty('--cell');
   const boardRotEl = document.querySelector('.board-rot');
   if (boardRotEl) { boardRotEl.style.removeProperty('--cell'); boardRotEl.style.removeProperty('width'); boardRotEl.style.removeProperty('height'); }
-  const controlsEl = document.querySelector('.board-controls');
-  if (controlsEl) controlsEl.style.removeProperty('top');
   const boardW = boardWrap.offsetWidth;
   const naturalW = Math.max(col.scrollWidth, boardW, col.offsetWidth);
   const naturalH = Math.max(col.scrollHeight, col.offsetHeight);
