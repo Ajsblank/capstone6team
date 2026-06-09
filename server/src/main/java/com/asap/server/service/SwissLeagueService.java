@@ -223,13 +223,7 @@ public class SwissLeagueService {
     // 라운드 Redis 초기화 - total을 마지막에 세팅 (경합 방지)
     redisTemplate.opsForValue().set(swissRound + round.getId() + totalKey, String.valueOf(matchsPerRound));
     redisTemplate.opsForValue().set(swissRound + round.getId() + doneKey, "0");
-
-    Map<Long, String> codeCache = new HashMap<>();
-    for (CodeBattleParticipant p : participants) {
-      codeCache.put(p.getSubmission().getId(),
-          s3Service.readFileAsString(p.getSubmission().getCodeUrl()));
-    }
-
+    Map<Long, String> codeCache = fetchCodesFromS3(participants);
     int matchCount = 0;
     for (int j = 0; j + 1 < participants.size(); j += 2) {
       CodeBattleParticipant p1 = participants.get(j);
@@ -677,5 +671,14 @@ public class SwissLeagueService {
       map.put(p.getUser().getId(), nameTag);
     }
     return map;
+  }
+
+  public Map<Long, String> fetchCodesFromS3(List<CodeBattleParticipant> participants) {
+    Map<Long, String> codeCache = new HashMap<>();
+    for (CodeBattleParticipant p : participants) {
+      codeCache.put(p.getSubmission().getId(),
+          s3Service.readFileAsString(p.getSubmission().getCodeUrl()));
+    }
+    return codeCache;
   }
 }
