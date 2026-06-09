@@ -42,18 +42,6 @@
   margin-right: 4px;
 }
 
-/* ── SSE 상태 배지 ── */
-.ms-sse-badge {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 2px 9px;
-  border-radius: 10px;
-  white-space: nowrap;
-}
-.ms-sse-badge--connected    { color: #a6e3a1; background: rgba(166,227,161,0.12); }
-.ms-sse-badge--connecting   { color: #f9e2af; background: rgba(249,226,175,0.12); }
-.ms-sse-badge--disconnected { color: #f38ba8; background: rgba(243,139,168,0.12); }
-
 /* ── 정렬 버튼 그룹 ── */
 .ms-sort-group {
   display: flex;

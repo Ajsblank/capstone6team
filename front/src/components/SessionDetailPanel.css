@@ -35,17 +35,6 @@
   flex: 1;
 }
 
-.sdp-sse-dot {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 2px 9px;
-  border-radius: 10px;
-  white-space: nowrap;
-}
-.sdp-sse-dot--connected    { color: #a6e3a1; background: rgba(166,227,161,0.12); }
-.sdp-sse-dot--connecting   { color: #f9e2af; background: rgba(249,226,175,0.12); }
-.sdp-sse-dot--disconnected { color: #f38ba8; background: rgba(243,139,168,0.12); }
-
 /* ── 라운드 탭 ── */
 .sdp-round-tabs {
   display: flex;

@@ -113,26 +113,18 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack,
             </span>
           )}
         </span>
-        <span className={`sdp-sse-dot sdp-sse-dot--${sseStatus}`}>
-          {sseStatus === "connected"    ? "● SSE 연결됨"  :
-           sseStatus === "connecting"   ? "◌ SSE 연결 중" : "○ SSE 끊김"}
-        </span>
       </div>
 
-      {/* 연결 대기 안내 */}
+      {/* 로딩 / 오류 */}
       {!payload && (
         <div className="sdp-body">
-          {sseStatus === "connecting" && (
+          {sseStatus !== "disconnected" ? (
             <div className="sdp-placeholder">
               <span className="sdp-spinner" />
-              서버에 연결 중입니다...
+              불러오는 중...
             </div>
-          )}
-          {sseStatus === "connected" && (
-            <div className="sdp-placeholder">데이터 수신 대기 중입니다.</div>
-          )}
-          {sseStatus === "disconnected" && (
-            <div className="sdp-placeholder sdp-placeholder--error">SSE 연결이 끊겼습니다.</div>
+          ) : (
+            <div className="sdp-placeholder sdp-placeholder--error">데이터를 불러오지 못했습니다.</div>
           )}
         </div>
       )}
