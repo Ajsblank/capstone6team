@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { LocalSubmission } from "../pages/BattleSubmitPage";
 import { BattleMatchResult, SseStatus, getSseStatus, setStatusCallback, debugSse } from "../api/sseApi";
-import { getMyBattleSubmissions, ContestSubmissionResponse, getSubmissionCode, SubmissionCode, selectSubmissionCode } from "../api/codeBattleApi";
+import { getMyBattleSubmissions, ContestSubmissionResponse, getSubmissionCode, SubmissionCode, selectSubmissionCode, getMySelectedSubmission } from "../api/codeBattleApi";
 import Editor from "@monaco-editor/react";
 import "./MySubmissionsTab.css";
 
@@ -394,10 +394,12 @@ const MySubmissionsTab: React.FC<Props> = ({
     setSelectError(null);
     try {
       await selectSubmissionCode(contestId, pendingId);
+      console.log("[codeSelect] POST 성공 — contestId:", contestId, "submissionId:", pendingId);
       setChosenId(pendingId);
       setPendingId(null);
       setSelectMode(false);
     } catch (e: any) {
+      console.error("[codeSelect] POST 오류:", e?.response?.status, e?.response?.data ?? e?.message);
       const msg = e?.response?.data?.error ?? e?.response?.data?.message ?? "코드 선택에 실패했습니다.";
       setSelectError(typeof msg === "string" ? msg : "코드 선택에 실패했습니다.");
     } finally {
@@ -492,6 +494,19 @@ const MySubmissionsTab: React.FC<Props> = ({
   useEffect(() => {
     fetchFromServer();
   }, [fetchFromServer]);
+
+  // 마운트 시 기존 선택 코드 조회 (페이지 새로고침 후에도 출전 코드 표시 유지)
+  useEffect(() => {
+    console.log("[getMySelect] 요청 — contestId:", contestId);
+    getMySelectedSubmission(contestId)
+      .then(res => {
+        console.log("[getMySelect] 응답:", res);
+        if (res != null) setChosenId(res);
+      })
+      .catch(e => {
+        console.error("[getMySelect] 오류:", e?.response?.status, e?.response?.data ?? e?.message);
+      });
+  }, [contestId]);
 
   // 정렬 적용 (내부 정렬 — localSubmissions 자체는 항상 최신순 유지)
   const sorted = [...localSubmissions].sort((a, b) =>
