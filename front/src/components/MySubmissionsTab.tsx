@@ -394,12 +394,10 @@ const MySubmissionsTab: React.FC<Props> = ({
     setSelectError(null);
     try {
       await selectSubmissionCode(contestId, pendingId);
-      console.log("[codeSelect] POST 성공 — contestId:", contestId, "submissionId:", pendingId);
       setChosenId(pendingId);
       setPendingId(null);
       setSelectMode(false);
     } catch (e: any) {
-      console.error("[codeSelect] POST 오류:", e?.response?.status, e?.response?.data ?? e?.message);
       const msg = e?.response?.data?.error ?? e?.response?.data?.message ?? "코드 선택에 실패했습니다.";
       setSelectError(typeof msg === "string" ? msg : "코드 선택에 실패했습니다.");
     } finally {
@@ -431,12 +429,10 @@ const MySubmissionsTab: React.FC<Props> = ({
   useEffect(() => { localSubmissionsRef.current = localSubmissions; }, [localSubmissions]);
 
   const fetchFromServer = useCallback(async () => {
-    console.log("[MySubmissionsTab] fetchFromServer — contestId:", contestId, "userId:", userId, "refreshKey:", refreshKey);
     setLoading(true);
     setError(null);
     try {
       const data = await getMyBattleSubmissions(contestId, userId);
-      console.log("[MySubmissionsTab] 서버 응답:", data.length, "건", data);
       onLocalUpdate(prev => {
         // 서버 항목을 submissionId로 그룹화 → 각 그룹을 하나의 LocalSubmission으로 변환
         const grouped = new Map<number, ContestSubmissionResponse[]>();
@@ -476,15 +472,10 @@ const MySubmissionsTab: React.FC<Props> = ({
           s => s.submissionId != null && !accountedServerIds.has(s.submissionId!)
         );
 
-        console.log(
-          "[MySubmissionsTab] 병합 — local:", updatedLocal.length,
-          "/ historical:", historical.length,
-        );
         return [...updatedLocal, ...historical]
           .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
       });
     } catch (e: any) {
-      console.error("[MySubmissionsTab] 서버 조회 오류:", e);
       setError(e.response?.data?.message ?? "데이터를 불러오지 못했습니다.");
     } finally {
       setLoading(false);
@@ -497,15 +488,11 @@ const MySubmissionsTab: React.FC<Props> = ({
 
   // 마운트 시 기존 선택 코드 조회 (페이지 새로고침 후에도 출전 코드 표시 유지)
   useEffect(() => {
-    console.log("[getMySelect] 요청 — contestId:", contestId);
     getMySelectedSubmission(contestId)
       .then(res => {
-        console.log("[getMySelect] 응답:", res);
         if (res != null) setChosenId(res);
       })
-      .catch(e => {
-        console.error("[getMySelect] 오류:", e?.response?.status, e?.response?.data ?? e?.message);
-      });
+      .catch(() => {});
   }, [contestId]);
 
   // 정렬 적용 (내부 정렬 — localSubmissions 자체는 항상 최신순 유지)

@@ -12,7 +12,7 @@ import FinalResultTab from "../components/FinalResultTab";
 import LeaderboardTab from "../components/LeaderboardTab";
 import Breadcrumb from "../components/Breadcrumb";
 import { submitCode, getContestDetail, joinContest, ContestDetail } from "../api/codeBattleApi";
-import { setMatchCallback, setSummaryCallback, setReconnectCallback, BattleMatchResult, SubmissionSummary, debugSse } from "../api/sseApi";
+import { setMatchCallback, setSummaryCallback, setReconnectCallback, BattleMatchResult, SubmissionSummary } from "../api/sseApi";
 import { useApp } from "../context/AppContext";
 import BattleTopNav from "../components/BattleTopNav";
 import { Language } from "../types";
@@ -177,16 +177,12 @@ const SubmitPage: React.FC = () => {
 
   // SSE 콜백 등록
   useEffect(() => {
-    console.log("[BattleSubmitPage] SSE 콜백 등록 (mount)");
-
     setReconnectCallback(() => {
-      console.log("[BattleSubmitPage] SSE 재연결 감지 → 서버 재조회");
       setSubmissionsRefreshKey(k => k + 1);
     });
 
     // 단일 매치 결과 → 최신 제출에 실시간 누적
     setMatchCallback((raw: BattleMatchResult) => {
-      console.log("[BattleSubmitPage] match-result 콜백 호출:", raw);
       // 백엔드 포맷 { aiId, status, log } → 프론트 포맷 { matchId, winner, log } 정규화
       const r = raw as any;
       const result: BattleMatchResult = ("status" in r)
@@ -199,39 +195,23 @@ const SubmitPage: React.FC = () => {
           }
         : raw;
       setLocalSubmissions(prev => {
-        if (prev.length === 0) {
-          console.warn("[BattleSubmitPage] match-result 수신 — 로컬 제출 없음, 무시");
-          return prev;
-        }
+        if (prev.length === 0) return prev;
         const [latest, ...rest] = prev;
-        if (latest.finalized) {
-          console.warn("[BattleSubmitPage] match-result 수신 — 최신 제출 이미 확정됨, 무시");
-          return prev;
-        }
-        if (latest.matches.some(m => m.matchId === result.matchId)) {
-          console.warn("[BattleSubmitPage] 중복 match-result 무시 — matchId:", result.matchId);
-          return prev;
-        }
-        console.log("[BattleSubmitPage] matches 누적 →", latest.matches.length + 1, "건");
+        if (latest.finalized) return prev;
+        if (latest.matches.some(m => m.matchId === result.matchId)) return prev;
         return [{ ...latest, matches: [...latest.matches, result] }, ...rest];
       });
     });
 
     // 모든 매치 완료 후 종합 결과 → 최신 제출을 서버 확정값으로 교체
     setSummaryCallback((summary: SubmissionSummary) => {
-      console.log("[BattleSubmitPage] submission-summary 콜백 호출:", summary);
       setLocalSubmissions(prev => {
-        if (prev.length === 0) {
-          console.warn("[BattleSubmitPage] summary 수신 — 로컬 제출 없음, 무시");
-          return prev;
-        }
+        if (prev.length === 0) return prev;
         const [latest, ...rest] = prev;
         // summary.matches가 없으면 기존 SSE match-result로 누적된 matches 유지
         const finalMatches = Array.isArray(summary.matches) && summary.matches.length > 0
           ? summary.matches
           : latest.matches;
-        console.log("[BattleSubmitPage] 제출 확정 — submissionId:", summary.submissionId,
-          "wins:", summary.wins, "losses:", summary.losses, "matches:", finalMatches.length);
         return [{
           ...latest,
           submissionId: summary.submissionId,
@@ -246,7 +226,6 @@ const SubmitPage: React.FC = () => {
     });
 
     return () => {
-      console.log("[BattleSubmitPage] SSE 콜백 해제 (unmount)");
       setMatchCallback(() => {});
       setSummaryCallback(() => {});
       setReconnectCallback(null);
@@ -318,10 +297,7 @@ const SubmitPage: React.FC = () => {
     setSubmitStatus("submitting");
     setErrorMessage("");
 
-    // SSE 구독 userId vs 제출 userId 비교 로그
     const submitUserId = user?.id ?? "";
-    debugSse();
-    console.log("[BattleSubmitPage] 제출 userId:", submitUserId, "/ contestId(problemId):", problemId);
 
     try {
       const result = await submitCode({

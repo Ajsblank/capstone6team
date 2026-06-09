@@ -88,17 +88,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 로그인/페이지 새로고침 시 SSE 재연결, 로그아웃 시 해제
   useEffect(() => {
     if (user?.id) {
-      console.log("[AppContext] ========== SSE 연결 시작 ==========");
-      console.log("[AppContext] 사용자 로그인 감지:", {
-        userId: user.id,
-        username: user.username,
-        timestamp: new Date().toLocaleTimeString()
-      });
-      console.log("[AppContext] ensureSseConnected() 호출 → /api/subscribe/{userId} 연결 시도");
       ensureSseConnected(user.id);
     } else {
-      console.log("[AppContext] ========== SSE 연결 해제 ==========");
-      console.log("[AppContext] 로그아웃 감지 → SSE 연결 종료");
       setJoinedContestIds([]);
       setHostedContestIds([]);
       setCreatedContestIds([]);
@@ -121,30 +112,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener("auth:logout", handleForceLogout);
   }, []);
 
-  // 새로고침/초기 진입 시 현재 토큰 로그 + 만료 여부 확인
+  // 새로고침/초기 진입 시 토큰 만료 여부 확인
   useEffect(() => {
-    const access  = getAccessToken();
-    const refresh = localStorage.getItem("refreshToken");
-    console.log("[Auth] 새로고침/진입 — accessToken:", access);
-    console.log("[Auth] 새로고침/진입 — refreshToken:", refresh);
+    const access = getAccessToken();
 
     if (!access || !user) return;
 
     try {
       const payload = JSON.parse(atob(access.split('.')[1]));
       const isExpired = Date.now() >= payload.exp * 1000;
-      console.log("[Auth] accessToken 만료 여부:", isExpired, "| exp:", new Date(payload.exp * 1000).toLocaleString());
 
       if (isExpired) {
-        console.warn("[Auth] accessToken 만료 → refreshTokenApi 호출");
         refreshTokenApi().catch(async (err) => {
-          console.warn("[Auth] refreshTokenApi 실패:", err?.response?.status, err?.message);
           await logoutApi().catch(() => {});
           window.dispatchEvent(new CustomEvent("auth:logout"));
         });
       }
     } catch (e) {
-      console.warn("[Auth] accessToken 디코딩 실패:", e);
+      // 토큰 디코딩 실패 시 무시
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -154,9 +139,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const checkOnFocus = async () => {
       if (document.hidden) return;
       const token = getAccessToken();
-      console.log("[Auth] 탭 복귀 감지 — accessToken 존재 여부:", !!token, "| user:", !!user);
       if (!token && user) {
-        console.warn("[Auth] 토큰 없음 + user 있음 → 강제 로그아웃");
         clearMyProfileCache();
         setUser(null);
         window.location.hash = "login";
@@ -164,12 +147,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return;
       }
       if (token && user) {
-        console.log("[Auth] refreshTokenApi 호출 (탭 복귀)");
         try {
-          const newToken = await refreshTokenApi();
-          console.log("[Auth] refreshTokenApi 성공 — 새 accessToken:", newToken);
+          await refreshTokenApi();
         } catch (err: any) {
-          console.warn("[Auth] refreshTokenApi 실패 (탭 복귀):", err?.response?.status, err?.message);
           await logoutApi().catch(() => {});
           window.dispatchEvent(new CustomEvent("auth:logout"));
         }

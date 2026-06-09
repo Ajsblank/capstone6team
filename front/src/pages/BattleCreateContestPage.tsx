@@ -179,7 +179,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
       if (kind === "logviz")  setVisualizationHtml(file);
       if (kind === "solo")    setSoloPlayHtml(file);
     } catch (e) {
-      console.error("[Tutorial] 파일 로드 실패:", kind, e);
+      // 튜토리얼 파일 로드 실패 무시
     }
   };
 
@@ -218,7 +218,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
       const specMd  = await specRes.text();
       setDescription(await Promise.resolve(marked.parse(specMd)));
     } catch (e) {
-      console.error("[QuickFill] 파일 로드 실패:", e);
+      // 빠른 생성 파일 로드 실패 무시
     } finally {
       setQuickLoading(false);
     }
@@ -314,7 +314,6 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     setIsValidating(true);
     setValidationResult(null);
     setShowValidation(true);   // 검증 로그 팝업 열기 (로딩 → 결과/에러 로그 표시)
-    console.log("[handleValidateAndCreate] 검증 시작");
 
     try {
       // 파일 읽기
@@ -343,33 +342,26 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
       // 검증 결과 콜백 등록
       subscribeToValidationResults(
         (result) => {
-          console.log("[handleValidateAndCreate] 검증 결과 수신:", result);
           setValidationResult(result);
           setIsValidating(false);
 
           if (result.passed) {
-            // 검증 성공 → 이후 항목 활성화 (팝업은 서버 로그 표시 후 "계속하기"로 닫음)
             setValidationPassed(true);
-            console.log("[handleValidateAndCreate] 검증 완료 - 추가 항목 활성화");
           } else {
-            // 실패 — 로그에 error가 포함되면 추가 이벤트 수신을 중단(이미 에러 확정)
             const hasErrorLog = result.details?.some(d => /error/i.test(d.log || ""));
             if (hasErrorLog) {
-              console.warn("[handleValidateAndCreate] 에러 로그 감지 → 검증 중단");
               unsubscribeFromValidationResults();
             }
           }
           // (성공/실패/에러 모두) 서버 로그는 검증 결과 팝업에서 그대로 표시됨
         },
         (error) => {
-          console.error("[handleValidateAndCreate] 검증 오류:", error);
           setErrorMsg(error.message);
           setIsValidating(false);
           setShowValidation(false);
         }
       );
     } catch (err: any) {
-      console.error("[handleValidateAndCreate] 예외:", err);
       const msg = err?.message ?? "검증 요청 중 오류가 발생했습니다.";
       setErrorMsg(msg);
       // 요청 자체 실패(예: 409 이미 진행 중) → 모달이 빈 채로 뜨지 않도록 에러 로그를 결과로 표시
@@ -386,7 +378,6 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     setIsValidating(true);
     setValidationResult(null);
     setShowValidation(true);   // 모달 열기(로딩 → 성공)
-    console.log("[튜토리얼 검증] 2초 대기 후 자동 성공");
     await new Promise(resolve => setTimeout(resolve, 2000));
     setIsValidating(false);
     setValidationResult({
@@ -416,7 +407,6 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     setPayLoading(true);
     try {
       const amount = isCertified ? PAYMENT_AMOUNT.certified : PAYMENT_AMOUNT.uncertified;
-      console.log("[handlePayment] isCertified:", isCertified, "| amount:", amount);
       const orderId = "order-" + crypto.randomUUID();
       const draft = await buildDraft(orderId, amount, {
         certification: isCertified, creatorId: Number(user?.id ?? 0),

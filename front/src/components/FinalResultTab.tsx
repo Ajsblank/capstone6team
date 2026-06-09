@@ -61,10 +61,8 @@ const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLo
     getFinalResult(contestId)
       .then(data => {
         if (cancelled) return;
-        console.log("[FinalResultTab] 서버 응답:", data);
         setTotalParticipants(data.total_participants);
         const sorted = [...data["final-standings"]].sort((a, b) => a.rank - b.rank);
-        console.log("[FinalResultTab] 정렬된 순위:", sorted);
         setStandings(sorted);
       })
       .catch(() => { if (!cancelled) setError("최종 결과를 불러오지 못했습니다."); })
@@ -92,10 +90,8 @@ const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLo
     setMatchLogLoading(true);
     try {
       const log = await getFullLeagueMatchLog(contestId, matchId);
-      console.log("[FinalResultTab] 매치 로그 응답 (matchId=%d):", matchId, log);
       setMatchLog(log);
     } catch (e) {
-      console.error("[FinalResultTab] 매치 로그 로드 실패 (matchId=%d):", matchId, e);
       setMatchLogError("로그를 불러오지 못했습니다.");
     } finally {
       setMatchLogLoading(false);

@@ -83,27 +83,12 @@ const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick, contest
     setScheduleLoading(true);
     setScheduleResult(null);
     try {
-      const now = new Date();
       const isoList = dateList.filter(d => d.trim()).map(localInputToServerIso);
-
-      console.group("[BattleSessionsTab] 세션 예약 전송 진단");
-      console.log("브라우저 타임존  :", Intl.DateTimeFormat().resolvedOptions().timeZone);
-      console.log("현재 브라우저 시각:", now.toLocaleString("ko-KR"));
-      isoList.forEach((sent, i) => {
-        const local = dateList.filter(d => d.trim())[i];
-        const diff  = (new Date(sent).getTime() - now.getTime()) / 1000 / 60;
-        console.log(
-          `[${i + 1}] 입력(로컬): ${local}  →  전송(KST 그대로): ${sent}` +
-          `  (현재로부터 ${diff >= 0 ? "+" : ""}${diff.toFixed(1)}분)`
-        );
-      });
-      console.groupEnd();
       await scheduleSwissLeague(contestId, isoList);
       setScheduleResult("success");
       setScheduleOpen(false);
       setDateList([nowLocalIso()]);
     } catch (err: any) {
-      console.error("[BattleSessionsTab] scheduleSwissLeague 오류", err?.response ?? err);
       setScheduleResult("error");
     } finally {
       setScheduleLoading(false);

@@ -34,7 +34,6 @@ export async function validateContestCode(
 ): Promise<void> {
   const url = `${BASE_URL}/api/contests/validate`;
   const token = getAccessToken();
-  console.log("[validateContestCode] 요청 시작:", url, "token:", token ? "있음" : "없음");
 
   try {
     const response = await fetch(url, {
@@ -46,11 +45,8 @@ export async function validateContestCode(
       body: JSON.stringify(payload),
     });
 
-    console.log("[validateContestCode] 응답 상태:", response.status);
-
     if (!response.ok) {
       const bodyText = await response.text();
-      console.error("[validateContestCode] 오류:", bodyText);
       // 서버 에러 본문({"error":"..."} 또는 {"message":"..."} 또는 평문)을 메시지로 전달
       let msg = bodyText;
       try {
@@ -60,9 +56,7 @@ export async function validateContestCode(
       throw new Error(msg || `검증 요청 실패: ${response.status}`);
     }
 
-    console.log("[validateContestCode] 202 Accepted - SSE를 통해 결과 대기");
   } catch (error) {
-    console.error("[validateContestCode] 예외:", error);
     throw error;
   }
 }
@@ -74,17 +68,7 @@ export function subscribeToValidationResults(
   onResult: (result: ValidationResult) => void,
   onError: (error: Error) => void
 ): void {
-  console.log("[subscribeToValidationResults] 검증 결과 콜백 등록");
-
   setValidationResultCallback((result: ValidationResult) => {
-    console.log("[subscribeToValidationResults] 검증 결과 수신:", result);
-    console.log("  - 전체 통과:", result.passed);
-    result.details.forEach((detail, idx) => {
-      console.log(`  [${idx + 1}] ${detail.target}`);
-      console.log(`      통과: ${detail.passed}`);
-      if (detail.reason) console.log(`      사유: ${detail.reason}`);
-      console.log(`      로그: ${detail.log}`);
-    });
     onResult(result);
   });
 }
@@ -93,6 +77,5 @@ export function subscribeToValidationResults(
  * 검증 결과 콜백 제거
  */
 export function unsubscribeFromValidationResults(): void {
-  console.log("[unsubscribeFromValidationResults] 검증 결과 콜백 제거");
   setValidationResultCallback(null);
 }

@@ -30,9 +30,7 @@ export interface PaymentConfirmRequest {
 }
 
 export const confirmPayment = async (req: PaymentConfirmRequest): Promise<void> => {
-  console.log("[confirmPayment] 요청 전송:", req);
-  const res = await api.post("/api/payment/confirm", req, { timeout: 20_000 });
-  console.log("[confirmPayment] 응답 수신:", res.status, res.data);
+  await api.post("/api/payment/confirm", req, { timeout: 20_000 });
 };
 
 // ── 파일 직렬화 ────────────────────────────────────────────────────────────────

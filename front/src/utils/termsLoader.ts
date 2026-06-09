@@ -18,7 +18,6 @@ export async function loadTerms(type: 'contest-hosting' | 'contest-join' | 'priv
     if (!response.ok) throw new Error(`Failed to load terms: ${response.status}`);
     return await response.text();
   } catch (error) {
-    console.error('약관 로드 실패:', error);
     throw new Error('약관을 불러올 수 없습니다.');
   }
 }
