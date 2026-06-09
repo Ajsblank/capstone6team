@@ -53,6 +53,8 @@ jobs:
           ASG="${{ secrets.ASG_NAME }}"
           REDIS="${{ secrets.REDIS_HOST }}"
 
+          CODE_BATTLE_ENV='FROM ubuntu:22.04\nENV DEBIAN_FRONTEND=noninteractive\nRUN apt-get update && apt-get install -y build-essential openjdk-17-jdk python3 && rm -rf /var/lib/apt/lists/*\nCMD ["/bin/bash"]'
+
           # jq로 명령어를 JSON으로 안전하게 직렬화
           PARAMS=$(jq -n \
             --arg c1 "aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $REGISTRY" \
@@ -60,8 +62,10 @@ jobs:
             --arg c3 "docker stop grading-server || true" \
             --arg c4 "docker rm grading-server || true" \
             --arg c5 "mkdir -p /tmp/grading" \
-            --arg c6 "docker run -d --name grading-server --restart always -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/grading:/tmp/grading -e REDIS_HOST=$REDIS $IMAGE" \
-            '{"commands": [$c1,$c2,$c3,$c4,$c5,$c6]}')
+            --arg c6 "docker images -q code-battle-env | grep -q . || (printf '$CODE_BATTLE_ENV' > /tmp/Dockerfile.env && docker build -t code-battle-env -f /tmp/Dockerfile.env /tmp)" \
+            --arg c7 "docker run -d --name grading-server --restart always -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/grading:/tmp/grading -e REDIS_HOST=$REDIS $IMAGE" \
+            '{"commands": [$c1,$c2,$c3,$c4,$c5,$c6,$c7]}')
+
 
           # ASG 인스턴스 + 고정 인스턴스(asap-judge-server) 모두 배포
           aws ssm send-command \
