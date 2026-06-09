@@ -184,6 +184,18 @@ export const selectSubmissionCode = async (contestId: number, submissionId: numb
   await api.post(`/api/code/submit/codebattle/${contestId}/codeSelect`, { submissionId });
 };
 
+// ── 선택된 출전 코드 조회 — GET /api/code/submit/{contestId}/getMySelect ──
+// 백엔드: 200 + Long(숫자) | 200 + null(선택 없음) | 401(비로그인)
+export const getMySelectedSubmission = async (contestId: number): Promise<number | null> => {
+  try {
+    const { data } = await api.get<number | null>(`/api/code/submit/${contestId}/getMySelect`);
+    return data ?? null;
+  } catch (e: any) {
+    if (e?.response?.status === 404 || e?.response?.status === 433) return null;
+    throw e;
+  }
+};
+
 // ── 세션 목록 조회 — GET /api/contests/{contestId}/sessionList ──
 export interface ContestSession {
   sessionNumber: number;
