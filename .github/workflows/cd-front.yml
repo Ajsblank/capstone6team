@@ -6,7 +6,7 @@ run-name: "CD actor : ${{github.actor}}"
 on:
   workflow_dispatch:
   push:
-    branches: [ "dev/front"]
+    branches: [ "dev/front","develop"]
     paths:
       - 'front/**'
       - '.github/workflows/*'
