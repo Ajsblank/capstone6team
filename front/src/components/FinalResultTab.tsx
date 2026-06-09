@@ -7,6 +7,23 @@ interface Props {
   myUserId?: number;
   hasVizHtml?: boolean;
   onLogView?: (log: string) => void;
+  endDate?: string;
+}
+
+type ContestPhase = "ongoing" | "league-running" | "ended" | "unknown";
+
+function getContestPhase(endDate?: string): ContestPhase {
+  if (!endDate) return "unknown";
+  const end = new Date(endDate);
+  const now = new Date();
+  if (now < end) return "ongoing";
+  if (now < new Date(end.getTime() + 6 * 60 * 60 * 1000)) return "league-running";
+  return "ended";
+}
+
+function formatEndDate(endDate: string): string {
+  const d = new Date(endDate);
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
 }
 
 // ── 공동 순위 계산 (같은 승점 → 같은 등수, 다음 등수는 건너뜀) ────────────────────
@@ -30,7 +47,7 @@ function computeTiedRanks<T extends { points: number }>(entries: T[]): (T & { di
   });
 }
 
-const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLogView }) => {
+const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLogView, endDate }) => {
   const [standings, setStandings]                 = useState<FinalStanding[]>([]);
   const [totalParticipants, setTotalParticipants] = useState<number>(0);
   const [loading, setLoading]                     = useState(false);
@@ -99,8 +116,27 @@ const FinalResultTab: React.FC<Props> = ({ contestId, myUserId, hasVizHtml, onLo
   }, [contestId]);
 
   if (loading) return <div className="fr-empty">불러오는 중...</div>;
-  if (error)   return <div className="fr-empty fr-empty--error">{error}</div>;
-  if (standings.length === 0) return <div className="fr-empty">최종 결과가 없습니다.</div>;
+
+  const phase = getContestPhase(endDate);
+
+  if (error || standings.length === 0) {
+    if (phase === "ongoing") {
+      return (
+        <div className="fr-notice">
+          <p>최종 결과는 <span className="fr-notice-date">{formatEndDate(endDate!)}</span> 이후 진행되는 풀리그 경기가 끝나면 확인하실 수 있습니다.</p>
+        </div>
+      );
+    }
+    if (phase === "league-running") {
+      return (
+        <div className="fr-notice">
+          <p>현재 풀리그 경기가 진행 중입니다. 경기가 끝나면 결과를 확인해보실 수 있습니다.</p>
+        </div>
+      );
+    }
+    if (error) return <div className="fr-empty fr-empty--error">{error}</div>;
+    return <div className="fr-empty">최종 결과가 없습니다.</div>;
+  }
 
   return (
     <div className="fr-container">

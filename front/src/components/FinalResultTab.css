@@ -26,6 +26,28 @@
   letter-spacing: -0.01em;
 }
 
+.fr-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  padding: 32px;
+}
+
+.fr-notice p {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  max-width: 480px;
+  margin: 0;
+}
+
+.fr-notice-date {
+  font-weight: 700;
+  color: #111827;
+}
+
 .fr-empty {
   display: flex;
   align-items: center;
