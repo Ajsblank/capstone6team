@@ -1,0 +1,717 @@
+.ms-container {
+  padding: 24px 32px;
+  max-width: 860px;
+  margin: 0 auto;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  color: #cdd6f4;
+}
+
+/* ── 헤더 행 ── */
+.ms-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.ms-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ms-header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ms-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.ms-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #cba6f7;
+  margin: 0;
+  margin-right: 4px;
+}
+
+/* ── 정렬 버튼 그룹 ── */
+.ms-sort-group {
+  display: flex;
+  gap: 4px;
+}
+
+.ms-sort-btn {
+  background: #f5f5ff;
+  border: 1px solid #c8c8e0;
+  color: #555577;
+  font-size: 0.82rem;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.ms-sort-btn:hover:not(.ms-sort-btn--active) {
+  background: #eaeaff;
+  border-color: #a0a0cc;
+  color: #333355;
+}
+.ms-sort-btn--active {
+  background: #e0d8ff;
+  color: #5533aa;
+  border-color: #9977dd;
+  font-weight: 600;
+}
+
+/* ── 새로고침 버튼 ── */
+.ms-refresh-btn {
+  background: #f5f5ff;
+  border: 1px solid #c8c8e0;
+  color: #555577;
+  font-size: 1.1rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.ms-refresh-btn:hover:not(:disabled) {
+  background: #eaeaff;
+  border-color: #a0a0cc;
+  color: #333355;
+}
+.ms-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── 오류 / 빈 상태 ── */
+.ms-error {
+  background: #3c1f1f;
+  border: 1px solid #f38ba8;
+  color: #f38ba8;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  margin-bottom: 16px;
+}
+
+.ms-empty-state {
+  text-align: center;
+  color: #585b70;
+  font-size: 0.95rem;
+  padding: 48px 0;
+}
+
+/* ── 목록 ── */
+.ms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── 제출 아이템 ── */
+.ms-item {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #d8d8e8;
+  border-left-width: 4px;
+  border-left-color: #b0b0c8;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+  transition: box-shadow 0.15s;
+}
+.ms-item:hover {
+  box-shadow: 0 3px 10px rgba(0,0,0,0.13);
+}
+
+/* 좌측 결과 라인 색상 */
+.ms-item--win     { border-left-color: #40a870; }
+.ms-item--loss    { border-left-color: #e05475; }
+.ms-item--draw    { border-left-color: #e8883a; }
+.ms-item--pending { border-left-color: #b0b0c8; }
+.ms-item--error   { border-left-color: #e05475; }
+
+.ms-item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  user-select: none;
+  background: #ffffff;
+  transition: background 0.12s;
+}
+.ms-item-header:hover {
+  background: #f5f5ff;
+}
+
+/* 제출 번호 */
+.ms-item-seq {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #9090aa;
+  min-width: 30px;
+  flex-shrink: 0;
+}
+
+.ms-item-date {
+  font-size: 0.83rem;
+  color: #555577;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ms-item-lang {
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #eeeeff;
+  color: #5577dd;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ms-item-record {
+  flex: 1;
+  font-size: 0.9rem;
+  color: #222240;
+}
+
+.ms-win   { color: #28925a; font-weight: 700; }
+.ms-loss  { color: #cc3355; font-weight: 700; }
+.ms-draw  { color: #c06010; font-weight: 700; }
+.ms-total { color: #8888aa; }
+
+/* 결과 요약 레이블 */
+.ms-result-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.ms-result-label--win     { background: #d6f5e3; color: #1a7a40; border: 1px solid #a8dfc0; }
+.ms-result-label--loss    { background: #fde8ee; color: #b82244; border: 1px solid #f0b8c8; }
+.ms-result-label--draw    { background: #fef0e0; color: #a05010; border: 1px solid #f0c888; }
+.ms-result-label--pending { background: #f0f0f8; color: #8888aa; border: 1px solid #d0d0e0; }
+.ms-result-label--error   { background: #fde8ee; color: #b82244; border: 1px solid #f0b8c8; }
+
+.ms-expand-btn {
+  background: none;
+  border: none;
+  color: #9090aa;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.ms-expand-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ── 아이템 바디 ── */
+.ms-item-body {
+  border-top: 1px solid #e8e8f4;
+  padding: 12px 16px;
+  background: #fafafe;
+}
+
+/* ── 매치 상세 테이블 ── */
+.ms-match-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.ms-match-table th {
+  padding: 6px 12px;
+  text-align: left;
+  color: #8888aa;
+  font-weight: 600;
+  border-bottom: 1px solid #e0e0f0;
+}
+.ms-match-row td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f8;
+  color: #333355;
+}
+.ms-match-num {
+  color: #9090aa;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ms-match-ai {
+  color: #6b7280;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+.ms-winner--me   { color: #1a8a45; font-weight: 700; }
+.ms-winner--ai   { color: #c02040; font-weight: 700; }
+.ms-winner--draw { color: #b06010; font-weight: 700; }
+
+.ms-log-btn {
+  background: none;
+  border: 1px solid #c0c0dc;
+  border-radius: 4px;
+  color: #5577cc;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.ms-log-btn:hover {
+  background: #eeeeff;
+  border-color: #8899dd;
+}
+.ms-log-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ms-log-btn--active {
+  background: #eeeeff;
+  border-color: #8899dd;
+  color: #3a55aa;
+}
+
+/* ── 로그 액션 버튼 그룹 ── */
+.ms-log-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ms-viz-btn {
+  background: #fef3c7;
+  border: 1px solid #fde047;
+  border-radius: 4px;
+  color: #b45309;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.ms-viz-btn:hover {
+  background: #fef08a;
+  border-color: #facc15;
+}
+
+/* ── 인라인 로그 프리뷰 ── */
+.ms-log-row td {
+  padding: 0 12px 10px;
+  border-bottom: 1px solid #f0f0f8;
+}
+.ms-log-preview {
+  background: #070d1a;
+  border: 1px solid #1e2a40;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+}
+.ms-log-empty {
+  font-size: 0.8rem;
+  color: #9090aa;
+  font-style: italic;
+  padding: 6px 0;
+}
+
+/* ── 코드 확인 버튼 ── */
+.ms-code-btn {
+  background: none;
+  border: 1px solid #c7c0dc;
+  border-radius: 4px;
+  color: #7c5fcc;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.ms-code-btn:hover {
+  background: #f3eeff;
+  border-color: #a98ddd;
+}
+.ms-code-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ms-code-btn--active {
+  background: #f3eeff;
+  border-color: #a98ddd;
+  color: #5a3aaa;
+}
+
+/* ── 제출 코드 패널 (검은 배경) ── */
+.ms-code-panel {
+  margin: 4px 12px 12px;
+  background: #0d1117;
+  border: 1px solid #1e2a40;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ms-code-lang {
+  padding: 8px 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7ee787;
+  background: #161b22;
+  border-bottom: 1px solid #1e2a40;
+}
+/* Monaco 코드 뷰어 컨테이너 (IDE 하이라이트) */
+.ms-code-editor {
+  width: 100%;
+  max-height: 510px;
+}
+.ms-code-status {
+  padding: 14px 16px;
+  font-size: 0.82rem;
+  color: #9aa4b2;
+}
+.ms-code-status--error {
+  color: #ff7b72;
+}
+
+/* ── 채점 중 ── */
+.ms-pending {
+  color: #9090aa;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* ── 채점 오류 인라인 ── */
+.ms-error-inline {
+  color: #e05475;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ── SSE 결과 도착 오버레이 애니메이션 ── */
+.ms-item-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  --fc-s: rgba(253, 224, 71, 0.42);
+  --fc-m: rgba(253, 224, 71, 0.18);
+  animation: ms-item-flash-anim 0.75s ease-out forwards;
+}
+.ms-item-flash--win  { --fc-s: rgba(34,  197,  94, 0.38); --fc-m: rgba(34,  197,  94, 0.14); }
+.ms-item-flash--loss { --fc-s: rgba(239,  68,  68, 0.38); --fc-m: rgba(239,  68,  68, 0.14); }
+.ms-item-flash--draw { --fc-s: rgba(249, 115,  22, 0.38); --fc-m: rgba(249, 115,  22, 0.14); }
+@keyframes ms-item-flash-anim {
+  0%   { background: var(--fc-s); }
+  55%  { background: var(--fc-m); }
+  100% { background: transparent; }
+}
+
+/* ── 로딩 스피너 ── */
+@keyframes ms-spin {
+  to { transform: rotate(360deg); }
+}
+.ms-spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(100,80,200,0.15);
+  border-top-color: #7755cc;
+  border-radius: 50%;
+  animation: ms-spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+
+/* ── 코드 선택: 리스트 + 우측 레일 ── */
+.ms-list-area {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.ms-list-area .ms-list,
+.ms-list-area .ms-empty-state {
+  flex: 1;
+  min-width: 0;
+}
+
+.ms-select-rail {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: 12px;
+}
+
+/* 세로 텍스트 "코드 선택" 버튼 */
+.ms-select-btn {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  letter-spacing: 0.18em;
+  padding: 16px 8px;
+  border: 1.5px solid #7755cc;
+  border-radius: 10px;
+  background: #f3eeff;
+  color: #5a3aaa;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.ms-select-btn:hover { background: #e9e0ff; box-shadow: 0 0 0 3px rgba(119,85,204,0.15); }
+.ms-select-btn--active {
+  background: #5a3aaa;
+  color: #fff;
+  border-color: #5a3aaa;
+}
+
+/* ? 원형 도움말 버튼 */
+.ms-help-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid #c7c0dc;
+  background: #fff;
+  color: #7c5fcc;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.ms-help-btn:hover { background: #f3eeff; border-color: #a98ddd; }
+
+/* 선택 모드 안내 배너 */
+.ms-select-banner {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: #f3eeff;
+  border: 1px solid #d7c9f5;
+  border-radius: 8px;
+  color: #5a3aaa;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* 선택 모드 카드 상태 */
+.ms-item--selectable { cursor: pointer; }
+.ms-item--selectable:hover {
+  box-shadow: 0 0 0 2px rgba(119,85,204,0.45);
+}
+.ms-item--unselectable { opacity: 0.45; }
+.ms-item--chosen {
+  box-shadow: 0 0 0 2px #16a34a;
+}
+
+.ms-chosen-badge {
+  background: #16a34a;
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ms-select-cue {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #5a3aaa;
+  white-space: nowrap;
+}
+.ms-select-cue--no { color: #9ca3af; }
+
+/* ── 코드 선택 확인 모달 ── */
+.ms-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 16px;
+}
+.ms-modal {
+  width: min(420px, 92vw);
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  color: #1f2937;
+}
+.ms-modal-title { margin: 0 0 12px; font-size: 1.1rem; font-weight: 800; color: #111827; }
+.ms-modal-text  { margin: 0 0 6px; font-size: 0.95rem; }
+.ms-modal-sub   { margin: 0 0 12px; font-size: 0.82rem; color: #6b7280; }
+.ms-modal-error { margin: 0 0 12px; font-size: 0.82rem; color: #dc2626; }
+.ms-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.ms-modal-btn {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.ms-modal-btn:disabled { opacity: 0.6; cursor: default; }
+.ms-modal-btn--ghost   { background: #f3f4f6; border-color: #d1d5db; color: #374151; }
+.ms-modal-btn--ghost:hover:not(:disabled) { background: #e5e7eb; }
+.ms-modal-btn--primary { background: #5a3aaa; color: #fff; }
+.ms-modal-btn--primary:hover:not(:disabled) { background: #4a2f8f; }
+
+/* ── 모바일 전용 코드 선택 영역 (데스크탑에서 숨김) ── */
+.ms-mobile-select-area {
+  display: none;
+}
+
+.ms-mobile-select-btn {
+  flex: 1;
+  padding: 10px 20px;
+  border: 1.5px solid #7755cc;
+  border-radius: 10px;
+  background: #f3eeff;
+  color: #5a3aaa;
+  font-weight: 700;
+  font-size: 0.92rem;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.ms-mobile-select-btn:hover {
+  background: #e9e0ff;
+  box-shadow: 0 0 0 3px rgba(119, 85, 204, 0.15);
+}
+.ms-mobile-select-btn--active {
+  background: #5a3aaa;
+  color: #fff;
+  border-color: #5a3aaa;
+}
+
+/* ── 코드 선택 도움말 팝업 ── */
+.ms-help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 16px;
+}
+.ms-help-pop {
+  width: min(440px, 92vw);
+  background: #fff;
+  border-radius: 12px;
+  padding: 22px 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  color: #374151;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.ms-help-pop-title { font-size: 1.05rem; font-weight: 800; color: #111827; margin-bottom: 10px; }
+.ms-help-pop p { margin: 0 0 8px; }
+.ms-help-pop strong { color: #5a3aaa; }
+.ms-help-pop-tip { color: #6b7280; font-size: 0.82rem; }
+
+/* ══ 내 제출 탭 모바일 반응형 ══ */
+@media (max-width: 768px) {
+  .ms-container {
+    padding: 16px;
+  }
+
+  /* 코드 선택 레일: 모바일에서 숨겨 카드가 전체 폭을 사용하도록 */
+  .ms-select-rail {
+    display: none;
+  }
+
+  /* 펼침 바디: 좌우 패딩 축소 */
+  .ms-item-body {
+    padding: 8px;
+  }
+
+  /* 매치 테이블 셀 패딩·폰트 축소 */
+  .ms-match-table th,
+  .ms-match-row td {
+    padding: 5px 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  /* 카드 헤더: flex-wrap 2행 리플로우
+     행1: #번호 | [출전코드] | 결과라벨 ··· 펼치기
+     행2: 승W 무D 패L / 전체전
+     행3: 날짜 (소형)                              */
+  .ms-item-header {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    padding: 10px 12px;
+  }
+
+  /* 승패 기록: 행2 — 전체폭 */
+  .ms-item-record {
+    order: 9;
+    flex: none;
+    width: 100%;
+    font-size: 0.88rem;
+  }
+
+  /* 날짜: 행3 — 전체폭, 소형 */
+  .ms-item-date {
+    order: 10;
+    width: 100%;
+    font-size: 0.72rem;
+    color: #9090aa;
+  }
+
+  /* 펼치기 버튼: 행1 우측 끝으로 */
+  .ms-expand-btn {
+    margin-left: auto;
+  }
+  .ms-select-cue {
+    margin-left: auto;
+  }
+
+  /* 헤더: 좌(제목+코드선택) / 우(정렬+새로고침) 2열 */
+  .ms-header-row {
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .ms-header-left {
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+  .ms-header-right {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    margin-left: 0;
+    flex-shrink: 0;
+  }
+
+  /* 모바일 코드 선택 영역 표시 */
+  .ms-mobile-select-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}

@@ -1,0 +1,114 @@
+/* LoginPage — White / Green Theme */
+
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #f9fafb;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-page::before {
+  content: '';
+  position: fixed;
+  top: 0; right: 0;
+  width: 44vmin; height: 44vmin;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  background: radial-gradient(ellipse at 100% 0%,
+    rgba(22, 163, 74, 0.15) 0%,
+    rgba(22, 163, 74, 0.05) 45%,
+    transparent 68%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.login-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 44px 40px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 1;
+}
+
+.login-logo {
+  cursor: pointer;
+  text-align: center;
+  user-select: none;
+  display: flex;
+  justify-content: center;
+}
+.login-logo-img {
+  height: 120px;
+  width: auto;
+  display: block;
+}
+
+.login-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  text-align: center;
+}
+
+.login-form { display: flex; flex-direction: column; gap: 14px; }
+.login-field { display: flex; flex-direction: column; gap: 6px; }
+
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #4b5563;
+  cursor: pointer;
+  user-select: none;
+}
+.login-remember input[type="checkbox"] {
+  accent-color: #16a34a;
+  width: 15px; height: 15px; cursor: pointer;
+}
+
+.login-error {
+  font-size: 0.82rem;
+  color: #dc2626;
+  margin: 0;
+  padding: 9px 12px;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+}
+
+
+
+.login-footer {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.login-footer-text { font-size: 0.85rem; color: #7e8694; }
+
+.login-link-btn {
+  background: none; border: none;
+  color: #16a34a; font-size: 0.85rem;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  cursor: pointer; padding: 0;
+  text-decoration: underline; font-weight: 600;
+}
+.login-link-btn:hover { color: #15803d; }
+
+.login-back-btn {
+  background: none; border: none;
+  color: #7e8694; font-size: 0.82rem;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  cursor: pointer; padding: 0; text-align: center;
+  transition: color 0.15s;
+}
+.login-back-btn:hover { color: #4b5563; }

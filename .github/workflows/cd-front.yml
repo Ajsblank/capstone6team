@@ -4,8 +4,14 @@ name: cd-front
 run-name: "CD actor : ${{github.actor}}"
 # Controls when the workflow will run
 on:
+<<<<<<< HEAD
   push:
     branches: [ "dev/front"]
+=======
+  workflow_dispatch:
+  push:
+    branches: [ "dev/front","develop"]
+>>>>>>> origin/dev/front
     paths:
       - 'front/**'
       - '.github/workflows/*'
@@ -52,7 +58,12 @@ jobs:
             npm test -- --watchAll=false --passWithNoTests
       - name: npm build
         env:
+<<<<<<< HEAD
           REACT_APP_API_BASE_URL: ${{ secrets.EC2_URL }}
+=======
+          CI: false
+          REACT_APP_API_BASE_URL: ${{ vars.REACT_APP_API_BASE_URL }}
+>>>>>>> origin/dev/front
         run: npm run build
 
       - uses: aws-actions/configure-aws-credentials@v4

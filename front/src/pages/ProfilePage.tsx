@@ -1,0 +1,241 @@
+import React, { useState, useEffect } from "react";
+import { useApp } from "../context/AppContext";
+import { getMyProfile, updateMyProfile, UserProfile, UserProfilePatch } from "../api/codeBattleApi";
+import { clearMyProfileCache } from "../components/ProfileBadge";
+import "./ProfilePage.css";
+
+const ProfilePage: React.FC = () => {
+  const { user, navigate } = useApp();
+
+  const [profile,     setProfile]     = useState<UserProfile | null>(null);
+  const [loading,     setLoading]     = useState(true);
+  const [fetchFailed, setFetchFailed] = useState(false);
+  const [editing,     setEditing]     = useState(false);
+  const [saving,      setSaving]      = useState(false);
+  const [saveErr,     setSaveErr]     = useState<string | null>(null);
+
+  const [draft, setDraft] = useState<UserProfilePatch>({});
+
+  useEffect(() => {
+    setLoading(true);
+    setFetchFailed(false);
+    getMyProfile()
+      .then(data => setProfile(data))
+      .catch(() => setFetchFailed(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const startEdit = () => {
+    setDraft({
+      nickname:    profile?.nickname    ?? user?.username ?? "",
+      bio:         profile?.bio         ?? "",
+      affiliation: profile?.affiliation ?? "",
+      // imageBase64는 새 이미지를 업로드할 때만 설정 (기존 이미지는 profile.imageUrl로 표시)
+    });
+    setSaveErr(null);
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setSaveErr(null);
+  };
+
+  const saveEdit = async () => {
+    if (!draft.nickname?.trim()) {
+      setSaveErr("닉네임은 필수입니다.");
+      return;
+    }
+    if (draft.nickname.trim().length > 8) {
+      setSaveErr("닉네임은 8자 이내로 입력해주세요.");
+      return;
+    }
+    setSaving(true);
+    setSaveErr(null);
+    try {
+      const payload: UserProfilePatch = {
+        nickname:    draft.nickname?.trim()    ?? "",
+        bio:         draft.bio?.trim()         ?? "",
+        affiliation: draft.affiliation?.trim() ?? "",
+        // 새로 업로드(또는 제거)한 경우에만 imageBase64 전송 — 미변경 시 키 생략
+        ...(draft.imageBase64 !== undefined ? { imageBase64: draft.imageBase64 } : {}),
+      };
+      const updated = await updateMyProfile(payload);
+      setProfile(updated);
+      clearMyProfileCache(); // 상단 바 프로필 배지가 최신 정보를 다시 불러오도록
+      setFetchFailed(false);
+      setEditing(false);
+    } catch (err: any) {
+      const serverMsg = err?.response?.data?.message ?? err?.response?.data;
+      setSaveErr(
+        typeof serverMsg === "string"
+          ? serverMsg
+          : serverMsg
+          ? JSON.stringify(serverMsg)
+          : "저장에 실패했습니다. 다시 시도해주세요."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const set = (field: keyof UserProfilePatch) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setDraft(prev => ({ ...prev, [field]: e.target.value }));
+
+  // 프로필 이미지 업로드 → base64 data URL로 변환해 draft.imageBase64에 저장(서버가 S3 업로드)
+  const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // 같은 파일 재선택 가능하게
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setSaveErr("이미지 파일만 업로드할 수 있습니다.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setSaveErr("이미지 크기는 2MB 이하만 가능합니다.");
+      return;
+    }
+    setSaveErr(null);
+    const reader = new FileReader();
+    reader.onload = () => setDraft(prev => ({ ...prev, imageBase64: String(reader.result) }));
+    reader.onerror = () => setSaveErr("이미지를 읽지 못했습니다.");
+    reader.readAsDataURL(file); // → "data:image/...;base64,...."
+  };
+
+  if (!user) {
+    return (
+      <div className="pp-center">
+        <p className="pp-error">로그인이 필요합니다.</p>
+        <button className="pp-btn pp-btn--ghost" onClick={() => navigate("login")}>로그인</button>
+      </div>
+    );
+  }
+
+  const displayNickname = profile?.nickname || user.username;
+  const displayTag = profile && profile.tag > 0
+    ? (profile.tagCode || String(profile.tag).padStart(4, "0"))
+    : null;
+  // 편집 중: 새로 올린 base64(있으면 우선, 제거 시 빈 문자열), 미변경 시 기존 S3 URL
+  const displayImageUrl = editing
+    ? (draft.imageBase64 !== undefined ? draft.imageBase64 : (profile?.imageUrl ?? ""))
+    : (profile?.imageUrl ?? "");
+
+  return (
+    <div className="pp-root">
+      <div className="pp-card">
+        {/* 상단 헤더 */}
+        <div className="pp-card-header">
+          <button className="pp-back-btn" onClick={() => window.history.back()}>이전으로</button>
+          <h1 className="pp-card-title">프로필</h1>
+          {!editing && !loading && (
+            <button className="pp-btn pp-btn--primary" onClick={startEdit}>
+              {fetchFailed ? "프로필 변경" : "수정"}
+            </button>
+          )}
+          {editing && (
+            <div className="pp-edit-actions">
+              <button className="pp-btn pp-btn--ghost" onClick={cancelEdit} disabled={saving}>취소</button>
+              <button className="pp-btn pp-btn--primary" onClick={saveEdit} disabled={saving}>
+                {saving ? "저장 중..." : "수정 완료"}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {loading && <div className="pp-status">불러오는 중...</div>}
+
+        {!loading && (
+          <div className="pp-body">
+            {fetchFailed && !editing && (
+              <p className="pp-fetch-notice">프로필 정보를 불러오지 못했습니다. 프로필을 새로 추가할 수 있습니다.</p>
+            )}
+
+            {/* 아바타 섹션 */}
+            <div className="pp-avatar-section">
+              {editing && <span className="pp-label pp-label--img">프로필 이미지</span>}
+              <div className={`pp-avatar-wrap${editing ? " pp-avatar-wrap--editing" : ""}`}>
+                {displayImageUrl ? (
+                  <img
+                    className="pp-avatar-img"
+                    src={displayImageUrl}
+                    alt="프로필 이미지"
+                    onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                ) : (
+                  <div className="pp-avatar-default">👤</div>
+                )}
+                {editing && (
+                  <>
+                    <label className="pp-avatar-pencil" title="이미지 변경">
+                      <img src="/resources/edit.svg" alt="편집" className="pp-avatar-btn-icon" />
+                      <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
+                    </label>
+                    {displayImageUrl && (
+                      <button
+                        type="button"
+                        className="pp-avatar-remove"
+                        title="이미지 제거"
+                        onClick={() => setDraft(prev => ({ ...prev, imageBase64: "" }))}
+                      >
+                        −
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+              {editing && <p className="pp-upload-hint">JPG/PNG 등 이미지 파일, 최대 2MB</p>}
+            </div>
+
+            {/* 닉네임 */}
+            <div className="pp-field">
+              <label className="pp-label">닉네임</label>
+              {editing ? (
+                <>
+                  <input className="pp-input" value={draft.nickname ?? ""} onChange={set("nickname")} maxLength={8} />
+                  <p className="pp-field-hint">{(draft.nickname ?? "").length} / 8자</p>
+                </>
+              ) : (
+                <span className="pp-value pp-value--name">
+                  {displayNickname}
+                  {displayTag && <span className="pp-tag">#{displayTag}</span>}
+                </span>
+              )}
+            </div>
+
+            {/* 이메일 (읽기 전용) */}
+            <div className="pp-field">
+              <label className="pp-label">이메일</label>
+              <span className="pp-value pp-value--muted">{user.email ?? "-"}</span>
+            </div>
+
+            {/* 소속 */}
+            <div className="pp-field">
+              <label className="pp-label">소속</label>
+              {editing ? (
+                <input className="pp-input" value={draft.affiliation ?? ""} onChange={set("affiliation")} placeholder="학교 / 회사 / 팀명" />
+              ) : (
+                <span className="pp-value pp-value--muted">{profile?.affiliation || "-"}</span>
+              )}
+            </div>
+
+            {/* 소개 */}
+            <div className="pp-field pp-field--full">
+              <label className="pp-label">소개</label>
+              {editing ? (
+                <textarea className="pp-textarea" value={draft.bio ?? ""} onChange={set("bio")} rows={4} placeholder="자신을 소개해보세요" />
+              ) : (
+                <span className="pp-value pp-value--bio pp-value--muted">{profile?.bio || "-"}</span>
+              )}
+            </div>
+
+            {saveErr && <p className="pp-save-error">{saveErr}</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ProfilePage;

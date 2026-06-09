@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>버섯사과 로그 분석기</title>
+  <style>
+    @font-face {
+      font-family: 'Maplestory';
+      font-weight: 700;
+      src: url('assets/fonts/Maplestory-Bold.woff2') format('woff2'),
+           url('assets/fonts/Maplestory-Bold.woff') format('woff');
+    }
+    @font-face {
+      font-family: 'Maplestory';
+      font-weight: 400;
+      src: url('assets/fonts/Maplestory-Light.woff2') format('woff2'),
+           url('assets/fonts/Maplestory-Light.woff') format('woff');
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      font-weight: 400;
+      src: url('assets/Pretendard-Regular.subset-BZqc2FCe.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      font-weight: 500;
+      src: url('assets/Pretendard-Medium.subset-D07TkZcI.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: 'Pretendard';
+      font-weight: 700;
+      src: url('assets/Pretendard-Bold.subset-NvQkMce4.woff2') format('woff2');
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+      background: #1a1a2e;
+      min-height: 100vh;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ── Header ─────────────────────────────────── */
+    header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 24px;
+      background: #16213e;
+      border-bottom: 1px solid #2a2a4a;
+    }
+    header h1 {
+      font-family: 'Maplestory', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #87ceeb;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Content wrapper ─────────────────────────── */
+    #content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      padding: 20px 16px 24px;
+      width: 100%;
+    }
+
+    /* ── Game row: [player-left] [board] [player-right] ── */
+    #game-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* ── Player cards ────────────────────────────── */
+    .player-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 20px 14px;
+      background: #16213e;
+      border-radius: 14px;
+      border: 2px solid #2a2a4a;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      position: relative;
+      min-width: 130px;
+    }
+    .player-card[data-player="first"].active {
+      border-color: #87ceeb;
+      box-shadow: 0 0 18px 2px rgba(135,206,235,0.35);
+    }
+    .player-card[data-player="second"].active {
+      border-color: #ce93d8;
+      box-shadow: 0 0 18px 2px rgba(206,147,216,0.35);
+    }
+    .player-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .player-card[data-player="first"].active::before {
+      background: linear-gradient(135deg, rgba(135,206,235,0.08), transparent);
+      opacity: 1;
+    }
+    .player-card[data-player="second"].active::before {
+      background: linear-gradient(135deg, rgba(206,147,216,0.08), transparent);
+      opacity: 1;
+    }
+    .player-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      font-family: 'Maplestory', sans-serif;
+    }
+    .pa--first  { background: rgba(135,206,235,0.2); color: #87ceeb; border: 2px solid rgba(135,206,235,0.4); }
+    .pa--second { background: rgba(206,147,216,0.2); color: #ce93d8; border: 2px solid rgba(206,147,216,0.4); }
+    .player-name {
+      font-family: 'Maplestory', sans-serif;
+      font-size: 0.9rem;
+    }
+    .player-card[data-player="first"]  .player-name { color: #87ceeb; }
+    .player-card[data-player="second"] .player-name { color: #ce93d8; }
+    .player-score {
+      font-size: 2.4rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .player-card[data-player="first"]  .player-score { color: #87ceeb; }
+    .player-card[data-player="second"] .player-score { color: #ce93d8; }
+
+    /* ── Board area ──────────────────────────────── */
+    #board-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    #board-wrap {
+      background: #fff;
+      border-radius: 12px;
+      padding: 8px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.45);
+      position: relative;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(17, 40px);
+      grid-template-rows: repeat(10, 40px);
+      gap: 1px;
+      background: #ccc;
+      border: 1px solid #ccc;
+    }
+
+    /* Board placeholder overlay (before log loaded) */
+    #board-overlay {
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.55);
+      backdrop-filter: blur(2px);
+      pointer-events: none;
+      z-index: 10;
+    }
+    #board-overlay span {
+      font-family: 'Maplestory', sans-serif;
+      font-size: 1rem;
+      color: #555;
+      font-weight: 700;
+      text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+    }
+    #board-overlay.hidden { display: none; }
+
+    .cell {
+      width: 40px;
+      height: 40px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fafafa;
+      overflow: hidden;
+    }
+    .cell-icon {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .cell-num {
+      position: relative;
+      z-index: 1;
+      font-size: 1rem;
+      font-weight: 700;
+      pointer-events: none;
+      color: #444;
+    }
+    .cell.owned-first  { background: #b3e5fc; }
+    .cell.owned-second { background: #e1bee7; }
+    .cell.hint         { background: #c8e6c9; }
+    .cell.log-hover    { outline: 2px solid #ff9800; outline-offset: -2px; z-index: 2; }
+
+    /* ── Controls strip (below board) ───────────── */
+    #controls-area {
+      width: 100%;
+      max-width: 870px;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #16213e;
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+
+    button {
+      padding: 6px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-family: 'Pretendard', inherit;
+      font-weight: 500;
+      background: #0f3460;
+      color: #ccc;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    button:hover:not(:disabled) { background: #1a5276; color: #fff; }
+    button:disabled { opacity: 0.38; cursor: not-allowed; }
+    button.active-toggle { background: #5b2d8e; color: #e0e0e0; }
+    button.btn-play-active { background: #1565c0; color: #fff; }
+
+    #step-slider {
+      flex: 1;
+      accent-color: #87ceeb;
+      cursor: pointer;
+      min-width: 0;
+    }
+    #step-label {
+      font-size: 0.8rem;
+      color: #888;
+      white-space: nowrap;
+      min-width: 60px;
+      text-align: right;
+    }
+
+    select {
+      background: #0f3460;
+      color: #ccc;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-family: 'Pretendard', inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    select:hover { background: #1a5276; }
+
+    /* ── Status bar ──────────────────────────────── */
+    #status-bar {
+      width: 100%;
+      max-width: 870px;
+      background: #111;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      color: #888;
+      min-height: 2.2rem;
+      display: flex;
+      align-items: center;
+      margin-top: 2px;
+    }
+
+    /* ── Upload zone ─────────────────────────────── */
+    #upload-zone {
+      width: 100%;
+      max-width: 870px;
+      border: 2px dashed #3a3a5a;
+      border-radius: 10px;
+      padding: 18px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-top: 10px;
+      color: #666;
+    }
+    #upload-zone:hover { border-color: #87ceeb; color: #87ceeb; }
+    #upload-zone.drag-over { border-color: #87ceeb; background: rgba(135,206,235,0.06); color: #87ceeb; }
+    #upload-zone input[type=file] { display: none; }
+    #upload-zone .upload-icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+    #upload-zone .upload-text { font-size: 0.85rem; font-family: 'Pretendard', sans-serif; }
+
+    /* ── Log panel (collapsible below) ──────────── */
+    #log-section {
+      width: 100%;
+      max-width: 870px;
+      margin-top: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 0;
+    }
+    #log-section.visible { display: flex; }
+    #log-header {
+      background: #16213e;
+      border-radius: 10px 10px 0 0;
+      padding: 8px 14px;
+      font-family: 'Maplestory', sans-serif;
+      font-size: 0.88rem;
+      color: #87ceeb;
+    }
+    #log-scroll {
+      background: #1e1e2e;
+      border-radius: 0 0 10px 10px;
+      max-height: 260px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      padding: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: #333 transparent;
+    }
+    .log-line {
+      font-family: 'Consolas', 'IBMPlexMono', monospace;
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      white-space: pre;
+      transition: opacity 0.1s;
+    }
+    .log-line:hover { opacity: 0.8; }
+    .log-line.current { outline: 1px solid #ffb74d; }
+    .log-line.type-init   { color: #ffb74d; }
+    .log-line.type-first  { color: #64b5f6; background: rgba(100,181,246,0.07); }
+    .log-line.type-second { color: #ba68c8; background: rgba(186,104,200,0.07); }
+    .log-line.type-finish { color: #81c784; }
+    .log-line.type-score  { color: #81c784; }
+    .log-line.type-win    { color: #81c784; }
+    .log-line.type-abort  { color: #ff5252; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>로그 분석</h1>
+</header>
+
+<div id="content">
+
+  <!-- Game row -->
+  <div id="game-row">
+
+    <!-- Left: Player 1 -->
+    <div class="player-card" id="card-first" data-player="first">
+      <div class="player-avatar pa--first">P1</div>
+      <div class="player-name">선공</div>
+      <div class="player-score" id="score-first">0</div>
+    </div>
+
+    <!-- Center: Board -->
+    <div id="board-col">
+      <div id="board-wrap">
+        <div id="board"></div>
+        <div id="board-overlay">
+          <span>로그를 업로드해 주세요</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Player 2 -->
+    <div class="player-card" id="card-second" data-player="second">
+      <div class="player-avatar pa--second">P2</div>
+      <div class="player-name">후공</div>
+      <div class="player-score" id="score-second">0</div>
+    </div>
+
+  </div>
+
+  <!-- Controls area -->
+  <div id="controls-area">
+
+    <!-- Row 1: playback + slider -->
+    <div class="ctrl-row">
+      <button id="btn-play" disabled>▶ 재생</button>
+      <button id="btn-prev" disabled>◀</button>
+      <input type="range" id="step-slider" min="0" value="0" disabled>
+      <button id="btn-next" disabled>▶</button>
+      <span id="step-label">0 / 0</span>
+      <button id="btn-log">로그 줄 ↕</button>
+    </div>
+
+    <!-- Row 2: hint + speed -->
+    <div class="ctrl-row">
+      <button id="btn-hint" disabled>힌트 켜기</button>
+      <select id="speed-select" disabled>
+        <option value="2000">0.5×</option>
+        <option value="1000" selected>1×</option>
+        <option value="500">2×</option>
+        <option value="250">4×</option>
+        <option value="125">8×</option>
+        <option value="62">16×</option>
+      </select>
+    </div>
+
+  </div>
+
+  <!-- Status bar -->
+  <div id="status-bar">로그 파일을 업로드하면 시작됩니다</div>
+
+  <!-- Upload zone -->
+  <div id="upload-zone">
+    <span class="upload-icon">↑</span>
+    <span class="upload-text">로그 파일 업로드 (클릭 또는 드래그)</span>
+    <input type="file" id="file-input" accept="*">
+  </div>
+
+  <!-- Log panel (toggled) -->
+  <div id="log-section">
+    <div id="log-header">게임 로그</div>
+    <div id="log-scroll"></div>
+  </div>
+
+</div>
+
+<script>
+const ROWS = 10, COLS = 17;
+
+let stateCache = [];
+let actionMeta = [];
+let logLines   = [];
+let currentStep = 0;
+let totalSteps  = 0;
+let showHints   = false;
+let hintSet     = null;
+let playTimer   = null;
+let isPlaying   = false;
+let logLineEls  = [];
+let logLoaded   = false;
+let currentLogHighlight = -1;
+
+// ── Prefix sum ──────────────────────────────────────────
+function buildPS(grid) {
+  const ps = Array.from({length: ROWS+1}, () => new Array(COLS+1).fill(0));
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++) {
+      const v = Math.max(0, grid[r][c]);
+      ps[r+1][c+1] = v + ps[r][c+1] + ps[r+1][c] - ps[r][c];
+    }
+  return ps;
+}
+function rectQ(ps, r1, c1, r2, c2) {
+  return ps[r2+1][c2+1] - ps[r1][c2+1] - ps[r2+1][c1] + ps[r1][c1];
+}
+
+// ── Valid selection ─────────────────────────────────────
+function isValid(grid, r1, c1, r2, c2) {
+  if (r1 < 0 || r2 >= ROWS || c1 < 0 || c2 >= COLS) return false;
+  let sum = 0, minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
+  for (let r = r1; r <= r2; r++)
+    for (let c = c1; c <= c2; c++) {
+      const v = grid[r][c];
+      if (v > 0) { sum += v; minR=Math.min(minR,r); maxR=Math.max(maxR,r); minC=Math.min(minC,c); maxC=Math.max(maxC,c); }
+    }
+  return sum===10 && minR===r1 && maxR===r2 && minC===c1 && maxC===c2;
+}
+
+// ── Hint set ────────────────────────────────────────────
+function computeHintSet(grid) {
+  const ps = buildPS(grid);
+  const s = new Set();
+  for (let r1=0; r1<ROWS; r1++) for (let r2=r1; r2<ROWS; r2++)
+    for (let c1=0; c1<COLS; c1++) for (let c2=c1; c2<COLS; c2++) {
+      if (rectQ(ps,r1,c1,r2,c2) !== 10) continue;
+      if (!isValid(grid,r1,c1,r2,c2)) continue;
+      for (let r=r1; r<=r2; r++) for (let c=c1; c<=c2; c++)
+        if (grid[r][c] > 0) s.add(r*COLS+c);
+    }
+  return s;
+}
+
+// ── Apply action ────────────────────────────────────────
+function applyAction(grid, action) {
+  if (action.type === 'skip') return grid;
+  const ng = grid.map(row => row.slice());
+  const mark = action.player === 'first' ? -1 : -2;
+  for (let r = action.r1; r <= action.r2; r++)
+    for (let c = action.c1; c <= action.c2; c++)
+      ng[r][c] = mark;
+  return ng;
+}
+
+// ── Parse log ───────────────────────────────────────────
+function parseLog(text) {
+  text = text.replace(/\\n/g, '\n'); // 리터럴 \n → 실제 줄바꿈
+  logLines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+  stateCache = [];
+  actionMeta = [];
+
+  let grid = null;
+  for (const line of logLines) {
+    const p = line.split(' ');
+    if (p[0] === 'INIT') { grid = p.slice(1).map(r => r.split('').map(Number)); break; }
+  }
+  if (!grid) return false;
+
+  stateCache.push(grid.map(r => r.slice()));
+  for (let i = 0; i < logLines.length; i++) {
+    const p = logLines[i].split(' ');
+    if (p[0] !== 'FIRST' && p[0] !== 'SECOND') continue;
+    const player = p[0] === 'FIRST' ? 'first' : 'second';
+    const [, r1, c1, r2, c2] = p.map(Number);
+    const action = r1 === -1
+      ? {type:'skip', player, lineIdx:i}
+      : {type:'select', player, r1, c1, r2, c2, lineIdx:i};
+    actionMeta.push(action);
+    grid = applyAction(grid, action);
+    stateCache.push(grid.map(r => r.slice()));
+  }
+  totalSteps = stateCache.length - 1;
+  return true;
+}
+
+// ── Board DOM ───────────────────────────────────────────
+let cellEls = [];
+
+function buildBoardDOM() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cellEls = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const div = document.createElement('div');
+      div.className = 'cell';
+      const span = document.createElement('span');
+      span.className = 'cell-num';
+      div.appendChild(span);
+      board.appendChild(div);
+      cellEls.push(div);
+    }
+  }
+}
+
+// Build placeholder board (no numbers)
+function buildPlaceholderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  cellEls = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const div = document.createElement('div');
+      div.className = 'cell';
+      const span = document.createElement('span');
+      span.className = 'cell-num';
+      div.appendChild(span);
+      board.appendChild(div);
+      cellEls.push(div);
+    }
+  }
+}
+
+function renderBoard(step) {
+  const grid = stateCache[step];
+  if (showHints && !hintSet) hintSet = computeHintSet(grid);
+  if (!showHints) hintSet = null;
+
+  let p1 = 0, p2 = 0;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const idx = r * COLS + c;
+      const v = grid[r][c];
+      const div = cellEls[idx];
+      const span = div.querySelector('.cell-num');
+      const hover = div.classList.contains('log-hover');
+
+      let cls = 'cell';
+      if (v === -1) {
+        p1++;
+        cls += ' owned-first';
+        span.textContent = '';
+      } else if (v === -2) {
+        p2++;
+        cls += ' owned-second';
+        span.textContent = '';
+      } else {
+        span.textContent = String(v);
+        if (showHints && hintSet && hintSet.has(idx)) cls += ' hint';
+      }
+      if (hover) cls += ' log-hover';
+      div.className = cls;
+    }
+  }
+
+  document.getElementById('score-first').textContent  = p1;
+  document.getElementById('score-second').textContent = p2;
+
+  // Active player highlight
+  const cf = document.getElementById('card-first');
+  const cs = document.getElementById('card-second');
+  cf.classList.remove('active'); cs.classList.remove('active');
+  if (step < totalSteps) {
+    const a = actionMeta[step];
+    if (a) (a.player === 'first' ? cf : cs).classList.add('active');
+  }
+}
+
+// ── Log DOM ─────────────────────────────────────────────
+function buildLogDOM() {
+  const scroll = document.getElementById('log-scroll');
+  scroll.innerHTML = '';
+  logLineEls = [];
+  logLines.forEach((line, i) => {
+    const div = document.createElement('div');
+    div.className = 'log-line ' + getTypeClass(line);
+    div.textContent = line;
+    div.addEventListener('mouseenter', () => onLogHover(i, line, true));
+    div.addEventListener('mouseleave', () => onLogHover(i, line, false));
+    div.addEventListener('click', () => { const s = stepForLine(i); if (s !== -1) setStep(s); });
+    scroll.appendChild(div);
+    logLineEls.push(div);
+  });
+}
+
+function getTypeClass(line) {
+  const kw = line.split(' ')[0];
+  if (kw === 'INIT')   return 'type-init';
+  if (kw === 'FIRST')  return 'type-first';
+  if (kw === 'SECOND') return 'type-second';
+  if (kw === 'FINISH') return 'type-finish';
+  if (kw.startsWith('SCORE')) return 'type-score';
+  if (kw === 'WIN' || kw === 'LOSE') return 'type-win';
+  if (kw === 'ABORT')  return 'type-abort';
+  return '';
+}
+
+function stepForLine(lineIdx) {
+  for (let i = 0; i < actionMeta.length; i++)
+    if (actionMeta[i].lineIdx === lineIdx) return i + 1;
+  if (logLines[lineIdx] && logLines[lineIdx].startsWith('INIT')) return 0;
+  return -1;
+}
+
+function syncLogHighlight(step) {
+  if (currentLogHighlight >= 0 && logLineEls[currentLogHighlight])
+    logLineEls[currentLogHighlight].classList.remove('current');
+  let target = -1;
+  if (step === 0) {
+    for (let i = 0; i < logLines.length; i++)
+      if (logLines[i].startsWith('INIT')) { target = i; break; }
+  } else {
+    const a = actionMeta[step - 1];
+    if (a) target = a.lineIdx;
+  }
+  if (target >= 0 && logLineEls[target]) {
+    logLineEls[target].classList.add('current');
+    if (!isPlaying) {
+      logLineEls[target].scrollIntoView({block: 'nearest', behavior: 'smooth'});
+    }
+  }
+  currentLogHighlight = target;
+}
+
+function onLogHover(lineIdx, line, entering) {
+  cellEls.forEach(el => el.classList.remove('log-hover'));
+  if (!entering) return;
+  const p = line.split(' ');
+  if (p[0] !== 'FIRST' && p[0] !== 'SECOND') return;
+  const [, r1, c1, r2, c2] = p.map(Number);
+  if (r1 === -1) return;
+  for (let r = r1; r <= r2; r++)
+    for (let c = c1; c <= c2; c++)
+      if (r >= 0 && r < ROWS && c >= 0 && c < COLS)
+        cellEls[r * COLS + c].classList.add('log-hover');
+}
+
+// ── Step control ────────────────────────────────────────
+function setStep(s) {
+  s = Math.max(0, Math.min(totalSteps, s));
+  currentStep = s;
+  hintSet = null;
+
+  renderBoard(s);
+  syncLogHighlight(s);
+
+  document.getElementById('step-slider').value = s;
+  document.getElementById('step-label').textContent = `${s} / ${totalSteps}`;
+
+  const sb = document.getElementById('status-bar');
+  if (s === 0) {
+    sb.textContent = '초기 상태';
+  } else {
+    const a = actionMeta[s - 1];
+    const who = a.player === 'first' ? '선공' : '후공';
+    if (a.type === 'skip') sb.textContent = `${who} 스킵`;
+    else sb.textContent = `${who} 선택: (${a.r1}, ${a.c1}) → (${a.r2}, ${a.c2})`;
+  }
+  if (s === totalSteps) sb.textContent += ' — 게임 종료';
+}
+
+// ── Playback ────────────────────────────────────────────
+function startPlay() {
+  if (isPlaying) return;
+  if (currentStep >= totalSteps) setStep(0);
+  isPlaying = true;
+  const btn = document.getElementById('btn-play');
+  btn.textContent = '⏸ 정지';
+  btn.classList.add('btn-play-active');
+  tick();
+}
+function stopPlay() {
+  isPlaying = false;
+  if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+  const btn = document.getElementById('btn-play');
+  btn.textContent = '▶ 재생';
+  btn.classList.remove('btn-play-active');
+}
+function tick() {
+  if (!isPlaying) return;
+  const delay = parseInt(document.getElementById('speed-select').value);
+  playTimer = setTimeout(() => {
+    if (currentStep >= totalSteps) { stopPlay(); return; }
+    setStep(currentStep + 1);
+    tick();
+  }, delay);
+}
+
+// ── Load log ────────────────────────────────────────────
+function loadLog(text) {
+  stopPlay();
+  if (!parseLog(text)) { alert('로그 파싱 실패: INIT 라인이 없습니다.'); return; }
+
+  buildBoardDOM();
+  buildLogDOM();
+
+  const slider = document.getElementById('step-slider');
+  slider.max = totalSteps;
+  slider.value = 0;
+  slider.disabled = false;
+
+  ['btn-play','btn-prev','btn-next','btn-hint'].forEach(id =>
+    document.getElementById(id).disabled = false);
+  document.getElementById('speed-select').disabled = false;
+
+  document.getElementById('board-overlay').classList.add('hidden');
+  document.getElementById('log-section').classList.add('visible');
+  logLoaded = true;
+  setStep(0);
+}
+
+// ── UI events ────────────────────────────────────────────
+document.getElementById('btn-prev').addEventListener('click', () => { stopPlay(); setStep(currentStep - 1); });
+document.getElementById('btn-next').addEventListener('click', () => { stopPlay(); setStep(currentStep + 1); });
+document.getElementById('btn-play').addEventListener('click', () => { isPlaying ? stopPlay() : startPlay(); });
+
+document.getElementById('step-slider').addEventListener('input', e => {
+  stopPlay();
+  setStep(parseInt(e.target.value));
+});
+
+document.getElementById('btn-hint').addEventListener('click', () => {
+  if (!logLoaded) return;
+  showHints = !showHints;
+  hintSet = null;
+  const btn = document.getElementById('btn-hint');
+  btn.textContent = showHints ? '힌트 끄기' : '힌트 켜기';
+  btn.classList.toggle('active-toggle', showHints);
+  renderBoard(currentStep);
+});
+
+document.getElementById('btn-log').addEventListener('click', () => {
+  document.getElementById('log-section').classList.toggle('visible');
+});
+
+// File input
+const fileInput = document.getElementById('file-input');
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => loadLog(ev.target.result);
+  reader.readAsText(file);
+});
+
+// Drop zone
+const uploadZone = document.getElementById('upload-zone');
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => loadLog(ev.target.result);
+  reader.readAsText(file);
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (!logLoaded) return;
+  if (e.key === 'ArrowLeft')  { stopPlay(); setStep(currentStep - 1); }
+  if (e.key === 'ArrowRight') { stopPlay(); setStep(currentStep + 1); }
+  if (e.key === ' ')          { e.preventDefault(); isPlaying ? stopPlay() : startPlay(); }
+});
+
+// URL ?data= param
+(function() {
+  const url = new URLSearchParams(location.search).get('data');
+  if (!url) return;
+  fetch(url).then(r => r.text()).then(loadLog).catch(() => alert('로그 URL 로드 실패'));
+})();
+
+// postMessage: 부모 React 앱에서 { type: "LOAD_LOG", log: "..." } 수신 시 즉시 로드
+window.addEventListener("message", (e) => {
+  if (e.data && e.data.type === "LOAD_LOG" && typeof e.data.log === "string") {
+    loadLog(e.data.log);
+  }
+});
+
+// Init placeholder board
+buildPlaceholderBoard();
+</script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+import React, { useState, useEffect } from "react";
+import { marked } from "marked";
+import { ContestDetail } from "../api/codeBattleApi";
+import "./ChitoBattleProblem.css";
+
+interface Props {
+  detail: ContestDetail | null;
+  loading: boolean;
+  error: string | null;
+  onJoin?: () => Promise<void>;
+  joinStatus?: "idle" | "joining" | "joined" | "error";
+  joinError?: string;
+  isReviewer?: boolean;
+  onEdit?: () => void;
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  TEST: "테스트",
+  PLANNED: "예정",
+  RUNNING: "진행 중",
+  PAUSED: "일시 정지",
+  END: "종료",
+};
+
+function formatDateTime(dt: string): string {
+  if (!dt) return "-";
+  return new Date(dt).toLocaleString("ko-KR", {
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
+const EXT_LANG: Record<string, string> = {
+  c:    "C20",
+  cpp:  "C++20",
+  cs:   "C#",
+  java: "OpenJDK Java 21",
+  js:   "Node.js",
+  ts:   "TypeScript",
+  py:   "PyPy3 / Python3",
+  rs:   "Rust 2024",
+  lua:  "Lua",
+  go:   "Go",
+  kt:   "Kotlin",
+};
+
+function detectExt(code: string): string {
+  if (/public\s+class\s+\w+/.test(code) || /import\s+java\./.test(code)) return "java";
+  if (/using\s+namespace\s+std/.test(code) || /#include\s*</.test(code))  return "cpp";
+  if (/^\s*using\s+System/.test(code))                                     return "cs";
+  if (/:\s*(String|Int|List|fun\s+\w+)/.test(code))                        return "kt";
+  if (/^\s*(def |from .+ import|import [\w.]+\s*$)/m.test(code))          return "py";
+  if (/^\s*(import\s+type |interface |type \w+\s*=)/m.test(code))         return "ts";
+  if (/^\s*(function |const |let |var |=>)/m.test(code))                  return "js";
+  return "txt";
+}
+
+function makeDownloadUrl(code: string): string {
+  return `data:text/plain;charset=utf-8,${encodeURIComponent(code)}`;
+}
+
+const ContestProblemDetail: React.FC<Props> = ({
+  detail, loading, error, onJoin, joinStatus = "idle", joinError, isReviewer, onEdit,
+}) => {
+  const [descHtml, setDescHtml] = useState("");
+
+  useEffect(() => {
+    if (!detail?.description) { setDescHtml(""); return; }
+    const result = marked.parse(detail.description);
+    if (result instanceof Promise) result.then(setDescHtml);
+    else setDescHtml(result);
+  }, [detail?.description]);
+  if (loading) {
+    return (
+      <div className="prob" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ color: "#9ca3af", fontSize: "0.9rem" }}>불러오는 중...</span>
+      </div>
+    );
+  }
+  if (error || !detail) {
+    return (
+      <div className="prob" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ color: "#dc2626", fontSize: "0.9rem" }}>{error ?? "대회 정보를 불러오지 못했습니다."}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="prob">
+      <div className="prob-header" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <h1 className="prob-title" style={{ flex: 1 }}>{detail.title}</h1>
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            style={{
+              padding: "6px 16px",
+              background: "#6644cc",
+              color: "#fff",
+              border: "none",
+              borderRadius: 7,
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            수정
+          </button>
+        )}
+      </div>
+
+      {/* 대회 정보 */}
+      <section className="prob-section">
+        <h2>대회 정보</h2>
+        <table className="prob-table" style={{ maxWidth: 520 }}>
+          <tbody>
+            <tr>
+              <td style={{ fontWeight: 700, width: 130, whiteSpace: "nowrap" }}>상태</td>
+              <td>{STATUS_LABELS[detail.status] ?? detail.status}</td>
+            </tr>
+            <tr>
+              <td style={{ fontWeight: 700 }}>시작 일시</td>
+              <td>{formatDateTime(detail.startDate)}</td>
+            </tr>
+            <tr>
+              <td style={{ fontWeight: 700 }}>종료 일시</td>
+              <td>{formatDateTime(detail.endDate)}</td>
+            </tr>
+            <tr>
+              <td style={{ fontWeight: 700 }}>시간 제한</td>
+              <td>{detail.timeLimitSec}초</td>
+            </tr>
+            <tr>
+              <td style={{ fontWeight: 700 }}>메모리 제한</td>
+              <td>{detail.memoryLimitMb} MB</td>
+            </tr>
+            <tr>
+              <td style={{ fontWeight: 700 }}>최대 참가자</td>
+              <td>{detail.maxParticipants}명</td>
+            </tr>
+            <tr>
+              <td style={{ fontWeight: 700 }}>인증 대회</td>
+              <td>{detail.certification ? "예" : "아니오"}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      {/* 대회 참가 */}
+      {onJoin && detail.status === "RUNNING" && (
+        <section className="prob-section prob-join-section">
+          <button
+            className={`prob-join-btn${joinStatus === "joined" ? " prob-join-btn--done" : ""}`}
+            onClick={isReviewer ? undefined : onJoin}
+            disabled={isReviewer || joinStatus === "joining" || joinStatus === "joined"}
+            title={isReviewer ? "검수자는 해당 대회에 참가할 수 없습니다" : undefined}
+          >
+            {isReviewer        ? "검수자 (참가 불가)" :
+             joinStatus === "joining" ? "참가 신청 중..." :
+             joinStatus === "joined"  ? "✓ 참가 완료" :
+             "대회 참가"}
+          </button>
+          {joinStatus === "error" && joinError && (
+            <p className="prob-join-error">{joinError}</p>
+          )}
+        </section>
+      )}
+
+      {/* 문제 설명 */}
+      {descHtml && (
+        <section className="prob-section">
+          <h2>문제 설명</h2>
+          <div className="prob-md" dangerouslySetInnerHTML={{ __html: descHtml }} />
+        </section>
+      )}
+
+      {/* 예제 코드 */}
+      {detail.sampleCodes?.length > 0 && (
+        <section className="prob-section">
+          <h2>예제 코드</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {detail.sampleCodes.map((sc, i) => {
+              const ext  = sc.language ? sc.language.toLowerCase() : detectExt(sc.code);
+              const lang = EXT_LANG[ext] ?? sc.language ?? ext.toUpperCase();
+              const extMap: Record<string, string> = {
+                python: "py", javascript: "js", typescript: "ts", csharp: "cs",
+              };
+              const fileExt = extMap[ext] ?? ext.toLowerCase();
+              const name = `sample_code_${i + 1}.${fileExt}`;
+              return (
+                <span key={i} className="prob-sample-code-link">
+                  <strong>{lang}</strong>:
+                  <a href={makeDownloadUrl(sc.code)} download={name}>{name}</a>
+                </span>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 샘플 AI와 대결 */}
+      {detail.exampleAiCodes?.length > 0 && (
+        <section className="prob-section">
+          <h2>샘플 AI와 대결</h2>
+          <div className="prob-ai-battle-list">
+            {detail.exampleAiCodes.map((ai, i) => {
+              const ext  = ai.language ? ai.language.toLowerCase() : detectExt(ai.code);
+              const lang = EXT_LANG[ext] ?? ai.language ?? ext.toUpperCase();
+              return (
+                <div key={i} className="prob-ai-battle-card">
+                  <span className="prob-ai-battle-num">AI {i + 1}</span>
+                  <div className="prob-ai-battle-info">
+                    <span className="prob-ai-battle-lang">{lang}</span>
+                    {ai.description && (
+                      <span className="prob-ai-battle-desc">{ai.description}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+};
+
+export default ContestProblemDetail;
