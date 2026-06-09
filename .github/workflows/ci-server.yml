@@ -1,0 +1,67 @@
+# git action workflow name
+name: ci-server
+# executing name: actor name
+run-name: "CI actor : ${{github.actor}}"
+# Controls when the workflow will run
+on:
+  pull_request:
+    paths:
+      - 'server/**'
+      - '.github/workflows/*'
+
+jobs:
+  server:
+    env: 
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_NAME: ${{ secrets.DB_NAME_STAGING }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_URL: ${{ secrets.DB_URL_STAGING }}
+      JWT_TOKEN: ${{secrets.JWT_TOKEN}}
+      GMAIL_PASSWORD: ${{secrets.GMAIL_PASSWORD}}
+      SOL_API_KEY: ${{secrets.SOL_API_KEY}}
+      SOL_API_SECRET: ${{secrets.SOL_API_SECRET}}
+      SOL_SENDER_NUMBER: ${{secrets.SOL_SENDER_NUMBER}}
+      AWS_REGION: ${{secrets.AWS_REGION}}
+      AWS_BUCKET_TEST: ${{secrets.AWS_BUCKET_TEST}}
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping || exit 1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: set up jdk
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: add permission to execute
+        run: chmod +x gradlew 
+
+      - name: wait for redis
+        run: |
+          for i in {1..30}; do
+            (echo > /dev/tcp/127.0.0.1/6379) >/dev/null 2>&1 && exit 0
+            sleep 1
+          done
+          echo "Redis did not become ready in time"
+          exit 1
+
+      - name: server Test
+        run: ./gradlew test
+      
+      - name: server Build
+        run: ./gradlew build -x test
