@@ -181,11 +181,11 @@ public class ContestService {
 
         saveExampleAiCodes(savedContest, request.getExampleAiCodes());
         saveSampleCodes(savedContest, request.getSampleCodes());
-
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
+                    contestRun.initSwissContest(savedContest);
                     contestRun.registerContest(savedContest);
                 }
             });

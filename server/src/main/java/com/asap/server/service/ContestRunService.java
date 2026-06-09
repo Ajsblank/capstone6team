@@ -7,14 +7,13 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
-import java.util.stream.Collectors;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.asap.server.domain.CodeBattleContest;
@@ -91,6 +90,40 @@ public class ContestRunService {
     log.info("[Scheduler] 초기화 완료. 스케줄된 대회 개수: {}", scheduledTasks.size());
   }
 
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void initSwissContest(CodeBattleContest contest) {
+    Long contestId = contest.getId();
+    if (contest.getStartDate() == null || contest.getEndDate() == null) {
+      log.info("[Scheduler] contestId={} startDate 또는 endDate가 없어 스위스 세션을 생성하지 않습니다.", contestId);
+      return;
+    }
+
+    List<ContestSwissSession> sessions = new ArrayList<>();
+    LocalDate cur = contest.getStartDate().toLocalDate();
+    LocalDate end = contest.getEndDate().toLocalDate();
+    int sessionNumber = 1;
+
+    while (!cur.isAfter(end)) {
+      LocalDateTime scheduledAt = cur.atTime(15, 0);
+      if (scheduledAt.isBefore(contest.getEndDate())) {
+        ContestSwissSession session = new ContestSwissSession();
+        session.setContest(contest);
+        session.setScheduledAt(scheduledAt);
+        session.setStatus(ContestStatus.PLANNED);
+        session.setSessionNumber(sessionNumber++);
+        sessions.add(session);
+      }
+      cur = cur.plusDays(1);
+    }
+
+    if (!sessions.isEmpty()) {
+      sessionRepository.saveAll(sessions);
+      log.info("[Scheduler] contestId={} 스위스 세션 {}개 생성 완료", contestId, sessions.size());
+    } else {
+      log.info("[Scheduler] contestId={} 생성할 스위스 세션 없음", contestId);
+    }
+  }
+
   public void registerContest(CodeBattleContest contest) {
     Long contestId = contest.getId();
     Runnable task = () -> processMatching(contestId);
@@ -109,51 +142,12 @@ public class ContestRunService {
       scheduledTasks.put(contestId, scheduled);
     }
     log.info("[Scheduler] contestId={} 대회의 시작 시간이 등록되었습니다. 등록 시간={}", contestId, contest.getStartDate());
-
-    // ✅ 최초 초기화: startDate ~ endDate 매일 오후 3시 세션 생성 + 예약
-    if (contest.getStartDate() == null || contest.getEndDate() == null) {
-      log.info("[Scheduler] contestId={} startDate 또는 endDate가 없어 스위스 세션을 생성하지 않습니다.", contestId);
-      return;
+    // 스위스 리그도 예약
+    List<ContestSwissSession> plannedSessions = sessionRepository
+        .findByContestIdAndStatus(contestId, ContestStatus.PLANNED);
+    for (ContestSwissSession session : plannedSessions) {
+      registSwissContest(contest, session);
     }
-    Set<LocalDateTime> existingTimes = sessionRepository.findByContestId(contestId)
-        .stream()
-        .map(ContestSwissSession::getScheduledAt)
-        .collect(Collectors.toSet());
-    // 기존 세션 예약 재등록 (서버 재시작 대비)
-    if (!existingTimes.isEmpty()) {
-      sessionRepository.findByContestId(contestId)
-          .forEach(session -> registSwissContest(contest, session));
-    }
-    // 최초 or 부분 생성
-    List<ContestSwissSession> newSessions = new ArrayList<>();
-    LocalDate cur = contest.getStartDate().toLocalDate();
-    LocalDate end = contest.getEndDate().toLocalDate();
-    int lastSessionNumber = existingTimes.isEmpty() ? 0
-        : sessionRepository.findByContestId(contestId).stream()
-            .mapToInt(ContestSwissSession::getSessionNumber)
-            .max().orElse(0);
-
-    while (!cur.isAfter(end)) {
-      LocalDateTime scheduledAt = cur.atTime(15, 0);
-      if (scheduledAt.isBefore(contest.getEndDate()) && !existingTimes.contains(scheduledAt)) {
-        // ✅ 동 시간 세션 없을 때만 생성
-        ContestSwissSession session = new ContestSwissSession();
-        session.setContest(contest);
-        session.setScheduledAt(scheduledAt);
-        session.setStatus(ContestStatus.PLANNED);
-        session.setSessionNumber(++lastSessionNumber);
-        newSessions.add(session);
-      }
-      cur = cur.plusDays(1);
-    }
-    if (!newSessions.isEmpty()) {
-      sessionRepository.saveAll(newSessions);
-      newSessions.forEach(session -> registSwissContest(contest, session));
-      log.info("[Scheduler] contestId={} 신규 스위스 세션 {}개 생성 및 예약 완료", contestId, newSessions.size());
-    } else {
-      log.info("[Scheduler] contestId={} 추가할 신규 세션 없음 (전부 기존 세션과 중복)", contestId);
-    }
-
   }
 
   public void registSwissContest(CodeBattleContest contest, ContestSwissSession session) {
@@ -162,39 +156,34 @@ public class ContestRunService {
     LocalDateTime scheduledAt = session.getScheduledAt();
     LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
     Long sessionId = session.getId();
-    if (scheduledAt.isBefore(now)) {
-      // 종료된 스케줄이 아닐 경우
-      if (session.getStatus() != ContestStatus.END) {
-        // 시작처리 안된 세션 실행 (현재 세션 중복 검사 없음)
-        if (session.getStatus() == ContestStatus.PLANNED) {
-          swissLeagueService.generateSwissSession(contestId, session.getSessionNumber(), session.getId());
-          log.info("[Scheduler] 시작 안된 스위스 세션 즉시 실행. contestId={} sessionId={}", contestId, session.getId());
-          return;
-        }
-        // 진행 중이던 세션, 키 정리 후 새로 시작 (현재 재 시작은 나중에 고려)
-        else if (session.getStatus() == ContestStatus.RUNNING) {
-          // 임시로 모든 라운드 초기화 및 새로 세션 시작
-          redisTemplate.delete("swiss:session:" + sessionId + ":total");
-          redisTemplate.delete("swiss:session:" + sessionId + ":done");
-          // 모든 라운드 키 초기화
-          List<ContestSwissRound> rounds = roundRepository.findBySessionId(sessionId);
-          for (ContestSwissRound round : rounds) {
-            redisTemplate.delete("swiss:round:" + round.getId() + ":total");
-            redisTemplate.delete("swiss:round:" + round.getId() + ":done");
-            redisTemplate.delete("swiss:round:" + round.getId() + ":matchIds");
-          }
-          swissLeagueService.generateSwissSession(contestId, session.getSessionNumber(), sessionId);
-          log.info("[Scheduler] 시작 안된 스위스 세션 즉시 다시 실행.(임시 방편) contestId={} sessionId={}", contestId, session.getId());
-          return;
-        }
-        // 비정상 상태 처리
-        else {
-          log.info("비정상 상태이므로 스킵합니다. sessionId={}, Status={}", sessionId, session.getStatus());
-          return;
-        }
+    // 종료 세션 즉시 스킵
+    if (session.getStatus() == ContestStatus.END) {
+      log.info("종료된 세션 스킵 세션 ID = {}", sessionId);
+      return;
+    }
+    // 진행 중 세션 처리
+    else if (session.getStatus() == ContestStatus.RUNNING) {
+      // 임시로 모든 라운드 초기화 및 새로 세션 시작
+      redisTemplate.delete("swiss:session:" + sessionId + ":total");
+      redisTemplate.delete("swiss:session:" + sessionId + ":done");
+      // 모든 라운드 키 초기화
+      List<ContestSwissRound> rounds = roundRepository.findBySessionId(sessionId);
+      for (ContestSwissRound round : rounds) {
+        redisTemplate.delete("swiss:round:" + round.getId() + ":total");
+        redisTemplate.delete("swiss:round:" + round.getId() + ":done");
+        redisTemplate.delete("swiss:round:" + round.getId() + ":matchIds");
       }
-      log.info("[Scheduler] 이미 종료된 세션이므로 스킵합니다. contestId={}, sessionId={}",
-          contestId, sessionId);
+      swissLeagueService.generateSwissSession(contestId, session.getSessionNumber(), sessionId);
+      log.info("[Scheduler] 시작 안된 스위스 세션 즉시 다시 실행.(임시 방편) contestId={} sessionId={}", contestId, session.getId());
+      return;
+    } else if (session.getStatus() != ContestStatus.PLANNED) {
+      log.info("비정상 상태이므로 스킵합니다. sessionId={}, Status={}", sessionId, session.getStatus());
+      return;
+    }
+    if (scheduledAt.isBefore(now)) {
+      // 시작처리 안된 세션 실행 (현재 세션 중복 검사 없음)
+      swissLeagueService.generateSwissSession(contestId, session.getSessionNumber(), session.getId());
+      log.info("[Scheduler] 시작 안된 스위스 세션 즉시 실행. contestId={} sessionId={}", contestId, session.getId());
       return;
     }
 
