@@ -26,6 +26,7 @@
 
 .lp-logo {
   cursor: pointer;
+  margin-left: 12px;
   margin-right: 16px;
   user-select: none;
   display: flex;
@@ -35,7 +36,7 @@
 }
 
 .lp-logo-img {
-  height: 96px;
+  height: 112px;
   width: auto;
   max-width: none;
   display: block;
