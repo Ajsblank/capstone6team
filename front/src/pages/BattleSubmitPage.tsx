@@ -105,13 +105,16 @@ const SubmitPage: React.FC = () => {
 
   const isJoined = joinedContestIds.includes(problemId) || joinStatus === "joined";
 
+  const isContestEnded = contestDetail?.status === "END";
+
   const TAB_LIST: TabDef[] = [
     ...BASE_TAB_LIST,
     ...(isReviewer ? [{ id: "review" as Tab, label: "검수" }] : []),
   ].map(tab => {
     if (isReviewer && !REVIEWER_ALLOWED_TABS.includes(tab.id))
       return { ...tab, disabled: true, tooltip: "검수자는 이용할 수 없습니다" };
-    if (!tab.disabled && !isJoined && PARTICIPATION_REQUIRED_TABS.includes(tab.id))
+    // 종료된 대회는 제출/내 제출 탭 활성화 (결과 조회 허용)
+    if (!tab.disabled && !isJoined && !isContestEnded && PARTICIPATION_REQUIRED_TABS.includes(tab.id))
       return { ...tab, disabled: true, tooltip: "대회에 참가 후 이용 가능합니다" };
     if (tab.id === "viz1" && !viz1Available)
       return { ...tab, unavailable: true, tooltip: "콘텐츠가 준비되지 않았습니다" };
@@ -122,6 +125,7 @@ const SubmitPage: React.FC = () => {
 
   const [showEditModal, setShowEditModal]       = useState(false);
   const [selectedSession, setSelectedSession]   = useState<number | null>(null);
+  const [showLoginPopup, setShowLoginPopup]     = useState(false);
 
   // TODO: 백엔드에서 contestDetail.creatorId 반환 구현 후 아래 주석 해제
   // const isOwner = !!user && !!contestDetail && user.id === contestDetail.creatorId;
@@ -351,6 +355,18 @@ const SubmitPage: React.FC = () => {
 
   return (
     <div className="submit-page home-page battle-home-page">
+      {/* ── 로그인 필요 팝업 ── */}
+      {showLoginPopup && (
+        <div className="bp-popup-overlay" onClick={() => setShowLoginPopup(false)}>
+          <div className="bp-popup" onClick={e => e.stopPropagation()}>
+            <p className="bp-popup-msg">로그인이 필요한 기능입니다.<br />로그인하러 이동하시겠습니까?</p>
+            <button className="bp-popup-btn" onClick={() => { setShowLoginPopup(false); navigate("login"); }}>
+              이동
+            </button>
+          </div>
+        </div>
+      )}
+
       {showSuccessModal && (
         <SubmitSuccessModal
           message={responseMessage}
@@ -393,7 +409,12 @@ const SubmitPage: React.FC = () => {
               tab.unavailable ? "sp-sub-tab-btn--unavailable" : "",
             ].filter(Boolean).join(" ")}
             title={tab.tooltip}
-            onClick={tab.disabled || tab.unavailable ? undefined : () => handleTabChange(tab.id)}
+            onClick={
+              tab.unavailable ? undefined
+              : tab.disabled ? undefined
+              : !user && PARTICIPATION_REQUIRED_TABS.includes(tab.id) ? () => setShowLoginPopup(true)
+              : () => handleTabChange(tab.id)
+            }
           >
             {tab.label}
           </button>
