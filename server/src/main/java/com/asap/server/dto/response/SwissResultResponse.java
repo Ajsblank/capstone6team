@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @AllArgsConstructor
@@ -60,13 +61,15 @@ public class SwissResultResponse {
   }
 
   @Getter
+  @Setter
   @Builder
   @NoArgsConstructor
   @AllArgsConstructor
   public static class StandingDto {
     @JsonProperty("user_id")
     private Long userId;
-
+    @JsonProperty("nickname_tag")
+    private String nicknameTag;
     private int wins;
     private int draws;
     private int losses;

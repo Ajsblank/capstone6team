@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -26,6 +28,7 @@ import com.asap.server.dto.request.ExampleAiRequest;
 import com.asap.server.dto.request.SampleCodeRequest;
 import com.asap.server.dto.request.UpdateContestCertifiedRequest;
 import com.asap.server.dto.request.UpdateContestRequest;
+import com.asap.server.dto.request.ValidateContestRequest;
 import com.asap.server.dto.response.CodeBattleAiMatchResult;
 import com.asap.server.dto.response.CodeBattleMySubmissionResponse;
 import com.asap.server.dto.response.ContestDetailResponse;
@@ -35,6 +38,7 @@ import com.asap.server.dto.response.ContestResponse;
 import com.asap.server.dto.response.ExampleAiResponse;
 import com.asap.server.dto.response.SampleCodeResponse;
 import com.asap.server.global.type.ContestStatus;
+import com.asap.server.global.type.Language;
 import com.asap.server.repository.CodeBattleContestRepository;
 import com.asap.server.repository.CodeBattleExampleAIRepository;
 import com.asap.server.repository.CodeBattleMatchRepository;
@@ -42,6 +46,9 @@ import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSampleCodeRepository;
 import com.asap.server.repository.ContestReviewerRepository;
 import com.asap.server.repository.usersRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,10 +64,70 @@ public class ContestService {
     private final ContestReviewerRepository reviewerRepository;
     private final usersRepository userRepository;
     private final ContestRunService contestRun;
-    private final S3Service s3Service;
     private final ContestReviewerRepository contestReviewerRepository;
     private final CodeBattleMatchRepository matchRepository;
     private final CodeBattleSampleCodeRepository sampleCodeRepository;
+    private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
+
+    private static final String CODE_BATTLE_TEST_QUEUE_KEY = "code_battle_test_queue";
+
+    // 의도적으로 오류를 발생시키는 probe 코드 — judge가 각 에러 상황을 올바르게 처리하는지 검증
+    private static final Map<Language, String> RUNTIME_ERROR_PROBE = Map.of(
+            Language.CPP, "int main(){int*p=nullptr;*p=1;return 0;}",
+            Language.JAVA, "public class Main{public static void main(String[]a){throw new RuntimeException();}}",
+            Language.PYTHON, "raise RuntimeError()",
+            Language.C, "int main(){int*p=0;*p=1;return 0;}");
+
+    private static final Map<Language, String> COMPILE_ERROR_PROBE = Map.of(
+            Language.CPP, "int main(){thisisnotvalidcpp",
+            Language.JAVA, "public class Main{public static void",
+            Language.PYTHON, "def f(:",
+            Language.C, "int main(){thisisnotvalidc");
+
+    // TLE probe: READY/INIT/OPP는 정상 처리하고 TIME 명령을 받으면 무한루프 → judge가 TIME_LIMIT 판정해야
+    // 함
+    // (단순 while(true)는 READY에 OK도 안 보내 RUNTIME_ERROR로 오판됨)
+    private static final Map<Language, String> TLE_PROBE = Map.of(
+            Language.CPP,
+            "#include<iostream>\n#include<string>\nusing namespace std;\n"
+                    + "int main(){\n"
+                    + "  string line;\n"
+                    + "  while(getline(cin,line)){\n"
+                    + "    if(line.find(\"READY\")==0){cout<<\"OK\"<<endl;}\n"
+                    + "    else if(line.find(\"TIME\")==0){while(true){}}\n"
+                    + "  }\n"
+                    + "}",
+            Language.JAVA,
+            "import java.util.Scanner;\n"
+                    + "public class Main{\n"
+                    + "  public static void main(String[]a)throws Exception{\n"
+                    + "    Scanner sc=new Scanner(System.in);\n"
+                    + "    while(sc.hasNextLine()){\n"
+                    + "      String line=sc.nextLine();\n"
+                    + "      if(line.startsWith(\"READY\")){System.out.println(\"OK\");System.out.flush();}\n"
+                    + "      else if(line.startsWith(\"TIME\")){while(true){}}\n"
+                    + "    }\n"
+                    + "  }\n"
+                    + "}",
+            Language.PYTHON,
+            "import sys\n"
+                    + "for line in sys.stdin:\n"
+                    + "    line=line.strip()\n"
+                    + "    if line.startswith('READY'):\n"
+                    + "        print('OK',flush=True)\n"
+                    + "    elif line.startswith('TIME'):\n"
+                    + "        while True:pass\n",
+            Language.C,
+            "#include<stdio.h>\n#include<string.h>\n"
+                    + "int main(){\n"
+                    + "  char buf[256];\n"
+                    + "  while(fgets(buf,sizeof(buf),stdin)){\n"
+                    + "    if(strncmp(buf,\"READY\",5)==0){printf(\"OK\\n\");fflush(stdout);}\n"
+                    + "    else if(strncmp(buf,\"TIME\",4)==0){while(1){}}\n"
+                    + "  }\n"
+                    + "  return 0;\n"
+                    + "}");
 
     /**
      * 비인증 대회 생성
@@ -102,6 +169,7 @@ public class ContestService {
                 request.getTimeLimitSec(),
                 request.getMemoryLimitMb(),
                 request.getJudgeCode(),
+                request.getJudgeLanguage(),
                 request.getMaxParticipants(),
                 policy.startDate(),
                 policy.endDate(),
@@ -113,15 +181,18 @@ public class ContestService {
 
         saveExampleAiCodes(savedContest, request.getExampleAiCodes());
         saveSampleCodes(savedContest, request.getSampleCodes());
-
+        final Long savedContestId = savedContest.getId();
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
+                    // afterCommit 시점에 savedContest는 detach 상태이므로 ID만 전달한다.
+                    contestRun.initSwissContest(savedContestId);
                     contestRun.registerContest(savedContest);
                 }
             });
         } else {
+            contestRun.initSwissContest(savedContestId);
             contestRun.registerContest(savedContest);
         }
         List<ExampleAiResponse> exampleAiCodes = request.getExampleAiCodes().stream()
@@ -185,6 +256,7 @@ public class ContestService {
                 request.getTimeLimitSec(),
                 request.getMemoryLimitMb(),
                 request.getJudgeCode(),
+                request.getJudgeLanguage(),
                 request.getMaxParticipants(),
                 policy.startDate(),
                 policy.endDate(),
@@ -208,14 +280,18 @@ public class ContestService {
         saveExampleAiCodes(savedContest, request.getExampleAiCodes());
         saveSampleCodes(savedContest, request.getSampleCodes());
 
+        final Long savedContestId = savedContest.getId();
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
+                    // afterCommit 시점에 savedContest는 detach 상태이므로 ID만 전달한다.
+                    contestRun.initSwissContest(savedContestId);
                     contestRun.registerContest(savedContest);
                 }
             });
         } else {
+            contestRun.initSwissContest(savedContestId);
             contestRun.registerContest(savedContest);
         }
         List<ExampleAiResponse> exampleAiCodes = request.getExampleAiCodes().stream()
@@ -535,6 +611,131 @@ public class ContestService {
         }
     }
 
+    public void validateContestCodes(Long userId, ValidateContestRequest req) {
+        String pendingKey = "validate:" + userId + ":pending";
+        String labelsKey = "validate:" + userId + ":labels";
+        String resultsKey = "validate:" + userId + ":results";
+        String probeTypesKey = "validate:" + userId + ":probe_types";
+        String queuedJobsKey = "validate:" + userId + ":queued_jobs"; // Phase 2 대기 잡 목록
+
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(pendingKey))) {
+            throw new IllegalStateException("이미 진행 중인 검증 요청이 있습니다. 완료 후 다시 시도해주세요.");
+        }
+
+        SampleCodeRequest skeleton = req.getSampleCodes().get(0);
+        Language sampleLang = skeleton.getLanguage();
+        String skeletonLang = sampleLang.name().toLowerCase();
+        List<ExampleAiRequest> aiCodes = req.getExampleAiCodes();
+
+        redisTemplate.delete(labelsKey);
+        redisTemplate.delete(resultsKey);
+        redisTemplate.delete(probeTypesKey);
+        redisTemplate.delete(queuedJobsKey);
+
+        // Phase 1: smoke test 1건만 대기
+        redisTemplate.opsForValue().set(pendingKey, "1", 10, java.util.concurrent.TimeUnit.MINUTES);
+
+        try {
+            // ── 실제 검증 잡 미리 직렬화 → Redis 임시 목록에 보관 (Phase 2에서 제출) ──
+
+            // Job 0: judge vs 샘플 × 샘플
+            String jobId0 = userId + "_0";
+            redisTemplate.opsForHash().put(labelsKey, jobId0, "샘플 코드");
+            redisTemplate.opsForList().rightPush(queuedJobsKey,
+                    buildTestJobJson(jobId0, userId, req.getJudgeCode(),
+                            skeleton.getCode(), skeletonLang,
+                            skeleton.getCode(), skeletonLang));
+
+            // Jobs 1+: judge vs 샘플 × exampleAi[i]
+            for (int i = 0; i < aiCodes.size(); i++) {
+                ExampleAiRequest ai = aiCodes.get(i);
+                String jobId = userId + "_" + (i + 1);
+                redisTemplate.opsForHash().put(labelsKey, jobId, "Example AI " + (i + 1) + "번");
+                redisTemplate.opsForList().rightPush(queuedJobsKey,
+                        buildTestJobJson(jobId, userId, req.getJudgeCode(),
+                                skeleton.getCode(), skeletonLang,
+                                ai.getCode(), ai.getLanguage().name().toLowerCase()));
+            }
+
+            // Probe jobs
+            int probeBase = 1 + aiCodes.size();
+
+            String rteJobId = userId + "_" + probeBase;
+            redisTemplate.opsForHash().put(labelsKey, rteJobId, "런타임 에러 처리 검증");
+            redisTemplate.opsForHash().put(probeTypesKey, rteJobId, "RUNTIME_ERROR");
+            redisTemplate.opsForList().rightPush(queuedJobsKey,
+                    buildTestJobJson(rteJobId, userId, req.getJudgeCode(),
+                            skeleton.getCode(), skeletonLang,
+                            RUNTIME_ERROR_PROBE.get(sampleLang), skeletonLang));
+
+            String ceJobId = userId + "_" + (probeBase + 1);
+            redisTemplate.opsForHash().put(labelsKey, ceJobId, "컴파일 에러 처리 검증");
+            redisTemplate.opsForHash().put(probeTypesKey, ceJobId, "COMPILE_ERROR");
+            redisTemplate.opsForList().rightPush(queuedJobsKey,
+                    buildTestJobJson(ceJobId, userId, req.getJudgeCode(),
+                            skeleton.getCode(), skeletonLang,
+                            COMPILE_ERROR_PROBE.get(sampleLang), skeletonLang));
+
+            String tleJobId = userId + "_" + (probeBase + 2);
+            redisTemplate.opsForHash().put(labelsKey, tleJobId, "시간 초과 처리 검증");
+            redisTemplate.opsForHash().put(probeTypesKey, tleJobId, "TIME_LIMIT");
+            redisTemplate.opsForList().rightPush(queuedJobsKey,
+                    buildTestJobJson(tleJobId, userId, req.getJudgeCode(),
+                            skeleton.getCode(), skeletonLang,
+                            TLE_PROBE.get(sampleLang), skeletonLang));
+
+            redisTemplate.expire(queuedJobsKey, 10, java.util.concurrent.TimeUnit.MINUTES);
+            redisTemplate.expire(labelsKey, 10, java.util.concurrent.TimeUnit.MINUTES);
+            redisTemplate.expire(resultsKey, 10, java.util.concurrent.TimeUnit.MINUTES);
+            redisTemplate.expire(probeTypesKey, 10, java.util.concurrent.TimeUnit.MINUTES);
+
+            // ── Phase 1: smoke test 잡만 제출 ─────────────────────────────
+            // 즉시 종료하는 Python 플레이어로 judge를 실행해 무한루프 여부를 판별.
+            // timeoutSec=10: 정상 judge는 EOF 감지 후 수 초 내 종료, 무한루프는 10초 만에 탐지.
+            String smokeJobId = userId + "_smoke";
+            String smokePlayer = "import sys\nsys.exit(0)\n";
+            pushSmokeJob(smokeJobId, userId, req.getJudgeCode(),
+                    smokePlayer, "python", smokePlayer, "python");
+
+        } catch (JsonProcessingException e) {
+            redisTemplate.delete(java.util.List.of(pendingKey, labelsKey, resultsKey, probeTypesKey, queuedJobsKey));
+            throw new IllegalStateException("검증 요청 직렬화 실패", e);
+        }
+
+        log.info("[검증] userId={} Phase 1: judge smoke test 제출", userId);
+    }
+
+    /** job JSON 직렬화만 수행 (큐에 넣지 않음) */
+    private String buildTestJobJson(String jobId, Long userId,
+            String judgeCode,
+            String p1Code, String p1Lang,
+            String p2Code, String p2Lang) throws JsonProcessingException {
+        ObjectNode payload = objectMapper.createObjectNode();
+        payload.put("jobId", jobId);
+        payload.put("userId", userId);
+        payload.put("judge", judgeCode);
+        payload.put("player1", p1Code);
+        payload.put("player2", p2Code);
+        ObjectNode languages = payload.putObject("languages");
+        languages.put("judge", "cpp");
+        languages.put("player1", p1Lang);
+        languages.put("player2", p2Lang);
+        return objectMapper.writeValueAsString(payload);
+    }
+
+    /** smoke test 전용: timeoutSec=10 으로 채점서버 타임아웃을 단축해 빠른 무한루프 탐지 */
+    private void pushSmokeJob(String jobId, Long userId,
+            String judgeCode,
+            String p1Code, String p1Lang,
+            String p2Code, String p2Lang) throws JsonProcessingException {
+        ObjectNode payload = objectMapper.readValue(
+                buildTestJobJson(jobId, userId, judgeCode, p1Code, p1Lang, p2Code, p2Lang),
+                ObjectNode.class);
+        payload.put("timeoutSec", 10);
+        redisTemplate.opsForList().leftPush(CODE_BATTLE_TEST_QUEUE_KEY,
+                objectMapper.writeValueAsString(payload));
+    }
+
     private record DatePolicy(LocalDateTime startDate, LocalDateTime endDate) {
     }
 
@@ -543,7 +744,7 @@ public class ContestService {
 
         // 해당 유저가 AI와 진행한 모든 매치 기록 조회
         List<CodeBattleMatch> matches = matchRepository.findByContestIdAndUser1Id(contestId, userId);
-        System.out.println("조회 시도 - contestId: " + contestId + ", userId: " + userId);
+        log.info("조회 시도 - contestId: {}, userId: {}", contestId, userId);
 
         return matches.stream()
                 .filter(match -> match.getSubmission() != null)
@@ -553,5 +754,12 @@ public class ContestService {
                     return CodeBattleMySubmissionResponse.of(match.getSubmission(), aiResult);
                 })
                 .collect(Collectors.toList());
+    }
+
+    // 여기 구현
+    @Transactional
+    public void deleteContest(CodeBattleContest contest) {
+        contestRepository.delete(contest);
+        log.info("대회 ID = {} 삭제 완료", contest.getId());
     }
 }

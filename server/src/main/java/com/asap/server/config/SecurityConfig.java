@@ -79,19 +79,23 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/mail",
-                                "/api/auth/mail/send", "/api/auth/sms/send", "/api/auth/sms/verify")
+                                "/api/auth/mail/send", "/api/auth/sms/send", "/api/auth/sms/verify",
+                                "/api/auth/refresh")
                         .permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/contests", "/api/contests/**").permitAll()
                         .requestMatchers("/api/contests/*/resources/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/contests", "/api/contests/create").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/contests", "/api/contests/create", "/api/contests/validate").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/contests/**", "/api/contests/*/resources/**")
                         .authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/contests/**", "/api/contests/*/resources/**")
                         .authenticated()
-                        .requestMatchers("/api/auth/logout", "/api/auth/logout-all", "/api/auth/refresh",
-                                "/api/auth/withdraw")
+                        .requestMatchers("/api/auth/logout", "/api/auth/logout-all", "/api/auth/withdraw")
                         .authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/profile/me").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/profile/me").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/payment/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/code/submission/**").authenticated()
                         .anyRequest().permitAll())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.asap.server.domain.RefreshTokenMeta;
 import com.asap.server.dto.request.EmailResendRequest;
 import com.asap.server.dto.request.EmailVerifyRequest;
 import com.asap.server.dto.request.LoginRequest;
@@ -71,7 +72,7 @@ public class AuthController {
             @AuthenticationPrincipal Long userId,
             @RequestHeader(value = "X-Session-Id") String sessionId) {
         String accessToken = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
-        authService.logout(accessToken, sessionId);
+        authService.logout(userId, accessToken, sessionId);
         return ResponseEntity.ok("로그아웃되었습니다.");
     }
 
@@ -87,9 +88,8 @@ public class AuthController {
     public ResponseEntity<TokenRefreshResponse> refreshToken(
             @RequestBody com.asap.server.dto.request.TokenRefreshRequest request) {
         String newRefreshToken = tokenService.rotateRefreshToken(request.getRefreshToken(), "", "");
-        String newAccessToken = tokenService.issueAccessToken(
-                tokenService.validateAndGetRefreshTokenMeta(newRefreshToken).getUserId(),
-                tokenService.validateAndGetRefreshTokenMeta(newRefreshToken).getEmail());
+        RefreshTokenMeta meta = tokenService.validateAndGetRefreshTokenMeta(newRefreshToken);
+        String newAccessToken = tokenService.issueAccessToken(meta.getUserId(), meta.getEmail());
         return ResponseEntity.ok(TokenRefreshResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)

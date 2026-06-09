@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +37,7 @@ import com.asap.server.repository.CodeBattleMatchRepository;
 import com.asap.server.repository.CodeBattleParticipantRepository;
 import com.asap.server.repository.CodeBattleSubmissionRepository;
 import com.asap.server.repository.usersRepository;
+import com.asap.server.service.S3Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,13 +50,20 @@ class CodeControllerTest {
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 
-    @Mock private usersRepository userRepository;
-    @Mock private CodeBattleExampleAIRepository exampleAIRepository;
-    @Mock private CodeBattleMatchRepository matchRepository;
-    @Mock private CodeBattleContestRepository contestRepository;
-    @Mock private CodeBattleSubmissionRepository submissionRepository;
-    @Mock private CodeBattleParticipantRepository participantRepository;
-
+    @Mock
+    private usersRepository userRepository;
+    @Mock
+    private CodeBattleExampleAIRepository exampleAIRepository;
+    @Mock
+    private CodeBattleMatchRepository matchRepository;
+    @Mock
+    private CodeBattleContestRepository contestRepository;
+    @Mock
+    private CodeBattleSubmissionRepository submissionRepository;
+    @Mock
+    private CodeBattleParticipantRepository participantRepository;
+    @Mock
+    private S3Service s3Service;
     @InjectMocks
     private CodeController codeController;
 
@@ -71,7 +80,7 @@ class CodeControllerTest {
 
         testContest = CodeBattleContest.create(
                 "Test Contest", "Description", ContestStatus.TEST,
-                false, 3, 256, "int main(){return 0;}", 10,
+                false, 3, 256, "int main(){return 0;}", Language.CPP, 10,
                 null, null, null, null, testUser);
     }
 
@@ -91,14 +100,14 @@ class CodeControllerTest {
         when(userRepository.getReferenceById(1L)).thenReturn(aiUser);
         when(participantRepository.findByUserIdAndContestId(anyLong(), any())).thenReturn(Optional.empty());
 
-        CodeSubmitRequest request = buildSubmitRequest("1", "2", Language.CPP, "int main(){return 0;}");
+        CodeSubmitRequest request = buildSubmitRequest(1L, 2L, Language.CPP, "int main(){return 0;}");
 
         ResponseEntity<CodeSubmitResponse> response = codeController.submitBattle(request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().isSuccess()).isTrue();
-        verify(submissionRepository).save(any());
+        verify(submissionRepository, times(2)).save(any());
         verify(matchRepository).save(any());
         verify(redisTemplate.opsForList()).leftPush(anyString(), anyString());
     }
@@ -108,7 +117,7 @@ class CodeControllerTest {
     void submitBattle_contestNotFound() {
         when(contestRepository.findById(999L)).thenReturn(Optional.empty());
 
-        CodeSubmitRequest request = buildSubmitRequest("999", "2", Language.CPP, "int main(){return 0;}");
+        CodeSubmitRequest request = buildSubmitRequest(999L, 2L, Language.CPP, "int main(){return 0;}");
 
         ResponseEntity<CodeSubmitResponse> response = codeController.submitBattle(request);
 
@@ -123,7 +132,7 @@ class CodeControllerTest {
         when(contestRepository.findById(1L)).thenReturn(Optional.of(testContest));
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
 
-        CodeSubmitRequest request = buildSubmitRequest("1", "999", Language.CPP, "int main(){return 0;}");
+        CodeSubmitRequest request = buildSubmitRequest(1L, 999L, Language.CPP, "int main(){return 0;}");
 
         ResponseEntity<CodeSubmitResponse> response = codeController.submitBattle(request);
 
@@ -139,7 +148,7 @@ class CodeControllerTest {
         when(userRepository.findById(2L)).thenReturn(Optional.of(testUser));
         when(exampleAIRepository.findByContestIdOrderByExampleOrderAsc(any())).thenReturn(List.of());
 
-        CodeSubmitRequest request = buildSubmitRequest("1", "2", Language.CPP, "int main(){return 0;}");
+        CodeSubmitRequest request = buildSubmitRequest(1L, 2L, Language.CPP, "int main(){return 0;}");
 
         ResponseEntity<CodeSubmitResponse> response = codeController.submitBattle(request);
 
@@ -153,7 +162,7 @@ class CodeControllerTest {
     // ─────────────────────────────────────────────────────────────
 
     private CodeSubmitRequest buildSubmitRequest(
-            String problemId, String userId, Language language, String sourceCode) {
+            Long problemId, Long userId, Language language, String sourceCode) {
         CodeSubmitRequest req = new CodeSubmitRequest();
         req.setProblemId(problemId);
         req.setUserId(userId);

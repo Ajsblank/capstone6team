@@ -185,19 +185,154 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
 
     private void processTestResult(String rawData) throws JsonProcessingException {
         try {
-            log.info("❌ 검수 결과 처리 Log \n {}", rawData);
+            log.info("🔍 검증 결과 처리 Log \n {}", rawData);
 
             JsonNode rootNode = objectMapper.readTree(rawData);
-
-            // 채점 서버가 보내주는 데이터 타입에 맞게 파싱 방법을 선택하세요 (String vs Long)
             String userIdStr = rootNode.get("userId").asText();
             Long targetUserId = Long.parseLong(userIdStr);
-
             String resultLog = rootNode.get("log").asText();
 
-            sseService.sendToUser(targetUserId, resultLog, "test_result");
+            String pendingKey = "validate:" + targetUserId + ":pending";
+            String labelsKey = "validate:" + targetUserId + ":labels";
+            String resultsKey = "validate:" + targetUserId + ":results";
+            String probeTypesKey = "validate:" + targetUserId + ":probe_types";
+            String queuedJobsKey = "validate:" + targetUserId + ":queued_jobs";
 
-            log.info("🎯 유저(ID: {})에게 SSE 로그 전송 완료 완료", targetUserId);
+            // 검증 요청인지 확인 (pendingKey 존재 여부로 판단)
+            if (Boolean.FALSE.equals(redisTemplate.hasKey(pendingKey))) {
+                sseService.sendToUser(targetUserId, resultLog, "test_result");
+                log.info("🎯 유저(ID: {}) 검수자 결과 SSE 전송 완료", targetUserId);
+                return;
+            }
+
+            String jobId = rootNode.has("jobId") ? rootNode.get("jobId").asText() : "unknown";
+
+            // ── Phase 1: smoke test 결과 처리 ────────────────────────────────
+            if (jobId.endsWith("_smoke")) {
+                int exitCode = rootNode.has("exitCode") ? rootNode.get("exitCode").asInt(-1) : -1;
+                if (!isSmokeTestPassed(resultLog, exitCode)) {
+                    // judge 무한루프 또는 컴파일 에러 → 즉시 실패 SSE
+                    java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+                    result.put("passed", false);
+                    result.put("details", java.util.List.of(java.util.Map.of(
+                            "target", "Judge 사전 검증",
+                            "log", resultLog,
+                            "passed", false,
+                            "reason", smokeFailReason(resultLog, exitCode))));
+                    sseService.sendToUser(targetUserId, result, "validate_result");
+                    log.warn("🚫 [검증] userId={} judge smoke test 실패: '{}'", targetUserId, resultLog.trim());
+                    redisTemplate
+                            .delete(java.util.List.of(pendingKey, labelsKey, resultsKey, probeTypesKey, queuedJobsKey));
+                } else {
+                    // judge 정상 → Phase 2: 실제 검증 잡 전체 제출
+                    java.util.List<String> jobs = redisTemplate.opsForList().range(queuedJobsKey, 0, -1);
+                    redisTemplate.delete(queuedJobsKey);
+
+                    if (jobs == null || jobs.isEmpty()) {
+                        // queued_jobs 만료/소실 → 데드락 방지: 즉시 실패 SSE 후 키 정리
+                        log.warn("⚠️ [검증] userId={} queued_jobs 소실 → 실패 처리", targetUserId);
+                        java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+                        result.put("passed", false);
+                        result.put("details", java.util.List.of(java.util.Map.of(
+                                "target", "Judge 사전 검증",
+                                "log", "",
+                                "passed", false,
+                                "reason", "검증 대기 목록이 만료되었습니다. 다시 시도해주세요.")));
+                        sseService.sendToUser(targetUserId, result, "validate_result");
+                        redisTemplate.delete(java.util.List.of(pendingKey, labelsKey, resultsKey, probeTypesKey));
+                        return;
+                    }
+
+                    log.info("✅ [검증] userId={} judge smoke test 통과 → {}개 잡 제출", targetUserId, jobs.size());
+                    redisTemplate.opsForValue().set(pendingKey, String.valueOf(jobs.size()), 10,
+                            java.util.concurrent.TimeUnit.MINUTES);
+                    redisTemplate.opsForList().leftPushAll("code_battle_test_queue", jobs);
+                }
+                return;
+            }
+            // ── End Phase 1 ──────────────────────────────────────────────────
+
+            // jobId로 결과 저장 (순서 무관)
+            redisTemplate.opsForHash().put(resultsKey, jobId, resultLog);
+
+            Long remaining = redisTemplate.opsForValue().decrement(pendingKey);
+            log.info("[검증] userId={} jobId={} 남은 결과 수={}", targetUserId, jobId, remaining);
+
+            if (remaining != null && remaining <= 0) {
+                // 모든 결과 수집 완료 → jobId 기준으로 label과 매칭하여 SSE 1회 전송
+                java.util.Map<Object, Object> labelMap = redisTemplate.opsForHash().entries(labelsKey);
+                java.util.Map<Object, Object> resultMap = redisTemplate.opsForHash().entries(resultsKey);
+                java.util.Map<Object, Object> probeTypeMap = redisTemplate.opsForHash().entries(probeTypesKey);
+
+                // jobId 정렬 (userId_0, userId_1, ... 순서 보장)
+                java.util.List<String> sortedJobIds = labelMap.keySet().stream()
+                        .map(Object::toString)
+                        .sorted(java.util.Comparator.comparingInt(id -> {
+                            String[] parts = id.split("_");
+                            return Integer.parseInt(parts[parts.length - 1]);
+                        }))
+                        .collect(java.util.stream.Collectors.toList());
+
+                java.util.List<java.util.Map<String, Object>> details = new java.util.ArrayList<>();
+                boolean passed = true;
+
+                for (String jid : sortedJobIds) {
+                    String target = String.valueOf(labelMap.getOrDefault(jid, "알 수 없음"));
+                    String singleLog = String.valueOf(resultMap.getOrDefault(jid, ""));
+
+                    java.util.Map<String, Object> detail = new java.util.LinkedHashMap<>();
+                    String failReason = null;
+
+                    String expectedKeyword = probeTypeMap.containsKey(jid)
+                            ? String.valueOf(probeTypeMap.get(jid))
+                            : null;
+
+                    if (expectedKeyword != null) {
+                        // probe job: 결과 로그에 기대한 에러 키워드가 포함되어야 통과
+                        if (!singleLog.contains(expectedKeyword)) {
+                            failReason = "Judge가 " + probeLabel(expectedKeyword)
+                                    + " 상황을 올바르게 처리하지 못함 (기대 키워드: " + expectedKeyword + ")";
+                        }
+                    } else {
+                        // 일반 job: 정상 결과 포맷 검증
+                        if (singleLog.contains("COMPILE_ERROR")) {
+                            failReason = singleLog.trim();
+                        } else if (singleLog.isBlank()) {
+                            failReason = "Judge 출력 없음 (비정상 종료)";
+                        } else {
+                            String trimmed = singleLog.stripTrailing();
+                            int lastNl = trimmed.lastIndexOf('\n');
+                            String lastLine = (lastNl >= 0 ? trimmed.substring(lastNl + 1) : trimmed).trim();
+                            if (!isValidResultLine(lastLine)) {
+                                failReason = "Judge 런타임 오류";
+                            }
+                        }
+                    }
+
+                    detail.put("target", target);
+                    detail.put("log", singleLog);
+                    if (failReason != null) {
+                        detail.put("passed", false);
+                        detail.put("reason", failReason);
+                        passed = false;
+                    } else {
+                        detail.put("passed", true);
+                    }
+                    details.add(detail);
+                }
+
+                java.util.Map<String, Object> result = new java.util.LinkedHashMap<>();
+                result.put("passed", passed);
+                result.put("details", details);
+
+                sseService.sendToUser(targetUserId, result, "validate_result");
+                log.info("🎯 유저(ID: {}) 검증 완료 SSE 전송 (passed={})", targetUserId, passed);
+
+                redisTemplate.delete(pendingKey);
+                redisTemplate.delete(labelsKey);
+                redisTemplate.delete(resultsKey);
+                redisTemplate.delete(probeTypesKey);
+            }
 
         } catch (JsonProcessingException e) {
             log.error("Redis 메시지 JSON 파싱 실패: {}", rawData, e);
@@ -206,6 +341,51 @@ public class RedisResultWorker implements CommandLineRunner, DisposableBean {
         } catch (Exception e) {
             log.error("결과 처리 중 알 수 없는 오류 발생", e);
         }
+    }
+
+    private static final java.util.Set<String> VALID_RESULTS = java.util.Set.of(
+            "WIN", "LOSE", "NONE", "TIME_LIMIT", "MEMORY_LIMIT", "RUNTIME_ERROR", "COMPILE_ERROR");
+
+    private boolean isValidResultLine(String line) {
+        String[] parts = line.split("\\s+");
+        if (parts.length != 2)
+            return false;
+        return VALID_RESULTS.contains(parts[0]) && VALID_RESULTS.contains(parts[1]);
+    }
+
+    private String probeLabel(String keyword) {
+        return switch (keyword) {
+            case "RUNTIME_ERROR" -> "런타임 에러";
+            case "COMPILE_ERROR" -> "컴파일 에러";
+            case "TIME_LIMIT" -> "시간 초과";
+            default -> keyword;
+        };
+    }
+
+    /**
+     * smoke test 통과 여부.
+     * exitCode == 124 → 타임아웃(SIGTERM), exitCode == 137 → SIGKILL (timeout -k 5s
+     * 이후).
+     */
+    private boolean isSmokeTestPassed(String log, int exitCode) {
+        if (exitCode == 124 || exitCode == 137)
+            return false; // 타임아웃 = 무한루프
+        if (log == null || log.isBlank())
+            return false; // 출력 없음 = 비정상 종료
+        String trimmed = log.stripTrailing();
+        int lastNl = trimmed.lastIndexOf('\n');
+        String lastLine = (lastNl >= 0 ? trimmed.substring(lastNl + 1) : trimmed).trim();
+        return isValidResultLine(lastLine); // 유효한 결과 포맷이어야 통과
+    }
+
+    private String smokeFailReason(String log, int exitCode) {
+        if (exitCode == 124 || exitCode == 137)
+            return "Judge에 무한루프가 감지되었습니다";
+        if (log == null || log.isBlank())
+            return "Judge 출력 없음 (비정상 종료)";
+        if (log.contains("COMPILE_ERROR"))
+            return "Judge 컴파일 오류";
+        return "Judge 실행 오류";
     }
 
     private void handleFailure(String rawData, Exception e) {
