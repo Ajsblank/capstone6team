@@ -1,0 +1,160 @@
+/* BattleSubmitPage — White / Orange Theme */
+
+.submit-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;   /* 모바일 주소창 등 동적 뷰포트 대응 */
+  background: #ffffff;
+  overflow: hidden;
+  position: relative;
+}
+
+.submit-page::before {
+  content: '';
+  position: fixed;
+  top: 0; right: 0;
+  width: 44vmin; height: 44vmin;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  background: radial-gradient(ellipse at 100% 0%,
+    rgba(234, 88, 12, 0.15) 0%,
+    rgba(234, 88, 12, 0.05) 45%,
+    transparent 68%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* home-page::before 삼각형 비활성화 — submit-page::before로 대체 */
+.submit-page.home-page::before { display: none; }
+
+/* ── 문제 제목 바 ── */
+.sp-problem-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  height: 48px;
+  background: #fff7ed;
+  border-bottom: 1px solid #fed7aa;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 90;
+}
+
+.sp-back-btn {
+  background: none;
+  border: none;
+  color: #7e8694;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  font-weight: 500;
+  padding: 0;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.sp-back-btn:hover { color: #ea580c; }
+
+.sp-problem-bar-divider {
+  display: inline-block;
+  width: 1px;
+  height: 14px;
+  background: #e5e7eb;
+  margin: 0 16px;
+  flex-shrink: 0;
+}
+
+.sp-problem-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #c2410c;
+  letter-spacing: -0.01em;
+}
+
+/* ── 서브탭 바 ── */
+.sp-sub-tab-bar {
+  display: flex;
+  align-items: stretch;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.97);
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  padding: 0 16px;
+  gap: 2px;
+  position: relative;
+  z-index: 90;
+}
+
+.sp-sub-tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #4b5563;
+  font-size: 0.88rem;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  padding: 0 14px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  height: 100%;
+}
+.sp-sub-tab-btn:hover { color: #111827; }
+.sp-sub-tab-btn--active { color: #ea580c; border-bottom-color: #ea580c; font-weight: 600; }
+.sp-sub-tab-btn--disabled { opacity: 0.38; cursor: not-allowed; }
+.sp-sub-tab-btn--disabled:hover { color: #4b5563; }
+.sp-sub-tab-btn--unavailable { color: #f97316; opacity: 0.45; cursor: not-allowed; }
+.sp-sub-tab-btn--unavailable:hover { color: #f97316; }
+
+.page-body {
+  flex: 1; overflow: hidden;
+  display: flex; flex-direction: column;
+  position: relative; z-index: 1;
+}
+
+.full-panel { flex: 1; overflow: hidden; }
+
+.placeholder-panel {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+}
+.placeholder-text { font-size: 1rem; color: #7e8694; font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif; }
+
+.code-submit-panel {
+  flex: 1; display: flex;
+  padding: 20px 60px; overflow: hidden; box-sizing: border-box;
+}
+
+.editor-panel {
+  display: flex; flex-direction: column;
+  flex: 1; overflow: hidden;
+  border-radius: 8px; border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+/* ══ 대회 상세 페이지 모바일 반응형 ══ */
+@media (max-width: 768px) {
+  /* 문제 제목 바 좌우 패딩 축소 */
+  .sp-problem-bar {
+    padding: 0 16px;
+  }
+
+  /* 서브탭 바 — 4개씩 2행으로 감싸기 (탭 8개 전부 한눈에 표시) */
+  .sp-sub-tab-bar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 2px 0 0;
+    gap: 0;
+  }
+  .sp-sub-tab-btn {
+    flex: 1 1 25%;   /* 4개씩 한 줄 */
+    min-width: 0;
+    height: 36px;
+    padding: 0 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  /* 코드 제출 패널 패딩 축소 */
+  .code-submit-panel {
+    padding: 16px;
+  }
+}
+

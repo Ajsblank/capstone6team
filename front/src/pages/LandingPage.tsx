@@ -1,0 +1,104 @@
+import React, { useState, useEffect } from "react";
+import { useApp } from "../context/AppContext";
+import ProfileBadge from "../components/ProfileBadge";
+import ResponsiveNavMenu from "../components/ResponsiveNavMenu";
+import "./LandingPage.css";
+
+const BATTLE_FEATURES = [
+  {
+    icon: "🤖", title: "AI 실시간 대결",
+    desc: "단순히 정답을 맞히는 게 아닙니다. 여러분의 코드가 상대방이 작성한 AI 코드와 직접 맞붙습니다. 매 턴마다 최선의 전략을 구사해 AI의 알고리즘을 압도하세요.",
+    bullets: ["다양한 전략의 AI 봇 대전 상대", "대회별 고유한 규칙 및 승리 조건", "시각화 플레이 지원", "혼자서 플레이 모드 (솔로 연습)"],
+  },  
+  {
+    icon: "📊", title: "실시간 리더보드",
+    desc: "제출할 때마다 순위가 즉시 갱신됩니다. 승리 횟수, 점수, 효율성이 복합 반영되며 상위 랭커의 코드는 대회 종료 후 공개됩니다.",
+    bullets: ["실시간 순위 갱신 (제출 즉시 반영)", "승리 횟수 / 점수 / 효율성 복합 산정", "상위 참가자 코드 열람 (대회 종료 후)", "제출 횟수 제한 없음"],
+  },
+  {
+    icon: "🔧", title: "대회 직접 개최",
+    desc: "누구나 대회를 설계하고 운영할 수 있습니다. 자신만의 채점 로직과 시각화 HTML을 업로드해 독창적인 코딩 배틀을 선보여보세요.",
+    bullets: ["커스텀 채점 코드 업로드 (C++ / Java / Python)", "실시간 시각화 HTML 파일 지원", "참가자 수 / 시작·종료 일정 자유 설정"],
+  },
+];
+
+
+const LandingPage: React.FC = () => {
+  const { user, logout, navigate } = useApp();
+  const [isAtTop, setIsAtTop] = useState(true);
+
+  useEffect(() => {
+    const onScroll = () => setIsAtTop(window.scrollY === 0);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <div className="lp-page">
+
+      {/* ── Header ── */}
+      <header className="lp-header">
+        <span className="lp-logo">
+          <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="lp-logo-img" />
+        </span>
+        <nav className="lp-nav">
+          <button className="lp-nav-btn" onClick={() => navigate("battle")}>대회</button>
+          <button className="lp-nav-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/previous-problems"; }}>이전 문제</button>
+          <button className="lp-nav-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/help"; }}>도움말</button>
+          <button className="lp-nav-btn" onClick={() => { navigate("battle"); window.location.hash = "battle/contact"; }}>문의</button>
+        </nav>
+        <div className="lp-auth">
+          {user ? (
+            <>
+              <ProfileBadge avatarClass="lp-avatar" usernameClass="lp-username" />
+              <button className="btn btn-ghost btn-sm" onClick={() => logout()}>로그아웃</button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate("signup")}>회원가입</button>
+              <button className="btn btn-primary btn-sm" onClick={() => { localStorage.setItem("loginRedirect", "landing"); navigate("login"); }}>로그인</button>
+            </>
+          )}
+        </div>
+        <ResponsiveNavMenu tabs={[
+          { label: "대회",      onClick: () => navigate("battle") },
+          { label: "이전 문제", onClick: () => { navigate("battle"); window.location.hash = "battle/previous-problems"; } },
+          { label: "도움말",    onClick: () => { navigate("battle"); window.location.hash = "battle/help"; } },
+          { label: "문의",      onClick: () => { navigate("battle"); window.location.hash = "battle/contact"; } },
+        ]} />
+      </header>
+
+      {/* ── CodeBattle Hero ── */}
+      <section className="lp-battle-hero">
+        <div className="lp-battle-hero-inner">
+          <h1 className="lp-battle-title">Tactical Code <br></br>Battle</h1>
+          <p className="lp-battle-subtitle">나의 코드로 상대의 코드를 상대하는 코드 대결 — 나만의 전략으로 정상을 노려라</p>
+          <button className="lp-battle-cta" onClick={() => navigate("battle")}>
+            시작하기 
+          </button>
+        </div>
+        <div className={`lp-scroll-hint${isAtTop ? "" : " lp-scroll-hint--hidden"}`}>스크롤하여 더 알아보기</div>
+      </section>
+
+      {/* ── CodeBattle Features (수직 배치) ── */}
+      <section className="lp-battle-features">
+        <div className="lp-features-inner">
+          {BATTLE_FEATURES.map(({title, desc, bullets }, i) => (
+            <div key={title} className={`lp-bf-row${i % 2 === 1 ? " lp-bf-row--reverse" : ""}`}>
+              <div className="lp-bf-content">
+                <h3 className="lp-bf-title">{title}</h3>
+                <p className="lp-bf-desc">{desc}</p>
+                <ul className="lp-bf-list">
+                  {bullets.map(b => <li key={b}>{b}</li>)}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+    </div>
+  );
+};
+
+export default LandingPage;

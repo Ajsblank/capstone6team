@@ -1,0 +1,344 @@
+.fr-container {
+  padding: 24px 32px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.fr-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.fr-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.fr-meta {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ea580c;
+  letter-spacing: -0.01em;
+}
+
+.fr-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  padding: 32px;
+}
+
+.fr-notice p {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  max-width: 480px;
+  margin: 0;
+}
+
+.fr-notice-date {
+  font-weight: 700;
+  color: #111827;
+}
+
+.fr-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+.fr-empty--error { color: #dc2626; }
+
+/* ── 순위 카드 목록 ── */
+.fr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fr-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.fr-card--rank1 { border-color: #f59e0b; background: #fffbf0; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06); }
+.fr-card--rank2 { border-color: #d1d5db; background: #fafbfc; box-shadow: 0 0 0 3px rgba(209, 213, 219, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06); }
+.fr-card--rank3 { border-color: #cd7f32; background: #fef8f1; box-shadow: 0 0 0 3px rgba(205, 127, 50, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06); }
+
+/* ── 순위 영역 ── */
+.fr-rank {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.fr-card--rank1 .fr-rank { background: #fef3c7; border-color: #fcd34d; }
+.fr-card--rank2 .fr-rank { background: #f3f4f6; border-color: #d1d5db; }
+.fr-card--rank3 .fr-rank { background: #fef3f2; border-color: #fecaca; }
+
+
+.fr-medal    { font-size: 1.8rem; line-height: 1; }
+.fr-rank-num {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #9ca3af;
+  letter-spacing: -0.02em;
+}
+
+.fr-card--rank1 .fr-rank-num {
+  color: #f59e0b;
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.6), 0 0 20px rgba(245, 158, 11, 0.3);
+}
+.fr-card--rank2 .fr-rank-num {
+  color: #9ca3af;
+  text-shadow: 0 0 10px rgba(156, 163, 175, 0.6), 0 0 20px rgba(156, 163, 175, 0.3);
+}
+.fr-card--rank3 .fr-rank-num {
+  color: #cd7f32;
+  text-shadow: 0 0 10px rgba(205, 127, 50, 0.6), 0 0 20px rgba(205, 127, 50, 0.3);
+}
+
+/* ── 유저 정보 ── */
+.fr-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fr-user-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.fr-nick-tag { color: #9ca3af; font-weight: 400; }
+
+.fr-me-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: #d1fae5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.fr-record {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+.fr-wins   { color: #16a34a; font-weight: 700; }
+.fr-draws  { color: #f59e0b; font-weight: 700; }
+.fr-losses { color: #dc2626; font-weight: 700; }
+.fr-total  { color: #9ca3af; }
+
+/* ── 승점 ── */
+.fr-points {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 10px 14px;
+  width: 70px;
+}
+
+
+.fr-points-num {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #111827;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-family: 'Courier New', monospace;
+  min-width: 40px;
+  text-align: center;
+}
+
+.fr-card--rank1 .fr-points-num { color: #f59e0b; }
+.fr-card--rank2 .fr-points-num { color: #9ca3af; }
+.fr-card--rank3 .fr-points-num { color: #cd7f32; }
+
+.fr-points-label {
+  font-size: 0.6rem;
+  color: #9ca3af;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── 자세히 보기 버튼 ── */
+.fr-detail-btn {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.fr-detail-btn:hover        { background: #f3f4f6; color: #374151; border-color: #16a34a; }
+.fr-detail-btn--open        { color: #16a34a; border-color: #16a34a; background: #f0fdf4; }
+
+/* ── 카드 래퍼 (카드 + 상세 패널 묶음) ── */
+.fr-card-wrap { display: flex; flex-direction: column; }
+
+.fr-card--expanded {
+  border-radius: 12px 12px 0 0;
+  border-bottom-color: transparent !important;
+}
+
+.fr-card:hover {
+  border-color: #16a34a !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1), 0 4px 12px rgba(22, 163, 74, 0.1) !important;
+  background: #fafbf9 !important;
+}
+
+/* ── 상세 패널 ── */
+.fr-detail-panel {
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fr-match-heading {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #6b7280;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ── 매치 ID 목록 ── */
+.fr-match-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fr-match-pill {
+  padding: 6px 14px;
+  border-radius: 99px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.fr-match-pill:hover           { background: #f3f4f6; color: #374151; border-color: #16a34a; }
+.fr-match-pill--active         { background: #f0fdf4; color: #16a34a; border-color: #16a34a; }
+
+/* ── 로그 상태 메시지 ── */
+.fr-log-status { font-size: 0.82rem; color: #6b7280; }
+.fr-log-status--error { color: #dc2626; }
+
+/* ── 로그 섹션 ── */
+.fr-log-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fr-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fr-log-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.fr-go-viz-btn {
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1px solid #fde047;
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.fr-go-viz-btn:hover { background: #fef08a; }
+
+/* ── 모바일 힌트 텍스트 ── */
+.fr-mobile-hint {
+  text-align: right;
+  font-size: 0.72rem;
+  color: #c8c8d0;
+  padding: 0 0 6px;
+}
+
+/* ── 모바일 카드 클릭 커서 ── */
+.fr-card--mobile-clickable {
+  cursor: pointer;
+}
+
+/* ── 로그 텍스트 ── */
+.fr-log-text {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.73rem;
+  color: #4b5563;
+  line-height: 1.65;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+}

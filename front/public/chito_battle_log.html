@@ -18,6 +18,15 @@
       user-select: none;
     }
 
+    #main-wrapper {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      align-items: flex-start;
+      justify-content: center;
+      width: 100%;
+    }
+
     #game-app {
       width: 800px;
       height: 500px;
@@ -53,6 +62,64 @@
     }
     .btn:active { transform: translate(2px, 2px); box-shadow: none; }
     .btn:disabled { background: #555; cursor: not-allowed; }
+
+    /* 업로드 텍스트 입력 */
+    #log-text-area {
+      width: 500px;
+      height: 110px;
+      background: #1a1a1a;
+      border: 2px solid #555;
+      color: #ccc;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 8px;
+      border-radius: 5px;
+      resize: vertical;
+      box-sizing: border-box;
+      margin-top: 8px;
+    }
+    #log-text-area:focus { border-color: #d4af37; outline: none; }
+
+    /* 배틀 행동 표시 */
+    #battle-action-display {
+      position: absolute;
+      top: 54px;
+      left: 0;
+      right: 0;
+      z-index: 30;
+      padding: 3px 8px;
+      display: flex;
+      gap: 6px;
+      align-items: stretch;
+    }
+    .battle-action-box {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.78);
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: bold;
+      border-radius: 4px;
+      min-height: 22px;
+    }
+    :root {
+      /* 행동 종류별 강조 색상 — callout 및 action box 공통 */
+      --color-move:   #1620cc;
+      --color-defend: #f1c40f;
+      --color-heal:   #2ecc71;
+      --color-attack: #e74c3c;
+      /* 플레이어 대표 색 */
+      --color-p1: #e74c3c;
+      --color-p2: #3498db;
+      /* callout 폴백 색상 (알 수 없는 카드 타입) */
+      --color-callout-fallback: #fff;
+    }
+
+    #battle-p1-action { border: 1px solid rgba(231, 76, 60, 0.7); color: #fff; }
+    #battle-p2-action { border: 1px solid rgba(52, 152, 219, 0.7); color: #fff; text-align: right; }
+    .action-move   { color: var(--color-move)   !important; }
+    .action-defend { color: var(--color-defend) !important; }
+    .action-heal   { color: var(--color-heal)   !important; }
+    .action-attack { color: var(--color-attack) !important; }
 
     /* 업로드 화면 */
     #screen-upload {
@@ -203,33 +270,48 @@
       border: 1px solid #555;
     }
 
+    .bar-text {
+      position: absolute;
+      top: 0;
+      font-size: 11px;
+      font-weight: bold;
+      line-height: 12px;
+      color: #fff;
+      text-shadow: 1px 1px 0 #000;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .bar-text--left  { left: 3px; }
+    .bar-text--right { right: 3px; }
+
     .bar-fill.hp { background: red; height: 100%; width: 100%; transition: 0.3s; }
     .bar-fill.en { background: #1e90ff; height: 100%; width: 100%; transition: 0.3s; }
 
     #battle-log {
       position: absolute;
-      top: 60px;
+      top: 88px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 0, 0, 0.8);
       color: #fff;
-      padding: 10px 20px;
+      padding: 5px 16px;
       border-radius: 5px;
       font-weight: bold;
       text-align: center;
       z-index: 30;
-      min-width: 300px;
+      min-width: 260px;
+      font-size: 13px;
       transition: 0.2s;
       border: 1px solid #d4af37;
     }
 
     .battle-container {
       position: absolute;
-      bottom: 30px;
+      bottom: 10px;
       left: 50%;
       transform: translateX(-50%);
       width: 720px;
-      height: 300px;
+      height: 285px;
     }
 
     .battle-grid {
@@ -250,6 +332,13 @@
       position: relative;
     }
 
+    .tile-POWER     { background: rgba(255, 100,   0, 0.45) !important; border: 2px solid #ff6600; }
+    .tile-HP_FLUX   { background: rgba(  0, 220, 100, 0.45) !important; border: 2px solid #00dc64; }
+    .tile-MANA_FLUX { background: rgba( 30, 120, 255, 0.45) !important; border: 2px solid #1e78ff; }
+    .tile-CHAOS     { background: rgba(160,   0, 200, 0.45) !important; border: 2px solid #c800ff; }
+    .tile-LOCK      { background: rgba( 20,  20,  20, 0.85) !important; border: 2px solid #555; }
+    .tile-LINK      { background: rgba(255, 165,   0, 0.45) !important; border: 2px solid #ffa500; }
+
     .b-char {
       position: absolute;
       width: 70px;
@@ -268,6 +357,14 @@
     }
 
     #b-char-p2 { background: #3498db; }
+    #b-char-p1 {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      overflow: visible !important;
+    }
 
     .hit-effect {
       position: absolute;
@@ -294,20 +391,30 @@
       padding: 6px 14px;
     }
 
+    .action-callout {
+      position: absolute;
+      z-index: 200;
+      pointer-events: none;
+      font-size: 13px;
+      font-weight: bold;
+      white-space: nowrap;
+      transform-origin: center center;
+    }
+
     /* 로그 패널 */
     #log-panel {
-      width: 800px;
+      width: 400px;
       min-height: 200px;
       background: #1a1a1a;
       border: 2px solid #555;
-      margin-top: 20px;
+      margin-top: 0;
       padding: 10px;
       overflow-y: auto;
       font-family: monospace;
-      font-size: 13px;
+      font-size: 12px;
       box-sizing: border-box;
       border-radius: 5px;
-      max-height: 350px;
+      height: 500px;
     }
 
     .log-line {
@@ -336,6 +443,8 @@
       font-weight: bold;
     }
 
+    .log-line.tile-line { color: #ff9944; }
+
     .log-text { flex: 1; word-break: break-all; }
 
     .replay-btn {
@@ -355,6 +464,7 @@
 </head>
 <body>
 
+  <div id="main-wrapper">
   <div id="game-app">
     <!-- 업로드 화면 -->
     <div id="screen-upload">
@@ -365,6 +475,9 @@
         <div>.txt / .log 파일을 드래그&드롭하거나<br>클릭하여 업로드하세요</div>
       </div>
       <input type="file" id="file-input" accept=".txt,.log" onchange="onFileSelect(event)">
+      <div style="color:#888; font-size:12px; margin-top:12px;">또는 로그 텍스트를 직접 붙여넣기:</div>
+      <textarea id="log-text-area" placeholder="로그 텍스트를 여기에 붙여넣으세요..."></textarea>
+      <button class="btn" style="margin-top:8px; font-size:13px; padding:7px 18px;" onclick="analyzeTextInput()">▶ 텍스트 분석</button>
     </div>
 
     <!-- 매치 요약 화면 -->
@@ -391,20 +504,33 @@
     <div id="screen-battle" class="hidden">
       <div class="top-bars">
         <div class="bar-group">
-          <div style="color:#fff; font-weight:bold; font-size:12px; margin-bottom:2px;">
-            P1 HP <span id="b-p1-hp-text"></span> / EN <span id="b-p1-en-text"></span>
+          <div style="color:var(--color-p1); font-weight:bold; font-size:12px; margin-bottom:2px;">P1</div>
+          <div class="bar">
+            <div class="bar-fill hp" id="b-p1-hp"></div>
+            <span class="bar-text bar-text--left" id="b-p1-hp-text"></span>
           </div>
-          <div class="bar"><div class="bar-fill hp" id="b-p1-hp"></div></div>
-          <div class="bar"><div class="bar-fill en" id="b-p1-en"></div></div>
+          <div class="bar">
+            <div class="bar-fill en" id="b-p1-en"></div>
+            <span class="bar-text bar-text--left" id="b-p1-en-text"></span>
+          </div>
         </div>
         <div style="color:#d4af37; font-weight:bold; font-size:18px;" id="battle-round-text">ROUND 1</div>
         <div class="bar-group" style="text-align:right;">
-          <div style="color:#fff; font-weight:bold; font-size:12px; margin-bottom:2px;">
-            P2 HP <span id="b-p2-hp-text"></span> / EN <span id="b-p2-en-text"></span>
+          <div style="color:var(--color-p2); font-weight:bold; font-size:12px; margin-bottom:2px;">P2</div>
+          <div class="bar">
+            <div class="bar-fill hp" id="b-p2-hp"></div>
+            <span class="bar-text bar-text--right" id="b-p2-hp-text"></span>
           </div>
-          <div class="bar"><div class="bar-fill hp" id="b-p2-hp"></div></div>
-          <div class="bar"><div class="bar-fill en" id="b-p2-en"></div></div>
+          <div class="bar">
+            <div class="bar-fill en" id="b-p2-en"></div>
+            <span class="bar-text bar-text--right" id="b-p2-en-text"></span>
+          </div>
         </div>
+      </div>
+
+      <div id="battle-action-display">
+        <div id="battle-p1-action" class="battle-action-box">P1: -</div>
+        <div id="battle-p2-action" class="battle-action-box">P2: -</div>
       </div>
 
       <div id="battle-log">배틀 시작!</div>
@@ -417,12 +543,13 @@
 
       <button class="btn battle-back-btn hidden" id="battle-back-btn">← 로그로 돌아가기</button>
     </div>
-  </div>
+  </div><!-- /#game-app -->
 
   <!-- 로그 패널 -->
   <div id="log-panel">
     <div style="color:#888; font-style:italic;">[System] 로그 파일을 업로드하세요...</div>
   </div>
+  </div><!-- /#main-wrapper -->
 
   <script>
     const MAX_HP = 100, MAX_EN = 100;
@@ -503,6 +630,10 @@
       };
       reader.readAsText(file, 'utf-8');
     }
+    function analyzeTextInput() {
+      const text = ($('log-text-area') || {}).value || '';
+      if (text.trim()) parseLog(text.trim());
+    }
 
     // --- 로그 파싱 ---
     function parseLog(rawText) {
@@ -558,6 +689,13 @@
           continue;
         }
 
+        if (line.startsWith('TILE ')) {
+          if (currentRound) {
+            currentRound.tilesNew = parseTileLog(line); // 배열 (LINK는 2개)
+          }
+          continue;
+        }
+
         if (RESULT_PATTERN.test(line)) {
           const parts = line.split(/\s+/);
           parsedData.result = { p1: parts[0], p2: parts[1] };
@@ -578,6 +716,32 @@
       return line.trim().split(/\s+/);
     }
 
+    // parseTileLog → 타일 객체 배열 반환 (LINK 타일은 2개, 나머지는 1개)
+    function parseTileLog(line) {
+      const parts = line.trim().split(/\s+/);
+      const type = parts[1];
+
+      if (type === 'LINK') {
+        // TILE LINK r1 c1 r2 c2 t  (r=행=y, c=열=x)
+        if (parts.length < 7) return [];
+        const t = parseInt(parts[6]);
+        return [
+          { type: 'LINK', x: parseInt(parts[3]), y: parseInt(parts[2]), remainTurn: t },
+          { type: 'LINK', x: parseInt(parts[5]), y: parseInt(parts[4]), remainTurn: t }
+        ];
+      }
+
+      // 일반 타일: TILE type x y val t
+      if (parts.length < 6) return [];
+      return [{
+        type,
+        x: parseInt(parts[2]),
+        y: parseInt(parts[3]),
+        val: parseFloat(parts[4]),
+        remainTurn: parseInt(parts[5])
+      }];
+    }
+
     function normalizeCardId(rawId) {
       // c001_E -> 001_E / c001 -> 001 / DOUBLE_LEFT -> DOUBLE_LEFT
       const m = rawId.match(/^c(\d+)_([A-E])$/);
@@ -587,11 +751,19 @@
       return rawId;
     }
 
+    // 이동 카드를 앞으로 정렬 (제출 순서 내에서 이동 카드 우선 사용 규칙)
+    function sortCardsMovementFirst(cardKeys) {
+      const moves = cardKeys.filter(k => CARDS[k] && CARDS[k].type === 'move');
+      const others = cardKeys.filter(k => !CARDS[k] || CARDS[k].type !== 'move');
+      return [...moves, ...others];
+    }
+
     // --- 게임 시뮬레이션 ---
     function makeInitialState(p1Char, p2Char) {
       return {
         p1: { x:0, y:1, hp:MAX_HP, en:MAX_EN, dir:1,  guard:0, char:p1Char },
-        p2: { x:3, y:1, hp:MAX_HP, en:MAX_EN, dir:-1, guard:0, char:p2Char }
+        p2: { x:3, y:1, hp:MAX_HP, en:MAX_EN, dir:-1, guard:0, char:p2Char },
+        tiles: []
       };
     }
 
@@ -601,30 +773,29 @@
       let gs = makeInitialState(parsedData.p1Char, parsedData.p2Char);
 
       for (let ri = 0; ri < parsedData.rounds.length; ri++) {
-        // 라운드 시작 전 상태 저장
+        // 라운드 시작 전 상태 저장 (타일 포함)
         roundStates.push(JSON.parse(JSON.stringify(gs)));
 
         const rnd = parsedData.rounds[ri];
-        const rawP1Cards = rnd.p1Cards;
-        const rawP2Cards = rnd.p2Cards;
-
-        const p1Actions = rawP1Cards.map(c => normalizeCardId(c));
-        const p2Actions = rawP2Cards.map(c => normalizeCardId(c));
+        const p1Actions = rnd.p1Cards.map(c => normalizeCardId(c));
+        const p2Actions = rnd.p2Cards.map(c => normalizeCardId(c));
 
         // 3턴 실행
         for (let ti = 0; ti < Math.max(p1Actions.length, p2Actions.length, 3); ti++) {
+          // 턴 시작: 타일 remainTurn 감소 및 만료 제거
+          gs.tiles.forEach(t => t.remainTurn--);
+          gs.tiles = gs.tiles.filter(t => t.remainTurn > 0);
+
           const p1Key = p1Actions[ti] || 'GUARD';
           const rawP2Key = p2Actions[ti] || 'GUARD';
-          const p2Key = mirrorCard(rawP2Key);
+          const p2Key = rawP2Key;
 
           const c1 = CARDS[p1Key] || CARDS['GUARD'];
           const c2 = CARDS[p2Key] || CARDS['GUARD'];
 
-          // 마나 소모
           gs.p1.en = Math.max(0, gs.p1.en - c1.mp);
           gs.p2.en = Math.max(0, gs.p2.en - c2.mp);
 
-          // 우선순위 정렬 (큰 숫자 먼저, 같으면 P1 먼저)
           const acts = [
             { card:c1, owner:gs.p1, target:gs.p2, pid:'p1' },
             { card:c2, owner:gs.p2, target:gs.p1, pid:'p2' }
@@ -634,11 +805,19 @@
           gs.p2.guard = 0;
 
           for (const act of acts) {
-            if (gs.p1.hp <= 0 || gs.p2.hp <= 0) break;
             applyAction(act, gs);
           }
 
+          // 턴 내 모든 행동이 끝난 뒤 체력 판별
           if (gs.p1.hp <= 0 || gs.p2.hp <= 0) break;
+        }
+
+        // 라운드 종료: 새 타일 추가 (같은 위치 기존 타일 교체, LINK는 2칸)
+        if (rnd.tilesNew && rnd.tilesNew.length > 0) {
+          for (const nt of rnd.tilesNew) {
+            gs.tiles = gs.tiles.filter(t => !(t.x === nt.x && t.y === nt.y));
+            gs.tiles.push({ ...nt });
+          }
         }
 
         // 라운드 종료: EN 회복
@@ -649,18 +828,27 @@
 
     function applyAction(act, gs) {
       const { card, owner, target } = act;
+      const tiles = gs.tiles || [];
+
+      // HP_FLUX / MANA_FLUX: 해당 타일 위에 있으면 행동 시작 시 효과 적용
+      const hpFlux = tiles.find(t => t.type === 'HP_FLUX'   && t.x === owner.x && t.y === owner.y);
+      const mnFlux = tiles.find(t => t.type === 'MANA_FLUX' && t.x === owner.x && t.y === owner.y);
+      if (hpFlux) owner.hp = Math.max(0, Math.min(MAX_HP, owner.hp + hpFlux.val));
+      if (mnFlux) owner.en = Math.max(0, Math.min(MAX_EN, owner.en + mnFlux.val));
+
       if (card.type === 'move') {
         if (card.id === 'DOUBLE_LEFT' || card.id === 'DOUBLE_RIGHT') {
-          // 두 번 이동
           const dc = (card.id === 'DOUBLE_LEFT') ? -1 : 1;
           for (let step = 0; step < 2; step++) {
-            let nx = owner.x + dc;
-            if (nx >= 0 && nx < GRID_W) owner.x = nx;
+            const nx = owner.x + dc;
+            const lockTile = tiles.find(t => t.type === 'LOCK' && t.x === nx && t.y === owner.y);
+            if (nx >= 0 && nx < GRID_W && !lockTile) owner.x = nx;
           }
         } else {
-          let nx = owner.x + card.dx;
-          let ny = owner.y + card.dy;
-          if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+          const nx = owner.x + card.dx;
+          const ny = owner.y + card.dy;
+          const lockTile = tiles.find(t => t.type === 'LOCK' && t.x === nx && t.y === ny);
+          if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H && !lockTile) {
             owner.x = nx; owner.y = ny;
           }
         }
@@ -671,11 +859,27 @@
         if (card.healMp) owner.en = Math.min(MAX_EN, owner.en + card.healMp);
       } else if (card.type === 'attack') {
         if (!card.range) return;
-        for (const [dx, dy] of card.range) {
+        const powerTile = tiles.find(t => t.type === 'POWER' && t.x === owner.x && t.y === owner.y);
+        const linkTile  = tiles.find(t => t.type === 'LINK'  && t.x === owner.x && t.y === owner.y);
+
+        let range = card.range;
+        if (linkTile) {
+          // LINK: 공격 범위를 +1칸 확장
+          const extended = [];
+          for (const [dx, dy] of range) {
+            extended.push([dx, dy]);
+            extended.push([dx + 1, dy]);
+          }
+          range = extended;
+        }
+
+        for (const [dx, dy] of range) {
           const tx = owner.x + dx * owner.dir;
           const ty = owner.y + dy;
           if (tx === target.x && ty === target.y) {
-            const finalDmg = Math.max(0, card.dmg - target.guard);
+            let dmg = card.dmg;
+            if (powerTile) dmg = Math.floor(dmg * powerTile.val);
+            const finalDmg = Math.max(0, dmg - target.guard);
             target.hp = Math.max(0, target.hp - finalDmg);
             break;
           }
@@ -743,6 +947,9 @@
           const snapStr = JSON.stringify({ roundIdx: rIdx });
           div.innerHTML = `<span class="log-text">${escapeHtml(line)}</span>
             <button class="replay-btn" onclick='replayRound(${rIdx})'>▶ 재생</button>`;
+        } else if (line.startsWith('TILE ')) {
+          div.className = 'log-line tile-line';
+          div.innerHTML = `<span class="log-text">${escapeHtml(line)}</span>`;
         } else if (RESULT_PATTERN.test(line)) {
           div.className = 'log-line result-line';
           div.innerHTML = `<span class="log-text">${escapeHtml(line)}</span>`;
@@ -789,21 +996,25 @@
     }
 
     function renderBattleChars(gs) {
-      const cw = 720 / GRID_W, ch = 300 / GRID_H;
+      const cw = 720 / GRID_W, ch = 285 / GRID_H;
       const p1El = $('b-char-p1'), p2El = $('b-char-p2');
-      p1El.style.left = (gs.p1.x * cw + (cw - 70) / 2) + 'px';
-      p1El.style.top  = (gs.p1.y * ch + (ch - 90) / 2) + 'px';
+      p1El.style.left = (gs.p1.x * cw + cw / 2) + 'px';
+      p1El.style.top  = (gs.p1.y * ch + ch / 2 - 15) + 'px';
       p2El.style.left = (gs.p2.x * cw + (cw - 70) / 2) + 'px';
       p2El.style.top  = (gs.p2.y * ch + (ch - 90) / 2) + 'px';
     }
 
-    function renderGrid() {
+    function renderGrid(tiles) {
       const grid = $('battle-grid');
       grid.innerHTML = '';
+      const tileMap = {};
+      if (tiles) tiles.forEach(t => { tileMap[`${t.x},${t.y}`] = t.type; });
       for (let y = 0; y < GRID_H; y++) {
         for (let x = 0; x < GRID_W; x++) {
           const cell = document.createElement('div');
           cell.className = 'battle-cell';
+          const tType = tileMap[`${x},${y}`];
+          if (tType) cell.classList.add(`tile-${tType}`);
           grid.appendChild(cell);
         }
       }
@@ -811,7 +1022,7 @@
 
     function showHitEffect(cells) {
       const container = document.querySelector('.battle-container');
-      const cw = 720 / GRID_W, ch = 300 / GRID_H;
+      const cw = 720 / GRID_W, ch = 285 / GRID_H;
       cells.forEach(({ x, y }) => {
         const fx = document.createElement('div');
         fx.className = 'hit-effect';
@@ -824,30 +1035,60 @@
       });
     }
 
+    function actionTypeClass(cardKey) {
+      const card = CARDS[cardKey] || CARDS['GUARD'];
+      if (card.type === 'move')   return 'action-move';
+      if (card.type === 'defend') return 'action-defend';
+      if (card.type === 'heal')   return 'action-heal';
+      return 'action-attack';
+    }
+
+    function setActionBox(elId, label, cardKey) {
+      const el = $(elId);
+      if (!el) return;
+      const cls = actionTypeClass(cardKey);
+      el.className = `battle-action-box ${cls}`;
+      el.textContent = label;
+    }
+
+    function clearActionBoxes() {
+      const p1 = $('battle-p1-action'), p2 = $('battle-p2-action');
+      if (p1) { p1.className = 'battle-action-box'; p1.textContent = 'P1: -'; }
+      if (p2) { p2.className = 'battle-action-box'; p2.textContent = 'P2: -'; }
+    }
+
     async function executeBattleReplay(gs, p1Cards, p2Cards, roundNum) {
       const bLog = $('battle-log');
-      renderGrid();
+      if (!gs.tiles) gs.tiles = [];
+      renderGrid(gs.tiles);
       renderBattleChars(gs);
       updateBattleBars(gs);
+      clearActionBoxes();
       bLog.textContent = `ROUND ${roundNum} 재생 시작!`;
       bLog.style.color = '#fff';
-      bLog.style.fontSize = '14px';
       await sleep(800);
 
       for (let ti = 0; ti < Math.max(p1Cards.length, p2Cards.length, 3); ti++) {
         if (gs.p1.hp <= 0 || gs.p2.hp <= 0) break;
 
+        // 턴 시작: 타일 remainTurn 감소 및 만료 제거 후 그리드 갱신
+        gs.tiles.forEach(t => t.remainTurn--);
+        gs.tiles = gs.tiles.filter(t => t.remainTurn > 0);
+        renderGrid(gs.tiles);
+
         const p1Key = p1Cards[ti] || 'GUARD';
-        const rawP2Key = p2Cards[ti] || 'GUARD';
-        const p2Key = mirrorCard(rawP2Key);
+        const p2Key = p2Cards[ti] || 'GUARD';
 
         const c1 = CARDS[p1Key] || CARDS['GUARD'];
         const c2 = CARDS[p2Key] || CARDS['GUARD'];
 
-        bLog.textContent = `행동 ${ti+1}: P1=${c1.name} / P2=${c2.name}`;
+        // 행동 표시: P1/P2 전용 박스에 각각 표시
+        setActionBox('battle-p1-action', `P1: ${c1.name}`, p1Key);
+        setActionBox('battle-p2-action', `P2: ${c2.name}`, p2Key);
+        bLog.textContent = `턴 ${ti + 1}`;
+        bLog.style.color = '#fff';
         await sleep(600);
 
-        // 마나 소모
         gs.p1.en = Math.max(0, gs.p1.en - c1.mp);
         gs.p2.en = Math.max(0, gs.p2.en - c2.mp);
         updateBattleBars(gs);
@@ -861,17 +1102,46 @@
         gs.p2.guard = 0;
 
         for (const act of acts) {
-          if (gs.p1.hp <= 0 || gs.p2.hp <= 0) break;
-
+          await showActionCallout(act.pid, act.card.name, gs, act.card);
           await animateAction(act, gs, bLog);
           renderBattleChars(gs);
           updateBattleBars(gs);
           await sleep(800);
         }
+
+        // 턴 내 모든 행동이 끝난 뒤 체력 판별
+        if (gs.p1.hp <= 0 || gs.p2.hp <= 0) break;
       }
 
-      bLog.textContent = `ROUND ${roundNum} 재생 완료!`;
-      bLog.style.color = '#d4af37';
+      // 라운드 종료: 해당 라운드에서 생성된 특수 타일을 시각적으로 반영
+      const rnd = parsedData && parsedData.rounds[roundNum - 1];
+      if (rnd && rnd.tilesNew && rnd.tilesNew.length > 0) {
+        for (const nt of rnd.tilesNew) {
+          gs.tiles = gs.tiles.filter(t => !(t.x === nt.x && t.y === nt.y));
+          gs.tiles.push({ ...nt });
+        }
+        renderGrid(gs.tiles);
+        clearActionBoxes();
+        bLog.textContent = `특수 타일 생성!`;
+        bLog.style.color = '#ff9944';
+        await sleep(900);
+      }
+
+      clearActionBoxes();
+
+      // 체력 0 판별 → WIN / LOSE 표시
+      if (gs.p1.hp <= 0 || gs.p2.hp <= 0) {
+        let resultMsg = '';
+        if (gs.p1.hp <= 0 && gs.p2.hp <= 0) resultMsg = 'DRAW!';
+        else if (gs.p1.hp <= 0) resultMsg = 'P2 WIN!';
+        else resultMsg = 'P1 WIN!';
+        bLog.textContent = resultMsg;
+        bLog.style.color = '#d4af37';
+        bLog.style.fontSize = '16px';
+      } else {
+        bLog.textContent = `ROUND ${roundNum} 재생 완료!`;
+        bLog.style.color = '#d4af37';
+      }
 
       const backBtn = $('battle-back-btn');
       backBtn.classList.remove('hidden');
@@ -881,62 +1151,278 @@
       };
     }
 
+    // 행동 텍스트 강조 시 색상
+    const _cs = getComputedStyle(document.documentElement);
+    const ACTION_CALLOUT_COLOR = {
+      move:   _cs.getPropertyValue('--color-move').trim(),
+      defend: _cs.getPropertyValue('--color-defend').trim(),
+      heal:   _cs.getPropertyValue('--color-heal').trim(),
+      attack: _cs.getPropertyValue('--color-attack').trim(),
+    };
+    const CALLOUT_FALLBACK_COLOR = _cs.getPropertyValue('--color-callout-fallback').trim();
+    const PLAYER_COLOR = {
+      p1: _cs.getPropertyValue('--color-p1').trim(),
+      p2: _cs.getPropertyValue('--color-p2').trim(),
+    };
+
+    function showActionCallout(pid, text, gs, card) {
+      const owner = pid === 'p1' ? gs.p1 : gs.p2;
+      const cw = 720 / GRID_W;
+      const ch = 285 / GRID_H;
+      // battle-container: bottom 10px, height 285px → top = 500-10-285 = 205
+      // battle-container: width 720px, 800px 이 중앙 → left = 40
+      const containerTop = 205;
+      const containerLeft = 40;
+      const tileX = containerLeft + owner.x * cw + cw / 2;
+      const tileY = containerTop + owner.y * ch + ch / 2;
+
+      const startX = pid === 'p1' ? 200 : 600;
+      const startY = 64;
+      const color    = ACTION_CALLOUT_COLOR[card?.type] ?? CALLOUT_FALLBACK_COLOR; // ★ 강조 색상: ACTION_CALLOUT_COLOR에서 타입별로 결정
+      const pidColor = PLAYER_COLOR[pid]; // 글자 테두리: 플레이어 대표색
+
+      return new Promise(resolve => {
+        const el = document.createElement('div');
+        el.className = 'action-callout';
+        el.textContent = text;
+        // ★ 초기 색상 (날아가기 시작 시): color + 약한 글로우 + 플레이어 색 글자 테두리
+        el.style.cssText = `left:${startX}px;top:${startY}px;transform:translate(-50%,0) scale(1);color:${color};text-shadow:0 0 6px ${color};opacity:1;transition:none;-webkit-text-stroke:6px ${pidColor};paint-order:stroke fill;`;
+        $('screen-battle').appendChild(el);
+
+        // 다음 프레임에서 트랜지션 시작 (타일로 이동 + 확대)
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          el.style.transition = 'left 0.35s ease-in-out, top 0.35s ease-in-out, transform 0.35s ease-in-out, color 0.35s, text-shadow 0.35s';
+          el.style.left = `${tileX}px`;
+          el.style.top  = `${tileY - 28}px`;
+          el.style.transform = 'translate(-50%,-50%) scale(2.2)'; // 확대 배율 조절
+          el.style.color = color;
+          el.style.textShadow = `0 0 20px ${color}, 0 0 10px ${color}, 0 0 4px #fff`; // 강조 글로우 강도 조절
+        }));
+
+        // 이동 완료 후 페이드아웃
+        setTimeout(() => {
+          el.style.transition = 'opacity 0.25s ease';
+          el.style.opacity = '0';
+          setTimeout(() => { el.remove(); resolve(); }, 260);
+        }, 380);
+      });
+    }
+
     async function animateAction(act, gs, bLog) {
       const { card, owner, target } = act;
       const ownerLabel = owner === gs.p1 ? 'P1' : 'P2';
+      if (owner === gs.p1 && p1Sprite) {
+        if (card.type === 'move' && card.dx !== 0) {
+          p1Sprite.setFacing(card.dx > 0 ? 1 : -1);
+        } else {
+          p1Sprite.setFacing(gs.p2.x > gs.p1.x ? 1 : -1);
+        }
+        p1Sprite.setState(cardToAnim(act.rawKey || card.id));
+      }
+      const actionBoxId = owner === gs.p1 ? 'battle-p1-action' : 'battle-p2-action';
+      const tiles = gs.tiles || [];
+
+      // HP_FLUX / MANA_FLUX 타일 효과 (행동 시작 시 적용)
+      const hpFlux = tiles.find(t => t.type === 'HP_FLUX'   && t.x === owner.x && t.y === owner.y);
+      const mnFlux = tiles.find(t => t.type === 'MANA_FLUX' && t.x === owner.x && t.y === owner.y);
+      if (hpFlux) {
+        owner.hp = Math.max(0, Math.min(MAX_HP, owner.hp + hpFlux.val));
+        bLog.textContent = `${ownerLabel} HP_FLUX! HP ${hpFlux.val > 0 ? '+' : ''}${hpFlux.val}`;
+        updateBattleBars(gs);
+        await sleep(400);
+      }
+      if (mnFlux) {
+        owner.en = Math.max(0, Math.min(MAX_EN, owner.en + mnFlux.val));
+        bLog.textContent = `${ownerLabel} MANA_FLUX! EN ${mnFlux.val > 0 ? '+' : ''}${mnFlux.val}`;
+        updateBattleBars(gs);
+        await sleep(400);
+      }
 
       if (card.type === 'move') {
         if (card.id === 'DOUBLE_LEFT' || card.id === 'DOUBLE_RIGHT') {
           const dc = (card.id === 'DOUBLE_LEFT') ? -1 : 1;
           for (let step = 0; step < 2; step++) {
             const nx = owner.x + dc;
-            if (nx >= 0 && nx < GRID_W) owner.x = nx;
+            const lockTile = tiles.find(t => t.type === 'LOCK' && t.x === nx && t.y === owner.y);
+            if (nx >= 0 && nx < GRID_W && !lockTile) owner.x = nx;
+            else if (lockTile) { bLog.textContent = `${ownerLabel} LOCK 타일에 막힘!`; bLog.style.color = '#aaa'; await sleep(300); }
           }
         } else {
           const nx = owner.x + card.dx;
           const ny = owner.y + card.dy;
-          if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H) {
+          const lockTile = tiles.find(t => t.type === 'LOCK' && t.x === nx && t.y === ny);
+          if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H && !lockTile) {
             owner.x = nx; owner.y = ny;
+          } else if (lockTile) {
+            bLog.textContent = `${ownerLabel} LOCK 타일에 막힘!`;
+            bLog.style.color = '#aaa';
+            await sleep(300);
           }
         }
-        bLog.textContent = `${ownerLabel} ${card.name}!`;
+        setActionBox(actionBoxId, `${ownerLabel}: ${card.name}!`, act.rawKey || card.id);
         renderBattleChars(gs);
         await sleep(300);
       } else if (card.type === 'defend') {
         owner.guard = card.block;
-        bLog.textContent = `${ownerLabel} 방어! (${card.block === 999 ? 'PERFECT' : card.block})`;
+        setActionBox(actionBoxId, `${ownerLabel}: ${card.block === 999 ? 'PERFECT GUARD' : 'GUARD (' + card.block + ')'}`, act.rawKey || card.id);
       } else if (card.type === 'heal') {
         if (card.healHp) owner.hp = Math.min(MAX_HP, owner.hp + card.healHp);
         if (card.healMp) owner.en = Math.min(MAX_EN, owner.en + card.healMp);
-        bLog.textContent = `${ownerLabel} 회복!`;
+        setActionBox(actionBoxId, `${ownerLabel}: ${card.name} 회복!`, act.rawKey || card.id);
         updateBattleBars(gs);
       } else if (card.type === 'attack') {
         if (!card.range) return;
-        bLog.textContent = `${ownerLabel} ${card.name} 공격!`;
+
+        const powerTile = tiles.find(t => t.type === 'POWER' && t.x === owner.x && t.y === owner.y);
+        const linkTile  = tiles.find(t => t.type === 'LINK'  && t.x === owner.x && t.y === owner.y);
+
+        let range = card.range;
+        if (linkTile) {
+          const extended = [];
+          for (const [dx, dy] of range) { extended.push([dx, dy]); extended.push([dx + 1, dy]); }
+          range = extended;
+        }
+
+        setActionBox(actionBoxId, `${ownerLabel}: ${card.name}${powerTile ? ' [PWR]' : ''}${linkTile ? ' [LNK]' : ''}`, act.rawKey || card.id);
 
         const hitCells = [];
-        for (const [dx, dy] of card.range) {
+        for (const [dx, dy] of range) {
           const tx = owner.x + dx * owner.dir;
           const ty = owner.y + dy;
-          if (tx >= 0 && tx < GRID_W && ty >= 0 && ty < GRID_H) {
-            hitCells.push({ x: tx, y: ty });
-          }
+          if (tx >= 0 && tx < GRID_W && ty >= 0 && ty < GRID_H) hitCells.push({ x: tx, y: ty });
         }
         showHitEffect(hitCells);
         await sleep(300);
 
         const hit = hitCells.find(cell => cell.x === target.x && cell.y === target.y);
         if (hit) {
-          const finalDmg = Math.max(0, card.dmg - target.guard);
+          let dmg = card.dmg;
+          if (powerTile) dmg = Math.floor(dmg * powerTile.val);
+          const finalDmg = Math.max(0, dmg - target.guard);
           target.hp = Math.max(0, target.hp - finalDmg);
-          bLog.textContent = `적중! ${ownerLabel} → 상대방 -${finalDmg} 피해!`;
+          bLog.textContent = `적중! -${finalDmg} 피해!`;
+          bLog.style.color = '#e74c3c';
           $('screen-battle').style.transform = 'translate(4px,4px)';
           setTimeout(() => $('screen-battle').style.transform = 'translate(0,0)', 100);
         } else {
-          bLog.textContent = `${ownerLabel} ${card.name} — 빗나감!`;
+          bLog.textContent = `${ownerLabel} — 빗나감!`;
+          bLog.style.color = '#aaa';
         }
       }
     }
+
+    // ── P1 Chito Sprite System ──────────────────────────────────────────
+    const CHITO_SPRITES = {};
+    const CHITO_ANIM = {
+      idle:   { file: 'chito_sprite_sheet_idle.png',   frameW: 1024, frameH: 1024, cols: 3, totalFrames: 4, fps: 6  },
+      move:   { file: 'chito_sprite_sheet_jump.png',   frameW: 1024, frameH: 1024, cols: 3, totalFrames: 4, fps: 10 },
+      attack: { file: 'chtio_sprite_sheet_attack.png', frameW: 1376, frameH: 768,  cols: 3, totalFrames: 4, fps: 12, scale: 1.2 },
+    };
+    let chitoSpritesLoaded = false;
+
+    function loadChitoSprites(cb) {
+      const entries = Object.entries(CHITO_ANIM);
+      let n = 0;
+      entries.forEach(([state, cfg]) => {
+        const img = new Image();
+        img.onload = img.onerror = () => {
+          CHITO_SPRITES[state] = img;
+          if (++n === entries.length) { chitoSpritesLoaded = true; cb && cb(); }
+        };
+        img.src = '/resources/sprites/chito/' + cfg.file;
+      });
+    }
+
+    class ChitoSprite {
+      constructor(canvas) {
+        this.canvas  = canvas;
+        this.ctx     = canvas.getContext('2d');
+        this.state   = 'idle';
+        this.frame   = 0;
+        this.elapsed = 0;
+        this.lastTs  = 0;
+        this.oneShot = false;
+        this.facing  = 1;  // 1=오른쪽, -1=왼쪽
+      }
+      setState(s) {
+        if (this.state === s && !this.oneShot) return;
+        this.state = s; this.frame = 0; this.elapsed = 0;
+        this.oneShot = s === 'move' || s === 'attack';
+      }
+      setFacing(dir) { this.facing = dir; }
+      update(ts) {
+        if (!chitoSpritesLoaded) return;
+        const dt  = ts - this.lastTs; this.lastTs = ts;
+        const cfg = CHITO_ANIM[this.state];
+        this.elapsed += dt;
+        const step = 1000 / cfg.fps;
+        if (this.elapsed >= step) {
+          this.elapsed -= step;
+          this.frame++;
+          if (this.frame >= cfg.totalFrames) {
+            if (this.oneShot) { this.setState('idle'); return; }
+            this.frame = 0;
+          }
+        }
+        this._draw();
+      }
+      _draw() {
+        const cfg = CHITO_ANIM[this.state];
+        const img = CHITO_SPRITES[this.state];
+        if (!img || !img.complete) return;
+        const col = this.frame % cfg.cols;
+        const row = Math.floor(this.frame / cfg.cols);
+        const { ctx, canvas: { width: cw, height: ch } } = this;
+        ctx.clearRect(0, 0, cw, ch);
+        ctx.imageSmoothingEnabled = false;
+        const scale = cfg.scale || 1;
+        const dw = cw * scale;
+        const dh = ch * scale;
+        const dx = (cw - dw) / 2;
+        const dy = (ch - dh) / 2;
+        if (this.facing === -1) {
+          ctx.save();
+          ctx.translate(cw, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(img, col * cfg.frameW, row * cfg.frameH, cfg.frameW, cfg.frameH, dx, dy, dw, dh);
+          ctx.restore();
+        } else {
+          ctx.drawImage(img, col * cfg.frameW, row * cfg.frameH, cfg.frameW, cfg.frameH, dx, dy, dw, dh);
+        }
+      }
+    }
+
+    let p1Sprite = null, _rafId = null;
+
+    function initP1Sprite() {
+      const el = $('b-char-p1');
+      if (!el) return;
+      el.innerHTML = '';
+      const cv = document.createElement('canvas');
+      cv.width = 135; cv.height = 135;
+      cv.style.cssText = 'position:absolute;width:135px;height:135px;left:-67px;top:-67px;display:block;';
+      el.appendChild(cv);
+      p1Sprite = new ChitoSprite(cv);
+      if (_rafId) cancelAnimationFrame(_rafId);
+      (function loop(ts) { if (p1Sprite) p1Sprite.update(ts); _rafId = requestAnimationFrame(loop); })(0);
+    }
+
+    function cardToAnim(key) {
+      const c = CARDS[key];
+      if (!c) return 'idle';
+      return c.type === 'move' ? 'move' : c.type === 'attack' ? 'attack' : 'idle';
+    }
+
+    loadChitoSprites(initP1Sprite);
+    // ────────────────────────────────────────────────────────────────────
+
+    // React 앱에서 로그 클릭 시 postMessage로 전달받아 자동 분석
+    window.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "LOAD_LOG" && typeof event.data.log === "string") {
+        parseLog(event.data.log);
+      }
+    });
+
   </script>
 </body>
 </html>

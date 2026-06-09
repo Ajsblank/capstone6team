@@ -1,0 +1,93 @@
+import React from "react";
+import { useApp } from "../context/AppContext";
+import ProfileBadge from "./ProfileBadge";
+import ResponsiveNavMenu from "./ResponsiveNavMenu";
+import "../pages/AppLayout.css";
+
+interface AppHeaderProps {
+  /** 현재 활성 탭 (네비게이션 하이라이트용) */
+  activePage?: "home" | "problems" | "contest" | "help";
+  /** HomePage에서 홈 탭 클릭 시 내부 콘텐츠 전환 콜백 */
+  onHomeClick?: () => void;
+  /** HomePage에서 대회 탭 클릭 시 내부 콘텐츠 전환 콜백 */
+  onContestClick?: () => void;
+  /** HomePage에서 도움말 탭 클릭 시 내부 콘텐츠 전환 콜백 */
+  onHelpClick?: () => void;
+}
+
+const AppHeader: React.FC<AppHeaderProps> = ({
+  activePage,
+  onHomeClick,
+  onContestClick,
+  onHelpClick,
+}) => {
+  const { user, logout, navigate } = useApp();
+
+  return (
+    <header className="home-header">
+      <span className="home-logo" onClick={() => navigate("landing")}>
+        <img src="/resources/logo/TacticalCodeBattle_logo.png" alt="TCB" className="home-logo-img" />
+      </span>
+      <nav className="home-tab-nav">
+        <button
+          className={`home-tab-btn${activePage === "home" ? " home-tab-btn--active" : ""}`}
+          onClick={() => onHomeClick ? onHomeClick() : navigate("home")}
+        >
+          홈
+        </button>
+        <button
+          className={`home-tab-btn${activePage === "problems" ? " home-tab-btn--active" : ""}`}
+          onClick={() => navigate("problems")}
+        >
+          문제
+        </button>
+        <button
+          className={`home-tab-btn${activePage === "contest" ? " home-tab-btn--active" : ""}`}
+          onClick={() => onContestClick?.()}
+        >
+          대회
+        </button>
+        <button
+          className={`home-tab-btn${activePage === "help" ? " home-tab-btn--active" : ""}`}
+          onClick={() => onHelpClick?.()}
+        >
+          도움말
+        </button>
+      </nav>
+
+      <div className="home-auth-area">
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => navigate("landing")}
+        >
+          메인
+        </button>
+        {user ? (
+          <>
+            <ProfileBadge />
+            <button className="btn btn-ghost btn-sm" onClick={() => logout()}>
+              로그아웃
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate("signup")}>
+              회원가입
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={() => navigate("login")}>
+              로그인
+            </button>
+          </>
+        )}
+      </div>
+      <ResponsiveNavMenu tabs={[
+        { label: "홈",     onClick: () => (onHomeClick ? onHomeClick() : navigate("home")), active: activePage === "home" },
+        { label: "문제",   onClick: () => navigate("problems"),                              active: activePage === "problems" },
+        { label: "대회",   onClick: () => onContestClick?.(),                                active: activePage === "contest" },
+        { label: "도움말", onClick: () => onHelpClick?.(),                                   active: activePage === "help" },
+      ]} />
+    </header>
+  );
+};
+
+export default AppHeader;

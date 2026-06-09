@@ -1,0 +1,261 @@
+/* ══════════════════════════════════════════
+   ReviewTab — 검수 코드 대결 (스플릿 에디터)
+   ══════════════════════════════════════════ */
+
+.rv-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1e1e1e;
+  overflow: hidden;
+}
+
+/* ── 에디터 영역 ── */
+.rv-editors {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.rv-editor-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 에디터 헤더 (언어 선택 + 라벨) */
+.rv-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #252526;
+  border-bottom: 1px solid #3e3e42;
+  padding: 8px 14px;
+  flex-shrink: 0;
+}
+
+.rv-editor-header--right {
+  flex-direction: row-reverse;
+}
+
+.rv-editor-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ea580c;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  white-space: nowrap;
+}
+
+.rv-lang-select {
+  background: #3c3c3c;
+  border: 1px solid #5a5a5a;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  font-size: 0.82rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.rv-lang-select:hover  { border-color: #ea580c; }
+.rv-lang-select:focus  { border-color: #ea580c; }
+.rv-lang-select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 에디터 본문 */
+.rv-editor-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── VS 구분선 ── */
+.rv-vs-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  flex-shrink: 0;
+  background: #1e1e1e;
+  gap: 6px;
+}
+
+.rv-vs-line {
+  flex: 1;
+  width: 1px;
+  background: linear-gradient(to bottom,
+    transparent,
+    rgba(234, 88, 12, 0.4) 30%,
+    rgba(234, 88, 12, 0.4) 70%,
+    transparent);
+  max-height: 120px;
+}
+
+.rv-vs-label {
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: #ea580c;
+  letter-spacing: 0.08em;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  text-shadow: 0 0 10px rgba(234, 88, 12, 0.5);
+  flex-shrink: 0;
+}
+
+/* ── 액션 바 ── */
+.rv-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #252526;
+  border-top: 1px solid #3e3e42;
+  padding: 12px 20px;
+  flex-shrink: 0;
+}
+
+.rv-submit-btn {
+  background: #ea580c;
+  border: none;
+  border-radius: 7px;
+  color: #ffffff;
+  cursor: pointer;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 10px 28px;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: 0.03em;
+}
+.rv-submit-btn:hover  { background: #c2410c; }
+.rv-submit-btn:active { transform: scale(0.97); }
+
+.rv-loading-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rv-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #5a5a5a;
+  border-top-color: #ea580c;
+  border-radius: 50%;
+  animation: rv-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes rv-spin {
+  to { transform: rotate(360deg); }
+}
+
+.rv-loading-text {
+  font-size: 0.88rem;
+  color: #9ca3af;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+}
+.rv-loading-text strong { color: #ea580c; }
+
+.rv-cancel-btn {
+  background: none;
+  border: 1px solid #5a5a5a;
+  border-radius: 6px;
+  color: #9ca3af;
+  cursor: pointer;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.rv-cancel-btn:hover { border-color: #dc2626; color: #dc2626; }
+
+.rv-error-msg {
+  font-size: 0.85rem;
+  color: #f87171;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+}
+
+/* ── 결과 로그 패널 ── */
+.rv-log-panel {
+  display: flex;
+  flex-direction: column;
+  background: #0d1117;
+  border-top: 2px solid #ea580c;
+  max-height: 260px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.rv-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  flex-shrink: 0;
+}
+
+.rv-log-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ea580c;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+}
+
+.rv-log-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rv-log-analyze-btn {
+  background: #ea580c;
+  border: none;
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  transition: background 0.15s;
+}
+.rv-log-analyze-btn:hover { background: #c2410c; }
+
+.rv-log-reset {
+  background: none;
+  border: 1px solid #30363d;
+  border-radius: 5px;
+  color: #8b949e;
+  cursor: pointer;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.rv-log-reset:hover { border-color: #ea580c; color: #ea580c; }
+
+.rv-log-body {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+  padding: 12px 16px;
+  font-family: "Consolas", "Monaco", monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: #e6edf3;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.rv-log-body::-webkit-scrollbar { width: 6px; }
+.rv-log-body::-webkit-scrollbar-track { background: #0d1117; }
+.rv-log-body::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }

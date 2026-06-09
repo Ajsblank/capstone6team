@@ -2,3 +2,9 @@ node_modules
 .env
 .env.local
 .env.*.local
+build
+.cache
+
+# Claude Code 작업용 문서 (버전관리 제외)
+CLAUDE.md
+CLAUDE.*.md

@@ -1,0 +1,587 @@
+/* ══════════════════════════════════════════
+   Design System — Spacing Scale
+   ══════════════════════════════════════════ */
+:root {
+  /* Spacing Scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+  --space-4xl: 64px;
+
+  /* Color Palette */
+  --color-bg: #ffffff;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4b5563;
+  --color-text-tertiary: #7e8694;
+  --color-primary: #16a34a;
+  --color-primary-dark: #15803d;
+  --color-accent: #ea580c;
+  --color-error: #dc2626;
+  --color-border: #d1d5db;
+}
+
+/* ══════════════════════════════════════════
+   AppLayout — White / Green Theme
+   배경 삼각형: top-right, 초록 그라디에션
+   ══════════════════════════════════════════ */
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #ffffff;
+  color: #111827;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", -apple-system, sans-serif;
+  position: relative;
+}
+
+/* 그라디에션 직삼각형 — top-right 직각 */
+.home-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 44vmin;
+  height: 44vmin;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  background: radial-gradient(ellipse at 100% 0%,
+    rgba(22, 163, 74, 0.18) 0%,
+    rgba(22, 163, 74, 0.06) 45%,
+    transparent 68%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Header ── */
+.home-header {
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.97);
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  gap: 8px;
+  position: relative;
+  z-index: 100;
+}
+
+.home-logo {
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: 12px;
+  margin-right: 16px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.home-logo-img {
+  height: 112px;
+  width: auto;
+  max-width: none;
+  display: block;
+  margin-left: -54px;
+}
+
+/* Tab nav — 로고 우측에 좌측 정렬 */
+.home-tab-nav {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  gap: 2px;
+}
+
+.home-tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #4b5563;
+  font-size: 1.05rem;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  padding: 0 clamp(10px, 1.6vw, 22px);   /* 화면이 좁아지면 탭 간격이 점진적으로 줄어듦 */
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  height: 100%;
+  outline: none;
+}
+.home-tab-btn:hover { color: #111827; }
+.home-tab-btn:focus-visible {
+  outline: 3px solid rgba(22, 163, 74, 0.6);
+  outline-offset: -4px;
+}
+.home-tab-btn--active {
+  color: #16a34a;
+  border-bottom-color: #16a34a;
+  font-weight: 600;
+}
+.home-tab-btn--disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.home-tab-btn--disabled:hover { color: #4b5563; }
+
+/* 좁은 화면(<=880px): 탭이 너무 가까워지는 하한에 도달 → 탭·프로필 숨기고 햄버거로 대체 */
+@media (max-width: 880px) {
+  .home-header .home-tab-nav,
+  .home-header .home-auth-area {
+    display: none;
+  }
+
+  /* 로고 padding/위치는 데스크톱(.home-header padding: 0 32px)과 동일 — 별도 오버라이드 불필요 */
+}
+
+/* Auth area — 로고 다음에 오지만 우측으로 밀어냄 */
+.home-auth-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.home-username {
+  font-size: 0.9rem;
+  color: #15803d;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+  outline: none;
+}
+.home-username:hover { background: #f0fdf4; }
+.home-username:focus-visible { outline: 2px solid #15803d; outline-offset: 2px; }
+
+/* 프로필 이미지용 동그라미 (이메일/이름 왼쪽) */
+.home-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  border: 1px solid #d1d5db;
+  display: inline-block;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.home-avatar:hover { box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.3); }
+
+
+/* Body */
+.home-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+.home-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64px 32px 48px;
+  gap: 56px;
+}
+
+/* Hero */
+.home-hero {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.home-hero-title {
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: #15803d;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.home-hero-sub {
+  font-size: 1.05rem;
+  color: #4b5563;
+  margin: 0;
+  font-weight: 300;
+  font-style: italic;
+}
+.home-hero-desc {
+  font-size: 0.93rem;
+  color: #7e8694;
+  line-height: 1.7;
+  margin: 4px 0 0;
+}
+
+.home-cta-btn {
+  margin-top: 8px;
+  background: #16a34a;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.home-cta-btn:hover { background: #15803d; transform: translateY(-1px); }
+
+.home-cta-btn--secondary {
+  background: transparent;
+  color: #16a34a;
+  border: 2px solid #16a34a;
+}
+.home-cta-btn--secondary:hover { background: #f0fdf4; transform: translateY(-1px); }
+
+/* Site description */
+.home-site-desc {
+  max-width: 580px;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #4b5563;
+  line-height: 1.85;
+  margin: 0;
+}
+.home-site-desc strong { color: #15803d; font-weight: 700; }
+
+/* Cards */
+.home-cards {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  max-width: 900px;
+}
+.home-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 28px 24px;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.home-card:hover {
+  border-color: #bbf7d0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(22, 163, 74, 0.1);
+}
+.home-card-icon { font-size: 2rem; }
+.home-card-title { font-size: 1rem; font-weight: 700; color: #111827; margin: 0; }
+.home-card-desc { font-size: 0.85rem; color: #4b5563; line-height: 1.5; margin: 0; }
+
+/* Placeholder */
+.home-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+.home-placeholder-text { font-size: 1rem; color: #7e8694; }
+
+/* ── 문제 목록 ── */
+.problems-content {
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.problems-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.problems-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.problems-filter {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.problems-filter:focus { border-color: #16a34a; }
+
+.problems-search {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  width: 180px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.problems-search::placeholder { color: #7e8694; }
+.problems-search:focus { border-color: #16a34a; }
+
+.problems-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+.problems-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.problems-table thead tr { border-bottom: 2px solid #e5e7eb; }
+.problems-table th {
+  padding: 10px 14px;
+  text-align: left;
+  color: #4b5563;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.problems-row {
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.problems-row:hover { background: #f0fdf4; }
+.problems-row td { padding: 12px 14px; color: #374151; }
+.problems-row-title { color: #15803d; font-weight: 600; }
+
+.problems-status {
+  padding: 48px 0;
+  text-align: center;
+  color: #7e8694;
+  font-size: 0.95rem;
+}
+.problems-status--error { color: #dc2626; }
+
+.problems-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px 0;
+}
+.problems-page-btn {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  font-size: 0.85rem;
+  padding: 5px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.problems-page-btn:hover:not(:disabled) {
+  background: #f0fdf4;
+  border-color: #16a34a;
+  color: #15803d;
+}
+.problems-page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.problems-page-info { font-size: 0.85rem; color: #7e8694; }
+
+/* ══════════════════════════════════════════
+   Standardized Button Styles
+   ══════════════════════════════════════════ */
+
+.btn {
+  border: none;
+  border-radius: 8px;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 0.9rem;
+  padding: 8px 16px;
+  display: inline-block;
+  user-select: none;
+  white-space: nowrap;
+  outline: none;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: 3px solid rgba(22, 163, 74, 0.6);
+  outline-offset: 2px;
+}
+
+/* ── Button Variants ── */
+.btn-primary {
+  background: #16a34a;
+  color: #ffffff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #7e8694;
+}
+
+.btn-ghost {
+  background: none;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #7e8694;
+}
+
+.btn-battle {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+.btn-battle:hover:not(:disabled) {
+  background: #ffedd5;
+  border-color: #fb923c;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+/* ── Button Sizes ── */
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.btn-md {
+  padding: 8px 16px;
+  font-size: 0.9rem;
+}
+
+.btn-lg {
+  padding: 12px 24px;
+  font-size: 1rem;
+}
+
+/* ── Button Width ── */
+.btn-full {
+  width: 100%;
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+/* ══════════════════════════════════════════
+   Standardized Input Styles
+   ══════════════════════════════════════════ */
+
+.input {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #111827;
+  font-size: 0.9rem;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: #7e8694;
+}
+
+.input:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.15);
+  outline: none;
+}
+
+.input:disabled {
+  background: #f9fafb;
+  color: #7e8694;
+  cursor: not-allowed;
+}
+
+/* ── Input States ── */
+.input.input-error {
+  border-color: #dc2626;
+}
+
+.input.input-error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.input-help {
+  font-size: 0.82rem;
+  color: #4b5563;
+  margin-top: 4px;
+  display: block;
+}
+
+.input-help.input-help-error {
+  color: #dc2626;
+}
+
+/* ── Label ── */
+.label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.label.label-required::after {
+  content: " *";
+  color: #dc2626;
+}

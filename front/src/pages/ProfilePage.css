@@ -1,0 +1,336 @@
+.pp-root {
+  min-height: 100vh;
+  background: #ffffff;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 16px 64px;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  position: relative;
+}
+
+/* 우상단 오렌지 장식 */
+.pp-root::before {
+  content: '';
+  position: fixed;
+  top: 0; right: 0;
+  width: 40vmin; height: 40vmin;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  background: radial-gradient(ellipse at 100% 0%,
+    rgba(234, 88, 12, 0.13) 0%,
+    rgba(234, 88, 12, 0.04) 50%,
+    transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pp-center {
+  min-height: 100vh;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+}
+
+/* ── 카드 ── */
+.pp-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-top: 3px solid #ea580c;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.07);
+}
+
+.pp-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 24px;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fffbf8;
+}
+
+.pp-card-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.pp-back-btn {
+  background: none;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  color: #4b5563;
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 5px 12px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.pp-back-btn:hover { color: #ea580c; border-color: #ea580c; }
+
+.pp-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── 버튼 ── */
+.pp-btn {
+  padding: 7px 18px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.pp-btn--primary {
+  background: #ea580c;
+  color: #ffffff;
+  border-color: #ea580c;
+  font-weight: 600;
+}
+.pp-btn--primary:hover { background: #c2410c; border-color: #c2410c; }
+.pp-btn--primary:disabled { opacity: 0.5; cursor: default; }
+.pp-btn--ghost {
+  background: none;
+  color: #4b5563;
+  border-color: #e5e7eb;
+}
+.pp-btn--ghost:hover { border-color: #7e8694; color: #374151; }
+.pp-btn--ghost:disabled { opacity: 0.5; cursor: default; }
+
+/* ── 상태 메시지 ── */
+.pp-status {
+  padding: 60px 28px;
+  text-align: center;
+  color: #7e8694;
+  font-size: 0.9rem;
+}
+.pp-status--error { color: #ef4444; }
+.pp-error { color: #ef4444; font-size: 0.9rem; }
+
+/* ── 본문 ── */
+.pp-body {
+  padding: 28px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 24px;
+}
+
+/* ── 아바타 섹션 ── */
+.pp-avatar-section {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.pp-label--img {
+  align-self: flex-start;
+}
+
+.pp-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.pp-avatar-img {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fed7aa;
+}
+.pp-avatar-default {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: #fff7ed;
+  border: 2px solid #fed7aa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+}
+
+/* 편집(연필) 버튼 — 우측 하단 */
+.pp-avatar-pencil {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #ea580c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  transition: background 0.15s;
+}
+.pp-avatar-pencil:hover { background: #c2410c; }
+
+.pp-avatar-btn-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+
+/* 제거(−) 버튼 — 좌측 하단, 편집 버튼과 같은 수평선 */
+.pp-avatar-remove {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  padding: 0;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.pp-avatar-remove:hover { background: #dc2626; }
+
+/* ── 필드 ── */
+.pp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pp-field--full { grid-column: 1 / -1; }
+
+.pp-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: #7e8694;
+  text-transform: uppercase;
+}
+
+.pp-value {
+  font-size: 0.92rem;
+  color: #111827;
+}
+.pp-value--name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.pp-tag {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: #9ca3af;
+}
+.pp-value--muted { color: #4b5563; }
+.pp-value--bio {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  color: #4b5563;
+}
+
+/* ── 구분선 ── */
+.pp-divider {
+  grid-column: 1 / -1;
+  border: none;
+  border-top: 1px solid #f3f4f6;
+  margin: 4px 0;
+}
+
+/* ── 입력 ── */
+.pp-input {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: #111827;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pp-input:focus {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+}
+.pp-input::placeholder { color: #d1d5db; }
+
+.pp-textarea {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: #111827;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  line-height: 1.6;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pp-textarea:focus {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+}
+.pp-textarea::placeholder { color: #d1d5db; }
+
+.pp-fetch-notice {
+  grid-column: 1 / -1;
+  color: #92400e;
+  font-size: 0.82rem;
+  margin: 0 0 4px;
+  padding: 10px 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+}
+
+.pp-save-error {
+  grid-column: 1 / -1;
+  color: #ef4444;
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.pp-upload-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
+
+.pp-field-hint {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: #9ca3af;
+  text-align: right;
+}
