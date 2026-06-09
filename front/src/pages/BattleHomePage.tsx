@@ -552,7 +552,7 @@ WIN COMPILE_ERROR     ← P2 컴파일 에러로 P1 승`}</pre>
         <h4 className="bp-tut-h">5. Judge 코드 작성법</h4>
         <p className="bp-info-text">구현해야 할 핵심 흐름입니다. <strong>각 항목을 클릭하면</strong> 아래 코드의 해당 부분으로 이동합니다.</p>
         <MonacoCodeGuide
-          codeLabel="📄 Judge 코드 뼈대 (C++) — 펼쳐보기"
+          codeLabel="Judge 코드 뼈대 (C++) — 펼쳐보기"
           code={JUDGE_SKELETON_CPP}
           language="cpp"
           steps={[
@@ -584,7 +584,7 @@ WIN COMPILE_ERROR     ← P2 컴파일 에러로 P1 승`}</pre>
         </div>
         <p className="bp-info-text">명령어 이름과 데이터 형식은 Judge가 정의한 프로토콜에 맞게 수정하세요.</p>
         <MonacoSampleGuide
-          codeLabel="📄 Sample AI 뼈대 — 언어 선택 후 펼쳐보기"
+          codeLabel="Sample AI 뼈대 — 언어 선택 후 펼쳐보기"
           codes={{ cpp: SAMPLE_CODE_CPP, java: SAMPLE_CODE_JAVA, python: SAMPLE_CODE_PYTHON }}
         />
 
