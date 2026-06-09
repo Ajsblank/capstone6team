@@ -56,13 +56,20 @@ public class PaymentService {
         }
 
         // 트랜잭션 밖에서 외부 API 호출
-        TossPaymentResponse tossResponse = callTossConfirmApi(
-                request.getPaymentKey(), request.getOrderId(), request.getAmount());
+        TossPaymentResponse tossResponse;
+        try {
+            tossResponse = callTossConfirmApi(
+                    request.getPaymentKey(), request.getOrderId(), request.getAmount());
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            deleteContestIfPresent(request.getContestId());
+            throw e;
+        }
 
         // Toss 승인 금액이 요청 금액과 다르면 위변조 차단
         if (!request.getAmount().equals(tossResponse.totalAmount())) {
             log.warn("[결제 금액 불일치] 요청={}, Toss승인={}, orderId={}",
                     request.getAmount(), tossResponse.totalAmount(), request.getOrderId());
+            deleteContestIfPresent(request.getContestId());
             throw new IllegalArgumentException("결제 금액이 일치하지 않습니다.");
         }
 
@@ -118,6 +125,17 @@ public class PaymentService {
             Payment saved = paymentRepository.save(payment);
             log.info("[테스트 결제 완료] paymentKey={}, orderId={}, userId={}", paymentKey, orderId, userId);
             return PaymentConfirmResponse.from(saved);
+        });
+    }
+
+    private void deleteContestIfPresent(Long contestId) {
+        if (contestId == null) return;
+        transactionTemplate.execute(status -> {
+            contestRepository.findById(contestId).ifPresent(contest -> {
+                contestRepository.delete(contest);
+                log.warn("[결제 실패] 대회 삭제 완료 - contestId={}", contestId);
+            });
+            return null;
         });
     }
 

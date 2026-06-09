@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,6 +28,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
+import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.Payment;
 import com.asap.server.domain.Users;
 import com.asap.server.dto.request.PaymentConfirmRequest;
@@ -135,6 +137,37 @@ class PaymentServiceTest {
         assertThatThrownBy(() -> paymentService.confirmPayment(request, 1L))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("결제 처리 중 오류가 발생했습니다.");
+    }
+
+    @Test
+    @DisplayName("토스 API 오류 시 contestId가 있으면 대회 삭제")
+    void confirmPayment_tossApiError_deletesContest() {
+        setupTransactionTemplate();
+        CodeBattleContest contest = mock(CodeBattleContest.class);
+        PaymentConfirmRequest request = buildRequest("pk_test", "order_001", 100000L, 10L);
+        when(paymentRepository.existsByOrderId("order_001")).thenReturn(false);
+        when(contestRepository.findById(10L)).thenReturn(Optional.of(contest));
+        when(restClient.post())
+                .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST, "결제 키 오류"));
+
+        assertThatThrownBy(() -> paymentService.confirmPayment(request, 1L))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(contestRepository).delete(contest);
+    }
+
+    @Test
+    @DisplayName("토스 API 오류 시 contestId가 없으면 대회 삭제 안 함")
+    void confirmPayment_tossApiError_noContest_skipDelete() {
+        PaymentConfirmRequest request = buildRequest("pk_test", "order_001", 100000L, null);
+        when(paymentRepository.existsByOrderId("order_001")).thenReturn(false);
+        when(restClient.post())
+                .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST, "결제 키 오류"));
+
+        assertThatThrownBy(() -> paymentService.confirmPayment(request, 1L))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(contestRepository, never()).delete(any());
     }
 
     // ─────────────────────────────────────────────────────────────
