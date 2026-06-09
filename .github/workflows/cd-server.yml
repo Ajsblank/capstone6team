@@ -64,7 +64,7 @@ jobs:
       - name: server test
         run: ./gradlew test
       - name: server build
-        run: ./gradlew build -x
+        run: ./gradlew build -x test
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
