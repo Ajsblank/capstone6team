@@ -5,6 +5,7 @@ on:
     branches: [dev/grading-server]
     paths:
       - 'grading-server/**'
+      - '.github/workflows/deploy-grading-server.yml'
 
 jobs:
   build-and-deploy:
