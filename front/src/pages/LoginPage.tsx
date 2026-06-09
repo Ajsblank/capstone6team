@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { loginApi, getUserId, setUsername } from "../api/authApi";
+import { getMyProfile } from "../api/codeBattleApi";
+import { setMyProfileCache } from "../components/ProfileBadge";
 import "./LoginPage.css";
 
 const LoginPage: React.FC = () => {
@@ -29,6 +31,8 @@ const LoginPage: React.FC = () => {
         tokenData.hostedContests  ?? [],
         tokenData.createdContests ?? []
       );
+      // 로그인 직후 프로필 조회 → 로그아웃 전까지 localStorage에서 재사용 (API 재호출 없음)
+      getMyProfile().then(setMyProfileCache).catch(() => {});
       localStorage.removeItem("loginRedirect");
       navigate("landing");
     } catch (err: any) {
