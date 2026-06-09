@@ -29,10 +29,6 @@ jobs:
             npm test -- --watchAll=false --passWithNoTests
       - name: npm build
         env:
-<<<<<<< HEAD
-          
-=======
           CI: false
->>>>>>> origin/dev/front
           REACT_APP_API_BASE_URL: http://localhost:8080
         run: npm run build
