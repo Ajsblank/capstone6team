@@ -486,6 +486,7 @@ const SubmitPage: React.FC = () => {
               myUserId={user?.id ? Number(user.id) : undefined}
               hasVizHtml={viz1Available}
               onLogView={handleLogClick}
+              endDate={contestDetail?.endDate}
             />
           </div>
         )}
