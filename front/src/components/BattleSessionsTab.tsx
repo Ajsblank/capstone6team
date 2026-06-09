@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { getContestSessions, scheduleSwissLeague, ContestSession } from "../api/codeBattleApi";
+import { getContestSessions, ContestSession } from "../api/codeBattleApi";
 import "./BattleSessionsTab.css";
 
 interface Props {
   contestId: number;
   onSessionClick: (sessionNumber: number) => void;
-  contestEnded?: boolean;
 }
 
 function parseDate(s: string): Date {
@@ -22,27 +21,6 @@ function formatDate(s: string): string {
   });
 }
 
-function nowLocalIso(): string {
-  const d = new Date();
-  // datetime-local input value format: "YYYY-MM-DDTHH:mm" as local wall clock
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
-    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
-  );
-}
-
-// datetime-local 값("YYYY-MM-DDTHH:mm")을 서버 전송용 로컬 ISO 문자열로 변환
-// 서버가 KST 설정 + LocalDateTime 타입이므로 타임존 suffix 없이 로컬 시간 그대로 전송
-// (Z를 붙이면 서버가 Z를 무시하고 UTC 숫자를 KST로 해석해 9시간 오차 발생)
-function localInputToServerIso(val: string): string {
-  const [datePart, timePart = "00:00"] = val.split("T");
-  const [y, mo, d] = datePart.split("-").map(Number);
-  const [h, min]   = timePart.split(":").map(Number);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${y}-${pad(mo)}-${pad(d)}T${pad(h)}:${pad(min)}:00`;
-}
-
 const STATUS_LABEL: Record<string, string> = {
   RUNNING: "진행 중",
   END:     "종료",
@@ -50,17 +28,10 @@ const STATUS_LABEL: Record<string, string> = {
   PAUSED:  "일시 정지",
 };
 
-const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick, contestEnded = false }) => {
+const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick }) => {
   const [sessions, setSessions] = useState<ContestSession[]>([]);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
-
-  // ── 세션 예약 테스트 ─────────────────────────────────────────────────────────
-  const [scheduleOpen,    setScheduleOpen]    = useState(false);
-  const [dateList,        setDateList]        = useState<string[]>([nowLocalIso()]);
-  const [scheduleLoading, setScheduleLoading] = useState(false);
-  const [scheduleResult,  setScheduleResult]  = useState<"success" | "error" | null>(null);
-  const [endedPopup,      setEndedPopup]      = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,111 +44,13 @@ const BattleSessionsTab: React.FC<Props> = ({ contestId, onSessionClick, contest
     return () => { cancelled = true; };
   }, [contestId]);
 
-  const addDate    = () => setDateList(prev => [...prev, nowLocalIso()]);
-  const removeDate = (i: number) => setDateList(prev => prev.filter((_, idx) => idx !== i));
-  const updateDate = (i: number, val: string) =>
-    setDateList(prev => prev.map((d, idx) => idx === i ? val : d));
-
-  const handleScheduleSubmit = async () => {
-    if (dateList.length === 0 || scheduleLoading) return;
-    setScheduleLoading(true);
-    setScheduleResult(null);
-    try {
-      const isoList = dateList.filter(d => d.trim()).map(localInputToServerIso);
-      await scheduleSwissLeague(contestId, isoList);
-      setScheduleResult("success");
-      setScheduleOpen(false);
-      setDateList([nowLocalIso()]);
-    } catch (err: any) {
-      setScheduleResult("error");
-    } finally {
-      setScheduleLoading(false);
-    }
-  };
-
   return (
     <div className="bst-container">
-      {endedPopup && (
-        <div className="bst-popup-overlay" onClick={() => setEndedPopup(false)}>
-          <div className="bst-popup" onClick={e => e.stopPropagation()}>
-            <div className="bst-popup-icon">🔒</div>
-            <p className="bst-popup-title">세션 예약 불가</p>
-            <p className="bst-popup-desc">대회가 종료되어 새 세션을 예약할 수 없습니다.</p>
-            <button className="bst-popup-confirm" onClick={() => setEndedPopup(false)}>확인</button>
-          </div>
-        </div>
-      )}
       {/* ── 헤더 ── */}
       <div className="bst-header">
         <h2 className="bst-title">대결 세션</h2>
         {sessions.length > 0 && <span className="bst-count">총 {sessions.length}세션</span>}
-        <button
-          className={`bst-schedule-btn${scheduleOpen ? " bst-schedule-btn--active" : ""}${contestEnded ? " bst-schedule-btn--disabled" : ""}`}
-          onClick={() => {
-            if (contestEnded) { setEndedPopup(true); return; }
-            setScheduleOpen(o => !o);
-            setScheduleResult(null);
-          }}
-        >
-          ⚗ 세션 예약
-        </button>
       </div>
-
-      {/* ── 예약 패널 ── */}
-      {scheduleOpen && (
-        <div className="bst-schedule-panel">
-          <div className="bst-schedule-panel-title">
-            스위스 세션 예약 · {dateList.length}개
-          </div>
-
-          <div className="bst-date-list">
-            {dateList.map((d, i) => (
-              <div key={i} className="bst-date-row">
-                <span className="bst-date-num">{i + 1}</span>
-                <input
-                  type="datetime-local"
-                  className="bst-date-input"
-                  value={d}
-                  onChange={e => updateDate(i, e.target.value)}
-                />
-                <button
-                  className="bst-date-remove"
-                  onClick={() => removeDate(i)}
-                  disabled={dateList.length === 1}
-                >✕</button>
-              </div>
-            ))}
-          </div>
-
-          <div className="bst-schedule-actions">
-            <button className="bst-date-add" onClick={addDate}>+ 날짜 추가</button>
-            <div style={{ flex: 1 }} />
-            <button
-              className="bst-schedule-cancel"
-              onClick={() => setScheduleOpen(false)}
-            >취소</button>
-            <button
-              className="bst-schedule-submit"
-              disabled={scheduleLoading || dateList.every(d => !d.trim())}
-              onClick={handleScheduleSubmit}
-            >
-              {scheduleLoading ? "요청 중…" : "생성 요청"}
-            </button>
-          </div>
-
-          {scheduleResult === "error" && (
-            <div className="bst-schedule-feedback bst-schedule-feedback--error">
-              요청에 실패했습니다.
-            </div>
-          )}
-        </div>
-      )}
-
-      {scheduleResult === "success" && (
-        <div className="bst-schedule-feedback bst-schedule-feedback--success">
-          세션 예약이 완료됐습니다.
-        </div>
-      )}
 
       {/* ── 세션 목록 ── */}
       {loading && <div className="bst-empty">불러오는 중...</div>}
