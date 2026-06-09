@@ -386,13 +386,23 @@ public class ContestController {
                         emitter.send(SseEmitter.event().name("init").data(response_));
                     } catch (JsonProcessingException e) {
                         log.error("[SSE][END] JSON 파싱 실패. key={}", key, e);
-                        emitter.send(SseEmitter.event().name("init")
-                                .data(Map.of("status", "END", "message", "결과 데이터 파싱 중 오류가 발생했습니다.")));
+                        Map<String, Object> errResp = new LinkedHashMap<>();
+                        errResp.put("status", "END");
+                        errResp.put("total_rounds", 0);
+                        errResp.put("participants", Map.of());
+                        errResp.put("rounds", List.of());
+                        errResp.put("message", "결과 데이터 파싱 중 오류가 발생했습니다.");
+                        emitter.send(SseEmitter.event().name("init").data(errResp));
                     } catch (Exception e) {
-                        // S3 파일 없음 = 종료는 됐지만 아직 집계 중
+                        // S3 파일 없음 = 종료는 됐지만 아직 집계 중이거나 비정상 종료
                         log.warn("[SSE][END] S3 파일 없음 또는 조회 실패. key={}", key, e);
-                        emitter.send(SseEmitter.event().name("init")
-                                .data(Map.of("status", "END", "message", "아직 집계 중이거나 데이터가 존재하지 않습니다.")));
+                        Map<String, Object> emptyResp = new LinkedHashMap<>();
+                        emptyResp.put("status", "END");
+                        emptyResp.put("total_rounds", 0);
+                        emptyResp.put("participants", Map.of());
+                        emptyResp.put("rounds", List.of());
+                        emptyResp.put("message", "아직 집계 중이거나 데이터가 존재하지 않습니다.");
+                        emitter.send(SseEmitter.event().name("init").data(emptyResp));
                     }
                     emitter.complete();
                 } catch (IOException e) {
@@ -445,9 +455,14 @@ public class ContestController {
             try {
                 json = s3Service.readFileAsString(key);
             } catch (Exception e) {
-                // S3 파일 없음 = 종료는 됐지만 아직 집계 중
-                return ResponseEntity.accepted()
-                        .body(Map.of("message", "아직 집계 중이거나 데이터가 존재하지 않습니다."));
+                // S3 파일 없음 = 종료는 됐지만 아직 집계 중이거나 비정상 종료
+                Map<String, Object> emptyResp = new LinkedHashMap<>();
+                emptyResp.put("status", "END");
+                emptyResp.put("total_rounds", 0);
+                emptyResp.put("participants", Map.of());
+                emptyResp.put("rounds", List.of());
+                emptyResp.put("message", "아직 집계 중이거나 데이터가 존재하지 않습니다.");
+                return ResponseEntity.accepted().body(emptyResp);
             }
             try {
                 SwissResultResponse response = objectMapper.readValue(json, SwissResultResponse.class);
