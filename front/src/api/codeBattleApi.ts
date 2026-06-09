@@ -39,6 +39,7 @@ export interface ContestDetail {
   createdAt: string;
   exampleAiCodes: ExampleAiCodeEntry[];
   creator_id: number;
+  reviewerEmails?: string[];
 }
 
 export interface ContestListResponse {

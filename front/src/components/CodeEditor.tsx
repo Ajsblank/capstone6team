@@ -12,7 +12,7 @@ const LANGUAGE_OPTIONS: { label: string; value: Language }[] = [
 const LANGUAGE_DEFAULTS: Record<Language, string> = {
 
   cpp: "// 여기에 코드를 작성하세요\n\n#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    \n    return 0;\n}\n",
-  java: "// 여기에 코드를 작성하세요\n\npublic class Solution {\n    public static void main(String[] args) {\n        \n    }\n}\n",
+  java: "// 여기에 코드를 작성하세요\n\npublic class Main {\n    public static void main(String[] args) {\n        \n    }\n}\n",
   python: "# 여기에 코드를 작성하세요\n\ndef solution():\n    pass\n",
 };
 
