@@ -1,4 +1,4 @@
-example/competition_example/sample_code.cpp#include <iostream>
+#include <iostream>
 #include <vector>
 #include <string>
 #include <sstream>
@@ -391,9 +391,9 @@ public:
     {
         InitGame initgame;
         initgame.character = c001;
-        initgame.selectCard[0] = PERFECT_GUARD;
+        initgame.selectCard[0] = HEAL;
         initgame.selectCard[1] = DOUBLE_LEFT;
-        initgame.selectCard[2] = HEAL;
+        initgame.selectCard[2] = PERFECT_GUARD;
         return initgame;
     }
     
