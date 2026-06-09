@@ -51,7 +51,7 @@ const BASE_TAB_LIST: TabDef[] = [
 
 // 참가해야만 이용 가능한 탭 — 제출/내 제출만 제한. 나머지(문제·로그분석·혼자하기·리더보드·중간/최종 결과)는 미참가자도 조회 가능.
 const PARTICIPATION_REQUIRED_TABS: Tab[] = ["submit", "my-submissions"];
-const REVIEWER_ALLOWED_TABS: Tab[] = ["problem", "review", "battle-results", "final-result"];
+const REVIEWER_ALLOWED_TABS: Tab[] = ["problem", "viz1", "viz2", "leaderboard", "battle-results", "final-result", "review"];
 
 const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2", "leaderboard", "battle-results", "final-result", "review"];
 
