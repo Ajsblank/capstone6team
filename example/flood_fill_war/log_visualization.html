@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>영역 전쟁 — 로그 시각화</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      min-height: 100vh;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 24px;
+      background: #16213e;
+      border-bottom: 1px solid #2a2a4a;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 700; color: #87ceeb; }
+
+    /* ── Log input area ── */
+    .input-section {
+      background: #16213e;
+      border-bottom: 1px solid #2a2a4a;
+      padding: 12px 20px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      flex-shrink: 0;
+    }
+    .input-section textarea {
+      flex: 1;
+      height: 90px;
+      background: #0d1117;
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      color: #c9d1d9;
+      font-family: 'Consolas', 'Menlo', monospace;
+      font-size: 0.78rem;
+      padding: 8px 10px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-section textarea:focus { border-color: #4a7abf; }
+    .input-section textarea.drag-over { border-color: #64b5f6; background: #0a1628; }
+    .input-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .btn {
+      padding: 7px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-family: inherit;
+      font-weight: 600;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: #1a5276; color: #d0eaff; }
+    .btn-primary:hover { background: #2471a3; }
+    .btn-secondary { background: #1e3a2e; color: #a8d5b5; }
+    .btn-secondary:hover { background: #27593d; }
+    .btn-danger { background: #3a1e1e; color: #f4a0a0; }
+    .btn-danger:hover { background: #5a2020; }
+
+    .drag-hint {
+      font-size: 0.72rem;
+      color: #4a4a6a;
+      margin-top: 4px;
+      text-align: center;
+    }
+
+    /* ── Main area ── */
+    .main {
+      display: flex;
+      gap: 0;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* ── Left panel ── */
+    .left-panel {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      gap: 14px;
+      background: #1a1a2e;
+      border-right: 1px solid #2a2a4a;
+      overflow-y: auto;
+    }
+
+    /* Score board */
+    .scoreboard {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      justify-content: center;
+    }
+    .score-card {
+      flex: 1;
+      background: #16213e;
+      border-radius: 10px;
+      padding: 10px 14px;
+      text-align: center;
+      border: 2px solid #2a2a4a;
+      transition: border-color 0.3s, box-shadow 0.3s;
+      min-width: 90px;
+    }
+    .score-card.active-first  { border-color: #64b5f6; box-shadow: 0 0 16px rgba(100,181,246,0.3); }
+    .score-card.active-second { border-color: #e57373; box-shadow: 0 0 16px rgba(229,115,115,0.3); }
+    .score-label { font-size: 0.72rem; font-weight: 600; margin-bottom: 4px; }
+    .score-label.first  { color: #64b5f6; }
+    .score-label.second { color: #e57373; }
+    .score-value { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+    .score-value.first  { color: #64b5f6; }
+    .score-value.second { color: #e57373; }
+
+    /* Board */
+    .board-wrap {
+      background: #0d0d1a;
+      border-radius: 12px;
+      padding: 8px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.5);
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(10, 56px);
+      grid-template-rows: repeat(10, 56px);
+      gap: 2px;
+    }
+    .cell {
+      width: 56px;
+      height: 56px;
+      border-radius: 5px;
+      position: relative;
+      transition: filter 0.2s;
+    }
+    /* ownership border via pseudo-element */
+    .cell::after {
+      content: '';
+      position: absolute;
+      inset: 2px;
+      border-radius: 3px;
+      pointer-events: none;
+    }
+    .cell.owned-first::after  { border: 3px solid #64b5f6; }
+    .cell.owned-second::after { border: 3px solid #e57373; }
+    .cell.neutral  { opacity: 0.5; }
+    .cell.new-cell { filter: brightness(1.4); }
+
+    /* Turn indicator overlay on cell */
+    .cell-coord {
+      position: absolute;
+      bottom: 2px;
+      right: 3px;
+      font-size: 0.48rem;
+      color: rgba(255,255,255,0.35);
+      pointer-events: none;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      background: #16213e;
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .ctrl-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ctrl-btn {
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      background: #0f3460;
+      color: #c0d8ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .ctrl-btn:hover  { background: #1a5276; }
+    .ctrl-btn:active { background: #2471a3; }
+    .ctrl-btn:disabled { opacity: 0.35; cursor: default; }
+
+    .play-btn {
+      width: 40px;
+      height: 36px;
+      font-size: 1.2rem;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: #4a90d9;
+      cursor: pointer;
+    }
+
+    .turn-info {
+      font-size: 0.82rem;
+      color: #aaa;
+      text-align: center;
+    }
+    .turn-info .hl-first  { color: #64b5f6; font-weight: 700; }
+    .turn-info .hl-second { color: #e57373; font-weight: 700; }
+
+    /* Color legend */
+    .legend {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      color: #888;
+    }
+    .legend-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+
+    /* Result banner */
+    .result-banner {
+      display: none;
+      background: #16213e;
+      border-radius: 10px;
+      padding: 12px 16px;
+      text-align: center;
+      border: 1px solid #2a2a4a;
+      width: 100%;
+    }
+    .result-banner.show { display: block; }
+    .result-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 6px; }
+    .result-scores { font-size: 0.85rem; display: flex; justify-content: center; gap: 20px; }
+
+    /* ── Right panel: log ── */
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .log-header {
+      background: #16213e;
+      padding: 10px 16px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #87ceeb;
+      border-bottom: 1px solid #2a2a4a;
+      flex-shrink: 0;
+    }
+    .log-box {
+      flex: 1;
+      overflow-y: auto;
+      background: #1e1e2e;
+      font-family: 'Consolas', 'Menlo', monospace;
+      font-size: 0.78rem;
+    }
+    .log-entry {
+      display: flex;
+      align-items: baseline;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .log-entry:hover { background: #252535; }
+    .log-entry.active {
+      background: #1a2a3a;
+      border-left-color: #64b5f6;
+    }
+    .log-no  { flex: 0 0 3.2em; text-align: right; padding: 4px 8px; color: #555; user-select: none; }
+    .log-sep { color: #3a3a5a; padding: 4px 0; user-select: none; }
+    .log-text { flex: 1; padding: 4px 10px; white-space: pre-wrap; color: #dedfe0; }
+    .log-entry .tag-init   { color: #ffb74d; }
+    .log-entry .tag-first  { color: #64b5f6; }
+    .log-entry .tag-second { color: #e57373; }
+    .log-entry .tag-result { color: #81c784; }
+
+    /* placeholder message */
+    .placeholder {
+      padding: 32px 24px;
+      color: #3a3a5a;
+      font-size: 0.88rem;
+      text-align: center;
+      line-height: 2;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3a3a6a; }
+
+    @media (max-width: 900px) {
+      .main { flex-direction: column; }
+      .board { grid-template-columns: repeat(10, 40px); grid-template-rows: repeat(10, 40px); }
+      .cell { width: 40px; height: 40px; }
+      .right-panel { max-height: 300px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>영역 전쟁 (Flood Fill War) — 로그 시각화</h1>
+</header>
+
+<!-- Log input -->
+<div class="input-section">
+  <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+    <textarea id="logTextarea" placeholder="여기에 judge 로그를 붙여넣기 하거나, .txt/.log 파일을 이 영역에 드래그하세요.
+
+예시:
+INIT 1234561234 2345612345 3456123456 4561234561 5612345612 6123456123 1234561234 2345612345 3456123456 4561234561
+FIRST 3
+SECOND 5
+...
+WIN LOSE"></textarea>
+    <div class="drag-hint">파일을 위 텍스트 영역에 드래그 &amp; 드롭하면 자동 로드됩니다</div>
+  </div>
+  <div class="input-btns">
+    <button class="btn btn-primary" id="btnLoad">시각화 시작</button>
+    <button class="btn btn-secondary" id="btnFile">파일 선택</button>
+    <button class="btn btn-danger" id="btnClear">초기화</button>
+    <input type="file" id="fileInput" accept=".txt,.log" style="display:none">
+  </div>
+</div>
+
+<!-- Main content -->
+<div class="main">
+
+  <!-- Left: board + controls -->
+  <div class="left-panel" id="leftPanel">
+
+    <!-- Scoreboard -->
+    <div class="scoreboard">
+      <div class="score-card" id="scoreCardFirst">
+        <div class="score-label first">선공 (FIRST)</div>
+        <div class="score-value first" id="scoreFirst">0</div>
+      </div>
+      <div class="score-card" id="scoreCardSecond">
+        <div class="score-label second">후공 (SECOND)</div>
+        <div class="score-value second" id="scoreSecond">0</div>
+      </div>
+    </div>
+
+    <!-- Board -->
+    <div class="board-wrap">
+      <div class="board" id="board"></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="ctrl-row">
+        <button class="ctrl-btn" id="btnPrev" title="이전 턴">&#9664;</button>
+        <input type="range" id="slider" min="0" max="0" value="0">
+        <button class="ctrl-btn" id="btnNext" title="다음 턴">&#9654;</button>
+      </div>
+      <div class="ctrl-row" style="justify-content:center; gap:12px;">
+        <button class="ctrl-btn play-btn" id="btnPlay" title="재생/정지">&#9654;</button>
+        <div class="turn-info" id="turnInfo">— 로그를 로드하세요 —</div>
+      </div>
+    </div>
+
+    <!-- Color legend -->
+    <div class="legend" id="legend"></div>
+
+    <!-- Result banner -->
+    <div class="result-banner" id="resultBanner">
+      <div class="result-title" id="resultTitle"></div>
+      <div class="result-scores" id="resultScores"></div>
+    </div>
+
+  </div>
+
+  <!-- Right: log panel -->
+  <div class="right-panel">
+    <div class="log-header">게임 로그</div>
+    <div class="log-box" id="logBox">
+      <div class="placeholder" id="logPlaceholder">
+        로그를 위 텍스트 영역에 붙여넣거나 파일을 선택하면<br>
+        게임 진행 과정을 단계별로 시각화합니다.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────
+const NR = 10, NC = 10, NUM_COLORS = 6;
+const PALETTE = ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#3498db','#9b59b6'];
+const COLOR_NAMES = ['빨강','주황','노랑','초록','파랑','보라'];
+
+// ─────────────────────────────────────────
+// State
+// ─────────────────────────────────────────
+let snapshots = [];   // Array of snapshot objects
+let currentSnap = 0;
+let playTimer = null;
+let isPlaying = false;
+
+// ─────────────────────────────────────────
+// Build board DOM (once)
+// ─────────────────────────────────────────
+function buildBoardDOM() {
+  const container = document.getElementById('board');
+  container.innerHTML = '';
+  for (let r = 0; r < NR; r++) {
+    for (let c = 0; c < NC; c++) {
+      const el = document.createElement('div');
+      el.id = `cell-${r}-${c}`;
+      el.className = 'cell';
+      // coordinate label (optional, small)
+      const coord = document.createElement('div');
+      coord.className = 'cell-coord';
+      coord.textContent = `${r},${c}`;
+      el.appendChild(coord);
+      container.appendChild(el);
+    }
+  }
+}
+buildBoardDOM();
+
+// ─────────────────────────────────────────
+// Build color legend
+// ─────────────────────────────────────────
+function buildLegend() {
+  const container = document.getElementById('legend');
+  container.innerHTML = '';
+  PALETTE.forEach((color, i) => {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    const dot = document.createElement('div');
+    dot.className = 'legend-dot';
+    dot.style.background = color;
+    const label = document.createElement('span');
+    label.textContent = `${i+1}. ${COLOR_NAMES[i]}`;
+    item.appendChild(dot);
+    item.appendChild(label);
+    container.appendChild(item);
+  });
+}
+buildLegend();
+
+// ─────────────────────────────────────────
+// Deep copy grid
+// ─────────────────────────────────────────
+function copyGrid(grid) {
+  return grid.map(row => row.map(cell => ({ color: cell.color, owner: cell.owner })));
+}
+
+// ─────────────────────────────────────────
+// Flood Fill / Expand logic (mirrors judge.cpp)
+// ─────────────────────────────────────────
+function expandGrid(grid, pNum, chosenColor) {
+  // 1) Change all owned cells to chosenColor
+  for (let r = 0; r < NR; r++)
+    for (let c = 0; c < NC; c++)
+      if (grid[r][c].owner === pNum)
+        grid[r][c].color = chosenColor;
+
+  // 2) BFS: absorb neutral cells with matching color
+  const queue = [];
+  const visited = new Array(NR * NC).fill(false);
+  const newCells = new Set();
+
+  for (let r = 0; r < NR; r++)
+    for (let c = 0; c < NC; c++)
+      if (grid[r][c].owner === pNum) {
+        visited[r * NC + c] = true;
+        queue.push([r, c]);
+      }
+
+  const DR = [-1, 1, 0, 0];
+  const DC = [0, 0, -1, 1];
+
+  let head = 0;
+  while (head < queue.length) {
+    const [r, c] = queue[head++];
+    for (let d = 0; d < 4; d++) {
+      const nr = r + DR[d], nc = c + DC[d];
+      if (nr < 0 || nr >= NR || nc < 0 || nc >= NC) continue;
+      const key = nr * NC + nc;
+      if (visited[key]) continue;
+      if (grid[nr][nc].owner !== 0) continue;
+      if (grid[nr][nc].color !== chosenColor) continue;
+      visited[key] = true;
+      newCells.add(key);
+      grid[nr][nc].owner = pNum;
+      queue.push([nr, nc]);
+    }
+  }
+  return newCells;
+}
+
+function countOwned(grid, pNum) {
+  let n = 0;
+  for (let r = 0; r < NR; r++)
+    for (let c = 0; c < NC; c++)
+      if (grid[r][c].owner === pNum) n++;
+  return n;
+}
+
+// ─────────────────────────────────────────
+// Parse log and compute snapshots
+// ─────────────────────────────────────────
+function parseLog(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  snapshots = [];
+
+  // Initial snapshot (before any move)
+  let initGrid = null;
+  let resultLine = null;
+
+  // Parse INIT line
+  for (const line of lines) {
+    if (line.startsWith('INIT ')) {
+      const parts = line.split(/\s+/);
+      // parts[0] = 'INIT', parts[1..10] = row strings
+      initGrid = [];
+      for (let r = 0; r < NR; r++) {
+        const rowStr = parts[r + 1] || '';
+        const row = [];
+        for (let c = 0; c < NC; c++) {
+          row.push({ color: parseInt(rowStr[c] || '1'), owner: 0 });
+        }
+        initGrid.push(row);
+      }
+      // Set starting ownership
+      initGrid[0][0].owner = 1;
+      initGrid[NR-1][NC-1].owner = 2;
+      break;
+    }
+  }
+
+  if (!initGrid) return false; // no INIT line found
+
+  // Initial snapshot
+  snapshots.push({
+    grid: copyGrid(initGrid),
+    newCells: new Set(),
+    player: null,
+    color: null,
+    label: 'INIT',
+    turnIndex: 0
+  });
+
+  let currentGrid = copyGrid(initGrid);
+  let turnCount = 0;
+
+  for (const line of lines) {
+    if (line.startsWith('FIRST ') || line.startsWith('SECOND ')) {
+      const parts = line.split(/\s+/);
+      const playerTag = parts[0]; // 'FIRST' or 'SECOND'
+      const color = parseInt(parts[1]);
+      if (isNaN(color) || color < 1 || color > NUM_COLORS) continue;
+
+      const pNum = playerTag === 'FIRST' ? 1 : 2;
+      currentGrid = copyGrid(currentGrid);
+      const newCells = expandGrid(currentGrid, pNum, color);
+      turnCount++;
+
+      snapshots.push({
+        grid: copyGrid(currentGrid),
+        newCells: newCells,
+        player: playerTag,
+        color: color,
+        label: line,
+        turnIndex: turnCount
+      });
+    } else if (line === 'WIN LOSE' || line === 'LOSE WIN' || line === 'NONE NONE' ||
+               line.match(/^(WIN|LOSE|NONE|TIME_LIMIT|ERROR)\s+(WIN|LOSE|NONE|TIME_LIMIT|ERROR)$/)) {
+      resultLine = line;
+    }
+  }
+
+  // Attach result to last snapshot if present
+  if (resultLine && snapshots.length > 0) {
+    snapshots[snapshots.length - 1].resultLine = resultLine;
+  }
+
+  return snapshots.length > 0;
+}
+
+// ─────────────────────────────────────────
+// Render a snapshot
+// ─────────────────────────────────────────
+function renderSnapshot(index) {
+  if (!snapshots.length) return;
+  index = Math.max(0, Math.min(snapshots.length - 1, index));
+  currentSnap = index;
+
+  const snap = snapshots[index];
+  const { grid, newCells, player } = snap;
+
+  // Update board cells
+  for (let r = 0; r < NR; r++) {
+    for (let c = 0; c < NC; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      const { color, owner } = grid[r][c];
+      const key = r * NC + c;
+
+      el.style.background = PALETTE[color - 1] || '#555';
+
+      let cls = 'cell';
+      if (owner === 0) cls += ' neutral';
+      else if (owner === 1) cls += ' owned-first';
+      else if (owner === 2) cls += ' owned-second';
+
+      if (newCells && newCells.has(key)) cls += ' new-cell';
+      el.className = cls;
+
+      // Re-append coordinate label
+      let coord = el.querySelector('.cell-coord');
+      if (!coord) {
+        coord = document.createElement('div');
+        coord.className = 'cell-coord';
+        el.appendChild(coord);
+      }
+      coord.textContent = `${r},${c}`;
+    }
+  }
+
+  // Update scores
+  const s1 = countOwned(grid, 1);
+  const s2 = countOwned(grid, 2);
+  document.getElementById('scoreFirst').textContent  = s1;
+  document.getElementById('scoreSecond').textContent = s2;
+
+  // Score card active state
+  const cardFirst  = document.getElementById('scoreCardFirst');
+  const cardSecond = document.getElementById('scoreCardSecond');
+  cardFirst.className  = 'score-card' + (player === 'FIRST'  ? ' active-first'  : '');
+  cardSecond.className = 'score-card' + (player === 'SECOND' ? ' active-second' : '');
+
+  // Turn info
+  const turnInfo = document.getElementById('turnInfo');
+  if (index === 0) {
+    turnInfo.innerHTML = '초기 상태';
+  } else if (snap.player) {
+    const colorName = COLOR_NAMES[snap.color - 1] || '';
+    const colorHex  = PALETTE[snap.color - 1] || '#fff';
+    const playerClass = snap.player === 'FIRST' ? 'hl-first' : 'hl-second';
+    const playerLabel = snap.player === 'FIRST' ? '선공' : '후공';
+    turnInfo.innerHTML =
+      `턴 ${snap.turnIndex} &mdash; ` +
+      `<span class="${playerClass}">${playerLabel}</span> 선택: ` +
+      `<span style="color:${colorHex};font-weight:700">${snap.color}(${colorName})</span>` +
+      ` &mdash; 흡수 ${newCells ? newCells.size : 0}칸`;
+  }
+
+  // Slider
+  const slider = document.getElementById('slider');
+  slider.value = index;
+
+  // Result banner
+  const banner = document.getElementById('resultBanner');
+  if (snap.resultLine && index === snapshots.length - 1) {
+    const parts = snap.resultLine.split(/\s+/);
+    const r1 = parts[0], r2 = parts[1];
+    let title = '', titleColor = '#fff';
+    if (r1 === 'WIN' && r2 === 'LOSE') {
+      title = '선공 승리!'; titleColor = '#64b5f6';
+    } else if (r1 === 'LOSE' && r2 === 'WIN') {
+      title = '후공 승리!'; titleColor = '#e57373';
+    } else if (r1 === 'NONE' && r2 === 'NONE') {
+      title = '무승부'; titleColor = '#ffd54f';
+    } else {
+      title = snap.resultLine; titleColor = '#aaa';
+    }
+    document.getElementById('resultTitle').textContent = title;
+    document.getElementById('resultTitle').style.color = titleColor;
+    document.getElementById('resultScores').innerHTML =
+      `<span style="color:#64b5f6">선공 ${s1}칸</span>` +
+      `<span style="color:#e57373">후공 ${s2}칸</span>`;
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+
+  // Highlight log entry
+  highlightLogEntry(index);
+}
+
+// ─────────────────────────────────────────
+// Build log panel entries
+// ─────────────────────────────────────────
+function buildLogPanel() {
+  const box = document.getElementById('logBox');
+  box.innerHTML = '';
+  document.getElementById('logPlaceholder')?.remove();
+
+  snapshots.forEach((snap, i) => {
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.dataset.index = i;
+
+    const no  = document.createElement('div');
+    no.className = 'log-no';
+    no.textContent = i;
+
+    const sep = document.createElement('div');
+    sep.className = 'log-sep';
+    sep.textContent = '│';
+
+    const txt = document.createElement('div');
+    txt.className = 'log-text';
+
+    if (i === 0) {
+      // INIT entry
+      const span = document.createElement('span');
+      span.className = 'tag-init';
+      // Show just INIT + first few chars of row data
+      const initSnap = snap;
+      const rowsSummary = initSnap.grid.map(row => row.map(c => c.color).join('')).join(' ');
+      span.textContent = 'INIT ' + rowsSummary;
+      txt.appendChild(span);
+    } else {
+      const label = snap.label || '';
+      const parts = label.split(/\s+/);
+      const tag = parts[0];
+      const span0 = document.createElement('span');
+      const tagClass = tag === 'FIRST' ? 'tag-first' : tag === 'SECOND' ? 'tag-second' : 'tag-result';
+      span0.className = tagClass;
+      span0.textContent = tag;
+      txt.appendChild(span0);
+
+      if (parts[1]) {
+        const colorIdx = parseInt(parts[1]) - 1;
+        const colorHex = PALETTE[colorIdx] || '#fff';
+        const span1 = document.createElement('span');
+        span1.style.color = colorHex;
+        span1.textContent = ` ${parts[1]}`;
+        txt.appendChild(span1);
+        const span2 = document.createElement('span');
+        span2.style.color = '#666';
+        span2.textContent = `(${COLOR_NAMES[colorIdx] || ''})`;
+        txt.appendChild(span2);
+      }
+
+      // Show absorbed count
+      if (snap.newCells && snap.newCells.size > 0) {
+        const span3 = document.createElement('span');
+        span3.style.color = '#4a8a4a';
+        span3.textContent = ` +${snap.newCells.size}`;
+        txt.appendChild(span3);
+      }
+
+      // Result line (last entry)
+      if (snap.resultLine) {
+        const br = document.createElement('br');
+        txt.appendChild(br);
+        const spanR = document.createElement('span');
+        spanR.className = 'tag-result';
+        spanR.textContent = snap.resultLine;
+        txt.appendChild(spanR);
+      }
+    }
+
+    entry.appendChild(no);
+    entry.appendChild(sep);
+    entry.appendChild(txt);
+
+    entry.addEventListener('click', () => {
+      stopPlay();
+      renderSnapshot(i);
+    });
+
+    box.appendChild(entry);
+  });
+}
+
+function highlightLogEntry(index) {
+  const box = document.getElementById('logBox');
+  const entries = box.querySelectorAll('.log-entry');
+  entries.forEach((el, i) => {
+    el.classList.toggle('active', i === index);
+  });
+  const active = box.querySelector('.log-entry.active');
+  if (active) active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// ─────────────────────────────────────────
+// Load log
+// ─────────────────────────────────────────
+function loadLog(text) {
+  stopPlay();
+  const ok = parseLog(text);
+  if (!ok || snapshots.length === 0) {
+    alert('유효한 로그를 찾을 수 없습니다.\nINIT 줄이 포함되어 있는지 확인하세요.');
+    return;
+  }
+
+  // Setup slider
+  const slider = document.getElementById('slider');
+  slider.min = 0;
+  slider.max = snapshots.length - 1;
+  slider.value = 0;
+
+  buildLogPanel();
+  renderSnapshot(0);
+}
+
+// ─────────────────────────────────────────
+// Playback controls
+// ─────────────────────────────────────────
+function startPlay() {
+  if (!snapshots.length) return;
+  isPlaying = true;
+  document.getElementById('btnPlay').innerHTML = '&#9646;&#9646;'; // pause icon
+  playTimer = setInterval(() => {
+    if (currentSnap >= snapshots.length - 1) {
+      stopPlay();
+      return;
+    }
+    renderSnapshot(currentSnap + 1);
+  }, 1000);
+}
+
+function stopPlay() {
+  isPlaying = false;
+  clearInterval(playTimer);
+  playTimer = null;
+  document.getElementById('btnPlay').innerHTML = '&#9654;'; // play icon
+}
+
+// ─────────────────────────────────────────
+// Event listeners
+// ─────────────────────────────────────────
+document.getElementById('btnLoad').addEventListener('click', () => {
+  const text = document.getElementById('logTextarea').value.trim();
+  if (!text) { alert('로그를 입력하세요.'); return; }
+  loadLog(text);
+});
+
+document.getElementById('btnClear').addEventListener('click', () => {
+  stopPlay();
+  snapshots = [];
+  document.getElementById('logTextarea').value = '';
+  document.getElementById('logBox').innerHTML =
+    '<div class="placeholder" id="logPlaceholder">로그를 위 텍스트 영역에 붙여넣거나 파일을 선택하면<br>게임 진행 과정을 단계별로 시각화합니다.</div>';
+  document.getElementById('scoreFirst').textContent  = '0';
+  document.getElementById('scoreSecond').textContent = '0';
+  document.getElementById('turnInfo').textContent = '— 로그를 로드하세요 —';
+  document.getElementById('resultBanner').classList.remove('show');
+  const slider = document.getElementById('slider');
+  slider.min = 0; slider.max = 0; slider.value = 0;
+  // Clear board
+  for (let r = 0; r < NR; r++)
+    for (let c = 0; c < NC; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      el.style.background = '#1a1a2e';
+      el.className = 'cell';
+    }
+});
+
+document.getElementById('btnFile').addEventListener('click', () => {
+  document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    document.getElementById('logTextarea').value = ev.target.result;
+    loadLog(ev.target.result);
+  };
+  reader.readAsText(file);
+  e.target.value = ''; // reset so same file can be re-selected
+});
+
+// Drag and drop on textarea
+const textarea = document.getElementById('logTextarea');
+textarea.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  textarea.classList.add('drag-over');
+});
+textarea.addEventListener('dragleave', () => {
+  textarea.classList.remove('drag-over');
+});
+textarea.addEventListener('drop', (e) => {
+  e.preventDefault();
+  textarea.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    textarea.value = ev.target.result;
+    loadLog(ev.target.result);
+  };
+  reader.readAsText(file);
+});
+
+// Also allow drag & drop on the whole left panel
+const leftPanel = document.getElementById('leftPanel');
+leftPanel.addEventListener('dragover', (e) => { e.preventDefault(); });
+leftPanel.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    document.getElementById('logTextarea').value = ev.target.result;
+    loadLog(ev.target.result);
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('btnPrev').addEventListener('click', () => {
+  stopPlay();
+  if (snapshots.length > 0 && currentSnap > 0)
+    renderSnapshot(currentSnap - 1);
+});
+
+document.getElementById('btnNext').addEventListener('click', () => {
+  stopPlay();
+  if (snapshots.length > 0 && currentSnap < snapshots.length - 1)
+    renderSnapshot(currentSnap + 1);
+});
+
+document.getElementById('btnPlay').addEventListener('click', () => {
+  if (!snapshots.length) return;
+  if (isPlaying) {
+    stopPlay();
+  } else {
+    if (currentSnap >= snapshots.length - 1) renderSnapshot(0);
+    startPlay();
+  }
+});
+
+document.getElementById('slider').addEventListener('input', (e) => {
+  stopPlay();
+  if (snapshots.length > 0)
+    renderSnapshot(parseInt(e.target.value));
+});
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (e.target === textarea) return; // don't interfere with textarea
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { stopPlay(); if (snapshots.length) renderSnapshot(currentSnap - 1); }
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  { stopPlay(); if (snapshots.length) renderSnapshot(currentSnap + 1); }
+  if (e.key === ' ') {
+    e.preventDefault();
+    document.getElementById('btnPlay').click();
+  }
+});
+
+// ─────────────────────────────────────────
+// postMessage support (for embedding in parent)
+// ─────────────────────────────────────────
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'LOAD_LOG') {
+    const log = e.data.log;
+    if (typeof log === 'string') {
+      document.getElementById('logTextarea').value = log;
+      loadLog(log);
+    }
+  }
+});
+
+// ─────────────────────────────────────────
+// Initial board display (empty)
+// ─────────────────────────────────────────
+(function initEmptyBoard() {
+  for (let r = 0; r < NR; r++)
+    for (let c = 0; c < NC; c++) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      el.style.background = '#0d0d1a';
+    }
+})();
+</script>
+</body>
+</html>
