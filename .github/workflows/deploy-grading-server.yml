@@ -63,8 +63,8 @@ jobs:
             --arg c3 "docker stop grading-server || true" \
             --arg c4 "docker rm grading-server || true" \
             --arg c5 "mkdir -p /tmp/grading" \
-            --arg c6 "docker images -q code-battle-env | grep -q . || (printf '$CODE_BATTLE_ENV' > /tmp/Dockerfile.env && docker build -t code-battle-env -f /tmp/Dockerfile.env /tmp)" \
-            --arg c7 "docker run -d --name grading-server --restart always -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/grading:/tmp/grading -e REDIS_HOST=$REDIS --log-driver=awslogs --log-opt awslogs-region=$REGION --log-opt awslogs-group=/grading-server --log-opt awslogs-create-group=true --log-opt awslogs-stream=\$(hostname) $IMAGE" \
+            --arg c6 "docker pull $REGISTRY/code-battle-env:latest && docker tag $REGISTRY/code-battle-env:latest code-battle-env:latest || true" \
+            --arg c7 "docker run -d --name grading-server --restart always -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/grading:/tmp/grading -e REDIS_HOST=$REDIS -e ECR_URI=$REGISTRY --log-driver=awslogs --log-opt awslogs-region=$REGION --log-opt awslogs-group=/grading-server --log-opt awslogs-create-group=true --log-opt awslogs-stream=\$(hostname) $IMAGE" \
             '{"commands": [$c1,$c2,$c3,$c4,$c5,$c6,$c7]}')
 
 

@@ -100,7 +100,7 @@ int setup_role(const std::string& role, const std::string& code, const std::stri
     return 0;
 }
 
-static const std::string VERSION = "1.1.1";
+static const std::string VERSION = "1.2.0";
 
 int main(int argc, char* argv[]) {
     std::string redis_host;
@@ -124,22 +124,35 @@ int main(int argc, char* argv[]) {
                             check_res.output.find_first_not_of(" \n\r\t") != std::string::npos;
 
         if (!image_exists) {
-            std::string dockerfile_content =
-                "FROM ubuntu:22.04\n"
-                "ENV DEBIAN_FRONTEND=noninteractive\n"
-                "RUN apt-get update && apt-get install -y \\\n"
-                "    build-essential \\\n"
-                "    openjdk-17-jdk \\\n"
-                "    python3 \\\n"
-                "    && rm -rf /var/lib/apt/lists/*\n"
-                "CMD [\"/bin/bash\"]\n";
+            // ECR에서 pull 시도 (빌드보다 빠름)
+            const char* ecr_env = std::getenv("ECR_URI");
+            if (ecr_env) {
+                std::string ecr_image = std::string(ecr_env) + "/code-battle-env:latest";
+                std::cout << "[Worker] ECR에서 code-battle-env pull 중..." << std::endl;
+                CmdResult pull_res = exec_cmd("docker pull " + ecr_image + " && docker tag " + ecr_image + " code-battle-env:latest");
+                image_exists = (pull_res.exit_code == 0);
+            }
 
-            write_file("./Dockerfile", dockerfile_content);
+            if (!image_exists) {
+                // ECR pull 실패 시 직접 빌드 (fallback)
+                std::cout << "[Worker] code-battle-env 직접 빌드 중 (시간 소요)..." << std::endl;
+                std::string dockerfile_content =
+                    "FROM ubuntu:22.04\n"
+                    "ENV DEBIAN_FRONTEND=noninteractive\n"
+                    "RUN apt-get update && apt-get install -y \\\n"
+                    "    build-essential \\\n"
+                    "    openjdk-17-jdk \\\n"
+                    "    python3 \\\n"
+                    "    && rm -rf /var/lib/apt/lists/*\n"
+                    "CMD [\"/bin/bash\"]\n";
 
-            CmdResult build_res = exec_cmd("docker build -t code-battle-env .");
-            if (build_res.exit_code != 0) {
-                std::cerr << "[에러] Docker 통합 이미지 빌드 실패:\n" << build_res.output << std::endl;
-                return 1;
+                write_file("./Dockerfile", dockerfile_content);
+
+                CmdResult build_res = exec_cmd("docker build -t code-battle-env .");
+                if (build_res.exit_code != 0) {
+                    std::cerr << "[에러] Docker 통합 이미지 빌드 실패:\n" << build_res.output << std::endl;
+                    return 1;
+                }
             }
         }
         std::cout << "[Worker] 다국어 채점 환경(code-battle-env) 준비 완료!\n";
