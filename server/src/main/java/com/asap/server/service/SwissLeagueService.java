@@ -61,7 +61,7 @@ public class SwissLeagueService {
   private final String matchKey = ":matchIds";
 
   @Transactional
-  public void generateSwissSession(Long contestId, int sessionNumber, Long sessionId) {
+  public void generateSwissSession(Long contestId, Long sessionId) {
     try {
       CodeBattleContest contest = contestRepository.findById(contestId)
           .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
@@ -69,7 +69,7 @@ public class SwissLeagueService {
       // 1. 세션 값 초기화
       ContestSwissSession session = swissSessionRepository.findById(sessionId)
           .orElseThrow(() -> new EntityNotFoundException("세션을 찾을 수 없습니다. id=" + sessionId));
-
+      int sessionNumber = session.getSessionNumber();
       if (contest.getStatus() != ContestStatus.RUNNING) {
         log.info("[스위스리그] contestId={} 대회가 RUNNING 상태가 아니므로 세션 {} 스킵. 현재={}",
             contestId, sessionNumber, contest.getStatus());
