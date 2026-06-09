@@ -78,10 +78,14 @@ export interface PatchContestData {
   startDate?: string;
   endDate?: string;
   maxParticipants?: number;
+  reviewerEmails?: string[];
 }
 
-export const patchContest = async (contestId: number, data: PatchContestData): Promise<void> => {
-  await api.patch(`/api/contests/${contestId}`, data);
+export const patchContest = async (contestId: number, data: PatchContestData, isCertified = false): Promise<void> => {
+  const url = isCertified
+    ? `/api/contests/${contestId}/modify/certified`
+    : `/api/contests/${contestId}/modify/uncertified`;
+  await api.patch(url, data);
 };
 
 export interface ModifyContestData {
@@ -97,6 +101,7 @@ export interface ModifyContestData {
   startDate: string;
   endDate: string;
   maxParticipants: number;
+  reviewerEmails?: string[];
 }
 
 async function buildModifyBody(data: ModifyContestData) {
@@ -114,6 +119,7 @@ async function buildModifyBody(data: ModifyContestData) {
     startDate:       data.startDate ? data.startDate.replace("T", " ").slice(0, 16) : undefined,
     endDate:         data.endDate   ? data.endDate.replace("T", " ").slice(0, 16)   : undefined,
     maxParticipants: data.maxParticipants,
+    ...(data.reviewerEmails !== undefined && { reviewerEmails: data.reviewerEmails }),
     ...(sampleCode        !== undefined && { sampleCode }),
     ...(judgeCode         !== undefined && { judgeCode }),
     ...(exampleAiCodes    !== undefined && { exampleAiCodes }),

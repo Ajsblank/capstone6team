@@ -42,6 +42,7 @@ const EditContestModal: React.FC<Props> = ({ contestId, initial, onClose, onSave
   const [sampleCode, setExampleCode]     = useState(initial.sampleCodes?.[0]?.code ?? "");
   const [judgeCode, setJudgeCode]         = useState("");
   const [judgeLanguage, setJudgeLanguage] = useState("CPP");
+  const reviewerEmails                    = initial.reviewerEmails ?? [];
 
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
@@ -71,6 +72,7 @@ const EditContestModal: React.FC<Props> = ({ contestId, initial, onClose, onSave
           description: description.trim(),
           status,
           endDate:     endDate ? toApiDatetime(endDate) : undefined,
+          ...(certification && { reviewerEmails }),
         }
       : {
           title:           title.trim(),
@@ -85,10 +87,11 @@ const EditContestModal: React.FC<Props> = ({ contestId, initial, onClose, onSave
           sampleCode:      sampleCode || undefined,
           judgeCode:       judgeCode.trim() || undefined,
           judgeLanguage:   judgeCode.trim() ? judgeLanguage : undefined,
+          ...(certification && { reviewerEmails }),
         };
 
     try {
-      await patchContest(contestId, payload);
+      await patchContest(contestId, payload, certification);
       // 부모는 {...prev, ...updated}로 병합하므로, 전송한(=변경된) 필드만 넘긴다.
       const updated: Partial<ContestDetail> = {
         description: payload.description,

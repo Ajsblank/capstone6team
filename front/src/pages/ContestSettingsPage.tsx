@@ -93,6 +93,7 @@ const ContestSettingsPage: React.FC = () => {
   const [endDate, setEndDate]                     = useState("");
   const [maxParticipants, setMaxParticipants]     = useState<number>(100);
   const [certification, setCertification]         = useState<boolean>(false);
+  const [reviewerEmails, setReviewerEmails]       = useState<string[]>([]);
 
   const [hasSampleCode, setHasSampleCode]     = useState(false);
   const [hasVisHtml, setHasVisHtml]           = useState(false);
@@ -129,6 +130,7 @@ const ContestSettingsPage: React.FC = () => {
         setHasSoloHtml(!!detail.soloPlayHtml);
         setExistingAiCount(detail.exampleAiCodes?.length ?? 0);
         setContestStatus(detail.status ?? "");
+        setReviewerEmails(detail.reviewerEmails ?? []);
       })
       .catch(() => setLoadError("대회 정보를 불러오지 못했습니다."))
       .finally(() => setLoading(false));
@@ -183,7 +185,8 @@ const ContestSettingsPage: React.FC = () => {
         await patchContest(contestId!, {
           description: description.trim(),
           endDate: endDate ? endDate.replace("T", " ").slice(0, 16) : undefined,
-        });
+          ...(certification && { reviewerEmails }),
+        }, certification);
       } else {
         const data = {
           title: title.trim(),
@@ -198,6 +201,7 @@ const ContestSettingsPage: React.FC = () => {
           startDate,
           endDate,
           maxParticipants,
+          ...(certification && { reviewerEmails }),
         };
         if (certification) {
           await modifyCertifiedContest(contestId!, data);
