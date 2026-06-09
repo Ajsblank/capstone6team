@@ -751,11 +751,8 @@ public class ContestService {
 
     // 여기 구현
     @Transactional
-    public void deleteContest(Long contestId) {
-        CodeBattleContest contest = contestRepository.findById(contestId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        String.format("대회를 찾을 수 없습니다. 대회 ID = %d", contestId)));
+    public void deleteContest(CodeBattleContest contest) {
         contestRepository.delete(contest);
-        log.info("대회 ID = {} 삭제 완료", contestId);
+        log.info("대회 ID = {} 삭제 완료", contest.getId());
     }
 }

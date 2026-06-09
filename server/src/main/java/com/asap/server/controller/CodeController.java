@@ -256,6 +256,10 @@ public class CodeController {
     public ResponseEntity<Long> getParticipantSubmission(
             @PathVariable Long contestId,
             @AuthenticationPrincipal Long userId) {
+        if (userId == null) {
+            log.info("로그인이 필요합니다.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         CodeBattleParticipant participant = participantRepository
                 .findByUserIdAndContestId(userId, contestId)
                 .orElse(null);

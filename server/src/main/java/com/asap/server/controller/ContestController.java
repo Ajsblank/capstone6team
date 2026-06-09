@@ -396,9 +396,11 @@ public class ContestController {
                         response_.put("status", "END");
                         response_.put("total_rounds", result.getTotalRounds());
                         // participants 추가
-                        List<Long> userIds = result.getFinalStandings().stream()
-                                .map(SwissResultResponse.StandingDto::getUserId)
-                                .toList();
+                        List<Long> userIds = result.getFinalStandings() != null
+                                ? result.getFinalStandings().stream()
+                                        .map(SwissResultResponse.StandingDto::getUserId)
+                                        .toList()
+                                : List.of();
                         response_.put("participants", getNicknameTagMap(userIds));
                         response_.put("rounds", result.getRounds());
                         emitter.send(SseEmitter.event().name("init").data(response_));
@@ -632,20 +634,22 @@ public class ContestController {
             @PathVariable Long matchId) {
 
         ContestSwissMatch match = swissMatchRepository.findById(matchId)
-                .orElseThrow(() -> new EntityNotFoundException("Match not found: " + matchId));
-
+                .orElseThrow(() -> new EntityNotFoundException("매치가 존재하지 않습니다 : " + matchId));
+        if (!match.getRound().getSession().getContest().getId().equals(contestId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청한 매치가 해당 대회에 존재하지 않습니다.");
+        }
         return match.getLog();
     }
 
     @GetMapping("/{contestId}/fullLeague/viewMatchLog/{matchId}")
     @Operation(summary = "풀리그 매치 로그 조회", description = "매치 Id를 통해 로그를 조회합니다.")
-    public String getContesttMatchLog(
+    public String getContestMatchLog(
             @PathVariable Long contestId,
             @PathVariable Long matchId) {
         CodeBattleMatch match = matchRepository.findById(matchId)
-                .orElseThrow(() -> new EntityNotFoundException("Match not found: " + matchId));
+                .orElseThrow(() -> new EntityNotFoundException("매치가 존재하지 않습니다 : " + matchId));
         if (!match.getContest().getId().equals(contestId)) {
-            log.info("요청한 매치의 대회 ID={}와 입력된 대회 ID={}가 일치하지 않습니다.", match.getId(), contestId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "요청한 매치가 해당 대회에 존재하지 않습니다.");
         }
         return match.getLog();
     }
@@ -737,6 +741,7 @@ public class ContestController {
     }
 
     @DeleteMapping("/{contestId}/deleteContest")
+    @Operation(summary = "대회 강제 삭제 (연관 테이블 포함)", description = "참가자, 제출, 스위스 리그, 검증 관련 모든 연관 테이블을 삭제합니다. (하위 재귀 삭제)")
     public ResponseEntity<?> deleteContest(@PathVariable Long contestId,
             @AuthenticationPrincipal Long userId) {
         // admin 계정 userId = 1 이거나 자기가 개최한 대회일 때 삭제 가능
@@ -745,13 +750,13 @@ public class ContestController {
                     .orElseThrow(
                             () -> new IllegalArgumentException(String.format("대회를 찾을 수 없습니다. 대회 ID = %d", contestId)));
             // 관리자 계정 ID 1로 하드코딩
-            if (!userId.equals(1L)) {
-                if (!contest.getCreator().getId().equals(userId)) {
+            if (userId == null || !userId.equals(1L)) {
+                if (userId == null || !contest.getCreator().getId().equals(userId)) {
                     log.info("대회 개최자와 일치하지 않는 유저 contestId={} userId={}", contestId, userId);
                     return ResponseEntity.status(403).body(null);
                 }
             }
-            contestService.deleteContest(contestId);
+            contestService.deleteContest(contest);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
