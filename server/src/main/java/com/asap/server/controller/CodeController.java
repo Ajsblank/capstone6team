@@ -250,4 +250,24 @@ public class CodeController {
             return ResponseEntity.badRequest().body(new CodeSubmitResponse(false, e.getMessage()));
         }
     }
+
+    @GetMapping("/submit/{contestId}/getMySelect")
+    @Operation(summary = "최종 제출 코드 조회")
+    public ResponseEntity<Long> getParticipantSubmission(
+            @PathVariable Long contestId,
+            @AuthenticationPrincipal Long userId) {
+        if (userId == null) {
+            log.info("로그인이 필요합니다.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        CodeBattleParticipant participant = participantRepository
+                .findByUserIdAndContestId(userId, contestId)
+                .orElse(null);
+
+        if (participant == null || participant.getSubmission() == null) {
+            return ResponseEntity.ok(null);
+        }
+
+        return ResponseEntity.ok(participant.getSubmission().getId());
+    }
 }
