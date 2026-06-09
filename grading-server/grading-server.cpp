@@ -54,29 +54,29 @@ int setup_role(const std::string& role, const std::string& code, const std::stri
     std::string run_cmd = "";
     std::string docker_img = "code-battle-env"; // 다중 언어 지원 이미지 이름
 
+    // U+00A0 (non-breaking space) → regular space (모든 언어 공통 처리)
+    std::string sanitized_code = code;
+    std::string nbsp = "\xc2\xa0";
+    size_t pos = 0;
+    while ((pos = sanitized_code.find(nbsp, pos)) != std::string::npos) {
+        sanitized_code.replace(pos, nbsp.size(), " ");
+        pos += 1;
+    }
+
     if (lang == "java") {
         std::string java_dir = abs_work_dir + "/" + role + "_src";
         fs::create_directories(java_dir);
-        // U+00A0 (non-breaking space) → regular space to prevent javac "illegal character" errors
-        std::string sanitized_code = code;
-        std::string nbsp = "\xc2\xa0"; // UTF-8 encoding of U+00A0
-        size_t pos = 0;
-        while ((pos = sanitized_code.find(nbsp, pos)) != std::string::npos) {
-            sanitized_code.replace(pos, nbsp.size(), " ");
-            pos += 1;
-        }
         write_file(java_dir + "/Main.java", sanitized_code);
         compile_cmd = "docker run --rm -v " + abs_work_dir + ":/app -w /app " + docker_img + " javac -encoding UTF-8 " + role + "_src/Main.java";
         run_cmd = "java -cp /app/" + role + "_src Main";
     } else if (lang == "python" || lang == "py") {
-        write_file(abs_work_dir + "/" + role + ".py", code);
-        // 파이썬은 사전 컴파일이 필요 없음
+        write_file(abs_work_dir + "/" + role + ".py", sanitized_code);
         run_cmd = "python3 /app/" + role + ".py";
     } else if (lang == "c") {
-        write_file(abs_work_dir + "/" + role + ".c", code);
+        write_file(abs_work_dir + "/" + role + ".c", sanitized_code);
         compile_cmd = "docker run --rm -v " + abs_work_dir + ":/app -w /app " + docker_img + " gcc -O2 -o " + role + " " + role + ".c";
     } else { // 기본값 C++
-        write_file(abs_work_dir + "/" + role + ".cpp", code);
+        write_file(abs_work_dir + "/" + role + ".cpp", sanitized_code);
         compile_cmd = "docker run --rm -v " + abs_work_dir + ":/app -w /app " + docker_img + " g++ -O2 -o " + role + " " + role + ".cpp";
     }
 
