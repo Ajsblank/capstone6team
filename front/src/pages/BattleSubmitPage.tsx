@@ -139,14 +139,17 @@ const SubmitPage: React.FC = () => {
     setContestDetail(null);
     setContestDetailError(null);
     setContestDetailLoading(true);
-    setJoinStatus(joinedContestIds.includes(problemId) ? "joined" : "idle");
-    setJoinError("");
     getContestDetail(problemId)
       .then(data => { if (!cancelled) setContestDetail(data); })
       .catch(() => { if (!cancelled) setContestDetailError("대회 정보를 불러오지 못했습니다."); })
       .finally(() => { if (!cancelled) setContestDetailLoading(false); });
     return () => { cancelled = true; };
   }, [problemId]);
+
+  useEffect(() => {
+    setJoinStatus(joinedContestIds.includes(problemId) ? "joined" : "idle");
+    setJoinError("");
+  }, [joinedContestIds, problemId]);
 
   const handleJoin = useCallback(async () => {
     if (!user) {
@@ -165,7 +168,7 @@ const SubmitPage: React.FC = () => {
       setJoinStatus("error");
       setJoinError(err.response?.data?.message ?? "참가 신청에 실패했습니다.");
     }
-  }, [problemId, user]);
+  }, [problemId, user, addJoinedContest]);
 
   // 로그인 후 리다이렉트로 돌아온 경우 pending action 실행
   useEffect(() => {

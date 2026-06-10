@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
 import { marked } from "marked";
 import mammoth from "mammoth";
 import { useApp } from "../context/AppContext";
@@ -67,7 +66,7 @@ const FileInput: React.FC<FileInputProps> = ({ label, required, accept, value, o
 };
 
 const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = false }) => {
-  const { user, navigate, addCreatedContest } = useApp();
+  const { user, navigate } = useApp();
 
   const [title, setTitle]                   = useState("");
   const [description, setDescription]       = useState("");
@@ -84,7 +83,6 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
   const [certification, setCertification]   = useState<boolean>(false);
   const [status, setStatus]                 = useState<ContestStatus>("PLANNED");
 
-  const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [errorMsg, setErrorMsg]         = useState("");
   const [toastMessages, setToastMessages] = useState<string[]>([]);
   const [showPreview, setShowPreview]   = useState(false);

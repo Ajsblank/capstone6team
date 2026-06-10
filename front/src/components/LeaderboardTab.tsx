@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import {
   getSessionLeaderboard, getMiddleRanking, getContestSessions, getSwissMatchLog,
-  SessionLeaderboard, LeaderboardStanding, MyMatchInfo,
+  SessionLeaderboard, MyMatchInfo,
 } from "../api/codeBattleApi";
 import "./LeaderboardTab.css";
 
@@ -11,8 +11,6 @@ interface Props {
   hasVisualization?: boolean;
   onLogView?: (log: string) => void;   // "로그 보러 가기" → viz1 탭 전달
 }
-
-const RANK_MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
 function renderNickTag(value: string): React.ReactNode {
   const i = value.lastIndexOf('-');

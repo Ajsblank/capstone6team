@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import "./ContestTutorial.css";
 
 // ─── 튜토리얼 파일 ──────────────────────────────────────────────────────────────
