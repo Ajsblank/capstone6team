@@ -751,8 +751,7 @@ const BattlePage: React.FC = () => {
       localStorage.removeItem("loginPendingAction");
       setShowCostPopup(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user]);
 
   const handleTabChange = (tab: BattleTab) => {
     window.location.hash = `battle/${tab}`;

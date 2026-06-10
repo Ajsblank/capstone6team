@@ -175,8 +175,7 @@ const SubmitPage: React.FC = () => {
       localStorage.removeItem("loginPendingAction");
       handleJoin();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user, handleJoin]);
 
   // 로그 분석 iframe ref + 전달할 로그
   const logIframeRef = useRef<HTMLIFrameElement>(null);
