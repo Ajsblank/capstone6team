@@ -62,7 +62,7 @@ jobs:
         run: chmod +x gradlew 
 
       - name: server test
-        run: ./gradlew test
+        run: ./gradlew test jacocoTestReport
       - name: server build
         run: ./gradlew build -x test
 
@@ -90,6 +90,11 @@ jobs:
       - name: Upload deploy.sh to S3
         run: |
           aws s3 cp deploy.sh s3://caps-asap-bucket-test/backend-deploy/deploy/deploy.sh
+
+      - name: Upload JaCoCo report to S3
+        run: |
+          aws s3 sync build/reports/jacoco/test/html/ \
+            s3://caps-asap-bucket-test/backend-deploy/jacoco/${{ github.sha }}/
 
       - name: Start EC2 and Wait
         run: |
