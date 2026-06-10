@@ -80,9 +80,8 @@ public class SecurityConfig {
                         .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/mail",
                                 "/api/auth/mail/send", "/api/auth/sms/send", "/api/auth/sms/verify",
-                                "/api/auth/refresh", "/api/auth/auto-login")
+                                "/api/auth/refresh", "/api/auth/auto-login", "/api/auth/temp-signup")
                         .permitAll()
-                        .requestMatchers("/api/admin/**").authenticated()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/contests", "/api/contests/**").permitAll()
                         .requestMatchers("/api/contests/*/resources/**").permitAll()
