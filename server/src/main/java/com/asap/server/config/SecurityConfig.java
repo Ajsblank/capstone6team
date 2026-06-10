@@ -96,7 +96,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/profile/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/payment/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/code/submission/**").authenticated()
-                        .anyRequest().permitAll())
+                        .requestMatchers("/api/admin/**").authenticated()
+                        .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
