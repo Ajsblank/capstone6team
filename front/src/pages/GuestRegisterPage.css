@@ -1,0 +1,210 @@
+/* GuestRegisterPage — Mobile-first, White/Green Theme */
+
+.guest-register-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh; /* dynamic viewport height for mobile browsers */
+  background: #f9fafb;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.guest-register-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 44vmin;
+  height: 44vmin;
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+  background: radial-gradient(
+    ellipse at 100% 0%,
+    rgba(22, 163, 74, 0.15) 0%,
+    rgba(22, 163, 74, 0.05) 45%,
+    transparent 68%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Card */
+.guest-register-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 36px 24px 32px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 1;
+}
+
+/* Logo */
+.guest-register-logo {
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.guest-register-logo-img {
+  height: 100px;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+/* Heading */
+.guest-register-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: -10px 0 0;
+  text-align: center;
+}
+
+/* Steps guide */
+.guest-register-steps {
+  list-style: none;
+  counter-reset: step;
+  margin: -4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guest-register-steps li {
+  counter-increment: step;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.guest-register-steps li::before {
+  content: counter(step);
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  background: #16a34a;
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+/* Form */
+.guest-register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.guest-register-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.guest-register-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.guest-register-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 1rem;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  color: #111827;
+  background: #f9fafb;
+  border: 1.5px solid #d1d5db;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.guest-register-input:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+  background: #ffffff;
+}
+
+.guest-register-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Error */
+.guest-register-error {
+  font-size: 0.82rem;
+  color: #dc2626;
+  margin: 0;
+  padding: 9px 12px;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+}
+
+/* Submit button */
+.guest-register-submit {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: "IBM Plex Sans KR", "IBM Plex Sans", sans-serif;
+  color: #ffffff;
+  background: #16a34a;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.guest-register-submit:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.guest-register-submit:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.guest-register-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* ── Desktop enhancement ─────────────────────────────────────────── */
+@media (min-width: 480px) {
+  .guest-register-card {
+    padding: 44px 40px;
+    gap: 20px;
+  }
+
+  .guest-register-logo-img {
+    height: 120px;
+  }
+}
