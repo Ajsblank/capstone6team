@@ -27,6 +27,8 @@ public class TokenService {
   private static final String REFRESH_TOKEN_PREFIX = "auth:refresh:";
   private static final String BLACKLIST_PREFIX = "auth:blacklist:";
   private static final String SESSION_INDEX_PREFIX = "auth:sessions:";
+  private static final String INVITE_TOKEN_PREFIX = "auth:invite:";
+  private static final java.time.Duration INVITE_TOKEN_TTL = java.time.Duration.ofHours(24);
 
   /**
    * access token 발급
@@ -213,6 +215,28 @@ public class TokenService {
     } catch (Exception e) {
       return 0;
     }
+  }
+
+  /**
+   * 초대 토큰 저장 (24시간 유효)
+   */
+  public void storeInviteToken(String token, Long userId) {
+    String key = INVITE_TOKEN_PREFIX + token;
+    redisTemplate.opsForValue().set(key, userId.toString(), INVITE_TOKEN_TTL);
+    log.info("초대 토큰 저장 - userId: {}", userId);
+  }
+
+  /**
+   * 초대 토큰 검증 및 소비 (일회용)
+   */
+  public Long validateAndConsumeInviteToken(String token) {
+    String key = INVITE_TOKEN_PREFIX + token;
+    Object value = redisTemplate.opsForValue().get(key);
+    if (value == null) {
+      throw new IllegalArgumentException("유효하지 않거나 만료된 초대 토큰입니다.");
+    }
+    redisTemplate.delete(key);
+    return Long.parseLong(value.toString());
   }
 
   /**
