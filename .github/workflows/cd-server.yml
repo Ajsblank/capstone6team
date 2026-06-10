@@ -94,7 +94,7 @@ jobs:
       - name: Upload JaCoCo report to S3
         run: |
           aws s3 sync build/reports/jacoco/test/html/ \
-            s3://caps-asap-bucket-test/backend-deploy/jacoco/${{ github.sha }}/
+          s3://caps-asap-bucket-test/backend-deploy/jacoco/${{ github.sha }}/
 
       - name: Start EC2 and Wait
         run: |
@@ -116,7 +116,7 @@ jobs:
               break
             fi
 
-            if [ "$i" -ge 24 ]; then # 5초 * 24 = 120초
+            if [ "$i" -ge 24 ]; then # 5초 * 36 = 120초
               echo "SSM Agent did not become online in time."
               exit 1
             fi
