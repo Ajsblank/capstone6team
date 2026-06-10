@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.asap.server.domain.RefreshTokenMeta;
 import com.asap.server.dto.request.AutoLoginRequest;
+import com.asap.server.dto.request.TempSignupRequest;
 import com.asap.server.dto.request.EmailResendRequest;
 import com.asap.server.dto.request.EmailVerifyRequest;
 import com.asap.server.dto.request.LoginRequest;
@@ -19,10 +20,12 @@ import com.asap.server.dto.request.SmsVerifyRequest;
 import com.asap.server.dto.request.WithdrawRequest;
 import com.asap.server.dto.response.LoginResponse;
 import com.asap.server.dto.response.TokenRefreshResponse;
+import com.asap.server.service.AdminService;
 import com.asap.server.service.AuthService;
 import com.asap.server.service.TokenService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -33,6 +36,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final TokenService tokenService;
+    private final AdminService adminService;
 
     @PostMapping("/signup")
     public ResponseEntity<String> signup(@Valid @RequestBody SignupRequest request) {
@@ -111,10 +115,28 @@ public class AuthController {
         return ResponseEntity.ok("SMS 인증이 완료되었습니다.");
     }
 
-    @Operation(summary = "초대 링크 자동 로그인", description = "관리자가 발송한 초대 메일의 일회용 토큰으로 로그인합니다.")
+    @Operation(summary = "초대 링크 자동 로그인", description = "초대 메일의 일회용 토큰으로 로그인합니다.")
     @PostMapping("/auto-login")
     public ResponseEntity<LoginResponse> autoLogin(@Valid @RequestBody AutoLoginRequest request) {
         LoginResponse response = authService.autoLogin(request.getToken());
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "임시 계정 생성", description = "대회 참가용 임시 계정을 생성하고 로그인 정보와 자동 로그인 링크가 담긴 초대 메일을 발송합니다.")
+    @PostMapping("/temp-signup")
+    public ResponseEntity<String> createTempUser(
+            @Valid @RequestBody TempSignupRequest request,
+            HttpServletRequest httpRequest) {
+        String clientIp = resolveClientIp(httpRequest);
+        adminService.createTempUser(request, clientIp);
+        return ResponseEntity.status(201).body("임시 계정이 생성되었고 초대 메일이 발송되었습니다.");
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }
