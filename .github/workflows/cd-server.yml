@@ -37,11 +37,6 @@ jobs:
     defaults:
       run:
         working-directory: server
-    services:
-      redis:
-        image: redis
-        ports: 
-          - 6379:6379
     env: 
       DB_USER: ${{ secrets.DB_USER }}
       DB_NAME: ${{ secrets.DB_NAME_STAGING }}
@@ -66,8 +61,10 @@ jobs:
       - name: add permission to execute
         run: chmod +x gradlew 
 
+      - name: server test
+        run: ./gradlew test
       - name: server build
-        run: ./gradlew build
+        run: ./gradlew build -x test
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -75,10 +72,24 @@ jobs:
           role-to-assume: ${{secrets.ARN_ROLE}}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Upload to S3
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2 
+
+      - name: Build and push Docker image
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: caps-asap-server
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          JAR_FILE=$(ls build/libs/*.jar | grep -v plain | head -n 1)
-          aws s3 cp $JAR_FILE s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Upload deploy.sh to S3
+        run: |
+          aws s3 cp deploy.sh s3://caps-asap-bucket-test/backend-deploy/deploy/deploy.sh
 
       - name: Start EC2 and Wait
         run: |
@@ -110,7 +121,9 @@ jobs:
             sleep 5
           done
 
-      - name: Run command and wait
+      - name: Run deploy on EC2
+        env:
+          ECR_IMAGE: ${{ steps.build-image.outputs.image }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
           --instance-ids ${{vars.EC2_ID_INSTANCE}} \
@@ -121,7 +134,7 @@ jobs:
               "mkdir -p /home/ubuntu/app",
               "cd /home/ubuntu/app",
               
-              "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar .",
+              "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/deploy.sh .",
 
               "cat > /home/ubuntu/app/.env << 'EOF'",
               "DB_URL=${{secrets.DB_URL_STAGING}}",
@@ -140,11 +153,12 @@ jobs:
               "AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}}",
               "TOSS_CLIENT_KEY=${{secrets.TOSS_CLIENT_KEY}}",
               "TOSS_SECRET_KEY=${{secrets.TOSS_SECRET_KEY}}",
+              "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}",
               "EOF",
 
               "chmod 600 .env",
               "chmod +x deploy.sh",
-              "bash deploy.sh"
+              "bash deploy.sh ${{steps.build-image.outputs.image}}"
             ]
           }' \
           --query "Command.CommandId" \
@@ -152,4 +166,6 @@ jobs:
 
           aws ssm wait command-executed \
           --command-id $COMMAND_ID \
-          --instance-id ${{vars.EC2_ID_INSTANCE}}
+          --instance-id ${{vars.EC2_ID_INSTANCE}} \
+          --cli-read-timeout 300 \
+          --cli-connect-timeout 300

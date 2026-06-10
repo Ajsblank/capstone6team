@@ -21,7 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class SseService {
-    private record PendingEvent(Object data, String eventName) {}
+    private record PendingEvent(Object data, String eventName) {
+    }
 
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
 
@@ -100,7 +101,8 @@ public class SseService {
     // pollFirst로 꺼내고 전송 성공 시만 제거, 실패 시 offerFirst로 복원.
     private void drainQueue(Long userId, SseEmitter emitter) {
         Deque<PendingEvent> queue = pendingEvents.get(userId);
-        if (queue == null || queue.isEmpty()) return;
+        if (queue == null || queue.isEmpty())
+            return;
 
         synchronized (queue) {
             PendingEvent pending;
@@ -204,6 +206,7 @@ public class SseService {
             } catch (IOException e) {
                 log.warn("[SSE 브로드캐스트 실패] key={} emitter 제거", key);
                 dead.add(emitter);
+                emitter.complete();
             }
         }
         list.removeAll(dead);

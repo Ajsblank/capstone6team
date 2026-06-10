@@ -121,7 +121,13 @@ dependencies {
   annotationProcessor 'org.projectlombok:lombok'
 	implementation 'software.amazon.awssdk:s3'
 }
-
+// plain.jar 배포 중지
+jar {
+    enabled = false
+}
+bootJar {
+    archiveFileName = 'app.jar'
+}
 // Junit6설정 
 tasks.named('test') {
 	useJUnitPlatform()

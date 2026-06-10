@@ -6,9 +6,12 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.asap.server.domain.ContestSwissSession;
+import com.asap.server.global.type.ContestStatus;
 
 public interface ContestSwissSessionRepository extends JpaRepository<ContestSwissSession, Long> {
   List<ContestSwissSession> findByContestId(Long contestId);
+
+  List<ContestSwissSession> findByContestIdAndStatus(Long contestId, ContestStatus status);
 
   Optional<ContestSwissSession> findByContestIdAndSessionNumber(Long contestId, int sessionNumber);
 

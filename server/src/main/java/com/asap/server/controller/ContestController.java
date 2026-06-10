@@ -3,6 +3,7 @@ package com.asap.server.controller;
 import java.io.IOException;
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -303,27 +304,6 @@ public class ContestController {
         }
     }
 
-    @PostMapping("/{contestId}/temporarySessionTest")
-    @Operation(summary = "세션을 생성 실행합니다.", description = "대회에 세션을 새로 생성하고 강제 실행합니다.")
-    public ResponseEntity<String> testSwissSession(
-            @PathVariable Long contestId,
-            @RequestParam int sessionNumber) {
-        try {
-            CodeBattleContest contest = contestRepository.findById(contestId)
-                    .orElseThrow(() -> new IllegalArgumentException("대회를 찾을 수 없습니다. id=" + contestId));
-            // 1. 세션 값 초기화
-            ContestSwissSession session = new ContestSwissSession();
-            session.setContest(contest);
-            session = sessionRepository.save(session);
-
-            swissService.generateSwissSession(contestId, sessionNumber, session.getId());
-            return ResponseEntity.ok("스위스 세션 " + sessionNumber + " 실행됨. sessionId=" + session.getId());
-        } catch (Exception e) {
-            log.error("[스위스 테스트] 예외 발생", e);
-            return ResponseEntity.badRequest().body(e.getClass().getSimpleName() + ": " + e.getMessage());
-        }
-    }
-
     @PostMapping("/{contestId}/swiss-round-aggregate-test")
     public ResponseEntity<String> testSwissRoundAggregate(
             @PathVariable Long contestId,
@@ -406,13 +386,23 @@ public class ContestController {
                         emitter.send(SseEmitter.event().name("init").data(response_));
                     } catch (JsonProcessingException e) {
                         log.error("[SSE][END] JSON 파싱 실패. key={}", key, e);
-                        emitter.send(SseEmitter.event().name("init")
-                                .data(Map.of("status", "END", "message", "결과 데이터 파싱 중 오류가 발생했습니다.")));
+                        Map<String, Object> errResp = new LinkedHashMap<>();
+                        errResp.put("status", "END");
+                        errResp.put("total_rounds", 0);
+                        errResp.put("participants", Map.of());
+                        errResp.put("rounds", List.of());
+                        errResp.put("message", "결과 데이터 파싱 중 오류가 발생했습니다.");
+                        emitter.send(SseEmitter.event().name("init").data(errResp));
                     } catch (Exception e) {
-                        // S3 파일 없음 = 종료는 됐지만 아직 집계 중
+                        // S3 파일 없음 = 종료는 됐지만 아직 집계 중이거나 비정상 종료
                         log.warn("[SSE][END] S3 파일 없음 또는 조회 실패. key={}", key, e);
-                        emitter.send(SseEmitter.event().name("init")
-                                .data(Map.of("status", "END", "message", "아직 집계 중이거나 데이터가 존재하지 않습니다.")));
+                        Map<String, Object> emptyResp = new LinkedHashMap<>();
+                        emptyResp.put("status", "END");
+                        emptyResp.put("total_rounds", 0);
+                        emptyResp.put("participants", Map.of());
+                        emptyResp.put("rounds", List.of());
+                        emptyResp.put("message", "아직 집계 중이거나 데이터가 존재하지 않습니다.");
+                        emitter.send(SseEmitter.event().name("init").data(emptyResp));
                     }
                     emitter.complete();
                 } catch (IOException e) {
@@ -465,9 +455,14 @@ public class ContestController {
             try {
                 json = s3Service.readFileAsString(key);
             } catch (Exception e) {
-                // S3 파일 없음 = 종료는 됐지만 아직 집계 중
-                return ResponseEntity.accepted()
-                        .body(Map.of("message", "아직 집계 중이거나 데이터가 존재하지 않습니다."));
+                // S3 파일 없음 = 종료는 됐지만 아직 집계 중이거나 비정상 종료
+                Map<String, Object> emptyResp = new LinkedHashMap<>();
+                emptyResp.put("status", "END");
+                emptyResp.put("total_rounds", 0);
+                emptyResp.put("participants", Map.of());
+                emptyResp.put("rounds", List.of());
+                emptyResp.put("message", "아직 집계 중이거나 데이터가 존재하지 않습니다.");
+                return ResponseEntity.accepted().body(emptyResp);
             }
             try {
                 SwissResultResponse response = objectMapper.readValue(json, SwissResultResponse.class);
@@ -661,29 +656,46 @@ public class ContestController {
             @RequestBody List<LocalDateTime> scheduledTimes) {
 
         CodeBattleContest contest = contestRepository.findById(contestId)
-                .orElseThrow(() -> new EntityNotFoundException("Contest not found: " + contestId));
+                .orElseThrow(() -> new EntityNotFoundException("대회를 찾을 수 없습니다 : " + contestId));
+        if (contest.getStatus() == ContestStatus.CANCELED || contest.getStatus() == ContestStatus.END) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "종료되거나 취소된 대회는 세션을 예약할 수 없습니다. contestId=" + contestId));
+        }
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
         List<ContestSwissSession> sessions = new ArrayList<>();
         List<LocalDateTime> sorted = scheduledTimes.stream()
                 .sorted()
                 .toList();
-        int lastSessionNumber = sessionRepository.findByContestId(contestId)
-                .stream()
-                .mapToInt(ContestSwissSession::getSessionNumber)
-                .max()
-                .orElse(0);
-        // 현재 예약된 세션 넘버 다음 세션부터 예약
-        for (int i = 0; i < sorted.size(); i++) {
+        for (LocalDateTime time : sorted) {
+            if (!time.isAfter(now)) {
+                log.info("[스위스 리그 예약] 현재 시각 이전 세션 스킵. contestId={}, scheduledAt={}", contestId, time);
+                continue;
+            }
             ContestSwissSession session = new ContestSwissSession();
             session.setContest(contest);
-            session.setScheduledAt(sorted.get(i));
-            // 임시로 1부터 세션 번호를 매김
-            // 자동 예약 추가
+            session.setScheduledAt(time);
             session.setStatus(ContestStatus.PLANNED);
-            session.setSessionNumber(lastSessionNumber + i + 1);
             sessions.add(session);
         }
-
         sessionRepository.saveAll(sessions);
+        List<ContestSwissSession> allSessions = sessionRepository.findByContestId(contestId);
+        // RUNNING·END 세션의 sessionNumber는 히스토리/S3 키/SSE 구독에 연결되므로 절대 변경 금지.
+        // PLANNED 세션만 scheduledAt 순으로 재번호 부여 (잠긴 번호 다음부터 시작).
+        int maxLockedNumber = allSessions.stream()
+                .filter(s -> s.getStatus() != ContestStatus.PLANNED)
+                .mapToInt(s -> s.getSessionNumber() != null ? s.getSessionNumber() : 0)
+                .max()
+                .orElse(0);
+        List<ContestSwissSession> plannedSessions = allSessions.stream()
+                .filter(s -> s.getStatus() == ContestStatus.PLANNED)
+                .sorted(Comparator.comparing(ContestSwissSession::getScheduledAt))
+                .collect(Collectors.toList());
+        int nextNumber = maxLockedNumber + 1;
+        for (ContestSwissSession s : plannedSessions) {
+            s.setSessionNumber(nextNumber++);
+        }
+        sessionRepository.saveAll(plannedSessions);
+
         for (ContestSwissSession session : sessions) {
             contestRunService.registSwissContest(contest, session);
             log.info("[스위스 리그 예약] contestId={}, sessionId={}, 시작 시간={}", contestId, session.getId(),
@@ -703,7 +715,7 @@ public class ContestController {
                     .orElseThrow(() -> new EntityNotFoundException(
                             "세션을 찾을 수 없습니다. contestId=" + contestId + ", sessionNumber=" + sessionNumber));
 
-            swissService.generateSwissSession(contestId, sessionNumber, session.getId());
+            swissService.generateSwissSession(contestId, session.getId());
 
             return ResponseEntity.ok("스위스 세션 " + sessionNumber + " 실행 완료. sessionId=" + session.getId());
         } catch (EntityNotFoundException e) {
