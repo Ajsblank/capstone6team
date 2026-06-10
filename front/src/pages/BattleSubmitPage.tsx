@@ -497,7 +497,6 @@ const SubmitPage: React.FC = () => {
               <BattleSessionsTab
                 contestId={problemId}
                 onSessionClick={setSelectedSession}
-                contestEnded={contestDetail?.status === "END"}
               />
             ) : (
               <SessionDetailPanel
