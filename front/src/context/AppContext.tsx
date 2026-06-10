@@ -19,7 +19,8 @@ export type Page =
   | "tournament"
   | "tutorial-contest"
   | "profile"
-  | "guestRegister";
+  | "guestRegister"
+  | "auto-login";
 
 export interface User {
   id: string;
@@ -41,7 +42,7 @@ interface AppContextValue {
   addCreatedContest: (contestId: number) => void;
 }
 
-const VALID_PAGES: Page[] = ["landing", "home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "create-contest", "create-certified-contest", "contest-settings", "tournament", "tutorial-contest", "profile", "guestRegister"];
+const VALID_PAGES: Page[] = ["landing", "home", "login", "signup", "battle", "submit", "problems", "problem-detail", "create-problem", "create-contest", "create-certified-contest", "contest-settings", "tournament", "tutorial-contest", "profile", "guestRegister", "auto-login"];
 
 function getPageFromHash(): Page {
   const hash = window.location.hash.replace("#", "").split("/")[0] as Page;

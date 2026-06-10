@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
+import { tempSignupApi } from "../api/authApi";
 import "./GuestRegisterPage.css";
 
 const GuestRegisterPage: React.FC = () => {
@@ -8,6 +9,7 @@ const GuestRegisterPage: React.FC = () => {
   const [nickname, setNickname] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [sentEmail, setSentEmail] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -28,15 +30,42 @@ const GuestRegisterPage: React.FC = () => {
 
     setSubmitting(true);
     try {
-      // TODO: 게스트 등록 API 호출
-      navigate("landing");
+      await tempSignupApi(email.trim(), nickname.trim());
+      setSentEmail(email.trim());
     } catch (err: any) {
-      const msg = err?.response?.data?.message ?? "등록 중 오류가 발생했습니다.";
+      console.error("[temp-signup] status:", err?.response?.status);
+      console.error("[temp-signup] data:", err?.response?.data);
+      const data = err?.response?.data;
+      const msg = data?.message ?? data?.error ?? (typeof data === "string" ? data : null) ?? "등록 중 오류가 발생했습니다.";
       setError(msg);
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (sentEmail) {
+    return (
+      <div className="guest-register-page">
+        <div className="guest-register-card">
+          <div className="guest-register-logo" onClick={() => navigate("landing")}>
+            <img
+              src="/resources/logo/TacticalCodeBattle_logo.png"
+              alt="TCB"
+              className="guest-register-logo-img"
+            />
+          </div>
+          <div className="guest-register-sent">
+            <div className="guest-register-sent-icon">✉</div>
+            <h2 className="guest-register-sent-title">메일을 확인해주세요</h2>
+            <p className="guest-register-sent-desc">
+              <strong>{sentEmail}</strong>으로<br />
+              로그인 정보와 자동 로그인 링크를 발송했습니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="guest-register-page">

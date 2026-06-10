@@ -593,6 +593,17 @@
       }
     }
 
+    /* ── 좁은 화면 여백 압축 (pointer 타입과 무관하게 적용) ── */
+    /* pointer:coarse가 누락된 일부 모바일 브라우저(삼성 인터넷 등)에서
+       .main의 기본 padding-top:64px이 그대로 남아 헤더 아래 큰 공백이 생기는 문제를 방지 */
+    @media (max-width: 767px) {
+      header { padding: 10px 80px 10px 14px; justify-content: flex-start; }
+      header h1 { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .btn-new-fixed { top: 8px; right: 10px; }
+      .btn-new-fixed button { padding: 8px 14px; font-size: 0.82rem; }
+      .main { padding: 8px 8px 8px 8px; }
+    }
+
     /* ── 모바일(터치 기기) ──────────────────────────────────── */
     @media (pointer: coarse) {
       /* 스크롤 차단 — JS가 보드를 화면에 맞춤 */
