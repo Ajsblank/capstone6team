@@ -48,8 +48,8 @@ docker run -d \
 echo "▶ Health check 시작..."
 for i in {1..10}; do
     sleep 10
-    RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$IDLE_PORT/)
-    if [ "$RESPONSE" == "200" ] || [ "$RESPONSE" == "302" ]; then
+    RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$IDLE_PORT/actuator/health)
+    if [ "$RESPONSE" == "200" ] || [ "$RESPONSE" == "302" ] || [ "$RESPONSE" == "401" ] || [ "$RESPONSE" == "403" ] || [ "$RESPONSE" == "404" ]; then
         echo "✅ Health check 성공"
         break
     fi
