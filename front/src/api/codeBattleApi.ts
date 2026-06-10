@@ -204,7 +204,10 @@ export interface ContestSession {
 }
 
 export const getContestSessions = async (contestId: number): Promise<ContestSession[]> => {
-  const { data } = await api.get<ContestSession[]>(`/api/contests/${contestId}/sessionList`);
+  const { data } = await api.get<ContestSession[]>(`/api/contests/${contestId}/sessionList`, {
+    params: { _t: Date.now() },
+    headers: { "Cache-Control": "no-cache", "Pragma": "no-cache" },
+  });
   return data;
 };
 

@@ -541,6 +541,7 @@ const SubmitPage: React.FC = () => {
               <BattleSessionsTab
                 contestId={problemId}
                 onSessionClick={setSelectedSession}
+                isHostOrReviewer={isReviewer}
               />
             ) : (
               <SessionDetailPanel
