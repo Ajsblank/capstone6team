@@ -3,6 +3,7 @@ package com.asap.server.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,6 +19,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import com.asap.server.domain.CodeBattleContest;
 import com.asap.server.domain.CodeBattleParticipant;
@@ -26,6 +30,8 @@ import com.asap.server.dto.request.CreateCertifiedContestRequest;
 import com.asap.server.dto.request.CreateUncertifiedContestRequest;
 import com.asap.server.dto.request.ExampleAiRequest;
 import com.asap.server.dto.request.SampleCodeRequest;
+import com.asap.server.dto.request.UpdateContestRequest;
+import com.asap.server.dto.response.ContestDetailResponse;
 import com.asap.server.dto.response.ContestResponse;
 import com.asap.server.global.type.ContestStatus;
 import com.asap.server.global.type.Language;
@@ -386,6 +392,103 @@ class ContestServiceTest {
                 assertThatThrownBy(() -> contestService.getContestById(99L))
                                 .isInstanceOf(IllegalArgumentException.class)
                                 .hasMessageContaining("해당 ID의 대회를 찾을 수 없습니다");
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // updateContest
+        // ─────────────────────────────────────────────────────────────
+
+        @Test
+        @DisplayName("비인증 대회 수정 성공 - 날짜 변경 없음")
+        void updateContest_uncertified_noDateChange() {
+                when(contestRepository.findById(1L)).thenReturn(Optional.of(testContest));
+                when(exampleAIRepository.findByContestIdOrderByExampleOrderAsc(any())).thenReturn(List.of());
+                when(sampleCodeRepository.findByContestIdOrderBySampleOrderAsc(any())).thenReturn(List.of());
+
+                UpdateContestRequest request = new UpdateContestRequest();
+                request.setTitle("Updated Title");
+
+                ContestDetailResponse response = contestService.updateContest(1L, request);
+
+                assertThat(response).isNotNull();
+        }
+
+        @Test
+        @DisplayName("대회 수정 - 대회 없음 예외")
+        void updateContest_contestNotFound() {
+                when(contestRepository.findById(99L)).thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> contestService.updateContest(99L, new UpdateContestRequest()))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("대회를 찾을 수 없습니다.");
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // deleteContest
+        // ─────────────────────────────────────────────────────────────
+
+        @Test
+        @DisplayName("대회 삭제 성공")
+        void deleteContest_success() {
+                contestService.deleteContest(testContest);
+
+                verify(contestRepository).delete(testContest);
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // getContestPage
+        // ─────────────────────────────────────────────────────────────
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("상태 필터로 대회 목록 조회")
+        void getContestPage_withStatus() {
+                Page emptyPage = new PageImpl<>(List.of());
+                when(contestRepository.findByStatusAndDeletedAtIsNull(any(), any())).thenReturn(emptyPage);
+
+                Page<?> result = contestService.getContestPage(ContestStatus.TEST, Pageable.unpaged());
+
+                assertThat(result).isNotNull();
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("전체 대회 목록 조회 - 상태 필터 없음")
+        void getContestPage_noStatus() {
+                Page emptyPage = new PageImpl<>(List.of());
+                when(contestRepository.findAllByDeletedAtIsNull(any())).thenReturn(emptyPage);
+
+                Page<?> result = contestService.getContestPage(null, Pageable.unpaged());
+
+                assertThat(result).isNotNull();
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // getContestResponse / getContestDetailResponse
+        // ─────────────────────────────────────────────────────────────
+
+        @Test
+        @DisplayName("대회 응답 조회 성공")
+        void getContestResponse_success() {
+                when(contestRepository.findById(1L)).thenReturn(Optional.of(testContest));
+                when(exampleAIRepository.findByContestIdOrderByExampleOrderAsc(any())).thenReturn(List.of());
+                when(sampleCodeRepository.findByContestIdOrderBySampleOrderAsc(any())).thenReturn(List.of());
+
+                ContestResponse response = contestService.getContestResponse(1L);
+
+                assertThat(response).isNotNull();
+        }
+
+        @Test
+        @DisplayName("대회 상세 응답 조회 성공")
+        void getContestDetailResponse_success() {
+                when(contestRepository.findById(1L)).thenReturn(Optional.of(testContest));
+                when(exampleAIRepository.findByContestIdOrderByExampleOrderAsc(any())).thenReturn(List.of());
+                when(sampleCodeRepository.findByContestIdOrderBySampleOrderAsc(any())).thenReturn(List.of());
+
+                ContestDetailResponse response = contestService.getContestDetailResponse(1L);
+
+                assertThat(response).isNotNull();
         }
 
         // ─────────────────────────────────────────────────────────────
