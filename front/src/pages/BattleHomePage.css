@@ -241,6 +241,15 @@
   transition: background 0.15s;
 }
 .bp-popup-btn:hover { background: #ea6c0a; }
+.bp-popup-btn--cancel {
+  background: #e5e7eb;
+  color: #374151;
+}
+.bp-popup-btn--cancel:hover { background: #d1d5db; }
+.bp-popup-btns {
+  display: flex;
+  gap: 10px;
+}
 
 /* 배틀 홈 전용 — .battle-home-page 스코프로 제한하여 알고리즘 페이지에 영향 없음 */
 
