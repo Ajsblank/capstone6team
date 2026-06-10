@@ -157,7 +157,7 @@ const ContestProblemDetail: React.FC<Props> = ({
           >
             {isReviewer        ? "검수자 (참가 불가)" :
              joinStatus === "joining" ? "참가 신청 중..." :
-             joinStatus === "joined"  ? "✓ 참가 완료" :
+             joinStatus === "joined"  ? "참가 완료" :
              "대회 참가"}
           </button>
           {joinStatus === "error" && joinError && (
