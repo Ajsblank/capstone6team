@@ -181,47 +181,6 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     }
   };
 
-  // 빠른 생성 (사과게임) — 개발 편의
-  const [quickLoading, setQuickLoading] = useState(false);
-  const handleQuickFill = async () => {
-    setQuickLoading(true);
-    try {
-      const base = "/dev/apple";
-      const fetchFile = async (name: string): Promise<File> => {
-        const res = await fetch(`${base}/${name}`);
-        const blob = await res.blob();
-        return new File([blob], name, { type: blob.type || "text/plain" });
-      };
-      const [sampleFile, judgeFile, example0, example1, example2, vizFile, soloFile] = await Promise.all([
-        fetchFile("apple_sample_code.cpp"),
-        fetchFile("apple_judge.cpp"),
-        fetchFile("apple_example_code_00.cpp"),
-        fetchFile("apple_example_code_01.cpp"),
-        fetchFile("apple_example_code_02.cpp"),
-        fetchFile("apple_game_log_visualization.html"),
-        fetchFile("apple_game_soloPlay.html"),
-      ]);
-      setSampleCodes([sampleFile]);
-      setJudgeCode(judgeFile);
-      setExampleAiCodes([
-        { file: example0, description: "사과게임 예시 AI 00" },
-        { file: example1, description: "사과게임 예시 AI 01" },
-        { file: example2, description: "사과게임 예시 AI 02" },
-      ]);
-      setVisualizationHtml(vizFile);
-      setSoloPlayHtml(soloFile);
-
-      // 문제 설명: 명세 .md를 HTML로 변환해 반영
-      const specRes = await fetch(`${base}/apple_spec.md`);
-      const specMd  = await specRes.text();
-      setDescription(await Promise.resolve(marked.parse(specMd)));
-    } catch (e) {
-      // 빠른 생성 파일 로드 실패 무시
-    } finally {
-      setQuickLoading(false);
-    }
-  };
-
   const [sampleCodeInputKey, setSampleCodeInputKey] = useState(0);
   const [aiCodeInputKey, setAiCodeInputKey] = useState(0);
   const [importing, setImporting] = useState(false);
@@ -597,19 +556,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                 { label: "대회 목록", onClick: () => navigate("battle") },
                 { label: "대회 개최" },
               ]} />
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: 760 }}>
-                <h2 className="cc-page-title" style={{ margin: 0 }}>대회 개최{tutorial && " (튜토리얼)"}</h2>
-                {!tutorial && (
-                  <button
-                    type="button"
-                    className="cc-quick-fill-btn"
-                    onClick={handleQuickFill}
-                    disabled={quickLoading}
-                  >
-                    {quickLoading ? "⏳ 로딩 중..." : "⚡ 빠른 생성 (사과게임)"}
-                  </button>
-                )}
-              </div>
+              <h2 className="cc-page-title">대회 개최{tutorial && " (튜토리얼)"}</h2>
 
               <div className="cc-form">
                 {/* 기본 정보 — 이름 + 인증 토글 한 행 */}
