@@ -60,22 +60,24 @@ const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2"
  * 형식 A: #submit/tab          → problemId=1 (기본값)
  * 형식 B: #submit/123/tab      → problemId=123
  */
-function parseHash(): { problemId: number; tab: Tab } {
+function parseHash(): { problemId: number; tab: Tab; session: number | null } {
   const parts = window.location.hash.replace("#", "").split("/");
   // parts[0] = "submit"
   const maybeId = Number(parts[1]);
   if (!isNaN(maybeId) && maybeId > 0) {
     const tab = (parts[2] ?? "problem") as Tab;
-    return { problemId: maybeId, tab: VALID_TABS.includes(tab) ? tab : "problem" };
+    const validTab = VALID_TABS.includes(tab) ? tab : "problem";
+    const session = validTab === "battle-results" && parts[3] ? Number(parts[3]) || null : null;
+    return { problemId: maybeId, tab: validTab, session };
   }
   const tab = (parts[1] ?? "problem") as Tab;
-  return { problemId: 1, tab: VALID_TABS.includes(tab) ? tab : "problem" };
+  return { problemId: 1, tab: VALID_TABS.includes(tab) ? tab : "problem", session: null };
 }
 
 const SubmitPage: React.FC = () => {
   const { navigate, user, joinedContestIds, hostedContestIds, addJoinedContest } = useApp();
 
-  const [{ problemId, tab: activeTab }, setHashState] = useState(parseHash);
+  const [{ problemId, tab: activeTab, session: selectedSession }, setHashState] = useState(parseHash);
 
   const isReviewer = hostedContestIds.includes(problemId);
 
@@ -127,7 +129,6 @@ const SubmitPage: React.FC = () => {
   });
 
   const [showEditModal, setShowEditModal]       = useState(false);
-  const [selectedSession, setSelectedSession]   = useState<number | null>(null);
   const [showLoginPopup, setShowLoginPopup]       = useState(false);
   const [pendingJoinOnLogin, setPendingJoinOnLogin] = useState(false);
   const [showJoinSuccessPopup, setShowJoinSuccessPopup] = useState(false);
@@ -290,8 +291,6 @@ const SubmitPage: React.FC = () => {
   }, [contestDetail]);
 
   const handleTabChange = useCallback((tab: Tab) => {
-    // 중간 결과 탭 떠날 때 세션 선택 초기화
-    if (activeTab === "battle-results") setSelectedSession(null);
     // 제출 탭 떠날 때 상태 텍스트 초기화 (코드는 유지)
     if (activeTab === "submit") { setSubmitStatus("idle"); setErrorMessage(""); }
 
@@ -540,14 +539,20 @@ const SubmitPage: React.FC = () => {
             {selectedSession === null ? (
               <BattleSessionsTab
                 contestId={problemId}
-                onSessionClick={setSelectedSession}
+                onSessionClick={(sn) => {
+                  window.location.hash = `submit/${problemId}/battle-results/${sn}`;
+                  setHashState(prev => ({ ...prev, session: sn }));
+                }}
                 isHostOrReviewer={isReviewer}
               />
             ) : (
               <SessionDetailPanel
                 contestId={problemId}
                 sessionNumber={selectedSession}
-                onBack={() => setSelectedSession(null)}
+                onBack={() => {
+                  window.location.hash = `submit/${problemId}/battle-results`;
+                  setHashState(prev => ({ ...prev, session: null }));
+                }}
                 myUserId={user?.id ? Number(user.id) : undefined}
                 hasVisualization={viz1Available}
                 onLogView={handleLogClick}
