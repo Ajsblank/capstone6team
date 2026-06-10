@@ -53,7 +53,7 @@ public class AdminService {
         String inviteToken = UUID.randomUUID().toString();
         tokenService.storeInviteToken(inviteToken, user.getId());
 
-        String autoLoginUrl = frontendUrl + "/#auto-login/" + inviteToken;
+        String autoLoginUrl = frontendUrl + "/#/auto-login?token=" + inviteToken;
         mailService.sendAccountInviteMail(request.getEmail(), request.getNickname(), rawPassword, autoLoginUrl);
 
         log.info("임시 계정 생성 완료 - email: {}, nickname: {}, ip: {}", request.getEmail(), request.getNickname(), clientIp);
