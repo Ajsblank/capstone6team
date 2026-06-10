@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { ValidationResult } from "../api/validationApi";
 import "./ValidationResultModal.css";
 
@@ -17,14 +17,6 @@ const ValidationResultModal: React.FC<ValidationResultModalProps> = ({
   onClose,
   onRetry,
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setIsVisible(true);
-    }
-  }, [isOpen]);
-
   // 모달이 열려 있는 동안 배경(대회 페이지) 스크롤 잠금
   useEffect(() => {
     if (!isOpen) return;

@@ -26,10 +26,6 @@ interface Props {
 
 type SortOrder = "newest" | "oldest";
 
-const LANGUAGE_LABELS: Record<string, string> = {
-  cpp: "C++", java: "Java", python: "Python",
-  CPP: "C++", JAVA: "Java", PYTHON: "Python",
-};
 
 // 로그 마지막 줄의 결과 형식(예: "WIN LOSE") → 내(왼쪽) 결과 원본 값/스타일
 function parseMyResult(log: string): { label: string; cls: string } {
@@ -217,7 +213,7 @@ function SubmissionItem({ sub, seqNum, userId, hasVisualization, onLogClick, sel
     }
     prevMatchCountRef.current = sub.matches.length;
     prevFinalizedRef.current  = sub.finalized;
-  }, [sub.matches.length, sub.finalized, userId]);
+  }, [sub.matches, sub.wins, sub.losses, sub.finalized, userId]);
 
   const wins   = sub.finalized && sub.wins   !== undefined ? sub.wins   : sub.matches.filter(m => m.winner === userId).length;
   const losses = sub.finalized && sub.losses !== undefined ? sub.losses : sub.matches.filter(m => m.winner !== userId && m.winner !== "draw").length;
@@ -480,11 +476,11 @@ const MySubmissionsTab: React.FC<Props> = ({
     } finally {
       setLoading(false);
     }
-  }, [contestId, refreshKey, onLocalUpdate, userId]);
+  }, [contestId, onLocalUpdate, userId]);
 
   useEffect(() => {
     fetchFromServer();
-  }, [fetchFromServer]);
+  }, [fetchFromServer, refreshKey]);
 
   // 마운트 시 기존 선택 코드 조회 (페이지 새로고침 후에도 출전 코드 표시 유지)
   useEffect(() => {

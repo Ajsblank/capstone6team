@@ -476,6 +476,7 @@ const SwissTournamentPage: React.FC = () => {
       const t = setTimeout(() => dispatch({ type: "SHOW_ROUND", idx: state.currentRoundIdx }), 80);
       return () => clearTimeout(t);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.rounds.length, state.currentRoundIdx]);
 
   const handleStart = useCallback(() => {
