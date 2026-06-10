@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.asap.server.domain.RefreshTokenMeta;
+import com.asap.server.dto.request.AutoLoginRequest;
 import com.asap.server.dto.request.EmailResendRequest;
 import com.asap.server.dto.request.EmailVerifyRequest;
 import com.asap.server.dto.request.LoginRequest;
@@ -108,5 +109,12 @@ public class AuthController {
     public ResponseEntity<String> verifySMS(@Valid @RequestBody SmsCodeVerifyRequest request) {
         authService.verifySMS(request);
         return ResponseEntity.ok("SMS 인증이 완료되었습니다.");
+    }
+
+    @Operation(summary = "초대 링크 자동 로그인", description = "관리자가 발송한 초대 메일의 일회용 토큰으로 로그인합니다.")
+    @PostMapping("/auto-login")
+    public ResponseEntity<LoginResponse> autoLogin(@Valid @RequestBody AutoLoginRequest request) {
+        LoginResponse response = authService.autoLogin(request.getToken());
+        return ResponseEntity.ok(response);
     }
 }

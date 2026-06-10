@@ -189,4 +189,32 @@ public class AuthService {
         smsService.verifySMS(request);
     }
 
+    @Transactional(readOnly = true)
+    public LoginResponse autoLogin(String token) {
+        Long userId = tokenService.validateAndConsumeInviteToken(token);
+
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        String sessionId = java.util.UUID.randomUUID().toString();
+        String accessToken = tokenService.issueAccessToken(user.getId(), user.getEmail());
+        String refreshToken = tokenService.issueRefreshToken(user.getId(), user.getEmail(), sessionId, "", "");
+
+        List<Long> joinedContests = participantRepository.findContestIdsByUserId(user.getId());
+        List<Long> hostedContests = contestReviewerRepository.findContestIdsByReviewerEmail(user.getEmail());
+        List<Long> createdContests = contestRepository.findContestIdsByCreatorId(user.getId());
+
+        log.info("초대 토큰으로 자동 로그인 완료 - userId: {}", userId);
+
+        return LoginResponse.builder()
+                .userId(user.getId())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .sessionId(sessionId)
+                .joinedContests(joinedContests)
+                .hostedContests(hostedContests)
+                .createdContests(createdContests)
+                .build();
+    }
+
 }
