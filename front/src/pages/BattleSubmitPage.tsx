@@ -105,15 +105,18 @@ const SubmitPage: React.FC = () => {
 
   const isJoined = joinedContestIds.includes(problemId) || joinStatus === "joined";
 
-  const isContestEnded = contestDetail?.status === "END";
+  const isContestEnded = contestDetail?.status === "END" || contestDetail?.status === "CANCELED";
 
   const TAB_LIST: TabDef[] = [
     ...BASE_TAB_LIST,
     ...(isReviewer ? [{ id: "review" as Tab, label: "검수" }] : []),
   ].map(tab => {
-    if (isReviewer && !REVIEWER_ALLOWED_TABS.includes(tab.id))
+    if (isReviewer && !isContestEnded && !REVIEWER_ALLOWED_TABS.includes(tab.id))
       return { ...tab, disabled: true, tooltip: "검수자는 이용할 수 없습니다" };
-    // 종료된 대회는 제출/내 제출 탭 활성화 (결과 조회 허용)
+    // 종료 대회: 참가 여부와 무관하게 제출 탭 잠금
+    if (isContestEnded && tab.id === "submit")
+      return { ...tab, disabled: true, tooltip: "종료된 대회에는 제출할 수 없습니다" };
+    // 미참가 + 진행/예정 대회: 제출·내 제출 탭 잠금
     if (!tab.disabled && !isJoined && !isContestEnded && PARTICIPATION_REQUIRED_TABS.includes(tab.id))
       return { ...tab, disabled: true, tooltip: "대회에 참가 후 이용 가능합니다" };
     if (tab.id === "viz1" && !viz1Available)
@@ -248,23 +251,32 @@ const SubmitPage: React.FC = () => {
     };
   }, []);
 
-  // 검수자가 허용되지 않은 탭에 직접 접근 시 문제 탭으로 이동
+  // 검수자가 허용되지 않은 탭에 직접 접근 시 문제 탭으로 이동 (진행/예정 대회만)
   useEffect(() => {
-    if (isReviewer && !REVIEWER_ALLOWED_TABS.includes(activeTab)) {
+    if (!contestDetail) return;
+    if (isReviewer && !isContestEnded && !REVIEWER_ALLOWED_TABS.includes(activeTab)) {
       window.location.hash = `submit/${problemId}/problem`;
       setHashState(prev => ({ ...prev, tab: "problem" }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReviewer]);
+  }, [isReviewer, isContestEnded]);
 
-  // 미참가 상태에서 잠긴 탭 직접 접근 시 문제 탭으로 이동
+  // 잠긴 탭 직접 접근 시 문제 탭으로 이동
   useEffect(() => {
-    if (!isReviewer && !isJoined && PARTICIPATION_REQUIRED_TABS.includes(activeTab)) {
+    if (!contestDetail) return; // 로드 전엔 판단 보류
+    // 종료 대회: 제출 탭은 참가 여부와 무관하게 차단
+    if (isContestEnded && activeTab === "submit") {
+      window.location.hash = `submit/${problemId}/problem`;
+      setHashState(prev => ({ ...prev, tab: "problem" }));
+      return;
+    }
+    // 미참가 + 진행/예정 대회: 참가 필요 탭 차단
+    if (!isReviewer && !isJoined && !isContestEnded && PARTICIPATION_REQUIRED_TABS.includes(activeTab)) {
       window.location.hash = `submit/${problemId}/problem`;
       setHashState(prev => ({ ...prev, tab: "problem" }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isJoined]);
+  }, [isJoined, isContestEnded]);
 
   // 콘텐츠 없는 탭 직접 접근 시 문제 탭으로 이동
   useEffect(() => {
