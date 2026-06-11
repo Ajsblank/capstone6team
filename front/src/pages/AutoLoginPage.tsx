@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useApp } from "../context/AppContext";
-import { autoLoginApi } from "../api/authApi";
+import { autoLoginApi, setUsername } from "../api/authApi";
+
+function extractEmailFromJwt(token: string): string {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.email ?? "";
+  } catch {
+    return "";
+  }
+}
 
 const AutoLoginPage: React.FC = () => {
   const { login, navigate } = useApp();
@@ -12,8 +21,11 @@ const AutoLoginPage: React.FC = () => {
 
     autoLoginApi(token)
       .then(data => {
+        const uid = String(data.userId);
+        const email = extractEmailFromJwt(data.accessToken);
+        if (email) setUsername(email);
         login(
-          { id: data.userId, username: data.userId, email: "" },
+          { id: uid, username: email || uid, email },
           data.joinedContests ?? [],
           data.hostedContests ?? [],
           data.createdContests ?? []
