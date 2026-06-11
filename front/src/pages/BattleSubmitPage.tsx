@@ -75,11 +75,12 @@ function parseHash(): { problemId: number; tab: Tab; session: number | null } {
 }
 
 const SubmitPage: React.FC = () => {
-  const { navigate, user, joinedContestIds, hostedContestIds, addJoinedContest } = useApp();
+  const { navigate, user, joinedContestIds, hostedContestIds, createdContestIds, addJoinedContest } = useApp();
 
   const [{ problemId, tab: activeTab, session: selectedSession }, setHashState] = useState(parseHash);
 
   const isReviewer = hostedContestIds.includes(problemId);
+  const isCreator  = createdContestIds.includes(problemId);
 
   const [language, setLanguage] = useState<Language>("cpp");
   const [code, setCode] = useState<string>(LANGUAGE_DEFAULTS["cpp"]);
@@ -543,7 +544,7 @@ const SubmitPage: React.FC = () => {
                   window.location.hash = `submit/${problemId}/battle-results/${sn}`;
                   setHashState(prev => ({ ...prev, session: sn }));
                 }}
-                isHostOrReviewer={isReviewer}
+                isHostOrReviewer={isReviewer || isCreator}
               />
             ) : (
               <SessionDetailPanel
