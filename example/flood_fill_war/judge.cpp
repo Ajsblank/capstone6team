@@ -13,7 +13,7 @@
 using namespace std;
 
 enum Result {
-    NONE, WIN, LOSE, TIME_LIMIT, MEMORY_LIMIT, ERROR
+    NONE, WIN, LOSE, TIME_LIMIT, MEMORY_LIMIT, RUNTIME_ERROR
 };
 Result p1Result = WIN, p2Result = WIN;
 
@@ -31,7 +31,7 @@ string EnumToString(Result result) {
         case LOSE:         return "LOSE";
         case TIME_LIMIT:   return "TIME_LIMIT";
         case MEMORY_LIMIT: return "MEMORY_LIMIT";
-        case ERROR:        return "ERROR";
+        case RUNTIME_ERROR: return "RUNTIME_ERROR";
     }
     throw invalid_argument("Invalid Result");
 }
@@ -246,15 +246,15 @@ int main(int argc, char* argv[]) {
 
     int dummy_time;
     if (recv_msg(p1, READY_TIMEOUT_MS, dummy_time) != "OK") {
-        p1Result = ERROR;
+        p1Result = RUNTIME_ERROR;
         recv_msg(p2, READY_TIMEOUT_MS, dummy_time); // p2도 drain
-        p2Result = ERROR;
+        p2Result = RUNTIME_ERROR;
         cout << EnumToString(p1Result) << " " << EnumToString(p2Result) << "\n";
         terminate_player(p1); terminate_player(p2);
         return 0;
     }
     if (recv_msg(p2, READY_TIMEOUT_MS, dummy_time) != "OK") {
-        p2Result = ERROR;
+        p2Result = RUNTIME_ERROR;
         cout << EnumToString(p1Result) << " " << EnumToString(p2Result) << "\n";
         terminate_player(p1); terminate_player(p2);
         return 0;
@@ -302,7 +302,7 @@ int main(int argc, char* argv[]) {
         {
             istringstream ss(resp);
             if (!(ss >> chosenColor)) {
-                cur_p.result = ERROR;
+                cur_p.result = RUNTIME_ERROR;
                 game_over = true;
                 break;
             }
@@ -310,7 +310,7 @@ int main(int argc, char* argv[]) {
 
         // 유효성 검사
         if (chosenColor < 1 || chosenColor > NUM_COLORS) {
-            cur_p.result = ERROR;
+            cur_p.result = RUNTIME_ERROR;
             game_over = true;
             break;
         }

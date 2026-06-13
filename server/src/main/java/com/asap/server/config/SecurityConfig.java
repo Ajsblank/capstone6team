@@ -21,7 +21,6 @@ import org.springframework.web.cors.CorsUtils;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import jakarta.servlet.http.HttpServletResponse;
-
 import lombok.RequiredArgsConstructor;
 
 @Configuration
@@ -80,12 +79,14 @@ public class SecurityConfig {
                         .requestMatchers(CorsUtils::isPreFlightRequest).permitAll()
                         .requestMatchers("/api/auth/login", "/api/auth/signup", "/api/auth/mail",
                                 "/api/auth/mail/send", "/api/auth/sms/send", "/api/auth/sms/verify",
-                                "/api/auth/refresh")
+                                "/api/auth/refresh", "/api/auth/auto-login", "/api/auth/temp-signup")
                         .permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/contests", "/api/contests/**").permitAll()
                         .requestMatchers("/api/contests/*/resources/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/contests", "/api/contests/create", "/api/contests/validate").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/contests", "/api/contests/create",
+                                "/api/contests/validate")
+                        .authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/contests/**", "/api/contests/*/resources/**")
                         .authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/contests/**", "/api/contests/*/resources/**")
@@ -96,7 +97,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/profile/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/payment/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/code/submission/**").authenticated()
-                        .anyRequest().permitAll())
+                        .requestMatchers("/api/admin/**").authenticated()
+                        .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

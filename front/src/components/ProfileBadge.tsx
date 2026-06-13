@@ -75,7 +75,9 @@ const ProfileBadge: React.FC<Props> = ({
           backgroundSize: "cover",
           backgroundPosition: "center",
         } : undefined}
-      />
+      >
+        {!imageUrl && <span className="pb-avatar-default">👤</span>}
+      </span>
       <span className={`${usernameClass} pb-username`} onClick={goProfile} title="프로필">
         <span className="pb-email">{email}</span>
         <span className="pb-sub">

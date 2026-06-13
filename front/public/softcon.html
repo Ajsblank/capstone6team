@@ -593,6 +593,17 @@
       }
     }
 
+    /* ── 좁은 화면 여백 압축 (pointer 타입과 무관하게 적용) ── */
+    /* pointer:coarse가 누락된 일부 모바일 브라우저(삼성 인터넷 등)에서
+       .main의 기본 padding-top:64px이 그대로 남아 헤더 아래 큰 공백이 생기는 문제를 방지 */
+    @media (max-width: 767px) {
+      header { padding: 10px 80px 10px 14px; justify-content: flex-start; }
+      header h1 { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .btn-new-fixed { top: 8px; right: 10px; }
+      .btn-new-fixed button { padding: 8px 14px; font-size: 0.82rem; }
+      .main { padding: 8px 8px 8px 8px; }
+    }
+
     /* ── 모바일(터치 기기) ──────────────────────────────────── */
     @media (pointer: coarse) {
       /* 스크롤 차단 — JS가 보드를 화면에 맞춤 */
@@ -604,25 +615,27 @@
       header h1 { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .btn-new-fixed { top: 8px; right: 10px; }
       .btn-new-fixed button { padding: 8px 14px; font-size: 0.82rem; }
-      .main { padding: 0 0 8px 0; flex-direction: column; align-items: stretch; }
+      .main { padding: 0 0 4px 0; flex-direction: column; align-items: stretch; justify-content: flex-start; }
 
       /* 보드 회전 컨테이너: CSS 폴백값 — JS가 실측값으로 덮어씀
          13*8 보드를 90° 회전 → 시각: 가로=8칸, 세로=13칸 */
       .board-rot {
-        --cell: min(calc((100vw - 16px) / 8), calc((100dvh - 230px) / 11));
+        --cell: min(calc((100vw - 8px) / 8), calc((100dvh - 170px) / 11));
         position: relative;
-        width:  calc(8  * var(--cell) + 30px);
-        height: calc(13 * var(--cell) + 30px);
+        width:  calc(8  * var(--cell) + 12px);
+        height: calc(13 * var(--cell) + 12px);
       }
 
-      /* 보드: 중앙 기준 90° 회전 */
+      /* 보드: 중앙 기준 90° 회전 + 테두리 */
       .board-wrap {
-        padding: 6px;
         position: absolute;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%) rotate(90deg);
         transform-origin: center center;
         margin: 0;
+        border: 2px solid #d4b87a;
+        border-radius: 8px;
+        padding: 2px;
       }
       .board {
         grid-template-columns: repeat(11, var(--cell));
@@ -642,8 +655,8 @@
           "p1 ctrl p2"
           "board board board";
         align-items: center;
-        column-gap: 6px;
-        row-gap: 6px;
+        column-gap: 4px;
+        row-gap: 4px;
         flex-wrap: unset;
         justify-content: unset;
         width: 100%;
@@ -673,15 +686,15 @@
         transform: none !important;
         flex: unset;
         flex-direction: column;
-        gap: 6px;
+        gap: 4px;
         justify-content: center;
         align-items: stretch;
         align-self: center;
         margin-top: 0;
       }
       .board-controls button {
-        padding: 8px 10px;
-        font-size: 0.78rem;
+        padding: 5px 8px;
+        font-size: 0.72rem;
         border-radius: 8px;
         white-space: nowrap;
       }
@@ -715,66 +728,55 @@
         border-radius: 0 0 10px 10px;
       }
 
-      /* ── 플레이어 카드: player-wrap을 시각적 박스로 (이름+아바타+점수 통합) ── */
-      .game-col { position: relative; padding: 0 6px; }
+      /* ── 플레이어 섹션 ── */
+      .game-col { position: relative; padding: 0; }
 
-      /* player-wrap = 통합 카드 박스 */
+      /* player-wrap: 카드와 점수를 가로로 배치 (점수는 카드 바깥) */
       .player-wrap {
-        flex-direction: column;
-        gap: 4px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
         position: relative;
         top: 0; left: 0;
+        padding: 0;
+        border: none;
+        background: transparent;
+      }
+      /* AI(second): 점수 왼쪽 · 카드 오른쪽 */
+      .player-wrap:has([data-player="second"]) { flex-direction: row-reverse; }
+
+      /* player-card: 이름+배지+아바타를 감싸는 시각적 박스 */
+      .player-card {
+        display: flex;
+        flex-direction: column;
         align-items: center;
-        padding: 10px 12px 10px;
-        border-radius: 14px;
+        gap: 4px;
+        padding: 6px;
+        border-radius: 12px;
         border: 2px solid transparent;
         background: transparent;
-        transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+        min-width: 0;
+        flex-shrink: 0;
+        position: relative;
       }
+      .player-card::before { display: none; }
 
-      /* active 상태: player-wrap에 글로우+배경 적용 (:has() — iOS 15.4+/Chrome 105+ 지원) */
-      .player-wrap:has([data-player="first"].active) {
-        background: linear-gradient(
-          105deg, #f7eed8 30%, #ffe8a0 48%, #fdf3d0 52%, #f7eed8 70%
-        );
-        background-size: 300% 100%;
-        animation: card-wave 2.4s linear infinite;
-        border-color: #d9a441;
-        box-shadow: 0 0 18px 3px rgba(217,164,65,0.4);
-      }
-      .player-wrap:has([data-player="second"].active) {
-        background: #d7eefb;
-        border-color: #2f7fc4;
-        box-shadow: 0 0 18px 3px rgba(47,127,196,0.4);
-      }
-
-      /* player-card: 시각적 박스 제거 — 전폭으로 펼쳐 아바타 기준점 제공 */
-      .player-card {
-        background: transparent !important;
-        border-color: transparent !important;
-        box-shadow: none !important;
-        padding: 0 !important;
-        gap: 0 !important;
-        min-width: 0 !important;
-        animation: none !important;
-        width: 100%;          /* player-wrap 내에서 전폭 차지 */
-        align-items: center;  /* 아바타 중앙 정렬 */
-      }
-      .player-card::before { display: none !important; }
-
-      /* 아바타: 카드 폭을 기준으로 크기 결정 — 박스 이탈 불가 */
+      /* 아바타: 화면 폭 비례 크기 */
       .player-avatar,
       .player-card[data-player="second"] .player-avatar {
-        width: 100%;          /* player-card(=player-wrap 내부 폭) 꽉 채움 */
+        width: clamp(75px, 23vw, 115px);
         height: auto;
-        aspect-ratio: 1 / 1;  /* 정사각형 유지 */
-        max-width: 135px;     /* 상한: 90px의 ~150% */
+        aspect-ratio: 1 / 1;
         transform: none;
+        max-width: none;
       }
 
-      .player-name  { font-size: 0.88rem; top: 0; }
-      .player-score { font-size: 1.7rem; }
-      .turn-badge   { top: -9px; font-size: 0.55rem; padding: 2px 8px; }
+      /* 점수: 카드 바깥, 세로 중앙 정렬 */
+      .player-score { align-self: center; }
+      .player-name  { font-size: 0.75rem; top: 0; text-align: center; }
+      .player-score { font-size: 2rem; }
+      .turn-badge   { top: -7px; font-size: 0.5rem; padding: 1px 6px; }
     }
   </style>
 </head>
@@ -820,8 +822,8 @@
     <div class="game-row">
 
       <div class="player-wrap">
-        <div class="player-name" data-player="first">플레이어</div>
         <div class="player-card" id="card-first" data-player="first">
+          <div class="player-name" data-player="first">플레이어</div>
           <div class="turn-badge">내 차례</div>
           <img class="player-avatar" src="/resources/softcon/치토_기본.png" alt="플레이어">
         </div>
@@ -841,8 +843,8 @@
       </div>
 
       <div class="player-wrap">
-        <div class="player-name" data-player="second">AI</div>
         <div class="player-card" id="card-second" data-player="second">
+          <div class="player-name" data-player="second">AI</div>
           <div class="turn-badge">내 차례</div>
           <img class="player-avatar" src="/resources/softcon/불_기본.png" alt="AI">
         </div>
@@ -1497,8 +1499,8 @@ function fitGameToViewport() {
 
     const headerH = elH('header');
     const rulesH  = elH('.rules-toggle');
-    const gameRowGap = 6;
-    const reserve = headerH + rulesH + cardH + gameRowGap + 20;
+    const gameRowGap = 4;
+    const reserve = headerH + rulesH + cardH + gameRowGap + 6;
 
     // 회전 후 시각: 가로=ROWS칸, 세로=COLS칸
     const apply = (c) => {
@@ -1508,7 +1510,7 @@ function fitGameToViewport() {
       boardRot.style.height = Math.ceil(r.height) + 'px';
     };
 
-    let cell = Math.min((vw - 16) / ROWS, (vh - reserve) / COLS);
+    let cell = Math.min((vw - 8) / ROWS, (vh - reserve) / COLS);
     cell = Math.max(8, Math.floor(cell));
     apply(cell);
 

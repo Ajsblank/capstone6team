@@ -10,6 +10,8 @@ import BattleCreateContestPage from "./pages/BattleCreateContestPage";
 import BattleCreateCertifiedPage from "./pages/BattleCreateCertifiedPage";
 import ContestSettingsPage from "./pages/ContestSettingsPage";
 import SwissTournamentPage from "./pages/SwissTournamentPage";
+import GuestRegisterPage from "./pages/GuestRegisterPage";
+import AutoLoginPage from "./pages/AutoLoginPage";
 import {
   loadDraft, clearDraft, deserializeFile, confirmPayment, PaymentDraft,
 } from "./api/paymentApi";
@@ -192,6 +194,8 @@ const PageRouter: React.FC = () => {
     case "contest-settings":          return <ContestSettingsPage />;
     case "tournament":                return <SwissTournamentPage />;
     case "tutorial-contest":          return <BattleCreateContestPage tutorial />;
+    case "guestRegister":             return <GuestRegisterPage />;
+    case "auto-login":                return <AutoLoginPage />;
     default:                 return <LandingPage />;
   }
 };

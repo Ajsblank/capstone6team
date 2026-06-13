@@ -1093,10 +1093,12 @@ const BattlePage: React.FC = () => {
                   <>
                     <p className="bp-filter-count">총 {filteredContests.length}개 대회</p>
                     <div className="bp-problem-list">
-                      {filteredContests.map((c, idx) => (
+                      {[...filteredContests.filter(c => c.title.includes("캡스톤")), ...filteredContests.filter(c => !c.title.includes("캡스톤"))].map((c, idx) => {
+                        const isCapstone = c.title.includes("캡스톤");
+                        return (
                         <div
                           key={c.id}
-                          className={`bp-problem-card${statusCardClass(c.status)}`}
+                          className={`bp-problem-card${statusCardClass(c.status)}${isCapstone ? " bp-problem-card--capstone" : ""}`}
                           onClick={() => {
                             window.location.hash = `submit/${c.id}`;
                           }}
@@ -1117,6 +1119,7 @@ const BattlePage: React.FC = () => {
                             <div className="bp-problem-info">
                               <span className="bp-problem-num">#{idx + 1}</span>
                               <p className="bp-problem-title">
+                                {isCapstone && <span className="bp-capstone-badge">★ 참여하고 경품받기</span>}
                                 {c.title}
                                 {joinedContestIds.includes(c.id) && (
                                   <span className="bp-contest-badge bp-contest-badge--joined">
@@ -1166,7 +1169,8 @@ const BattlePage: React.FC = () => {
                             )}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </>
                 )}

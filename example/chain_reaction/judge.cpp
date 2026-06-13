@@ -10,16 +10,16 @@
 #include <poll.h>
 using namespace std;
 
-enum Result { NONE, WIN, LOSE, TIME_LIMIT, MEMORY_LIMIT, ERROR };
+enum Result { NONE, WIN, LOSE, TIME_LIMIT, MEMORY_LIMIT, RUNTIME_ERROR };
 
 string resultStr(Result r) {
     switch(r) {
-        case WIN:          return "WIN";
-        case LOSE:         return "LOSE";
-        case TIME_LIMIT:   return "TIME_LIMIT";
-        case MEMORY_LIMIT: return "MEMORY_LIMIT";
-        case ERROR:        return "ERROR";
-        default:           return "NONE";
+        case WIN:           return "WIN";
+        case LOSE:          return "LOSE";
+        case TIME_LIMIT:    return "TIME_LIMIT";
+        case MEMORY_LIMIT:  return "MEMORY_LIMIT";
+        case RUNTIME_ERROR: return "RUNTIME_ERROR";
+        default:            return "NONE";
     }
 }
 
@@ -178,14 +178,14 @@ int main(int argc, char* argv[]) {
 
     int dummy;
     if (recv_msg(p1, READY_TIMEOUT_MS, dummy) != "OK") {
-        p1.result = ERROR;
-        if (recv_msg(p2, READY_TIMEOUT_MS, dummy) != "OK") p2.result = ERROR;
+        p1.result = RUNTIME_ERROR;
+        if (recv_msg(p2, READY_TIMEOUT_MS, dummy) != "OK") p2.result = RUNTIME_ERROR;
         cout << boardToInitStr(board) << "\n";
         cout << resultStr(p1.result) << " " << resultStr(p2.result) << "\n";
         terminate_player(p1); terminate_player(p2); return 0;
     }
     if (recv_msg(p2, READY_TIMEOUT_MS, dummy) != "OK") {
-        p2.result = ERROR;
+        p2.result = RUNTIME_ERROR;
         cout << boardToInitStr(board) << "\n";
         cout << resultStr(p1.result) << " " << resultStr(p2.result) << "\n";
         terminate_player(p1); terminate_player(p2); return 0;
@@ -227,24 +227,24 @@ int main(int argc, char* argv[]) {
         int r, c;
         istringstream ss(resp);
         if (!(ss >> r >> c)) {
-            cur.result = ERROR;
+            cur.result = RUNTIME_ERROR;
             send_msg(opp, "TIME 0 0");
             string oppResp = recv_msg(opp, 1000, dummy);
             int or_, oc;
             istringstream oss(oppResp);
-            if (oppResp == "TIMEOUT" || !(oss >> or_ >> oc)) opp.result = ERROR;
+            if (oppResp == "TIMEOUT" || !(oss >> or_ >> oc)) opp.result = RUNTIME_ERROR;
             break;
         }
 
         // 유효성 검사
         if (r < 0 || r >= NR || c < 0 || c >= NC ||
             (board[r][c].owner != 0 && board[r][c].owner != pNum)) {
-            cur.result = ERROR;
+            cur.result = RUNTIME_ERROR;
             send_msg(opp, "TIME 0 0");
             string oppResp = recv_msg(opp, 1000, dummy);
             int or_, oc;
             istringstream oss(oppResp);
-            if (oppResp == "TIMEOUT" || !(oss >> or_ >> oc)) opp.result = ERROR;
+            if (oppResp == "TIMEOUT" || !(oss >> or_ >> oc)) opp.result = RUNTIME_ERROR;
             break;
         }
 

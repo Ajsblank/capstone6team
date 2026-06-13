@@ -11,6 +11,7 @@ import {
   loadDraft, clearDraft, deserializeFile,
 } from "../api/paymentApi";
 import { validateContestCode, subscribeToValidationResults, unsubscribeFromValidationResults, ValidationResult } from "../api/validationApi";
+import { setTestResultCallback } from "../api/sseApi";
 import ContestSidebar from "../components/ContestSidebar";
 import RichTextEditor from "../components/RichTextEditor";
 import ContestPreviewModal from "../components/ContestPreviewModal";
@@ -95,6 +96,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
   const [showValidation, setShowValidation] = useState(false);
   const [isValidating, setIsValidating]     = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [validationLogs, setValidationLogs] = useState<string[]>([]);
   const [loadingDots, setLoadingDots]       = useState(1);
 
   // 검증 완료 상태 (필수 파일 3개 검증 완료)
@@ -181,47 +183,6 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     }
   };
 
-  // 빠른 생성 (사과게임) — 개발 편의
-  const [quickLoading, setQuickLoading] = useState(false);
-  const handleQuickFill = async () => {
-    setQuickLoading(true);
-    try {
-      const base = "/dev/apple";
-      const fetchFile = async (name: string): Promise<File> => {
-        const res = await fetch(`${base}/${name}`);
-        const blob = await res.blob();
-        return new File([blob], name, { type: blob.type || "text/plain" });
-      };
-      const [sampleFile, judgeFile, example0, example1, example2, vizFile, soloFile] = await Promise.all([
-        fetchFile("apple_sample_code.cpp"),
-        fetchFile("apple_judge.cpp"),
-        fetchFile("apple_example_code_00.cpp"),
-        fetchFile("apple_example_code_01.cpp"),
-        fetchFile("apple_example_code_02.cpp"),
-        fetchFile("apple_game_log_visualization.html"),
-        fetchFile("apple_game_soloPlay.html"),
-      ]);
-      setSampleCodes([sampleFile]);
-      setJudgeCode(judgeFile);
-      setExampleAiCodes([
-        { file: example0, description: "사과게임 예시 AI 00" },
-        { file: example1, description: "사과게임 예시 AI 01" },
-        { file: example2, description: "사과게임 예시 AI 02" },
-      ]);
-      setVisualizationHtml(vizFile);
-      setSoloPlayHtml(soloFile);
-
-      // 문제 설명: 명세 .md를 HTML로 변환해 반영
-      const specRes = await fetch(`${base}/apple_spec.md`);
-      const specMd  = await specRes.text();
-      setDescription(await Promise.resolve(marked.parse(specMd)));
-    } catch (e) {
-      // 빠른 생성 파일 로드 실패 무시
-    } finally {
-      setQuickLoading(false);
-    }
-  };
-
   const [sampleCodeInputKey, setSampleCodeInputKey] = useState(0);
   const [aiCodeInputKey, setAiCodeInputKey] = useState(0);
   const [importing, setImporting] = useState(false);
@@ -280,8 +241,12 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
     setValidationPassed(false);
     setValidationResult(null);
   };
-  const handleAICodeDescChange = (i: number, desc: string) =>
+  const handleAICodeDescChange = (i: number, desc: string) => {
     setExampleAiCodes(prev => prev.map((e, idx) => idx === i ? { ...e, description: desc } : e));
+    // 설명도 검증 payload에 포함되므로 변경 시 재검증 필요
+    setValidationPassed(false);
+    setValidationResult(null);
+  };
 
   // 필수 파일 3개 업로드 확인 (샘플 코드, 채점 코드, 예시 AI 코드)
   const areRequiredFilesUploaded = () =>
@@ -311,7 +276,9 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
 
     setIsValidating(true);
     setValidationResult(null);
+    setValidationLogs([]);
     setShowValidation(true);   // 검증 로그 팝업 열기 (로딩 → 결과/에러 로그 표시)
+    setTestResultCallback((log) => setValidationLogs(prev => [...prev, log]));
 
     try {
       // 파일 읽기
@@ -340,6 +307,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
       // 검증 결과 콜백 등록
       subscribeToValidationResults(
         (result) => {
+          setTestResultCallback(null);
           setValidationResult(result);
           setIsValidating(false);
 
@@ -351,18 +319,18 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
               unsubscribeFromValidationResults();
             }
           }
-          // (성공/실패/에러 모두) 서버 로그는 검증 결과 팝업에서 그대로 표시됨
         },
         (error) => {
+          setTestResultCallback(null);
           setErrorMsg(error.message);
           setIsValidating(false);
           setShowValidation(false);
         }
       );
     } catch (err: any) {
+      setTestResultCallback(null);
       const msg = err?.message ?? "검증 요청 중 오류가 발생했습니다.";
       setErrorMsg(msg);
-      // 요청 자체 실패(예: 409 이미 진행 중) → 모달이 빈 채로 뜨지 않도록 에러 로그를 결과로 표시
       setValidationResult({
         passed: false,
         details: [{ target: "검증 요청", passed: false, log: msg, reason: msg }],
@@ -480,7 +448,9 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
         isOpen={showValidation}
         result={validationResult}
         isLoading={isValidating}
+        streamLogs={validationLogs}
         onClose={() => {
+          setTestResultCallback(null);
           setShowValidation(false);
           unsubscribeFromValidationResults();
         }}
@@ -597,19 +567,7 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                 { label: "대회 목록", onClick: () => navigate("battle") },
                 { label: "대회 개최" },
               ]} />
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", maxWidth: 760 }}>
-                <h2 className="cc-page-title" style={{ margin: 0 }}>대회 개최{tutorial && " (튜토리얼)"}</h2>
-                {!tutorial && (
-                  <button
-                    type="button"
-                    className="cc-quick-fill-btn"
-                    onClick={handleQuickFill}
-                    disabled={quickLoading}
-                  >
-                    {quickLoading ? "⏳ 로딩 중..." : "⚡ 빠른 생성 (사과게임)"}
-                  </button>
-                )}
-              </div>
+              <h2 className="cc-page-title">대회 개최{tutorial && " (튜토리얼)"}</h2>
 
               <div className="cc-form">
                 {/* 기본 정보 — 이름 + 인증 토글 한 행 */}
@@ -769,15 +727,22 @@ const BattleCreateContestPage: React.FC<{ tutorial?: boolean }> = ({ tutorial = 
                   )}
                 </section>
 
-                {/* 시각화 파일 */}
-                <section className="cc-section" data-tut="viz">
+                {/* 검증 통과 전 안내 — 시각화/대회 설정 입력 잠금 */}
+                {!validationPassed && (
+                  <p className="cc-validate-lock-hint">
+                    🔒 코드 검증을 통과해야 시각화 파일과 대회 설정을 입력할 수 있습니다.
+                  </p>
+                )}
+
+                {/* 시각화 파일 — 검증 통과 후 입력 가능 */}
+                <section className={`cc-section${!validationPassed ? " cc-section--disabled" : ""}`} data-tut="viz">
                   <h3 className="cc-section-title">시각화 파일</h3>
                   <FileInput label="시각화 HTML 파일" accept=".html" value={visualizationHtml} onChange={setVisualizationHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
                   <FileInput label="혼자서 플레이 HTML 파일" accept=".html" value={soloPlayHtml} onChange={setSoloPlayHtml} required={certification} hint={!certification ? " (선택)" : undefined} />
                 </section>
 
-                {/* 대회 설정 */}
-                <section className="cc-section">
+                {/* 대회 설정 — 검증 통과 후 입력 가능 */}
+                <section className={`cc-section${!validationPassed ? " cc-section--disabled" : ""}`}>
                   <h3 className="cc-section-title">대회 설정</h3>
                   <div className="cc-row" data-tut="date">
                     <div className="cc-field">

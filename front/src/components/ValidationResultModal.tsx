@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { ValidationResult } from "../api/validationApi";
 import "./ValidationResultModal.css";
 
@@ -8,6 +8,7 @@ interface ValidationResultModalProps {
   isLoading: boolean;
   onClose: () => void;
   onRetry: () => void;
+  streamLogs?: string[];
 }
 
 const ValidationResultModal: React.FC<ValidationResultModalProps> = ({
@@ -16,7 +17,15 @@ const ValidationResultModal: React.FC<ValidationResultModalProps> = ({
   isLoading,
   onClose,
   onRetry,
+  streamLogs = [],
 }) => {
+  const logEndRef = useRef<HTMLDivElement>(null);
+
+  // 새 로그 줄이 추가될 때마다 자동 스크롤
+  useEffect(() => {
+    if (isLoading) logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [streamLogs, isLoading]);
+
   // 모달이 열려 있는 동안 배경(대회 페이지) 스크롤 잠금
   useEffect(() => {
     if (!isOpen) return;
@@ -30,11 +39,14 @@ const ValidationResultModal: React.FC<ValidationResultModalProps> = ({
   const failedItems = result?.details.filter(d => !d.passed) ?? [];
   const allPassed = result?.passed ?? false;
 
+  // 검증 진행 중에는 바깥 영역 클릭/터치로 닫히지 않도록 차단
+  const handleOverlayClose = () => { if (!isLoading) onClose(); };
+
   return (
     <div
       className="vrm-overlay"
-      onClick={onClose}
-      onTouchEnd={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={handleOverlayClose}
+      onTouchEnd={(e) => { if (e.target === e.currentTarget) handleOverlayClose(); }}
     >
       <div className="vrm-modal" onClick={e => e.stopPropagation()} onTouchEnd={e => e.stopPropagation()}>
         <div className="vrm-header">
@@ -46,6 +58,15 @@ const ValidationResultModal: React.FC<ValidationResultModalProps> = ({
           <div className="vrm-content vrm-loading">
             <div className="vrm-spinner"></div>
             <p>검증을 진행 중입니다...</p>
+            {streamLogs.length > 0 && (
+              <div className="vrm-stream-log">
+                <div className="vrm-stream-log-label">서버 로그</div>
+                <pre className="vrm-stream-log-pre">
+                  {streamLogs.join("\n")}
+                  <div ref={logEndRef} />
+                </pre>
+              </div>
+            )}
           </div>
         ) : result ? (
           <div className="vrm-content">

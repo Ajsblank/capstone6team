@@ -719,9 +719,39 @@
   font-weight: 800;
 }
 
+/* ── Sidebar Resize Handle ── */
+.st-sidebar-resize-handle {
+  width: 5px;
+  flex-shrink: 0;
+  background: transparent;
+  cursor: col-resize;
+  position: relative;
+  z-index: 10;
+  transition: background 0.15s;
+}
+.st-sidebar-resize-handle:hover,
+.st-sidebar-resize-handle:active {
+  background: #334155;
+}
+.st-sidebar-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 1px;
+  height: 40px;
+  background: #334155;
+  border-radius: 1px;
+  transition: background 0.15s, height 0.15s;
+}
+.st-sidebar-resize-handle:hover::after { background: #64748b; height: 60px; }
+
 /* ── Ranking Sidebar ── */
 .st-ranking-sidebar {
-  width: 230px;
+  width: 230px;      /* 기본값 — JS inline style로 덮어씀 */
+  min-width: 180px;
+  max-width: 500px;
   flex-shrink: 0;
   background: #111520;
   border-left: 1px solid #1e2535;
