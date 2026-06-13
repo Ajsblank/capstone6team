@@ -189,7 +189,7 @@ public class AuthService {
         smsService.verifySMS(request);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginResponse autoLogin(String token) {
         Long userId = tokenService.validateAndConsumeInviteToken(token);
 
