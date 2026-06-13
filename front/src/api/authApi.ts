@@ -181,3 +181,16 @@ export const signOutApi = async (password: string): Promise<void> => {
   await api.patch("/api/auth/signout", { password });
   clearTokens();
 };
+
+export const tempSignupApi = async (email: string, nickname: string): Promise<void> => {
+  await api.post("/api/auth/temp-signup", { email, nickname });
+};
+
+export const autoLoginApi = async (token: string): Promise<TokenResponse> => {
+  const { data } = await api.post<TokenResponse>("/api/auth/auto-login", { token });
+  setAccessToken(data.accessToken);
+  saveRefreshToken(data.refreshToken);
+  setUserId(String(data.userId));
+  setSessionId(data.sessionId ?? null);
+  return data;
+};

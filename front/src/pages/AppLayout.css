@@ -165,9 +165,11 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: #e5e7eb;
-  border: 1px solid #d1d5db;
-  display: inline-block;
+  background: #fff;
+  border: 1.5px solid #111;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   cursor: pointer;
   transition: box-shadow 0.15s;

@@ -60,24 +60,27 @@ const VALID_TABS: Tab[] = ["problem", "submit", "my-submissions", "viz1", "viz2"
  * 형식 A: #submit/tab          → problemId=1 (기본값)
  * 형식 B: #submit/123/tab      → problemId=123
  */
-function parseHash(): { problemId: number; tab: Tab } {
+function parseHash(): { problemId: number; tab: Tab; session: number | null } {
   const parts = window.location.hash.replace("#", "").split("/");
   // parts[0] = "submit"
   const maybeId = Number(parts[1]);
   if (!isNaN(maybeId) && maybeId > 0) {
     const tab = (parts[2] ?? "problem") as Tab;
-    return { problemId: maybeId, tab: VALID_TABS.includes(tab) ? tab : "problem" };
+    const validTab = VALID_TABS.includes(tab) ? tab : "problem";
+    const session = validTab === "battle-results" && parts[3] ? Number(parts[3]) || null : null;
+    return { problemId: maybeId, tab: validTab, session };
   }
   const tab = (parts[1] ?? "problem") as Tab;
-  return { problemId: 1, tab: VALID_TABS.includes(tab) ? tab : "problem" };
+  return { problemId: 1, tab: VALID_TABS.includes(tab) ? tab : "problem", session: null };
 }
 
 const SubmitPage: React.FC = () => {
-  const { navigate, user, joinedContestIds, hostedContestIds, addJoinedContest } = useApp();
+  const { navigate, user, joinedContestIds, hostedContestIds, createdContestIds, addJoinedContest } = useApp();
 
-  const [{ problemId, tab: activeTab }, setHashState] = useState(parseHash);
+  const [{ problemId, tab: activeTab, session: selectedSession }, setHashState] = useState(parseHash);
 
   const isReviewer = hostedContestIds.includes(problemId);
+  const isCreator  = createdContestIds.includes(problemId);
 
   const [language, setLanguage] = useState<Language>("cpp");
   const [code, setCode] = useState<string>(LANGUAGE_DEFAULTS["cpp"]);
@@ -105,15 +108,18 @@ const SubmitPage: React.FC = () => {
 
   const isJoined = joinedContestIds.includes(problemId) || joinStatus === "joined";
 
-  const isContestEnded = contestDetail?.status === "END";
+  const isContestEnded = contestDetail?.status === "END" || contestDetail?.status === "CANCELED";
 
   const TAB_LIST: TabDef[] = [
     ...BASE_TAB_LIST,
     ...(isReviewer ? [{ id: "review" as Tab, label: "검수" }] : []),
   ].map(tab => {
-    if (isReviewer && !REVIEWER_ALLOWED_TABS.includes(tab.id))
+    if (isReviewer && !isContestEnded && !REVIEWER_ALLOWED_TABS.includes(tab.id))
       return { ...tab, disabled: true, tooltip: "검수자는 이용할 수 없습니다" };
-    // 종료된 대회는 제출/내 제출 탭 활성화 (결과 조회 허용)
+    // 종료 대회: 참가 여부와 무관하게 제출 탭 잠금
+    if (isContestEnded && tab.id === "submit")
+      return { ...tab, disabled: true, tooltip: "종료된 대회에는 제출할 수 없습니다" };
+    // 미참가 + 진행/예정 대회: 제출·내 제출 탭 잠금
     if (!tab.disabled && !isJoined && !isContestEnded && PARTICIPATION_REQUIRED_TABS.includes(tab.id))
       return { ...tab, disabled: true, tooltip: "대회에 참가 후 이용 가능합니다" };
     if (tab.id === "viz1" && !viz1Available)
@@ -124,7 +130,6 @@ const SubmitPage: React.FC = () => {
   });
 
   const [showEditModal, setShowEditModal]       = useState(false);
-  const [selectedSession, setSelectedSession]   = useState<number | null>(null);
   const [showLoginPopup, setShowLoginPopup]       = useState(false);
   const [pendingJoinOnLogin, setPendingJoinOnLogin] = useState(false);
   const [showJoinSuccessPopup, setShowJoinSuccessPopup] = useState(false);
@@ -248,23 +253,32 @@ const SubmitPage: React.FC = () => {
     };
   }, []);
 
-  // 검수자가 허용되지 않은 탭에 직접 접근 시 문제 탭으로 이동
+  // 검수자가 허용되지 않은 탭에 직접 접근 시 문제 탭으로 이동 (진행/예정 대회만)
   useEffect(() => {
-    if (isReviewer && !REVIEWER_ALLOWED_TABS.includes(activeTab)) {
+    if (!contestDetail) return;
+    if (isReviewer && !isContestEnded && !REVIEWER_ALLOWED_TABS.includes(activeTab)) {
       window.location.hash = `submit/${problemId}/problem`;
       setHashState(prev => ({ ...prev, tab: "problem" }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReviewer]);
+  }, [isReviewer, isContestEnded]);
 
-  // 미참가 상태에서 잠긴 탭 직접 접근 시 문제 탭으로 이동
+  // 잠긴 탭 직접 접근 시 문제 탭으로 이동
   useEffect(() => {
-    if (!isReviewer && !isJoined && PARTICIPATION_REQUIRED_TABS.includes(activeTab)) {
+    if (!contestDetail) return; // 로드 전엔 판단 보류
+    // 종료 대회: 제출 탭은 참가 여부와 무관하게 차단
+    if (isContestEnded && activeTab === "submit") {
+      window.location.hash = `submit/${problemId}/problem`;
+      setHashState(prev => ({ ...prev, tab: "problem" }));
+      return;
+    }
+    // 미참가 + 진행/예정 대회: 참가 필요 탭 차단
+    if (!isReviewer && !isJoined && !isContestEnded && PARTICIPATION_REQUIRED_TABS.includes(activeTab)) {
       window.location.hash = `submit/${problemId}/problem`;
       setHashState(prev => ({ ...prev, tab: "problem" }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isJoined]);
+  }, [isJoined, isContestEnded]);
 
   // 콘텐츠 없는 탭 직접 접근 시 문제 탭으로 이동
   useEffect(() => {
@@ -278,8 +292,6 @@ const SubmitPage: React.FC = () => {
   }, [contestDetail]);
 
   const handleTabChange = useCallback((tab: Tab) => {
-    // 중간 결과 탭 떠날 때 세션 선택 초기화
-    if (activeTab === "battle-results") setSelectedSession(null);
     // 제출 탭 떠날 때 상태 텍스트 초기화 (코드는 유지)
     if (activeTab === "submit") { setSubmitStatus("idle"); setErrorMessage(""); }
 
@@ -528,13 +540,20 @@ const SubmitPage: React.FC = () => {
             {selectedSession === null ? (
               <BattleSessionsTab
                 contestId={problemId}
-                onSessionClick={setSelectedSession}
+                onSessionClick={(sn) => {
+                  window.location.hash = `submit/${problemId}/battle-results/${sn}`;
+                  setHashState(prev => ({ ...prev, session: sn }));
+                }}
+                isHostOrReviewer={isReviewer || isCreator}
               />
             ) : (
               <SessionDetailPanel
                 contestId={problemId}
                 sessionNumber={selectedSession}
-                onBack={() => setSelectedSession(null)}
+                onBack={() => {
+                  window.location.hash = `submit/${problemId}/battle-results`;
+                  setHashState(prev => ({ ...prev, session: null }));
+                }}
                 myUserId={user?.id ? Number(user.id) : undefined}
                 hasVisualization={viz1Available}
                 onLogView={handleLogClick}

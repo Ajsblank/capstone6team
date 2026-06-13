@@ -27,6 +27,13 @@
   color: #374151;
 }
 
+/* 기본 아바타 이모지 */
+.pb-avatar-default {
+  font-size: 1.6rem;
+  line-height: 1;
+  user-select: none;
+}
+
 /* 태그: 연한 회색 + 작게 (#으로 시작) */
 .pb-tag {
   font-size: 0.68rem;

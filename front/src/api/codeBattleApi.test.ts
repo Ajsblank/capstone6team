@@ -196,7 +196,10 @@ describe('getContestSessions()', () => {
     expect(result).toHaveLength(2);
     expect(result[0].status).toBe('END');
     expect(result[1].scheduledAt).toBeNull();
-    expect(mockApi.get).toHaveBeenCalledWith('/api/contests/3/sessionList');
+    expect(mockApi.get).toHaveBeenCalledWith(
+      '/api/contests/3/sessionList',
+      expect.objectContaining({ headers: expect.any(Object), params: expect.any(Object) }),
+    );
   });
 });
 
