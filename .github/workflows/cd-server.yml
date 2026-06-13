@@ -37,11 +37,6 @@ jobs:
     defaults:
       run:
         working-directory: server
-    services:
-      redis:
-        image: redis
-        ports: 
-          - 6379:6379
     env: 
       DB_USER: ${{ secrets.DB_USER }}
       DB_NAME: ${{ secrets.DB_NAME_STAGING }}
@@ -52,6 +47,8 @@ jobs:
       SOL_API_KEY: ${{secrets.SOL_API_KEY}}
       SOL_API_SECRET: ${{secrets.SOL_API_SECRET}}
       SOL_SENDER_NUMBER: ${{secrets.SOL_SENDER_NUMBER}}
+      TOSS_CLIENT_KEY: ${{secrets.TOSS_CLIENT_KEY}}
+      TOSS_SECRET_KEY: ${{secrets.TOSS_SECRET_KEY}}
       
     steps:
       - uses: actions/checkout@v4
@@ -64,8 +61,10 @@ jobs:
       - name: add permission to execute
         run: chmod +x gradlew 
 
+      - name: server test
+        run: ./gradlew test jacocoTestReport
       - name: server build
-        run: ./gradlew build
+        run: ./gradlew build -x test
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -73,10 +72,29 @@ jobs:
           role-to-assume: ${{secrets.ARN_ROLE}}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Upload to S3
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2 
+
+      - name: Build and push Docker image
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: caps-asap-server
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          JAR_FILE=$(ls build/libs/*.jar | grep -v plain | head -n 1)
-          aws s3 cp $JAR_FILE s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Upload deploy.sh to S3
+        run: |
+          aws s3 cp deploy.sh s3://caps-asap-bucket-test/backend-deploy/deploy/deploy.sh
+
+      - name: Upload JaCoCo report to S3
+        run: |
+          aws s3 sync build/reports/jacoco/test/html/ \
+          s3://caps-asap-bucket-test/backend-deploy/jacoco/${{ github.sha }}/
 
       - name: Start EC2 and Wait
         run: |
@@ -98,7 +116,7 @@ jobs:
               break
             fi
 
-            if [ "$i" -ge 24 ]; then # 5초 * 24 = 120초
+            if [ "$i" -ge 24 ]; then # 5초 * 36 = 120초
               echo "SSM Agent did not become online in time."
               exit 1
             fi
@@ -108,42 +126,82 @@ jobs:
             sleep 5
           done
 
-      - name: Run command and wait
+      - name: Run deploy on EC2
+        env:
+          ECR_IMAGE: ${{ steps.build-image.outputs.image }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
           --instance-ids ${{vars.EC2_ID_INSTANCE}} \
           --document-name "AWS-RunShellScript" \
+          --timeout-seconds 900 \
           --parameters '{
             "commands": [
               "export HOME=/home/ubuntu",
               "mkdir -p /home/ubuntu/app",
               "cd /home/ubuntu/app",
-              
-              "sudo fuser -k 8080/tcp || true",
 
-              "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/app.jar .",
-              
-              "export DB_URL=${{secrets.DB_URL_STAGING}}",
-              "export DB_NAME=${{secrets.DB_NAME_STAGING}}",
-              "export DB_USER=${{secrets.DB_USER}}",
-              "export DB_PASSWORD=${{secrets.DB_PASSWORD}}",
-              "export JWT_TOKEN=${{secrets.JWT_TOKEN}}",
-              "export GMAIL_PASSWORD=${{secrets.GMAIL_PASSWORD}}",
-              "export SOL_API_KEY=${{secrets.SOL_API_KEY}}",
-              "export SOL_API_SECRET=${{secrets.SOL_API_SECRET}}",
-              "export SOL_SENDER_NUMBER=${{secrets.SOL_SENDER_NUMBER}}",
-              "export AWS_REGION=${{ vars.AWS_REGION }}",
-              "export AWS_BUCKET_TEST=${{secrets.AWS_BUCKET_TEST}}",
-              "export AWS_ACCESS_KEY_ID=${{secrets.AWS_ACCESS_KEY_ID}}",
-              "export AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}}",
-              "nohup java -jar app.jar > /home/ubuntu/app/server.log 2>&1 < /dev/null &",
-              
-              "echo deploy_success > /home/ubuntu/app/test.txt"
+              "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/deploy.sh .",
+
+              "cat > /home/ubuntu/app/.env << '"'"'EOF'"'"'",
+              "DB_URL=${{secrets.DB_URL_STAGING}}",
+              "DB_NAME=${{secrets.DB_NAME_STAGING}}",
+              "DB_USER=${{secrets.DB_USER}}",
+              "DB_PASSWORD=${{secrets.DB_PASSWORD}}",
+              "JWT_TOKEN=${{secrets.JWT_TOKEN}}",
+              "GMAIL_PASSWORD=${{secrets.GMAIL_PASSWORD}}",
+              "SOL_API_KEY=${{secrets.SOL_API_KEY}}",
+              "SOL_API_SECRET=${{secrets.SOL_API_SECRET}}",
+              "SOL_SENDER_NUMBER=${{secrets.SOL_SENDER_NUMBER}}",
+              "AWS_REGION=${{ vars.AWS_REGION }}",
+              "AWS_BUCKET_TEST=${{secrets.AWS_BUCKET_TEST}}",
+              "AWS_CLOUD_FRONT=${{vars.AWS_CLOUD_FRONT}}",
+              "AWS_ACCESS_KEY_ID=${{secrets.AWS_ACCESS_KEY_ID}}",
+              "AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}}",
+              "TOSS_CLIENT_KEY=${{secrets.TOSS_CLIENT_KEY}}",
+              "TOSS_SECRET_KEY=${{secrets.TOSS_SECRET_KEY}}",
+              "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}",
+              "EOF",
+
+              "chmod 600 .env",
+              "chmod +x deploy.sh",
+              "bash deploy.sh ${{steps.build-image.outputs.image}}"
             ]
           }' \
           --query "Command.CommandId" \
           --output text)
 
-          aws ssm wait command-executed \
-          --command-id $COMMAND_ID \
-          --instance-id ${{vars.EC2_ID_INSTANCE}}
+          echo "SSM Command ID: $COMMAND_ID"
+          echo "배포 완료 대기 중 (최대 15분)..."
+          MAX_ATTEMPTS=90
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id $COMMAND_ID \
+              --instance-id ${{vars.EC2_ID_INSTANCE}} \
+              --query "Status" \
+              --output text 2>/dev/null || echo "Pending")
+
+            echo "[$i/$MAX_ATTEMPTS] Status: $STATUS"
+
+            if [ "$STATUS" = "Success" ]; then
+              echo "배포 성공!"
+              exit 0
+            elif [ "$STATUS" = "Failed" ] || [ "$STATUS" = "TimedOut" ] || [ "$STATUS" = "Cancelled" ]; then
+              echo "배포 실패 (Status: $STATUS)"
+              aws ssm get-command-invocation \
+                --command-id $COMMAND_ID \
+                --instance-id ${{vars.EC2_ID_INSTANCE}} \
+                --query "StandardOutputContent" \
+                --output text
+              aws ssm get-command-invocation \
+                --command-id $COMMAND_ID \
+                --instance-id ${{vars.EC2_ID_INSTANCE}} \
+                --query "StandardErrorContent" \
+                --output text
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          echo "배포 타임아웃 ($((MAX_ATTEMPTS * 10))초 초과)"
+          exit 1
