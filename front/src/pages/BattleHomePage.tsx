@@ -743,6 +743,16 @@ const BattlePage: React.FC = () => {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
+  // 로그인 후 리다이렉트로 돌아온 경우 pending action 실행
+  useEffect(() => {
+    if (!user) return;
+    const action = localStorage.getItem("loginPendingAction");
+    if (action === "create-contest") {
+      localStorage.removeItem("loginPendingAction");
+      setShowCostPopup(true);
+    }
+  }, [user]);
+
   const handleTabChange = (tab: BattleTab) => {
     window.location.hash = `battle/${tab}`;
     setActiveTab(tab);
@@ -860,9 +870,10 @@ const BattlePage: React.FC = () => {
         <div className="bp-popup-overlay" onClick={() => setShowLoginPopup(false)}>
           <div className="bp-popup" onClick={e => e.stopPropagation()}>
             <p className="bp-popup-msg">로그인이 필요한 기능입니다.<br />로그인하러 이동하시겠습니까?</p>
-            <button className="bp-popup-btn" onClick={() => { setShowLoginPopup(false); navigate("login"); }}>
-              이동
-            </button>
+            <div className="bp-popup-btns">
+              <button className="bp-popup-btn bp-popup-btn--cancel" onClick={() => setShowLoginPopup(false)}>취소</button>
+              <button className="bp-popup-btn" onClick={() => { setShowLoginPopup(false); localStorage.setItem("loginRedirect","battle"); localStorage.setItem("loginPendingAction","create-contest"); navigate("login"); }}>이동</button>
+            </div>
           </div>
         </div>
       )}
@@ -1082,10 +1093,12 @@ const BattlePage: React.FC = () => {
                   <>
                     <p className="bp-filter-count">총 {filteredContests.length}개 대회</p>
                     <div className="bp-problem-list">
-                      {filteredContests.map((c, idx) => (
+                      {[...filteredContests.filter(c => c.title.includes("캡스톤")), ...filteredContests.filter(c => !c.title.includes("캡스톤"))].map((c, idx) => {
+                        const isCapstone = c.title.includes("캡스톤");
+                        return (
                         <div
                           key={c.id}
-                          className={`bp-problem-card${statusCardClass(c.status)}`}
+                          className={`bp-problem-card${statusCardClass(c.status)}${isCapstone ? " bp-problem-card--capstone" : ""}`}
                           onClick={() => {
                             window.location.hash = `submit/${c.id}`;
                           }}
@@ -1106,6 +1119,7 @@ const BattlePage: React.FC = () => {
                             <div className="bp-problem-info">
                               <span className="bp-problem-num">#{idx + 1}</span>
                               <p className="bp-problem-title">
+                                {isCapstone && <span className="bp-capstone-badge">★ 참여하고 경품받기</span>}
                                 {c.title}
                                 {joinedContestIds.includes(c.id) && (
                                   <span className="bp-contest-badge bp-contest-badge--joined">
@@ -1155,7 +1169,8 @@ const BattlePage: React.FC = () => {
                             )}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </>
                 )}

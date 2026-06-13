@@ -316,9 +316,10 @@ interface VSidebarProps {
   myUserId?: number;
   sessionDone?: boolean;
   nickOf: (id: number) => string;
+  sidebarWidth?: number;
 }
-const VSidebar: React.FC<VSidebarProps> = ({ standings, trackedId, onTrack, rankDeltaMap, myUserId, sessionDone, nickOf }) => (
-  <div className="st-ranking-sidebar">
+const VSidebar: React.FC<VSidebarProps> = ({ standings, trackedId, onTrack, rankDeltaMap, myUserId, sessionDone, nickOf, sidebarWidth }) => (
+  <div className="st-ranking-sidebar" style={sidebarWidth ? { width: sidebarWidth } : undefined}>
     <div className="st-sidebar-header">
       <span className="st-sidebar-title">{sessionDone ? "최종 결과" : "실시간 순위"}</span>
       {trackedId !== null && (
@@ -383,6 +384,27 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId, contestId, 
   const [animKeyMap,     setAnimKeyMap]     = useState<Map<number, number>>(new Map());
   const [rankDeltaMap,   setRankDeltaMap]   = useState<Map<number, { delta: number; key: number }>>(new Map());
   const [zoom,           setZoom]           = useState(1.0);
+  const [sidebarWidth,   setSidebarWidth]   = useState(230);
+  const isDragging = React.useRef(false);
+
+  const onResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    const startX   = e.clientX;
+    const startW   = sidebarWidth;
+    const onMove   = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = startX - ev.clientX;          // 오른쪽이 넓어지도록 부호 반전
+      setSidebarWidth(Math.min(500, Math.max(180, startW + delta)));
+    };
+    const onUp = () => {
+      isDragging.current = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup",   onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup",   onUp);
+  }, [sidebarWidth]);
 
   // 매치 로그 조회 (스위스): 시각화 HTML 있으면 로그 분석 탭으로, 없으면 팝업 텍스트
   const [logLoadingMatchId, setLogLoadingMatchId] = useState<number | null>(null);
@@ -628,6 +650,7 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId, contestId, 
 
         </div>
 
+        <div className="st-sidebar-resize-handle" onMouseDown={onResizeMouseDown} />
         <VSidebar
           standings={standings}
           trackedId={trackedId}
@@ -636,6 +659,7 @@ const SwissTournamentViewer: React.FC<Props> = ({ payload, myUserId, contestId, 
           myUserId={myUserId}
           sessionDone={sessionDone}
           nickOf={nickOf}
+          sidebarWidth={sidebarWidth}
         />
       </div>
 

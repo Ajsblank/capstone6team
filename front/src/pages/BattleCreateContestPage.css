@@ -1021,6 +1021,21 @@
   background-color: #f3f4f6 !important;
 }
 
+/* 검증 통과 전 안내 문구 (시각화/대회 설정 잠금) */
+.cc-validate-lock-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #9a3412;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0;
+}
+
 /* ── 잠긴 섹션 (대회 진행 중 수정 불가 영역) ── */
 .cc-section--locked {
   background: #f3f4f6;

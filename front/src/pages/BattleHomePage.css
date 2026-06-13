@@ -241,6 +241,15 @@
   transition: background 0.15s;
 }
 .bp-popup-btn:hover { background: #ea6c0a; }
+.bp-popup-btn--cancel {
+  background: #e5e7eb;
+  color: #374151;
+}
+.bp-popup-btn--cancel:hover { background: #d1d5db; }
+.bp-popup-btns {
+  display: flex;
+  gap: 10px;
+}
 
 /* 배틀 홈 전용 — .battle-home-page 스코프로 제한하여 알고리즘 페이지에 영향 없음 */
 
@@ -675,6 +684,40 @@
 .bp-problem-dates-sep {
   color: #d1d5db;
   padding: 0 2px;
+}
+
+/* ── 캡스톤 주요 대회 카드 ── */
+@keyframes bp-capstone-float {
+  0%, 100% { transform: translateY(0); box-shadow: 0 4px 24px rgba(245, 158, 11, 0.22), 0 1px 6px rgba(245, 158, 11, 0.12); }
+  50%       { transform: translateY(-6px); box-shadow: 0 12px 32px rgba(245, 158, 11, 0.32), 0 4px 12px rgba(245, 158, 11, 0.18); }
+}
+
+.bp-problem-card--capstone {
+  background: linear-gradient(135deg, #fffbf0 0%, #fff7ed 60%, #ffedd5 100%);
+  border: 1.5px solid #f59e0b;
+  border-left: 4px solid #f59e0b;
+  animation: bp-capstone-float 3.2s ease-in-out infinite;
+}
+
+.bp-problem-card--capstone:hover {
+  animation-play-state: paused;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 36px rgba(245, 158, 11, 0.36), 0 3px 12px rgba(245, 158, 11, 0.2);
+}
+
+.bp-capstone-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: #92400e;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border: 1px solid #f59e0b;
+  border-radius: 12px;
+  padding: 2px 9px;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ── 개최 중 점 애니메이션 ── */

@@ -104,16 +104,20 @@ function connectSSE(userId: string): void {
 
   // 검수 결과 (백엔드 이름: test_result)
   emitter.addEventListener("test_result", (e: Event) => {
-    testResultCallback?.((e as MessageEvent).data);
+    const data = (e as MessageEvent).data;
+    console.log("[SSE] test_result:", data);
+    testResultCallback?.(data);
   });
 
   // 대회 검증 결과 (백엔드 이름: validate_result)
   emitter.addEventListener("validate_result", (e: Event) => {
+    console.log("[SSE] validate_result (raw):", (e as MessageEvent).data);
     try {
       const result = JSON.parse((e as MessageEvent).data);
+      console.log("[SSE] validate_result (parsed):", result);
       validationResultCallback?.(result);
     } catch {
-      // parse 오류 무시
+      console.warn("[SSE] validate_result parse 실패:", (e as MessageEvent).data);
     }
   });
 

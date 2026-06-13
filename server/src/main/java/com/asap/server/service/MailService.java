@@ -141,4 +141,31 @@ public class MailService {
     String verified = redisTemplate.opsForValue().get(verifiedKey(email));
     return "true".equals(verified);
   }
+
+  public void sendAccountInviteMail(String email, String nickname, String rawPassword, String autoLoginUrl) {
+    MimeMessage message = javaMailSender.createMimeMessage();
+    try {
+      message.setFrom(senderEmail);
+      message.setRecipients(MimeMessage.RecipientType.TO, email);
+      message.setSubject("[CodeBattle] 계정이 생성되었습니다.");
+      String body = "<h2>안녕하세요, " + nickname + "님!</h2>"
+          + "<p>CodeBattle 계정이 생성되었습니다.</p>"
+          + "<table style=\"border-collapse:collapse;margin:16px 0;\">"
+          + "<tr><td style=\"padding:6px 12px;font-weight:bold;\">아이디(이메일)</td>"
+          + "<td style=\"padding:6px 12px;\">" + email + "</td></tr>"
+          + "<tr><td style=\"padding:6px 12px;font-weight:bold;\">임시 비밀번호</td>"
+          + "<td style=\"padding:6px 12px;\">" + rawPassword + "</td></tr>"
+          + "</table>"
+          + "<p><a href=\"" + autoLoginUrl + "\" style=\"display:inline-block;padding:10px 20px;"
+          + "background-color:#4F46E5;color:white;text-decoration:none;border-radius:6px;\">"
+          + "자동 로그인 (24시간 유효)</a></p>"
+          + "<p style=\"color:#6B7280;font-size:0.9em;\">보안을 위해 로그인 후 비밀번호를 변경해 주세요.</p>";
+      message.setText(body, "UTF-8", "html");
+    } catch (MessagingException e) {
+      log.error("계정 초대 메일 생성 중 오류 발생: {}", e.getMessage());
+      throw new RuntimeException("메일 생성에 실패했습니다.");
+    }
+    javaMailSender.send(message);
+    log.info("계정 초대 메일 발송 완료 - 이메일: {}", email);
+  }
 }

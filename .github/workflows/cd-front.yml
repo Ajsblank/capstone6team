@@ -65,5 +65,5 @@ jobs:
       - name: check aws identity
         run: aws sts get-caller-identity
       - name: Upload to S3 TEST BUCKET
-        run: aws s3 sync build/ s3://caps-asap-bucket-test --delete --exclude "backend-deploy/*"
+        run: aws s3 sync build/ s3://${{ secrets.AWS_BUCKET_TEST }} --delete --exclude "backend-deploy/*"
         

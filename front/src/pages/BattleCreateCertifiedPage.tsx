@@ -9,7 +9,7 @@ import "./AppLayout.css";
 import "./BattleCreateContestPage.css";
 
 const BattleCreateCertifiedPage: React.FC = () => {
-  const { user, navigate, addCreatedContest } = useApp();
+  const { user, navigate } = useApp();
 
   const hostEmail = user?.email ?? "";
   const [emails, setEmails] = useState<string[]>([]);
