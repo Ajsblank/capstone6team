@@ -89,17 +89,17 @@ jobs:
 
       - name: Upload deploy.sh to S3
         run: |
-          aws s3 cp deploy.sh s3://caps-asap-bucket-test/backend-deploy/deploy/deploy.sh
+          aws s3 cp deploy.sh s3://${{ secrets.AWS_BUCKET_TEST }}/backend-deploy/deploy/deploy.sh
 
       - name: Upload JaCoCo report to S3
         run: |
           aws s3 sync build/reports/jacoco/test/html/ \
-          s3://caps-asap-bucket-test/backend-deploy/jacoco/${{ github.sha }}/
+          s3://${{ secrets.AWS_BUCKET_TEST }}/backend-deploy/jacoco/${{ github.sha }}/
 
       - name: Start EC2 and Wait
         run: |
-          aws ec2 start-instances --instance-ids ${{ vars.EC2_ID_INSTANCE }}
-          aws ec2 wait instance-running --instance-ids ${{ vars.EC2_ID_INSTANCE }}
+          aws ec2 start-instances --instance-ids ${{ vars.EC2_ID_INSTANCE_TEST }}
+          aws ec2 wait instance-running --instance-ids ${{ vars.EC2_ID_INSTANCE_TEST }}
           
       - name: Wait for SSM ready
         run: |
@@ -107,7 +107,7 @@ jobs:
           i=0
           while true; do
             STATUS=$(aws ssm describe-instance-information \
-              --filters "Key=InstanceIds,Values=${{ vars.EC2_ID_INSTANCE }}" \
+              --filters "Key=InstanceIds,Values=${{ vars.EC2_ID_INSTANCE_TEST }}" \
               --query "InstanceInformationList[0].PingStatus" \
               --output text)
             
@@ -116,7 +116,7 @@ jobs:
               break
             fi
 
-            if [ "$i" -ge 24 ]; then # 5초 * 36 = 120초
+            if [ "$i" -ge 24 ]; then # 5초 * 36 = 180초
               echo "SSM Agent did not become online in time."
               exit 1
             fi
@@ -131,7 +131,7 @@ jobs:
           ECR_IMAGE: ${{ steps.build-image.outputs.image }}
         run: |
           COMMAND_ID=$(aws ssm send-command \
-          --instance-ids ${{vars.EC2_ID_INSTANCE}} \
+          --instance-ids ${{vars.EC2_ID_INSTANCE_TEST}} \
           --document-name "AWS-RunShellScript" \
           --timeout-seconds 900 \
           --parameters '{
@@ -140,7 +140,7 @@ jobs:
               "mkdir -p /home/ubuntu/app",
               "cd /home/ubuntu/app",
 
-              "aws s3 cp s3://caps-asap-bucket-test/backend-deploy/deploy/deploy.sh .",
+              "aws s3 cp s3://${{ secrets.AWS_BUCKET_TEST }}/backend-deploy/deploy/deploy.sh .",
 
               "cat > /home/ubuntu/app/.env << '"'"'EOF'"'"'",
               "DB_URL=${{secrets.DB_URL_STAGING}}",
@@ -153,13 +153,14 @@ jobs:
               "SOL_API_SECRET=${{secrets.SOL_API_SECRET}}",
               "SOL_SENDER_NUMBER=${{secrets.SOL_SENDER_NUMBER}}",
               "AWS_REGION=${{ vars.AWS_REGION }}",
-              "AWS_BUCKET_TEST=${{secrets.AWS_BUCKET_TEST}}",
+              "AWS_BUCKET=${{secrets.AWS_BUCKET_TEST}}",
               "AWS_CLOUD_FRONT=${{vars.AWS_CLOUD_FRONT}}",
               "AWS_ACCESS_KEY_ID=${{secrets.AWS_ACCESS_KEY_ID}}",
               "AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}}",
               "TOSS_CLIENT_KEY=${{secrets.TOSS_CLIENT_KEY}}",
               "TOSS_SECRET_KEY=${{secrets.TOSS_SECRET_KEY}}",
               "ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}",
+              "CORS_ALLOWED_ORIGINS=${{ vars.CORS_ALLOWED_ORIGINS }}",
               "EOF",
 
               "chmod 600 .env",
@@ -176,7 +177,7 @@ jobs:
           for i in $(seq 1 $MAX_ATTEMPTS); do
             STATUS=$(aws ssm get-command-invocation \
               --command-id $COMMAND_ID \
-              --instance-id ${{vars.EC2_ID_INSTANCE}} \
+              --instance-id ${{vars.EC2_ID_INSTANCE_TEST}} \
               --query "Status" \
               --output text 2>/dev/null || echo "Pending")
 
@@ -189,12 +190,12 @@ jobs:
               echo "배포 실패 (Status: $STATUS)"
               aws ssm get-command-invocation \
                 --command-id $COMMAND_ID \
-                --instance-id ${{vars.EC2_ID_INSTANCE}} \
+                --instance-id ${{vars.EC2_ID_INSTANCE_TEST}} \
                 --query "StandardOutputContent" \
                 --output text
               aws ssm get-command-invocation \
                 --command-id $COMMAND_ID \
-                --instance-id ${{vars.EC2_ID_INSTANCE}} \
+                --instance-id ${{vars.EC2_ID_INSTANCE_TEST}} \
                 --query "StandardErrorContent" \
                 --output text
               exit 1
