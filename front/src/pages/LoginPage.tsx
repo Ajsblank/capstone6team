@@ -33,8 +33,13 @@ const LoginPage: React.FC = () => {
       );
       // 로그인 직후 프로필 조회 → 로그아웃 전까지 localStorage에서 재사용 (API 재호출 없음)
       getMyProfile().then(setMyProfileCache).catch(() => {});
+      const redirect = localStorage.getItem("loginRedirect");
       localStorage.removeItem("loginRedirect");
-      navigate("landing");
+      if (redirect) {
+        window.location.hash = redirect;
+      } else {
+        navigate("landing");
+      }
     } catch (err: any) {
       const msg = err.response?.data?.message ?? "이메일 또는 비밀번호가 올바르지 않습니다.";
       setError(msg);

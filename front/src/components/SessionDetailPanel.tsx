@@ -48,7 +48,6 @@ const SessionDetailPanel: React.FC<Props> = ({ contestId, sessionNumber, onBack,
 
   useEffect(() => {
     const token = getAccessToken() ?? "";
-    const tag = `[SSE][contest=${contestId}][session=${sessionNumber}]`;
     const url = `${BASE_URL}/api/contests/${contestId}/${sessionNumber}/subscribe?token=${token}`;
 
     const es = new EventSource(url);

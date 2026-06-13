@@ -743,6 +743,16 @@ const BattlePage: React.FC = () => {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
+  // 로그인 후 리다이렉트로 돌아온 경우 pending action 실행
+  useEffect(() => {
+    if (!user) return;
+    const action = localStorage.getItem("loginPendingAction");
+    if (action === "create-contest") {
+      localStorage.removeItem("loginPendingAction");
+      setShowCostPopup(true);
+    }
+  }, [user]);
+
   const handleTabChange = (tab: BattleTab) => {
     window.location.hash = `battle/${tab}`;
     setActiveTab(tab);
@@ -860,9 +870,10 @@ const BattlePage: React.FC = () => {
         <div className="bp-popup-overlay" onClick={() => setShowLoginPopup(false)}>
           <div className="bp-popup" onClick={e => e.stopPropagation()}>
             <p className="bp-popup-msg">로그인이 필요한 기능입니다.<br />로그인하러 이동하시겠습니까?</p>
-            <button className="bp-popup-btn" onClick={() => { setShowLoginPopup(false); navigate("login"); }}>
-              이동
-            </button>
+            <div className="bp-popup-btns">
+              <button className="bp-popup-btn bp-popup-btn--cancel" onClick={() => setShowLoginPopup(false)}>취소</button>
+              <button className="bp-popup-btn" onClick={() => { setShowLoginPopup(false); localStorage.setItem("loginRedirect","battle"); localStorage.setItem("loginPendingAction","create-contest"); navigate("login"); }}>이동</button>
+            </div>
           </div>
         </div>
       )}

@@ -125,7 +125,9 @@ const SubmitPage: React.FC = () => {
 
   const [showEditModal, setShowEditModal]       = useState(false);
   const [selectedSession, setSelectedSession]   = useState<number | null>(null);
-  const [showLoginPopup, setShowLoginPopup]     = useState(false);
+  const [showLoginPopup, setShowLoginPopup]       = useState(false);
+  const [pendingJoinOnLogin, setPendingJoinOnLogin] = useState(false);
+  const [showJoinSuccessPopup, setShowJoinSuccessPopup] = useState(false);
 
   // TODO: 백엔드에서 contestDetail.creatorId 반환 구현 후 아래 주석 해제
   // const isOwner = !!user && !!contestDetail && user.id === contestDetail.creatorId;
@@ -137,8 +139,6 @@ const SubmitPage: React.FC = () => {
     setContestDetail(null);
     setContestDetailError(null);
     setContestDetailLoading(true);
-    setJoinStatus(joinedContestIds.includes(problemId) ? "joined" : "idle");
-    setJoinError("");
     getContestDetail(problemId)
       .then(data => { if (!cancelled) setContestDetail(data); })
       .catch(() => { if (!cancelled) setContestDetailError("대회 정보를 불러오지 못했습니다."); })
@@ -146,10 +146,15 @@ const SubmitPage: React.FC = () => {
     return () => { cancelled = true; };
   }, [problemId]);
 
+  useEffect(() => {
+    setJoinStatus(joinedContestIds.includes(problemId) ? "joined" : "idle");
+    setJoinError("");
+  }, [joinedContestIds, problemId]);
+
   const handleJoin = useCallback(async () => {
     if (!user) {
-      setJoinStatus("error");
-      setJoinError("로그인이 필요합니다.");
+      setPendingJoinOnLogin(true);
+      setShowLoginPopup(true);
       return;
     }
     setJoinStatus("joining");
@@ -158,11 +163,22 @@ const SubmitPage: React.FC = () => {
       await joinContest(problemId, user.email ?? user.id);
       setJoinStatus("joined");
       addJoinedContest(problemId);
+      setShowJoinSuccessPopup(true);
     } catch (err: any) {
       setJoinStatus("error");
       setJoinError(err.response?.data?.message ?? "참가 신청에 실패했습니다.");
     }
-  }, [problemId, user]);
+  }, [problemId, user, addJoinedContest]);
+
+  // 로그인 후 리다이렉트로 돌아온 경우 pending action 실행
+  useEffect(() => {
+    if (!user) return;
+    const action = localStorage.getItem("loginPendingAction");
+    if (action === "join-contest") {
+      localStorage.removeItem("loginPendingAction");
+      handleJoin();
+    }
+  }, [user, handleJoin]);
 
   // 로그 분석 iframe ref + 전달할 로그
   const logIframeRef = useRef<HTMLIFrameElement>(null);
@@ -333,12 +349,28 @@ const SubmitPage: React.FC = () => {
     <div className="submit-page home-page battle-home-page">
       {/* ── 로그인 필요 팝업 ── */}
       {showLoginPopup && (
-        <div className="bp-popup-overlay" onClick={() => setShowLoginPopup(false)}>
+        <div className="bp-popup-overlay" onClick={() => { setShowLoginPopup(false); setPendingJoinOnLogin(false); }}>
           <div className="bp-popup" onClick={e => e.stopPropagation()}>
             <p className="bp-popup-msg">로그인이 필요한 기능입니다.<br />로그인하러 이동하시겠습니까?</p>
-            <button className="bp-popup-btn" onClick={() => { setShowLoginPopup(false); navigate("login"); }}>
-              이동
-            </button>
+            <div className="bp-popup-btns">
+              <button className="bp-popup-btn bp-popup-btn--cancel" onClick={() => { setShowLoginPopup(false); setPendingJoinOnLogin(false); }}>취소</button>
+              <button className="bp-popup-btn" onClick={() => {
+                setShowLoginPopup(false);
+                localStorage.setItem("loginRedirect", window.location.hash.replace("#", ""));
+                if (pendingJoinOnLogin) localStorage.setItem("loginPendingAction", "join-contest");
+                navigate("login");
+              }}>이동</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 참가 신청 성공 팝업 ── */}
+      {showJoinSuccessPopup && (
+        <div className="bp-popup-overlay" onClick={() => setShowJoinSuccessPopup(false)}>
+          <div className="bp-popup" onClick={e => e.stopPropagation()}>
+            <p className="bp-popup-msg"><span style={{ color: "#f97316" }}>{contestDetail?.title ?? "대회"}</span>에 참가하셨습니다.<br />이제 코드 제출 및 대결이 가능합니다.</p>
+            <button className="bp-popup-btn" onClick={() => setShowJoinSuccessPopup(false)}>확인</button>
           </div>
         </div>
       )}
@@ -497,7 +529,6 @@ const SubmitPage: React.FC = () => {
               <BattleSessionsTab
                 contestId={problemId}
                 onSessionClick={setSelectedSession}
-                contestEnded={contestDetail?.status === "END"}
               />
             ) : (
               <SessionDetailPanel
