@@ -1,1 +1,0 @@
-ALTER TABLE code_battle_match ALTER COLUMN ai_order TYPE BIGINT;
