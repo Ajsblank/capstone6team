@@ -127,9 +127,8 @@ root/
 │   ├── CMakeLists.txt
 │   └── Dockerfile                  # 멀티스테이지 빌드 (Builder + DooD Runtime)
 │
-├── DB/
-│   ├── schema.sql                  # 전체 DB 스키마
-│   ├── schema_local_develop.sql    # 로컬 개발용 초기화 스크립트
+├── db/
+│   ├── schema.sql                  # 전체 DB 스키마 (스테이징 기준 최신)
 │   └── docker-compose.yml          # 로컬 PostgreSQL 16 + Redis 7
 │
 ├── example/                        # 예제 게임 (대회 개최 양식 참고용)
@@ -208,12 +207,12 @@ root/
 ### 1. DB 및 Redis 실행
 
 ```bash
-cd DB
+cd db
 docker-compose up -d
 ```
 
 PostgreSQL은 `localhost:5432`, Redis는 `localhost:6379`에 바인딩됩니다.  
-초기 스키마는 `schema_local_develop.sql`이 자동으로 적용됩니다.
+초기 스키마는 `schema.sql`이 자동으로 적용됩니다.
 
 ### 2. 백엔드 실행
 
