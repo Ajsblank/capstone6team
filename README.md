@@ -140,7 +140,8 @@ root/
 │   └── yut/                        # 윷놀이
 │
 └── docs4capstone/                  # 캡스톤 제출 문서
-    └── 06.ASAP_proposal.pdf
+    ├── 00MANIFEST.md               # 문서 인덱스
+    └── 06.ASAP_proposal.pdf        # 기획 제안서
 ```
 
 ---
