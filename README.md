@@ -351,7 +351,7 @@ users
      └─ payment                       (결제 이력, Toss Payments)
 ```
 
-DB 스키마 파일은 `server/src/main/resources/db/migration/` 에 위치합니다 (현재 Flyway 비활성화, `schema.sql` / `schema_local_develop.sql` 로 직접 관리).
+DB 스키마 파일은 `db/schema.sql` 에 위치하며, 로컬 환경 실행은 `db/docker-compose.yml` 을 사용합니다.
 
 ---
 
