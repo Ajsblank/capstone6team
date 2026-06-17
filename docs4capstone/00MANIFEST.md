@@ -6,7 +6,11 @@
 
 ### 📂 1. 프로젝트 기획 및 요구사항
 * [프로젝트 설명 (README.md)](../README.md)
+
 ### 📝 2. 기획제안서 
-* [기획 제안서 (06.ASAP_proposal.pdf)](./06.ASAP_proposal.pdf) 
+* [기획 제안서 (06.ASAP_proposal.pdf)](./06.ASAP_proposal.pdf)
+
+### 📋 3. 최종 보고서
+* [최종 보고서 (README.md)](../README.md)
 
 ---
