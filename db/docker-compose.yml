@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: asap-db
+    restart: always
+    environment:
+      POSTGRES_USER: asap
+      POSTGRES_PASSWORD: ascrrqbwk
+      POSTGRES_DB: code_battle_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U asap -d code_battle_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: asap-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
