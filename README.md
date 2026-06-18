@@ -223,12 +223,21 @@ PostgreSQL은 `localhost:5432`, Redis는 `localhost:6379`에 바인딩됩니다.
 cd server
 # 환경 변수 설정 (또는 .env_server 참고)
 export DB_URL=localhost
-export DB_NAME=code_battle_db
 export DB_USER=asap
+export DB_NAME=code_battle_db
 export DB_PASSWORD=ascrrqbwk
 export JWT_TOKEN=<your-jwt-secret>
+export GMAIL_USERNAME=<your-gmail-username>
 export GMAIL_PASSWORD=<your-gmail-app-password>
-# ... (SMS, S3 키는 선택)
+export CORS_ALLOWED_ORIGINS=http://localhost:3000
+export AWS_REGION=<your-aws-region>
+export AWS_BUCKET=<your-aws-bucket>
+export AWS_ACCESS_KEY_ID=<your-aws-accress-key-id>
+export AWS_SECRET_ACCESS_KEY=<your-aws-access-key>
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+export TOSS_CLIENT_KEY=<your-toss-client-key>
+export TOSS_SECRET_KEY=<your-toss-secret-key>
 
 ./gradlew bootRun
 ```
