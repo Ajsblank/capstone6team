@@ -7,12 +7,13 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <poll.h>
+#include <csignal>
 
 using namespace std;
 
 enum Result
 {
-    NONE, WIN, LOSE, TIME_LIMIT, MEMORY_LIMIT, ERROR
+    NONE, WIN, LOSE, TIME_LIMIT, MEMORY_LIMIT, RUNTIME_ERROR
 };
 Result p1Result = WIN, p2Result = WIN;
 
@@ -33,7 +34,7 @@ string EnumToString(Result result)
         case LOSE: return "LOSE";
         case TIME_LIMIT: return "TIME_LIMIT";
         case MEMORY_LIMIT: return "MEMORY_LIMIT";
-        case ERROR: return "ERROR";
+        case RUNTIME_ERROR: return "RUNTIME_ERROR";
     }
     throw invalid_argument("Invalid Result : " + result);
 }
@@ -107,7 +108,9 @@ string recv_msg(Player& p, int timeout_ms, int& actual_time_ms) {
                 }
                 if (c != '\r') res += c;
             } else {
-                break; // EOF
+                // 프로세스가 죽어 파이프가 닫힘 (EOF)
+                actual_time_ms = chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - start).count();
+                return "EOF";
             }
         } else if (ret == 0) {
             break; // Timeout
@@ -185,6 +188,8 @@ public:
 };
 
 int main(int argc, char* argv[]) {
+    signal(SIGPIPE, SIG_IGN);
+
     if (argc != 3) {
         cerr << "사용법: ./judge <Player1_code> <Player2_code>" << "\n";
         return 1;
@@ -202,12 +207,14 @@ int main(int argc, char* argv[]) {
 
     int dummy_time;
     if (recv_msg(p1, READY_TIMEOUT_MS, dummy_time) != "OK") {
-        p1Result = ERROR;
+        p1Result = RUNTIME_ERROR;
+        if (recv_msg(p2, READY_TIMEOUT_MS, dummy_time) != "OK")
+            p2Result = RUNTIME_ERROR;
         cout << EnumToString(p1Result) << " " << EnumToString(p2Result) << "\n";
         terminate_player(p1); terminate_player(p2); return 0;
     }
     if (recv_msg(p2, READY_TIMEOUT_MS, dummy_time) != "OK") {
-        p2Result = ERROR;
+        p2Result = RUNTIME_ERROR;
         cout << EnumToString(p1Result) << " " << EnumToString(p2Result) << "\n";
         terminate_player(p1); terminate_player(p2); return 0;
     }
@@ -235,6 +242,10 @@ int main(int argc, char* argv[]) {
         
         cur_p.time_left_ms -= max(0, actual_time_ms);
 
+        if (resp == "EOF") {
+            cur_p.result = RUNTIME_ERROR;
+            break;
+        }
         if (resp == "TIMEOUT" || cur_p.time_left_ms < 0) {
             cur_p.result = TIME_LIMIT;
             break;
@@ -243,7 +254,16 @@ int main(int argc, char* argv[]) {
         int r1, c1, r2, c2;
         stringstream ss(resp);
         if (!(ss >> r1 >> c1 >> r2 >> c2)) {
-            cur_p.result = ERROR;
+            cur_p.result = RUNTIME_ERROR;
+            send_msg(opp_p, "TIME " + to_string(opp_p.time_left_ms) + " 0");
+            int opp_actual = 0;
+            string opp_resp = recv_msg(opp_p, min(opp_p.time_left_ms + 500, 3000), opp_actual);
+            int or1, oc1, or2, oc2;
+            stringstream oss(opp_resp);
+            if (opp_resp == "TIMEOUT" || opp_resp == "EOF" ||
+                !(oss >> or1 >> oc1 >> or2 >> oc2) ||
+                (!(or1 == -1 && oc1 == -1 && or2 == -1 && oc2 == -1) && !game.is_valid_move(or1, oc1, or2, oc2)))
+                opp_p.result = RUNTIME_ERROR;
             break;
         }
 
@@ -252,7 +272,16 @@ int main(int argc, char* argv[]) {
         } else {
             consecutive_passes = 0;
             if (!game.is_valid_move(r1, c1, r2, c2)) {
-                cur_p.result = ERROR;
+                cur_p.result = RUNTIME_ERROR;
+                send_msg(opp_p, "TIME " + to_string(opp_p.time_left_ms) + " 0");
+                int opp_actual = 0;
+                string opp_resp = recv_msg(opp_p, min(opp_p.time_left_ms + 500, 3000), opp_actual);
+                int or1, oc1, or2, oc2;
+                stringstream oss(opp_resp);
+                if (opp_resp == "TIMEOUT" || opp_resp == "EOF" ||
+                    !(oss >> or1 >> oc1 >> or2 >> oc2) ||
+                    (!(or1 == -1 && oc1 == -1 && or2 == -1 && oc2 == -1) && !game.is_valid_move(or1, oc1, or2, oc2)))
+                    opp_p.result = RUNTIME_ERROR;
                 break;
             }
             game.apply_move(r1, c1, r2, c2, player_id);
